@@ -14,6 +14,9 @@ import {
 } from "@/config";
 import { umamiConfig } from "../config";
 
+// 使用 Astro 的 getImage 处理图片路径，或使用 Astro.url 来获取正确的基础 URL
+const baseUrl = new URL("/", Astro.site || "https://example.com");
+
 const BANNER_HEIGHT = 35;
 const BANNER_HEIGHT_EXTEND = 30;
 const BANNER_HEIGHT_HOME = BANNER_HEIGHT + BANNER_HEIGHT_EXTEND;
@@ -291,7 +294,7 @@ if (siteConfig.font) {
 		<slot name="head"></slot>
 
 		<!-- Pio 看板娘样式 - 仅在启用时加载 -->
-		{pioConfig.enable && <link rel="stylesheet" href="/pio/static/pio.css" />}
+		{pioConfig.enable && <link rel="stylesheet" href={new URL("pio/static/pio.css", Astro.site || `${baseUrl}`).pathname} />}
 
 		<link rel="alternate" type="application/rss+xml" title={profileConfig.name} href={`${Astro.site}rss.xml`}/>
 
