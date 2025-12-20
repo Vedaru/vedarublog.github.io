@@ -29,8 +29,8 @@ import { remarkReadingTime } from "./src/plugins/remark-reading-time.mjs";
 export default defineConfig({
 	site: siteConfig.siteURL,
 
-	// User/organization GitHub Pages deploys at root domain, keep base at "/"
-	base: "/",
+	// Project site on GitHub Pages: needs repo name as base path
+	base: "/vedarublog.github.io/",
 	trailingSlash: "always",
 	integrations: [
 		tailwind({
