@@ -594,7 +594,7 @@ export const pioConfig: import("./types/config").PioConfig = {
 	width: 280, // 默认宽度
 	height: 250, // 默认高度
 	mode: "fixed", // 默认为可拖拽模式
-	hiddenOnMobile: false, // 移动端也显示，避免被隐藏
+	hiddenOnMobile: true, // 移动端自动禁用显示
 	dialog: {
 		welcome: "欢迎！", // 欢迎词
 		touch: [

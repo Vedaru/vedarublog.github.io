@@ -3,6 +3,8 @@ import { onDestroy, onMount } from "svelte";
 import { pioConfig } from "@/config";
 
 export let baseURL = "/";
+const MOBILE_BREAKPOINT = 768;
+let isMobileClient = false;
 
 // 将配置转换为 Pio 插件需要的格式
 const pioOptions = {
@@ -21,6 +23,47 @@ let pioContainer;
 let pioCanvas;
 let removeShowListener;
 
+// 设备像素比上限与网络状况自适应，降低首帧渲染压力
+function getEffectivePixelRatio() {
+	const pr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
+	const conn = typeof navigator !== 'undefined' ? (navigator.connection || navigator.mozConnection || navigator.webkitConnection) : null;
+	const save = conn && conn.saveData;
+	const type = conn && conn.effectiveType;
+	// 在省流或较差网络下，限制像素比为1；否则上限为1.25以兼顾清晰度与性能
+	const cap = save || (type && (type.includes('2g') || type.includes('slow-2g'))) ? 1.0 : 1.25;
+	return Math.min(pr, cap);
+}
+
+function sizeCanvas() {
+	if (!pioCanvas) return;
+	let cssW = pioConfig.width || 280;
+	let cssH = pioConfig.height || 250;
+	const vw = typeof window !== 'undefined' ? window.innerWidth : 1024;
+	// 移动端稍微降低尺寸
+	if (vw <= 768) {
+		cssW = Math.round(cssW * 0.8);
+		cssH = Math.round(cssH * 0.8);
+	}
+	const pr = getEffectivePixelRatio();
+	pioCanvas.style.width = cssW + 'px';
+	pioCanvas.style.height = cssH + 'px';
+	pioCanvas.width = Math.round(cssW * pr);
+	pioCanvas.height = Math.round(cssH * pr);
+}
+
+function throttle(fn, wait) {
+	let ticking = false;
+	return function(...args) {
+		if (!ticking) {
+			ticking = true;
+			setTimeout(() => {
+				ticking = false;
+				fn.apply(this, args);
+			}, wait);
+		}
+	};
+}
+
 // 样式已通过 Layout.astro 静态引入，无需动态加载
 
 // 等待 DOM 加载完成后再初始化 Pio
@@ -29,6 +72,8 @@ function initPio() {
 		try {
 			// 确保DOM元素存在
 			if (pioContainer && pioCanvas && !pioInitialized) {
+				// 在初始化前根据设备情况设置画布尺寸
+				sizeCanvas();
 				pioInstance = new Paul_Pio(pioOptions);
 				pioInitialized = true;
 				console.log("Pio initialized successfully (Svelte)");
@@ -106,6 +151,20 @@ function loadPioAssets() {
 onMount(() => {
 	if (!pioConfig.enable) return;
 
+	// 运行时检测移动端
+	try {
+		isMobileClient = (typeof window !== 'undefined' && window.innerWidth <= MOBILE_BREAKPOINT) ||
+			(typeof navigator !== 'undefined' && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
+	} catch {}
+
+	// 移动端禁用：隐藏容器并跳过初始化与资源加载
+	if (pioConfig.hiddenOnMobile && isMobileClient) {
+		if (pioContainer) {
+			pioContainer.classList.add('hidden');
+		}
+		return;
+	}
+
 	// 确保默认显示，不受本地存储隐藏状态影响
 	try {
 		localStorage.setItem("posterGirl", "1");
@@ -115,6 +174,10 @@ onMount(() => {
 
 	// 加载资源并初始化
 	loadPioAssets();
+
+	// 初始画布尺寸与窗口变化自适应（节流）
+	const handleResize = throttle(() => sizeCanvas(), 200);
+	window.addEventListener('resize', handleResize);
 
 	// 监听外部唤醒事件（如导航栏按钮）
 	const handleShow = () => {
@@ -139,7 +202,10 @@ onMount(() => {
 		}
 	};
 	window.addEventListener("pio:show", handleShow);
-	removeShowListener = () => window.removeEventListener("pio:show", handleShow);
+	removeShowListener = () => {
+		window.removeEventListener("pio:show", handleShow);
+		window.removeEventListener('resize', handleResize);
+	};
 });
 
 onDestroy(() => {

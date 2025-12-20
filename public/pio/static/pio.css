@@ -20,6 +20,11 @@
 
 .pio-container .pio-show {
 	left: -1em;
+
+/* 移动端自动禁用（隐藏容器），与配置 hiddenOnMobile 协同 */
+@media (max-width: 768px) {
+  .pio-container { display: none !important; }
+}
 	bottom: 1em;
 	width: 3em;
 	height: 3em;
