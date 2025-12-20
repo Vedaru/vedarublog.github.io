@@ -159,7 +159,7 @@ BCRYPT_SALT_ROUNDS=12
 title: 我的第一篇博客文章
 published: 2023-09-09
 description: 这是我新博客的第一篇文章。
-image: ./cover.jpg
+image: ./cover.webp
 tags: [标签1, 标签2]
 category: 前端
 draft: false

@@ -33,7 +33,7 @@ const localAnimeList: AnimeItem[] = [
 		title: "86-不存在的战区-",
 		status: "completed",
 		rating: 9.5,
-		cover: "/assets/anime/86不存在的战区.jpg",
+		cover: "/assets/anime/86不存在的战区.webp",
 		description: "86 -eightysix-",
 		year: "2021",
 		genre: ["战斗", "公路", "群像"],

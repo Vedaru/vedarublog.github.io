@@ -11,7 +11,7 @@ Mizuki-Content/
 │   ├── post-2.md
 │   └── my-article/
 │       ├── index.md
-│       └── cover.jpg
+│       └── cover.webp
 ├── spec/               # 特殊页面
 │   ├── about.md
 │   └── friends.md
@@ -125,7 +125,7 @@ pnpm run sync-content
 title: 文章标题
 published: 2024-01-01
 description: 文章描述
-image: ./cover.jpg
+image: ./cover.webp
 tags: [标签1, 标签2]
 category: 分类
 draft: false
@@ -145,7 +145,7 @@ posts/
 ├── simple-post.md                    # 简单文章
 └── complex-post/                     # 复杂文章
     ├── index.md                      # 文章内容
-    ├── cover.jpg                     # 封面图
+    ├── cover.webp                     # 封面图
     └── diagram.png                   # 文章中的图片
 ```
 
@@ -212,10 +212,10 @@ pnpm run sync-content
 
 ```markdown
 <!-- 相对路径 (推荐) -->
-![描述](./image.jpg)
+![描述](./image.webp)
 
 <!-- 公共图片目录 -->
-![描述](/images/posts/image.jpg)
+![描述](/images/posts/image.webp)
 ```
 
 ## ⚠️ 注意事项

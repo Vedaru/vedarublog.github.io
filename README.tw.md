@@ -151,7 +151,7 @@
 title: 我的第一篇部落格文章
 published: 2023-09-09
 description: 這是我新部落格的第一篇文章。
-image: ./cover.jpg
+image: ./cover.webp
 tags: [標籤1, 標籤2]
 category: 前端
 draft: false

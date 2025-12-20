@@ -145,7 +145,7 @@
 title: 私の最初のブログ投稿
 published: 2023-09-09
 description: これは私の新しいブログの最初の投稿です。
-image: ./cover.jpg
+image: ./cover.webp
 tags: [タグ1, タグ2]
 category: フロントエンド
 draft: false

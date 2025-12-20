@@ -51,7 +51,7 @@ export const siteConfig: SiteConfig = {
 		// 顶栏标题文本
 		text: "Vedaru",
 		// 顶栏标题图标路径，默认使用 public/assets/home/home.png
-		icon: "assets/home/Image_1764853150683.jpg",
+		icon: "assets/home/Image_1764853150683.webp",
 	},
 
 	bangumi: {
@@ -164,21 +164,21 @@ export const siteConfig: SiteConfig = {
 	generateOgImages: false, // 启用生成OpenGraph图片功能,注意开启后要渲染很长时间，不建议本地调试的时候开启
 	favicon: [
 		{
-			src: "/favicon/favicon.jpg", // 使用profile头像作为favicon
+			src: "/favicon/favicon.webp", // 使用profile头像作为favicon
 			theme: "light",
 			sizes: "32x32",
 		},
 		{
-			src: "/favicon/favicon.jpg",
+			src: "/favicon/favicon.webp",
 			theme: "dark",
 			sizes: "32x32",
 		},
 		{
-			src: "/favicon/favicon.jpg",
+			src: "/favicon/favicon.webp",
 			sizes: "16x16",
 		},
 		{
-			src: "/favicon/favicon.jpg",
+			src: "/favicon/favicon.webp",
 			sizes: "192x192",
 		},
 	],
@@ -320,7 +320,7 @@ export const navBarConfig: NavBarConfig = {
 };
 
 export const profileConfig: ProfileConfig = {
-	avatar: "assets/images/Image_1764853150683.jpg", // 相对于 /src 目录。如果以 '/' 开头，则相对于 /public 目录
+	avatar: "assets/images/Image_1764853150683.webp", // 相对于 /src 目录。如果以 '/' 开头，则相对于 /public 目录
 	name: "Vedaru",
 	bio: "梦想是成为现充……",
 	typewriter: {

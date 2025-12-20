@@ -29,7 +29,7 @@
 	border-radius: 3em;
 	border: 3px solid #fff;
 	transition: transform 0.3s;
-	background: url(avatar.jpg) center / contain;
+	background: url(avatar.webp) center / contain;
 }
 
 .pio-container.hidden .pio-show {
