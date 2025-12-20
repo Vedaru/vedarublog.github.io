@@ -128,6 +128,8 @@ const getCategoryText = (category: string) => {
                       src={project.image} 
                       alt={project.title}
                       class="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                      loading="lazy"
+                      decoding="async"
                     />
                   </div>
                 )}
@@ -219,6 +221,8 @@ const getCategoryText = (category: string) => {
                           src={project.image} 
                           alt={project.title}
                           class="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
+                          decoding="async"
                         />
                       </div>
                     )}

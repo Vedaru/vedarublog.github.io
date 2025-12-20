@@ -67,6 +67,8 @@ const brands = Object.keys(devices);
                   src={device.image} 
                   alt={device.name}
                   class="w-auto h-full max-h-full object-contain group-hover:scale-110 transition-all duration-500 drop-shadow-md relative z-10"
+                  loading="lazy"
+                  decoding="async"
                 />
               </div>
             </div>

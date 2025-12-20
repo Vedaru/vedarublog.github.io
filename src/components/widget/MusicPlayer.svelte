@@ -216,6 +216,11 @@ function toggleExpanded() {
 	if (isExpanded) {
 		showPlaylist = false;
 		isHidden = false;
+		// 当用户首次展开播放器时，立即加载 Meting 播放列表（如果还未加载）
+		if (mode === "meting" && playlist.length === 0 && !isLoading) {
+			console.log("User expanded player, fetching Meting playlist now...");
+			fetchMetingPlaylist();
+		}
 	}
 }
 
@@ -680,8 +685,8 @@ onMount(() => {
 	audio = new Audio();
 	// 为跨域音频尝试启用匿名请求，必须在设置 src 之前设置
 	audio.crossOrigin = "anonymous";
-	// 尝试让浏览器预加载音频以减少首帧等待
-	audio.preload = "auto";
+	// 改用 'metadata' 预加载策略：只加载元数据，不预加载音频数据，减少带宽占用
+	audio.preload = "metadata";
 	// 初始化平滑音量当前/目标值（使用灵敏度压缩以使初始低音量更平滑）
 	const initAdjusted = applySensitivity(volume, SENSITIVITY_GAMMA);
 	audioVolumeCurrent = getLogVolume(initAdjusted);
@@ -719,10 +724,23 @@ onMount(() => {
 	if (!musicPlayerConfig.enable) {
 		return;
 	}
+	// 延迟加载播放列表到浏览器空闲或用户首次展开播放器时
 	if (mode === "meting") {
-		fetchMetingPlaylist();
+		// 使用 requestIdleCallback 延迟加载 Meting API 请求，避免阻塞首屏渲染
+		if ('requestIdleCallback' in window) {
+			requestIdleCallback(() => {
+				console.log("Loading music playlist in idle time...");
+				fetchMetingPlaylist();
+			}, { timeout: 5000 });
+		} else {
+			// 降级方案：延迟 2 秒加载
+			setTimeout(() => {
+				console.log("Loading music playlist after delay...");
+				fetchMetingPlaylist();
+			}, 2000);
+		}
 	} else {
-		// 使用本地播放列表，不发送任何API请求
+		// 本地播放列表：立即加载（无网络请求）
 		playlist = [...localPlaylist];
 		if (playlist.length > 0) {
 			loadSong(playlist[0]);

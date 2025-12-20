@@ -2,10 +2,17 @@
  * Scope is set to BASE_URL by registration in Layout.astro
  */
 const CACHE_NAME = 'site-static-v1';
+// 静态资源缓存模式（Cache-first with stale-while-revalidate）
 const STATIC_PATTERNS = [
   /\/(_astro)\//,            // Vite hashed bundles
   /\/(pio\/static)\//,       // Pio static scripts/styles
   /\/(pio\/models)\//        // Pio models
+];
+// 资源缓存模式（网络优先，但缓存图片和媒体）
+const RESOURCE_PATTERNS = [
+  /\.(jpg|jpeg|png|gif|webp|svg|ico)$/i,  // 图片资源
+  /\.(woff|woff2|ttf|otf|eot)$/i,         // 字体文件
+  /\.(json)$/i,                           // JSON 数据文件（音乐元数据等）
 ];
 
 self.addEventListener('install', (event) => {
@@ -31,6 +38,16 @@ function matchesStatic(url) {
   }
 }
 
+function matchesResource(url) {
+  try {
+    const u = new URL(url);
+    const path = u.pathname;
+    return RESOURCE_PATTERNS.some((re) => re.test(path));
+  } catch {
+    return false;
+  }
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
@@ -42,7 +59,7 @@ self.addEventListener('fetch', (event) => {
 
   if (!isSameOrigin) return; // only cache same-origin
 
-  // Cache-first for static assets with stale-while-revalidate pattern
+  // Cache-first for static assets (hashed bundles) with stale-while-revalidate pattern
   if (matchesStatic(url)) {
     event.respondWith(
       caches.open(CACHE_NAME).then(async (cache) => {
@@ -67,15 +84,30 @@ self.addEventListener('fetch', (event) => {
     );
     return;
   }
+
+  // Cache-first for resource files (images, fonts, JSON) with timeout
+  if (matchesResource(url)) {
+    event.respondWith(
+      caches.open(CACHE_NAME).then(async (cache) => {
+        const cached = await cache.match(request);
+        if (cached) {
+          // 有缓存则立即返回，后台更新（对图片等资源更新时间可以晚一些）
+          fetch(request).then(res => {
+            if (res && res.status === 200) {
+              cache.put(request, res.clone());
+            }
+          }).catch(() => {});
+          return cached;
+        }
+        // 无缓存时网络获取
         try {
           const resp = await fetch(request);
-          // Only cache successful, non-opaque responses
-          if (resp && resp.status === 200 && resp.type === 'basic') {
+          if (resp && resp.status === 200) {
             cache.put(request, resp.clone());
           }
           return resp;
         } catch (err) {
-          return cached || Promise.reject(err);
+          return Promise.reject(err);
         }
       })
     );
