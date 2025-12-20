@@ -42,12 +42,31 @@ self.addEventListener('fetch', (event) => {
 
   if (!isSameOrigin) return; // only cache same-origin
 
-  // Cache-first for static assets
+  // Cache-first for static assets with stale-while-revalidate pattern
   if (matchesStatic(url)) {
     event.respondWith(
       caches.open(CACHE_NAME).then(async (cache) => {
         const cached = await cache.match(request);
-        if (cached) return cached;
+        // 返回缓存版本（速度最快），后台更新
+        if (cached) {
+          // 异步更新缓存（stale-while-revalidate）
+          fetch(request).then(res => {
+            if (res && res.status === 200) {
+              cache.put(request, res.clone());
+            }
+          }).catch(() => {}); // 网络错误时忽略，使用缓存版本
+          return cached;
+        }
+        // 无缓存时网络获取
+        const res = await fetch(request);
+        if (res && res.status === 200) {
+          cache.put(request, res.clone());
+        }
+        return res;
+      })
+    );
+    return;
+  }
         try {
           const resp = await fetch(request);
           // Only cache successful, non-opaque responses

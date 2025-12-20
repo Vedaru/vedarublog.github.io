@@ -100,62 +100,29 @@ function initPio() {
 
 // 样式已通过 Layout.astro 静态引入，无需动态加载函数
 
-// 加载必要的脚本
-function loadPioAssets() {
-	if (typeof window === "undefined") return;
-
-	// 样式已通过 Layout.astro 静态引入
-
-	// 加载JS脚本 - 检查是否已加载
-	const checkAndLoadScript = (src, id) => {
-		// 先检查全局对象或script标签
-		if (document.querySelector(`script[src="${src}"]`) || document.querySelector(`#${id}`)) {
-			return Promise.resolve();
-		}
-		
-		return new Promise((resolve, reject) => {
-			const script = document.createElement("script");
-			script.id = id;
-			script.src = src;
-			script.async = true;
-			script.onload = resolve;
-			script.onerror = reject;
-			document.body.appendChild(script);
-		});
-	};
-
-	// 按顺序加载脚本
-	const base = (cdnBase || baseURL).replace(/\/+$/, "/");
-	const l2dPath = base + "pio/static/l2d.js";
-	const piojsPath = base + "pio/static/pio.js";
+// 等待脚本加载完成（通过 Layout.astro 的 defer）
+function waitForScripts() {
+	if (typeof window === "undefined") return Promise.reject();
 	
-	// 检查脚本是否已在加载
-	if (!window._piL2dLoading && !window._pioPioLoading) {
-		window._piL2dLoading = true;
-		window._pioPioLoading = true;
-		
-		checkAndLoadScript(l2dPath, "pio-l2d-script")
-			.then(() => {
-				console.log("L2D script loaded");
-				return checkAndLoadScript(piojsPath, "pio-main-script");
-			})
-			.then(() => {
-				console.log("Pio script loaded");
-				// 脚本加载完成后立即初始化
-				initPio();
-			})
-			.catch((error) => {
-				console.error("Failed to load Pio scripts:", error);
-				window._piL2dLoading = false;
-				window._pioPioLoading = false;
-			});
-	} else {
-		// 脚本已在加载中，稍后初始化
-		setTimeout(initPio, 200);
-	}
+	return new Promise((resolve) => {
+		const checkScripts = () => {
+			// 检查全局对象是否加载
+			if (typeof Paul_Pio !== "undefined") {
+				resolve();
+			} else {
+				// 继续等待，最多等待 10 秒
+				setTimeout(() => {
+					if (typeof Paul_Pio !== "undefined") {
+						resolve();
+					} else {
+						checkScripts();
+					}
+				}, 100);
+			}
+		};
+		checkScripts();
+	});
 }
-
-// 样式已通过 Layout.astro 静态引入，无需页面切换监听
 
 onMount(() => {
 	if (!pioConfig.enable) return;
@@ -181,8 +148,13 @@ onMount(() => {
 		console.warn("Unable to set posterGirl localStorage", e);
 	}
 
-	// 加载资源并初始化
-	loadPioAssets();
+	// 等待 Layout.astro 中通过 defer 加载的脚本完成，然后初始化
+	waitForScripts().then(() => {
+		console.log("Pio scripts ready, initializing...");
+		initPio();
+	}).catch((err) => {
+		console.error("Failed to wait for Pio scripts:", err);
+	});
 
 	// 初始画布尺寸与窗口变化自适应（节流）
 	const handleResize = throttle(() => sizeCanvas(), 200);
@@ -206,8 +178,8 @@ onMount(() => {
 				console.error("Pio re-init error:", e);
 			}
 		} else {
-			// 若脚本未加载完，尝试再次加载
-			loadPioAssets();
+			// 若脚本未加载完，等待后再初始化
+			waitForScripts().then(() => initPio()).catch((err) => console.error("Error re-init:", err));
 		}
 	};
 	window.addEventListener("pio:show", handleShow);
