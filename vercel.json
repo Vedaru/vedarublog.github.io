@@ -3,8 +3,9 @@
 	"outputDirectory": "dist",
 	"installCommand": "pnpm install",
 	"framework": "astro",
+	"buildEnv": ["VERCEL"],
 	"env": {
-		"VERCEL": "1"
+		"VERCEL": "true"
 	},
 	"headers": [
 		{
@@ -37,6 +38,5 @@
 				}
 			]
 		}
-	],
-	"cleanUrls": true
+	]
 }

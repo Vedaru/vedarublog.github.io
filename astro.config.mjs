@@ -32,6 +32,7 @@ export default defineConfig({
 	// 根据部署环境设置 base 路径
 	// GitHub Pages: /vedarublog.github.io/
 	// Vercel 和其他平台: /
+	// Vercel 环境通过 VERCEL 环境变量识别（vercel.json 中设置）
 	base: process.env.VERCEL ? "/" : "/vedarublog.github.io/",
 	trailingSlash: "always",
 	integrations: [
