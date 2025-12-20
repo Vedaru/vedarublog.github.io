@@ -1,10 +1,9 @@
 name: Fuwari-yCENzh CI
-
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]  
+    branches: [master]
   workflow_dispatch:
 
 concurrency:

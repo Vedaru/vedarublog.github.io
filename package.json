@@ -11,6 +11,7 @@
 		"start": "astro dev",
 		"check": "astro check",
 		"build": "astro build && pagefind --site dist && node scripts/compress-fonts.js",
+		"deploy":"gh-pages -d dist -r https://github.com/vedaru/vedarublog.github.io.git",
 		"submit": "node scripts/indexnow-submit.js",
 		"preview": "astro preview",
 		"astro": "astro",
@@ -21,6 +22,7 @@
 		"preinstall": "npx only-allow pnpm",
 		"compress-fonts": "node scripts/compress-fonts.js",
 		"test-font-compression": "node scripts/test-font-compression.js"
+
 	},
 	"dependencies": {
 		"@astrojs/check": "^0.9.6",
