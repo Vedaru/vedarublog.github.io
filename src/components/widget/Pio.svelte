@@ -53,34 +53,51 @@ function loadPioAssets() {
 
 	// 样式已通过 Layout.astro 静态引入
 
-	// 加载JS脚本
-	const loadScript = (src, id) => {
+	// 加载JS脚本 - 检查是否已加载
+	const checkAndLoadScript = (src, id) => {
+		// 先检查全局对象或script标签
+		if (document.querySelector(`script[src="${src}"]`) || document.querySelector(`#${id}`)) {
+			return Promise.resolve();
+		}
+		
 		return new Promise((resolve, reject) => {
-			if (document.querySelector(`#${id}`)) {
-				resolve();
-				return;
-			}
 			const script = document.createElement("script");
 			script.id = id;
 			script.src = src;
 			script.onload = resolve;
 			script.onerror = reject;
-			document.head.appendChild(script);
+			document.body.appendChild(script);
 		});
 	};
 
 	// 按顺序加载脚本
 	const l2dPath = baseURL + "pio/static/l2d.js";
 	const piojsPath = baseURL + "pio/static/pio.js";
-	loadScript(l2dPath, "pio-l2d-script")
-		.then(() => loadScript(piojsPath, "pio-main-script"))
-		.then(() => {
-			// 脚本加载完成后初始化
-			setTimeout(initPio, 100);
-		})
-		.catch((error) => {
-			console.error("Failed to load Pio scripts:", error);
-		});
+	
+	// 检查脚本是否已在加载
+	if (!window._piL2dLoading && !window._pioPioLoading) {
+		window._piL2dLoading = true;
+		window._pioPioLoading = true;
+		
+		checkAndLoadScript(l2dPath, "pio-l2d-script")
+			.then(() => {
+				console.log("L2D script loaded");
+				return checkAndLoadScript(piojsPath, "pio-main-script");
+			})
+			.then(() => {
+				console.log("Pio script loaded");
+				// 脚本加载完成后初始化
+				setTimeout(initPio, 100);
+			})
+			.catch((error) => {
+				console.error("Failed to load Pio scripts:", error);
+				window._piL2dLoading = false;
+				window._pioPioLoading = false;
+			});
+	} else {
+		// 脚本已在加载中，稍后初始化
+		setTimeout(initPio, 500);
+	}
 }
 
 // 样式已通过 Layout.astro 静态引入，无需页面切换监听

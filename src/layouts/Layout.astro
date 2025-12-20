@@ -290,8 +290,14 @@ if (siteConfig.font) {
 
 		<slot name="head"></slot>
 
-		<!-- Pio 看板娘样式 - 仅在启用时加载 -->
-		{pioConfig.enable && <link rel="stylesheet" href={import.meta.env.BASE_URL + "pio/static/pio.css"} />}
+		<!-- Pio 看板娘样式和脚本预加载 - 仅在启用时加载 -->
+		{pioConfig.enable && (
+			<>
+				<link rel="preload" as="script" href={import.meta.env.BASE_URL + "pio/static/l2d.js"} />
+				<link rel="preload" as="script" href={import.meta.env.BASE_URL + "pio/static/pio.js"} />
+				<link rel="stylesheet" href={import.meta.env.BASE_URL + "pio/static/pio.css"} />
+			</>
+		)}
 
 		<link rel="alternate" type="application/rss+xml" title={profileConfig.name} href={`${Astro.site}rss.xml`}/>
 
@@ -311,10 +317,10 @@ if (siteConfig.font) {
 		<slot />
 		
 		<!-- Music Player - 仅在启用时加载 -->
-		{musicPlayerConfig.enable && <MusicPlayer client:load />}
+		{musicPlayerConfig.enable && <MusicPlayer client:idle />}
 		
 		<!-- Pio 看板娘组件 - 仅在启用时加载 -->
-		{pioConfig.enable && <Pio client:load baseURL={import.meta.env.BASE_URL} />}
+		{pioConfig.enable && <Pio client:idle baseURL={import.meta.env.BASE_URL} />}
 		
 		<!-- increase the page height during page transition to prevent the scrolling animation from jumping -->
 		<div id="page-height-extend" class="hidden h-[300vh]"></div>
