@@ -112,7 +112,9 @@ const hasBannerCredit = siteConfig.banner.credit.enable;
 const hasBannerLink = !!siteConfig.banner.credit.url;
 
 // 检查是否为首页
-const isHomePage = Astro.url.pathname === "/" || Astro.url.pathname === "";
+const baseURL = import.meta.env.BASE_URL;
+const normalizedPathname = Astro.url.pathname.replace(new RegExp(`^${baseURL.replace(/\/$/, '')}`), '');
+const isHomePage = normalizedPathname === "/" || normalizedPathname === "";
 const showHomeText = siteConfig.banner.homeText?.enable && isHomePage;
 // 手机端非首页不显示banner的CSS类
 const mobileNonHomeBannerClass = !isHomePage ? "mobile-hide-banner" : "";
