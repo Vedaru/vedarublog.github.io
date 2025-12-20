@@ -148,13 +148,35 @@ onMount(() => {
 		console.warn("Unable to set posterGirl localStorage", e);
 	}
 
-	// 等待 Layout.astro 中通过 defer 加载的脚本完成，然后初始化
-	waitForScripts().then(() => {
-		console.log("Pio scripts ready, initializing...");
-		initPio();
-	}).catch((err) => {
-		console.error("Failed to wait for Pio scripts:", err);
-	});
+	// 使用 requestIdleCallback 延迟加载以避免阻塞主要内容
+	// 这样页面核心内容会先加载，Pio 在浏览器空闲时后台加载
+	const initPioDeferred = () => {
+		if ('requestIdleCallback' in window) {
+			// 如果浏览器支持，等待空闲时加载（超时 3 秒）
+			requestIdleCallback(() => {
+				console.log("Loading Pio in idle time...");
+				waitForScripts().then(() => {
+					console.log("Pio scripts ready, initializing...");
+					initPio();
+				}).catch((err) => {
+					console.error("Failed to wait for Pio scripts:", err);
+				});
+			}, { timeout: 3000 });
+		} else {
+			// 降级方案：使用 setTimeout 延迟 1 秒加载
+			setTimeout(() => {
+				console.log("Loading Pio after delay...");
+				waitForScripts().then(() => {
+					console.log("Pio scripts ready, initializing...");
+					initPio();
+				}).catch((err) => {
+					console.error("Failed to wait for Pio scripts:", err);
+				});
+			}, 1000);
+		}
+	};
+
+	initPioDeferred();
 
 	// 初始画布尺寸与窗口变化自适应（节流）
 	const handleResize = throttle(() => sizeCanvas(), 200);
