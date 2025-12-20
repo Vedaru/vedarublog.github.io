@@ -194,6 +194,11 @@ if (siteConfig.font) {
 	<head>
 		<!-- 第三方分析脚本 - 延迟加载优化 -->
 		<script is:inline>
+			// 预定义全局变量避免运行时 undefined 错误
+			window.BANNER_HEIGHT = 35;
+			window.BANNER_HEIGHT_EXTEND = 30;
+			window.BANNER_HEIGHT_HOME = 65;
+			
 			// 使用 requestIdleCallback 延迟加载第三方脚本
 			function loadAnalytics() {
 				// Google Tag Manager

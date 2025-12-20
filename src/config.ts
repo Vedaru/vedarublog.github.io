@@ -587,9 +587,9 @@ export const sakuraConfig: SakuraConfig = {
 };
 
 // Pio 看板娘配置
+// 改为相对路径避免 404，在部署到 gh-pages 时可切回 CDN
 export const pioCDNBase =
-	import.meta.env.PUBLIC_PIO_CDN_BASE ||
-	"https://cdn.jsdelivr.net/gh/Vedaru/vedarublog.github.io@gh-pages/"; // 免费 CDN 加速（可用环境变量覆盖）
+	import.meta.env.PUBLIC_PIO_CDN_BASE || "/"; // 默认相对路径，可用环境变量覆盖为 CDN
 
 export const pioConfig: import("./types/config").PioConfig = {
 	enable: true, // 启用看板娘
