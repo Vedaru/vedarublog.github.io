@@ -1,0 +1,516 @@
+---
+import { siteConfig } from "../config";
+import { getDiaryList, getDiaryStats } from "../data/diary";
+import I18nKey from "../i18n/i18nKey";
+import { i18n } from "../i18n/translation";
+import MainGridLayout from "../layouts/MainGridLayout.astro";
+
+// 检查日记页面是否启用
+if (!siteConfig.featurePages.diary) {
+	return Astro.redirect("/404/");
+}
+
+// 获取日记数据（显式请求全部日记，不做数量限制）
+const moments = getDiaryList(Number.MAX_SAFE_INTEGER);
+
+// 按年 -> 月分组（外层年份，内层月份；均倒序）
+const groupByYearMonth = (list) => {
+	const yearMap = new Map();
+	list.forEach((m) => {
+		const d = new Date(m.date);
+		const y = d.getFullYear();
+		const mth = String(d.getMonth() + 1).padStart(2, "0");
+		if (!yearMap.has(y)) yearMap.set(y, new Map());
+		const monthMap = yearMap.get(y);
+		if (!monthMap.has(mth)) monthMap.set(mth, []);
+		monthMap.get(mth).push(m);
+	});
+	// sort years desc, months desc
+	return Array.from(yearMap.entries())
+		.sort(
+			(
+				a: [number, Map<string, Record<string, unknown>>],
+				b: [number, Map<string, Record<string, unknown>>],
+			) => (a[0] < b[0] ? 1 : -1),
+		)
+		.map(([year, mMap]) => [
+			year,
+			Array.from(mMap.entries()).sort(
+				(
+					a: [string, Record<string, unknown>],
+					b: [string, Record<string, unknown>],
+				) => (a[0] < b[0] ? 1 : -1),
+			),
+		]);
+};
+
+const groupedMoments = groupByYearMonth(moments);
+const diaryStats = getDiaryStats();
+
+// 时间格式化函数（相对时间，基于 siteConfig.timeZone）
+function formatTime(dateString: string): string {
+	// 使用本地时区计算相对时间
+	const now = new Date();
+	const date = new Date(dateString);
+	const diffInMinutes = Math.floor(
+		(now.getTime() - date.getTime()) / (1000 * 60),
+	);
+
+	if (diffInMinutes < 60) {
+		return `${diffInMinutes}${i18n(I18nKey.diaryMinutesAgo)}`;
+	}
+	if (diffInMinutes < 1440) {
+		const hours = Math.floor(diffInMinutes / 60);
+		return `${hours}${i18n(I18nKey.diaryHoursAgo)}`;
+	}
+	const days = Math.floor(diffInMinutes / 1440);
+	return `${days}${i18n(I18nKey.diaryDaysAgo)}`;
+}
+
+// 返回具体时:分（24 小时制），用于卡片右下角显示（使用本地时区）
+function formatClock(dateString: string): string {
+	const d = new Date(dateString);
+	const hh = String(d.getHours()).padStart(2, "0");
+	const mm = String(d.getMinutes()).padStart(2, "0");
+	return `${hh}:${mm}`;
+}
+---
+
+<MainGridLayout title={i18n(I18nKey.diary)} description="即刻短文">
+	<div class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative min-h-32">
+		<div class="card-base z-10 px-4 py-4 md:px-6 md:py-5 relative w-full">
+		<div class="relative max-w-4xl w-full px-2 md:px-0">
+				<!-- 页面头部 -->
+				<div class="moments-header mb-6">
+					<div class="header-content">
+						<div class="header-info">
+							<h1 class="moments-title text-xl lg:text-3xl font-bold text-90 mb-1">{i18n(I18nKey.diary)}</h1>
+							<p class="moments-subtitle text-sm lg:text-2xl text-75">{i18n(I18nKey.diarySubtitle)}</p>
+						</div>
+						<div class="header-stats">
+							<div class="stat-item text-center">
+								<span class="stat-number text-lg lg:text-2xl font-bold text-[var(--primary)]">{diaryStats.total}</span>
+								<span class="stat-label text-xs lg:text-base text-75">{i18n(I18nKey.diaryCount)}</span>
+							</div>
+						</div>
+					</div>
+					<!-- 展开/折叠按钮 -->
+					<button
+						id="expand-all-diaries"
+						class="moments-tips text-center mt-4 text-75 text-xs lg:text-base italic underline transition hover:text-[var(--primary)]"
+						type="button"
+						data-collapse-text="折叠全部日记"
+					>
+						{i18n(I18nKey.diaryTips)}
+					</button>
+				</div>
+
+				<!-- 短文列表 -->
+				<div class="moments-timeline">
+					<div class="timeline-list space-y-4">
+					{groupedMoments.map(([year, months]) => (
+						<details class="moment-group" id={`year-${year}`}>
+							<summary class="moment-group-header flex items-center gap-2 text-sm md:text-base font-semibold text-90">
+								<span class="group-toggle">▸</span>
+								<span class="group-label">{year}</span>
+								<span class="group-count text-50 text-xs md:text-sm">({months.reduce((acc, [, arr]) => acc + arr.length, 0)})</span>
+							</summary>
+							<div class="space-y-3">
+							{months.map(([month, items]) => (
+								<details class="moment-subgroup" id={`month-${year}-${month}`}>
+									<summary class="moment-subgroup-header flex items-center gap-2 text-sm md:text-base font-semibold text-90">
+										<span class="group-toggle">▸</span>
+										<span class="group-label">{year}-{month}</span>
+										<span class="group-count text-50 text-xs md:text-sm">({items.length})</span>
+									</summary>
+									<div class="space-y-4">
+									{items.map(moment => (
+										<div class="moment-item card-base p-4 lg:p-8 hover:shadow-lg transition-all">
+											<div class="moment-content">
+												<p class="moment-text text-sm lg:text-lg leading-relaxed mb-3 text-90">{moment.content}</p>
+												{moment.images && moment.images.length > 0 && (
+					<div class="moment-images grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-4 mb-3">
+						{moment.images.map((image, _index) => (
+						<div class="image-item relative rounded-md overflow-hidden aspect-square cursor-pointer hover:scale-105 transition-transform">
+							<img 
+								src={image} 
+									alt="diary moment image"
+								class="w-full h-full object-cover"
+								loading="lazy"
+							/>
+						</div>
+						))}
+					</div>
+				)}
+										</div>
+										<hr class="moment-divider border-t border-[var(--line-divider)] my-3 md:my-4" />
+										<div class="moment-footer flex justify-between items-center">
+											<div class="moment-time flex items-center gap-1.5 text-75 text-xs lg:text-base">
+												<i class="time-icon text-xs md:text-sm">🕐</i>
+												<time datetime={moment.date}>
+													{formatTime(moment.date)}
+												</time>
+											</div>
+												<div class="moment-clock text-75 text-xs lg:text-base" aria-hidden>
+													<time datetime={moment.date}>{formatClock(moment.date)}</time>
+												</div>
+										</div>
+									</div>
+								))}
+								</div>
+							</details>
+							))}
+							</div>
+						</details>
+					))}
+					</div>
+				</div>
+
+<script is:inline>
+	window.__diaryState = {
+		expanded: false,
+		processing: false
+	};
+
+	window.updateButtonState = function() {
+		var btn = document.getElementById('expand-all-diaries');
+		if (!btn) return;
+
+		var yearGroups = document.querySelectorAll('.moment-group');
+		var subgroups = document.querySelectorAll('.moment-subgroup');
+
+		// 检查所有年份是否都展开
+		var allYearsOpen = Array.from(yearGroups).every(function(group) {
+			return group.hasAttribute('open');
+		});
+
+		// 检查所有月份是否都展开
+		var allSubgroupsOpen = Array.from(subgroups).every(function(subgroup) {
+			return subgroup.hasAttribute('open');
+		});
+
+		var originalText = btn.getAttribute('data-original-text') || '显示全部日记';
+		var collapseText = btn.getAttribute('data-collapse-text') || '折叠全部日记';
+
+		// 只有当所有年份和月份都展开时，才显示折叠按钮
+		var allExpanded = allYearsOpen && allSubgroupsOpen && subgroups.length > 0;
+		window.__diaryState.expanded = allExpanded;
+		btn.textContent = allExpanded ? collapseText : originalText;
+	};
+
+	window.setupDiaryExpand = function() {
+		var btn = document.getElementById('expand-all-diaries');
+		if (!btn) return;
+
+		var originalText = btn.textContent.trim();
+		btn.setAttribute('data-original-text', originalText);
+		var collapseText = btn.getAttribute('data-collapse-text') || '折叠全部日记';
+
+		btn.onclick = function(e) {
+			e.preventDefault();
+			e.stopPropagation();
+			
+			var state = window.__diaryState;
+			if (state.processing) return;
+
+			state.processing = true;
+			btn.disabled = true;
+			btn.style.opacity = '0.6';
+			btn.style.cursor = 'wait';
+			
+			var shouldOpen = !state.expanded;
+			var yearGroups = document.querySelectorAll('.moment-group');
+			
+			if (!yearGroups.length) {
+				state.processing = false;
+				btn.disabled = false;
+				btn.style.opacity = '1';
+				btn.style.cursor = 'pointer';
+				return;
+			}
+
+			// 禁用过渡动画以提高性能
+			var style = document.createElement('style');
+			style.textContent = '.moment-group, .moment-subgroup { transition: none !important; }';
+			document.head.appendChild(style);
+
+			var i = 0;
+			var processNext = function() {
+				if (i >= yearGroups.length) {
+					// 恢复过渡动画
+					style.remove();
+					
+					state.expanded = shouldOpen;
+					state.processing = false;
+					btn.disabled = false;
+					btn.style.opacity = '1';
+					btn.style.cursor = 'pointer';
+					btn.textContent = shouldOpen ? collapseText : originalText;
+					return;
+				}
+
+				var group = yearGroups[i];
+				if (shouldOpen) {
+					group.setAttribute('open', '');
+				} else {
+					group.removeAttribute('open');
+				}
+
+				var subgroups = group.querySelectorAll('.moment-subgroup');
+				for (var j = 0; j < subgroups.length; j++) {
+					var sg = subgroups[j];
+					if (shouldOpen) {
+						sg.setAttribute('open', '');
+					} else {
+						sg.removeAttribute('open');
+					}
+				}
+
+				i++;
+				requestAnimationFrame(processNext);
+			};
+
+			processNext();
+		};
+
+		// 为所有details元素添加toggle事件监听
+		var allDetails = document.querySelectorAll('.moment-group, .moment-subgroup');
+		allDetails.forEach(function(detail) {
+			detail.addEventListener('toggle', function() {
+				// 延迟调用，避免频繁更新
+				clearTimeout(detail._updateTimeout);
+				detail._updateTimeout = setTimeout(window.updateButtonState, 100);
+			});
+		});
+
+		btn.textContent = originalText;
+		btn.style.cursor = 'pointer';
+		window.updateButtonState();
+	};
+
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', window.setupDiaryExpand);
+	} else {
+		setTimeout(window.setupDiaryExpand, 0);
+	}
+
+	document.addEventListener('swup:content:replace', function() {
+		window.__diaryState.expanded = false;
+		window.__diaryState.processing = false;
+		setTimeout(window.setupDiaryExpand, 100);
+	});
+</script>
+
+<style>
+	.card-base {
+		background: var(--card-bg);
+		border: 1px solid var(--line-divider);
+		transition: all 0.3s ease;
+	}
+	
+	.moments-header {
+		padding: 1rem;
+		border-radius: 8px;
+		background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark, var(--primary)) 100%);
+		color: white;
+		position: relative;
+		overflow: hidden;
+	}
+	
+	.header-content {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		position: relative;
+		z-index: 1;
+	}
+	
+	.moments-title {
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+	}
+
+	.moments-subtitle {
+	}
+
+	.stat-number {
+		color: #000000;
+		transition: color 0.15s ease;
+		opacity: 1 !important;
+		display: inline !important;
+	}
+
+	:root.dark .stat-number {
+		color: white;
+	}
+
+	.stat-label {
+		color: var(--content-meta);
+		transition: color 0.15s ease;
+	}
+
+	:root.dark .stat-label {
+		color: var(--content-meta);
+	}
+	
+	.image-item img {
+		transition: transform 0.3s ease;
+	}
+	
+	.image-item:hover img {
+		transform: scale(1.05);
+	}
+	
+	.action-btn {
+		background: none;
+		border: none;
+		cursor: pointer;
+		color: var(--text-muted);
+	}
+	
+	.action-btn:hover {
+		color: var(--primary);
+	}
+
+	.moment-text {
+		white-space: pre-line;
+	}
+
+	.moment-item {}
+
+	.moment-time {}
+
+	.moment-clock { text-align: right; color: var(--content-meta); }
+
+	.moment-group summary,
+	.moment-subgroup summary {
+		list-style: none;
+		cursor: pointer;
+	}
+
+	.moment-group summary::-webkit-details-marker,
+	.moment-subgroup summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.moment-group-header,
+	.moment-subgroup-header {
+		user-select: none;
+		font-family: inherit;
+	}
+
+	.group-label {}
+
+	.group-count {
+		margin-left: 0.25rem;
+	}
+
+	.group-toggle {
+		transition: transform 0.2s ease;
+	}
+
+	#expand-all-diaries {
+		color: white;
+	}
+
+	#expand-all-diaries:hover {
+		color: rgba(255, 255, 255, 0.7);
+		text-decoration: underline;
+	}
+
+	.moment-group[open] > summary .group-toggle,
+	.moment-subgroup[open] > summary .group-toggle {
+		transform: rotate(90deg);
+	}
+
+	
+	/* 响应式设计 */
+	/* 手机端 (小于640px) */
+	@media (max-width: 640px) {
+		.moments-header {
+			padding: 0.75rem;
+		}
+		
+		.header-content {
+			flex-direction: column;
+			text-align: center;
+			gap: 0.75rem;
+		}
+		
+		.moment-images {
+			grid-template-columns: repeat(2, 1fr);
+		}
+		
+		.moment-footer {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 0.5rem;
+		}
+	}
+	
+	/* 平板竖屏 (641px - 900px) - 优化显示 */
+	@media (min-width: 641px) and (max-width: 900px) {
+		.moments-header {
+			padding: 1.25rem;
+		}
+		
+		.header-content {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+		
+		.moment-item {
+			padding: 1.5rem;
+		}
+		
+		.moment-images {
+			grid-template-columns: repeat(3, 1fr);
+			gap: 0.75rem;
+			max-width: 500px;
+		}
+		
+		.moment-text {
+			font-size: 1rem;
+			line-height: 1.7;
+		}
+		
+		.moment-footer {
+			margin-top: 1rem;
+		}
+	}
+	
+	/* 平板横屏和桌面端 (大于900px) */
+	@media (min-width: 901px) {
+		.moments-header {
+			padding: 1.5rem;
+		}
+		
+		.moment-item {
+			padding: 2rem;
+		}
+		
+		.moment-images {
+			grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+			max-width: 600px;
+			gap: 1rem;
+		}
+		
+		.moment-text {
+			font-size: 1.1rem;
+			line-height: 1.8;
+		}
+	}
+	
+	/* 优化小屏幕显示 */
+	@media (max-width: 480px) {
+		.moment-item {
+			border-radius: 8px;
+		}
+		
+		.moments-header {
+			border-radius: 6px;
+		}
+	}
+</style>
+
+

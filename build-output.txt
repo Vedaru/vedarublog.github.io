@@ -1,0 +1,107 @@
+npm warn Unknown project config "manage-package-manager-versions". This will stop working in the next major version of npm.
+
+> mizuki@7.6.0 prebuild
+> node scripts/sync-content.js || true
+
+Loaded .env configuration file
+
+Starting content synchronization...
+
+Content directory does not exist: C:\Users\lenovo\Mizuki-master\content
+Using independent repository mode
+Warning: CONTENT_REPO_URL not set, will use local content
+Tip: Please set CONTENT_REPO_URL environment variable or manually create content directory
+
+> mizuki@7.6.0 build
+> astro build && pagefind --site dist && node scripts/compress-fonts.js
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[2m10:30:29[22m [34m[content][39m Syncing content
+[2m10:30:29[22m [34m[content][39m Synced content
+[2m10:30:29[22m [34m[types][39m Generated [2m492ms[22m
+[2m10:30:29[22m [34m[build][39m output: [34m"static"[39m
+[2m10:30:29[22m [34m[build][39m mode: [34m"static"[39m
+[2m10:30:29[22m [34m[build][39m directory: [34mC:\Users\lenovo\Mizuki-master\dist\[39m
+[2m10:30:29[22m [34m[build][39m Collecting build info...
+[2m10:30:29[22m [34m[build][39m [32m鉁?Completed in 756ms.[39m
+[2m10:30:29[22m [34m[build][39m Building static entrypoints...
+[2m10:30:36[22m [34m[vite][39m [32m鉁?built in 6.68s[39m
+[2m10:30:36[22m [34m[build][39m [32m鉁?Completed in 6.77s.[39m
+
+[42m[30m building client (vite) [39m[49m
+[2m10:30:36[22m [34m[vite][39m transforming...
+[2m10:30:37[22m [34m[vite][39m [32m鉁?[39m 239 modules transformed.
+[2m10:30:37[22m [34m[vite][39m rendering chunks...
+[2m10:30:37[22m [34m[vite][39m computing gzip size...
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[32m_astro/ec.g1fg5.js                                                    [39m[1m[2m  0.94 kB[22m[1m[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[35m_astro/_page_.tn0RQdqM.css                                            [39m[1m[2m  0.00 kB[22m[1m[22m[2m 鈹?gzip:  0.02 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[35m_astro/_page_.DodusQ_4.css                                            [39m[1m[2m  6.41 kB[22m[1m[22m[2m 鈹?gzip:  1.46 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[35m_astro/Layout.omPQcCVA.css                                            [39m[1m[2m 14.04 kB[22m[1m[22m[2m 鈹?gzip:  2.61 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[35m_astro/ec.xyvso.css                                                   [39m[1m[2m 21.69 kB[22m[1m[22m[2m 鈹?gzip:  4.62 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[35m_astro/Layout.DRe9SoLl.css                                            [39m[1m[2m 32.82 kB[22m[1m[22m[2m 鈹?gzip:  6.35 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/404.astro_astro_type_script_index_0_lang.dvY850Ym.js           [39m[1m[2m  0.10 kB[22m[1m[22m[2m 鈹?gzip:  0.12 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/about.astro_astro_type_script_index_0_lang.dvY850Ym.js         [39m[1m[2m  0.10 kB[22m[1m[22m[2m 鈹?gzip:  0.12 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/albums.astro_astro_type_script_index_0_lang.dvY850Ym.js        [39m[1m[2m  0.10 kB[22m[1m[22m[2m 鈹?gzip:  0.12 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/archive.astro_astro_type_script_index_0_lang.dvY850Ym.js       [39m[1m[2m  0.10 kB[22m[1m[22m[2m 鈹?gzip:  0.12 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/devices.astro_astro_type_script_index_0_lang.dvY850Ym.js       [39m[1m[2m  0.10 kB[22m[1m[22m[2m 鈹?gzip:  0.12 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/diary.astro_astro_type_script_index_0_lang.dvY850Ym.js         [39m[1m[2m  0.10 kB[22m[1m[22m[2m 鈹?gzip:  0.12 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/friends.astro_astro_type_script_index_0_lang.dvY850Ym.js       [39m[1m[2m  0.10 kB[22m[1m[22m[2m 鈹?gzip:  0.12 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/_...slug_.astro_astro_type_script_index_0_lang.dvY850Ym.js     [39m[1m[2m  0.10 kB[22m[1m[22m[2m 鈹?gzip:  0.12 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/rss.astro_astro_type_script_index_1_lang.dvY850Ym.js           [39m[1m[2m  0.10 kB[22m[1m[22m[2m 鈹?gzip:  0.12 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/skills.astro_astro_type_script_index_0_lang.dvY850Ym.js        [39m[1m[2m  0.10 kB[22m[1m[22m[2m 鈹?gzip:  0.12 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/timeline.astro_astro_type_script_index_1_lang.dvY850Ym.js      [39m[1m[2m  0.10 kB[22m[1m[22m[2m 鈹?gzip:  0.12 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/constants.D4k-FYC3.js                                          [39m[1m[2m  0.11 kB[22m[1m[22m[2m 鈹?gzip:  0.11 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/translation.CTXAKsfx.js                                        [39m[1m[2m  0.28 kB[22m[1m[22m[2m 鈹?gzip:  0.22 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/this.CNRwhX_K.js                                               [39m[1m[2m  0.31 kB[22m[1m[22m[2m 鈹?gzip:  0.22 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/navigation-utils.Cc6bKnia.js                                   [39m[1m[2m  0.52 kB[22m[1m[22m[2m 鈹?gzip:  0.33 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/url-utils.BafbNBrp.js                                          [39m[1m[2m  0.54 kB[22m[1m[22m[2m 鈹?gzip:  0.29 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/input.BcBeSGMN.js                                              [39m[1m[2m  0.83 kB[22m[1m[22m[2m 鈹?gzip:  0.46 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/SwupScriptsPlugin.DeeT9ppa.js                                  [39m[1m[2m  1.10 kB[22m[1m[22m[2m 鈹?gzip:  0.62 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/preload-helper.BlTxHScW.js                                     [39m[1m[2m  1.11 kB[22m[1m[22m[2m 鈹?gzip:  0.65 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/client.svelte.C2ADKNbZ.js                                      [39m[1m[2m  1.16 kB[22m[1m[22m[2m 鈹?gzip:  0.65 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/right-sidebar-layout.vJPKW6ps.js                               [39m[1m[2m  1.53 kB[22m[1m[22m[2m 鈹?gzip:  0.60 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/props.DWUqWtk6.js                                              [39m[1m[2m  1.73 kB[22m[1m[22m[2m 鈹?gzip:  0.89 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/index.modern.D46RI4Wq.js                                       [39m[1m[2m  1.77 kB[22m[1m[22m[2m 鈹?gzip:  0.91 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/page.BUqocEu6.js                                               [39m[1m[2m  1.79 kB[22m[1m[22m[2m 鈹?gzip:  0.92 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/if.Dq3bo8fi.js                                                 [39m[1m[2m  1.82 kB[22m[1m[22m[2m 鈹?gzip:  0.84 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/LightDarkSwitch.C_rKONfT.js                                    [39m[1m[2m  1.88 kB[22m[1m[22m[2m 鈹?gzip:  0.98 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/setting-utils.CUsz8Vco.js                                      [39m[1m[2m  1.95 kB[22m[1m[22m[2m 鈹?gzip:  0.76 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/Navbar.astro_astro_type_script_index_0_lang.aTXvDBUz.js        [39m[1m[2m  1.99 kB[22m[1m[22m[2m 鈹?gzip:  0.69 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/panel-manager.BYknToDe.js                                      [39m[1m[2m  2.00 kB[22m[1m[22m[2m 鈹?gzip:  0.67 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/Pio.ChqoZdyT.js                                                [39m[1m[2m  2.15 kB[22m[1m[22m[2m 鈹?gzip:  1.10 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/DisplaySettings.C_AmfaYs.js                                    [39m[1m[2m  2.31 kB[22m[1m[22m[2m 鈹?gzip:  1.24 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/SwupHeadPlugin.DvOZNxAa.js                                     [39m[1m[2m  2.58 kB[22m[1m[22m[2m 鈹?gzip:  1.28 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/projects.astro_astro_type_script_index_0_lang.DKQ4aRTu.js      [39m[1m[2m  2.63 kB[22m[1m[22m[2m 鈹?gzip:  1.15 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/LayoutSwitchButton.B-oJxx4q.js                                 [39m[1m[2m  2.95 kB[22m[1m[22m[2m 鈹?gzip:  1.38 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/RightSideBar.astro_astro_type_script_index_0_lang.7QaKHgXA.js  [39m[1m[2m  3.11 kB[22m[1m[22m[2m 鈹?gzip:  1.10 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/WallpaperSwitch.CfE1OdrQ.js                                    [39m[1m[2m  3.14 kB[22m[1m[22m[2m 鈹?gzip:  1.25 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/each.C1YDjjpw.js                                               [39m[1m[2m  3.69 kB[22m[1m[22m[2m 鈹?gzip:  1.85 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/ArchivePanel.USxzsPWe.js                                       [39m[1m[2m  3.82 kB[22m[1m[22m[2m 鈹?gzip:  1.67 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/config.CytoNpWV.js                                             [39m[1m[2m  4.35 kB[22m[1m[22m[2m 鈹?gzip:  2.43 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/render.DszN_4o8.js                                             [39m[1m[2m  4.49 kB[22m[1m[22m[2m 鈹?gzip:  2.03 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/Search.DOm8TKX3.js                                             [39m[1m[2m  4.95 kB[22m[1m[22m[2m 鈹?gzip:  2.17 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/SwupA11yPlugin.8nhhmOtR.js                                     [39m[1m[2m  5.25 kB[22m[1m[22m[2m 鈹?gzip:  2.13 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/TOC.astro_astro_type_script_index_0_lang.h7KfX3Q5.js           [39m[1m[2m  6.08 kB[22m[1m[22m[2m 鈹?gzip:  2.38 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/Layout.astro_astro_type_script_index_2_lang.BMyF9r-v.js        [39m[1m[2m  6.19 kB[22m[1m[22m[2m 鈹?gzip:  2.28 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/MobileTOC.CBmCJE2g.js                                          [39m[1m[2m  6.36 kB[22m[1m[22m[2m 鈹?gzip:  2.90 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/lifecycle.TVZwUCq2.js                                          [39m[1m[2m  7.52 kB[22m[1m[22m[2m 鈹?gzip:  3.51 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/Layout.astro_astro_type_script_index_1_lang._R4ib5TO.js        [39m[1m[2m  8.19 kB[22m[1m[22m[2m 鈹?gzip:  2.53 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/Layout.astro_astro_type_script_index_3_lang.wCIau3x1.js        [39m[1m[2m  8.84 kB[22m[1m[22m[2m 鈹?gzip:  2.93 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/Icon.DI47X83E.js                                               [39m[1m[2m 19.74 kB[22m[1m[22m[2m 鈹?gzip:  7.89 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/Swup.CDQnS4HC.js                                               [39m[1m[2m 21.60 kB[22m[1m[22m[2m 鈹?gzip:  7.41 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/MusicPlayer.DMLTRwJU.js                                        [39m[1m[2m 22.80 kB[22m[1m[22m[2m 鈹?gzip:  8.13 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/utils.D4iSHAml.js                                              [39m[1m[2m 25.44 kB[22m[1m[22m[2m 鈹?gzip: 10.03 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/zh_TW.DtJufKIZ.js                                              [39m[1m[2m 44.69 kB[22m[1m[22m[2m 鈹?gzip: 11.81 kB[22m
+[2m10:30:37[22m [34m[vite][39m [2mdist/[22m[36m_astro/Layout.astro_astro_type_script_index_0_lang.KY7KK_U5.js        [39m[1m[2m114.91 kB[22m[1m[22m[2m 鈹?gzip: 39.37 kB[22m
+[2m10:30:37[22m [34m[vite][39m [32m鉁?built in 986ms[39m
+
+[42m[30m generating static routes [39m[49m
+[2m10:30:37[22m [32m鈻?[39m src/pages/404.astro
+[2m10:30:37[22m   [34m鈹斺攢[39m [2m/404.html[22mPio Svelte component destroyed (keeping instance alive)
+topComponents is not defined
+  Stack trace:
+    at file:///C:/Users/lenovo/Mizuki-master/dist/chunks/MainGridLayout_8oH2O8hS.mjs:491:151
+    at AstroComponentInstance.init (file:///C:/Users/lenovo/Mizuki-master/dist/chunks/astro/server_EzoSI9Qi.mjs:5797:29)
+    at Object.render (file:///C:/Users/lenovo/Mizuki-master/dist/chunks/astro/server_EzoSI9Qi.mjs:6196:23)
+    at file:///C:/Users/lenovo/Mizuki-master/dist/chunks/astro/server_EzoSI9Qi.mjs:5314:18
+    at createBufferedRenderer (file:///C:/Users/lenovo/Mizuki-master/dist/chunks/astro/server_EzoSI9Qi.mjs:976:10)
