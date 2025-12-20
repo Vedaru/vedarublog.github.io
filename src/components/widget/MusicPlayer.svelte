@@ -847,10 +847,11 @@ onDestroy(() => {
                  role="button"
                  tabindex="0"
                  aria-label={isPlaying ? '暂停' : '播放'}>
-                <img src={getAssetPath(currentSong.cover)} alt="封面"
-                     class="w-full h-full object-cover transition-transform duration-300"
-                     class:spinning={isPlaying && !isLoading}
-                     class:animate-pulse={isLoading} />
+				 <img src={getAssetPath(currentSong.cover)} alt="封面"
+					 class="w-full h-full object-cover transition-transform duration-300"
+					 class:spinning={isPlaying && !isLoading}
+					 class:animate-pulse={isLoading}
+					 loading="lazy" decoding="async" fetchpriority="low" />
                 <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                     {#if isLoading}
                         <Icon icon="eos-icons:loading" class="text-white text-xl" />
@@ -896,10 +897,11 @@ onDestroy(() => {
          class:pointer-events-none={!isExpanded}>
         <div class="flex items-center gap-4 mb-4">
             <div class="cover-container relative w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
-                <img src={getAssetPath(currentSong.cover)} alt="封面"
-                     class="w-full h-full object-cover transition-transform duration-300"
-                     class:spinning={isPlaying && !isLoading}
-                     class:animate-pulse={isLoading} />
+				 <img src={getAssetPath(currentSong.cover)} alt="封面"
+					 class="w-full h-full object-cover transition-transform duration-300"
+					 class:spinning={isPlaying && !isLoading}
+					 class:animate-pulse={isLoading}
+					 loading="lazy" decoding="async" fetchpriority="low" />
             </div>
             <div class="flex-1 min-w-0">
                 <div class="song-title text-lg font-bold text-90 truncate mb-1">{currentSong.title}</div>
@@ -1092,7 +1094,7 @@ onDestroy(() => {
                         </div>
                         <!-- 歌单列表内封面仍为圆角矩形 -->
                         <div class="w-10 h-10 rounded-lg overflow-hidden bg-[var(--btn-regular-bg)] flex-shrink-0">
-                            <img src={getAssetPath(song.cover)} alt={song.title} class="w-full h-full object-cover" />
+							<img src={getAssetPath(song.cover)} alt={song.title} class="w-full h-full object-cover" loading="lazy" decoding="async" fetchpriority="low" />
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="font-medium truncate" class:text-[var(--primary)]={index === currentIndex} class:text-90={index !== currentIndex}>

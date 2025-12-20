@@ -64,6 +64,7 @@ function loadPioAssets() {
 			const script = document.createElement("script");
 			script.id = id;
 			script.src = src;
+			script.async = true;
 			script.onload = resolve;
 			script.onerror = reject;
 			document.body.appendChild(script);
@@ -86,8 +87,8 @@ function loadPioAssets() {
 			})
 			.then(() => {
 				console.log("Pio script loaded");
-				// 脚本加载完成后初始化
-				setTimeout(initPio, 100);
+				// 脚本加载完成后立即初始化
+				initPio();
 			})
 			.catch((error) => {
 				console.error("Failed to load Pio scripts:", error);
@@ -96,7 +97,7 @@ function loadPioAssets() {
 			});
 	} else {
 		// 脚本已在加载中，稍后初始化
-		setTimeout(initPio, 500);
+		setTimeout(initPio, 200);
 	}
 }
 
