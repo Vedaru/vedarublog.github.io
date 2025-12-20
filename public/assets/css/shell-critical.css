@@ -1,0 +1,250 @@
+/**
+ * Shell 关键样式 — 静态文件、head 末尾加载，优先级高于 /_astro/*.css。
+ * Swup 换页 / 切壁纸 / 切布局 / 切主题时侧栏与 navbar 仍在 #swup-container 外，
+ * 必须保证 .card-base 背景不被 transition-colors 或外链 CSS 卸载打断。
+ */
+
+:root {
+	--radius-large: 1rem;
+	--page-bg: oklch(0.95 0.01 var(--hue, 60));
+	--card-bg: white;
+	--card-bg-transparent: var(--card-bg);
+}
+
+:root.dark {
+	--page-bg: oklch(0.16 0.014 var(--hue, 60));
+	--card-bg: oklch(0.23 0.015 var(--hue, 60));
+}
+
+body.wallpaper-transparent {
+	--card-bg-transparent: rgba(255, 255, 255, 0.8);
+}
+
+:root.dark body.wallpaper-transparent {
+	--card-bg-transparent: rgba(23, 23, 23, 0.8);
+}
+
+html,
+body {
+	background-color: var(--page-bg);
+}
+
+.card-base {
+	overflow: hidden;
+	border-radius: var(--radius-large);
+	background-color: var(--card-bg) !important;
+	/* 禁止背景色过渡，避免切换时经过透明态出现线框 */
+	transition-property: opacity, transform, box-shadow, filter, color !important;
+}
+
+.wallpaper-transparent .card-base,
+body.wallpaper-transparent .card-base,
+.wallpaper-transparent .card-base .card-base,
+body.wallpaper-transparent .card-base .card-base {
+	background: var(--card-bg-transparent) !important;
+	backdrop-filter: blur(8px);
+	-webkit-backdrop-filter: blur(8px);
+}
+
+/* semifull 由下方规则 + JS .scrolled 控制，勿强制 card-bg */
+#navbar:not([data-transparent-mode="semifull"]) > div {
+	background-color: var(--card-bg) !important;
+}
+
+.wallpaper-transparent #navbar:not([data-transparent-mode="semifull"]) > div,
+body.wallpaper-transparent #navbar:not([data-transparent-mode="semifull"]) > div {
+	background: var(--card-bg-transparent) !important;
+	backdrop-filter: blur(4px);
+	-webkit-backdrop-filter: blur(4px);
+}
+
+/* --- semifull 动态透明（须 !important 才能压过上方 shell 规则）--- */
+body:has(#banner-wrapper)
+	#navbar[data-transparent-mode="semifull"]:not(.scrolled):not([data-is-home="true"])
+	> div {
+	background: transparent !important;
+	background-color: transparent !important;
+	box-shadow: none !important;
+	border-color: transparent !important;
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+}
+
+/* 首页 semifull：由 JS 写入 --semifull-fade (0~1) 驱动渐变 */
+body:has(#banner-wrapper)
+	#navbar[data-transparent-mode="semifull"][data-is-home="true"]
+	> div {
+	--sf: var(--semifull-fade, 0);
+	background: rgba(255, 255, 255, calc(0.55 * var(--sf))) !important;
+	background-color: rgba(255, 255, 255, calc(0.55 * var(--sf))) !important;
+	border: 1px solid rgba(255, 255, 255, calc(0.55 * var(--sf))) !important;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, calc(0.1 * var(--sf))) !important;
+	backdrop-filter: blur(calc(20px * var(--sf))) !important;
+	-webkit-backdrop-filter: blur(calc(20px * var(--sf))) !important;
+	transition: none !important;
+}
+
+:root.dark
+	body:has(#banner-wrapper)
+	#navbar[data-transparent-mode="semifull"][data-is-home="true"]
+	> div {
+	background: rgba(0, 0, 0, calc(0.55 * var(--sf))) !important;
+	background-color: rgba(0, 0, 0, calc(0.55 * var(--sf))) !important;
+	border: 1px solid rgba(0, 0, 0, calc(0.55 * var(--sf))) !important;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, calc(0.2 * var(--sf))) !important;
+}
+
+body:has(#banner-wrapper)
+	#navbar[data-transparent-mode="semifull"][data-is-home="true"].scrolled {
+	--semifull-fade: 1;
+}
+
+@media (max-width: 1279px) {
+	body:has(#banner-wrapper)
+		#navbar[data-transparent-mode="semifull"]:not(.scrolled):not([data-is-home="true"])
+		> div {
+		background: var(--card-bg) !important;
+		background-color: var(--card-bg) !important;
+	}
+}
+
+@media (min-width: 1280px) {
+	body:has(#banner-wrapper)
+		#navbar[data-transparent-mode="semifull"].scrolled:not([data-is-home="true"])
+		> div {
+		backdrop-filter: blur(20px) !important;
+		-webkit-backdrop-filter: blur(20px) !important;
+		background: rgba(255, 255, 255, 0.55) !important;
+		background-color: rgba(255, 255, 255, 0.55) !important;
+		border: 1px solid rgba(255, 255, 255, 0.55) !important;
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
+	}
+
+	:root.dark
+		body:has(#banner-wrapper)
+		#navbar[data-transparent-mode="semifull"].scrolled:not([data-is-home="true"])
+		> div {
+		background: rgba(0, 0, 0, 0.55) !important;
+		background-color: rgba(0, 0, 0, 0.55) !important;
+		border: 1px solid rgba(0, 0, 0, 0.55) !important;
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+	}
+}
+
+body.wallpaper-transparent
+	#navbar[data-transparent-mode="semifull"]:not(.scrolled):not([data-is-home="true"])
+	> div {
+	background: transparent !important;
+	background-color: transparent !important;
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+	box-shadow: none !important;
+}
+
+body.wallpaper-transparent
+	#navbar[data-transparent-mode="semifull"][data-is-home="true"]
+	> div {
+	--sf: var(--semifull-fade, 0);
+	background: color-mix(
+			in srgb,
+			var(--card-bg-transparent) calc(var(--sf) * 100%),
+			transparent
+		)
+		!important;
+	background-color: color-mix(
+			in srgb,
+			var(--card-bg-transparent) calc(var(--sf) * 100%),
+			transparent
+		)
+		!important;
+	backdrop-filter: blur(calc(8px * var(--sf))) !important;
+	-webkit-backdrop-filter: blur(calc(8px * var(--sf))) !important;
+	box-shadow: 0 calc(4px * var(--sf)) calc(16px * var(--sf))
+		rgba(0, 0, 0, calc(0.08 * var(--sf))) !important;
+}
+
+body.wallpaper-transparent
+	#navbar[data-transparent-mode="semifull"][data-is-home="true"].scrolled {
+	--semifull-fade: 1;
+}
+
+body.wallpaper-transparent
+	#navbar[data-transparent-mode="semifull"].scrolled:not([data-is-home="true"])
+	> div {
+	background: var(--card-bg-transparent) !important;
+	backdrop-filter: blur(8px) !important;
+	-webkit-backdrop-filter: blur(8px) !important;
+}
+
+body.wallpaper-transparent .main-panel.wallpaper-transparent {
+	background-color: var(--card-bg-transparent);
+}
+
+/* 界面变化期间锁定 shell 背景 */
+html.is-changing .card-base,
+html.is-animating .card-base,
+html.is-leaving .card-base,
+html.is-theme-transitioning .card-base,
+html.is-home-pre-scrolling .card-base,
+html.is-visit-pre-scrolling .card-base,
+html.swup-perf-active .card-base,
+body.wallpaper-switching .card-base,
+body.layout-switching .card-base,
+#main-grid.layout-switching .card-base {
+	background-color: var(--card-bg) !important;
+	transition: none !important;
+}
+
+html.is-changing body.wallpaper-transparent .card-base,
+html.is-animating body.wallpaper-transparent .card-base,
+html.is-leaving body.wallpaper-transparent .card-base,
+html.is-theme-transitioning body.wallpaper-transparent .card-base,
+html.is-home-pre-scrolling body.wallpaper-transparent .card-base,
+html.is-visit-pre-scrolling body.wallpaper-transparent .card-base,
+html.swup-perf-active body.wallpaper-transparent .card-base,
+body.wallpaper-transparent.wallpaper-switching .card-base,
+body.wallpaper-transparent.layout-switching .card-base,
+body.wallpaper-transparent #main-grid.layout-switching .card-base {
+	background: var(--card-bg-transparent) !important;
+	backdrop-filter: blur(8px) !important;
+	-webkit-backdrop-filter: blur(8px) !important;
+	transition: none !important;
+}
+
+html.is-changing #navbar:not([data-transparent-mode="semifull"]) > div,
+html.is-animating #navbar:not([data-transparent-mode="semifull"]) > div,
+html.is-theme-transitioning #navbar:not([data-transparent-mode="semifull"]) > div,
+html.is-home-pre-scrolling #navbar:not([data-transparent-mode="semifull"]) > div,
+html.is-visit-pre-scrolling #navbar:not([data-transparent-mode="semifull"]) > div,
+body.wallpaper-switching #navbar:not([data-transparent-mode="semifull"]) > div {
+	background-color: var(--card-bg) !important;
+	transition: none !important;
+}
+
+html.is-changing body.wallpaper-transparent #navbar:not([data-transparent-mode="semifull"]) > div,
+html.is-animating body.wallpaper-transparent #navbar:not([data-transparent-mode="semifull"]) > div,
+html.is-theme-transitioning body.wallpaper-transparent #navbar:not([data-transparent-mode="semifull"]) > div,
+html.is-home-pre-scrolling body.wallpaper-transparent #navbar:not([data-transparent-mode="semifull"]) > div,
+html.is-visit-pre-scrolling body.wallpaper-transparent #navbar:not([data-transparent-mode="semifull"]) > div,
+body.wallpaper-transparent.wallpaper-switching #navbar:not([data-transparent-mode="semifull"]) > div {
+	background: var(--card-bg-transparent) !important;
+	backdrop-filter: blur(4px) !important;
+	-webkit-backdrop-filter: blur(4px) !important;
+	transition: none !important;
+}
+
+html.is-changing #navbar[data-transparent-mode="semifull"] > div,
+html.is-animating #navbar[data-transparent-mode="semifull"] > div,
+html.is-theme-transitioning #navbar[data-transparent-mode="semifull"] > div,
+html.is-home-pre-scrolling #navbar[data-transparent-mode="semifull"] > div,
+html.is-visit-pre-scrolling #navbar[data-transparent-mode="semifull"] > div,
+body.wallpaper-switching #navbar[data-transparent-mode="semifull"] > div {
+	transition: none !important;
+}
+
+@media (max-width: 1279px) {
+	html.is-changing #swup-container,
+	html.is-animating #swup-container {
+		contain: none !important;
+	}
+}

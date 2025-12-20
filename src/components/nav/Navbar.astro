@@ -1,0 +1,272 @@
+---
+import { Icon } from "astro-icon/components";
+import { navBarConfig, siteConfig } from "../../config";
+import { LinkPresets } from "@constants";
+import { LinkPreset, type NavBarLink } from "../../types/config";
+import { isMainHomePage } from "../../utils/route-utils";
+import { url } from "../../utils/url-utils";
+import LayoutSwitchButton from "@components/theme/LayoutSwitchButton.svelte";
+import LightDarkSwitch from "@components/theme/LightDarkSwitch.svelte";
+import MobileTOC from "../MobileTOC.svelte";
+import Search from "../Search.svelte";
+import WallpaperSwitch from "@components/theme/WallpaperSwitch.svelte";
+import DisplaySettings from "../widget/DisplaySettings.svelte";
+import DropdownMenu from "../widget/DropdownMenu.astro";
+import NavMenuPanel from "./NavMenuPanel.astro";
+
+const className = Astro.props.class;
+
+// 获取导航栏透明模式配置
+const navbarTransparentMode =
+	siteConfig.banner?.navbar?.transparentMode || "semi";
+
+// 获取整体布局方案切换按钮显示设置
+const modeSwitchDisplay =
+	siteConfig.wallpaperMode?.showModeSwitchOnMobile || "desktop";
+
+// 检查是否为首页
+const isHomePage = isMainHomePage(Astro.url.pathname);
+
+let links: NavBarLink[] = navBarConfig.links.map(
+	(item: NavBarLink | LinkPreset): NavBarLink => {
+		if (typeof item === "number") {
+			return LinkPresets[item];
+		}
+		return item;
+	},
+);
+---
+<div id="navbar" class="z-50" data-transparent-mode={navbarTransparentMode} data-is-home={isHomePage ? "true" : "false"}>
+    <div class:list={[className, "!overflow-visible max-w-[var(--page-width)] h-[4.5rem] mx-auto flex items-center justify-between px-4"]}>
+        <a href={url('/')} class="btn-plain scale-animation rounded-lg h-[3.25rem] px-5 font-bold active:scale-95">
+            <div class="flex flex-row items-center text-md">
+                {siteConfig.navbarTitle?.mode === "logo" && siteConfig.navbarTitle.logo ? (
+                    <img src={url(siteConfig.navbarTitle.logo)} alt={siteConfig.navbarTitle.text} class="h-[2.5rem] w-auto object-contain" loading="lazy" />
+                ) : (
+                    <>
+                        {siteConfig.navbarTitle?.icon ? (
+                            <img src={url(siteConfig.navbarTitle.icon)} alt="" class="h-[1.75rem] w-[1.75rem] mb-1 mr-2 object-contain rounded-md" width="28" height="28" loading="eager" decoding="async" />
+                        ) : (
+                            <Icon name="material-symbols:home-pin-outline" class="text-[1.75rem] mb-1 mr-2" />
+                        )}
+                        <span class="dark:text-white text-black">{siteConfig.navbarTitle?.text || siteConfig.title}</span>
+                    </>
+                )}
+            </div>
+        </a>
+        <div class="hidden md:flex items-center space-x-1 min-h-[2.5rem] shrink-0">
+            {links.map((l) => {
+                return <DropdownMenu link={l} />;
+            })}
+        </div>
+        <div class="flex gap-2">
+            <!--<SearchPanel client:load>-->
+            <Search client:idle></Search>
+            {siteConfig.toc.enable && <MobileTOC client:visible></MobileTOC>}
+            {!siteConfig.themeColor.fixed && (
+                    <button aria-label="Display Settings" class="btn-plain scale-animation rounded-lg h-11 w-11 active:scale-90" id="display-settings-switch">
+                        <Icon name="material-symbols:palette-outline" class="text-[1.25rem]"></Icon>
+                    </button>
+            )}
+            <LayoutSwitchButton client:visible currentLayout={siteConfig.postListLayout.defaultMode}></LayoutSwitchButton>
+            <!-- 整体布局方案切换按钮：根据配置决定在哪些设备上显示 -->
+            <div class:list={[
+                modeSwitchDisplay === "off" ? "hidden" :
+                modeSwitchDisplay === "mobile" ? "block md:hidden" :
+                modeSwitchDisplay === "desktop" ? "hidden md:block" :
+                modeSwitchDisplay === "both" ? "block" : "hidden md:block"
+            ]}>
+                <WallpaperSwitch client:visible></WallpaperSwitch>
+            </div>
+            <LightDarkSwitch client:idle></LightDarkSwitch>
+            <button aria-label="Menu" name="Nav Menu" class="btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90 md:!hidden" id="nav-menu-switch">
+                <Icon name="material-symbols:unfold-more" class="text-[1.25rem]"></Icon>
+            </button>
+        </div>
+        <NavMenuPanel links={links}></NavMenuPanel>
+        <DisplaySettings client:visible></DisplaySettings>
+    </div>
+</div>
+
+<script>
+// function switchTheme() {
+//     if (localStorage.theme === 'dark') {
+//         document.documentElement.classList.remove('dark');
+//         localStorage.theme = 'light';
+//     } else {
+//         document.documentElement.classList.add('dark');
+//         localStorage.theme = 'dark';
+//     }
+// }
+
+async function loadButtonScript() {
+    try {
+        // 导入面板管理器
+        const { panelManager } = await import('../../utils/panel-manager');
+        
+        let settingBtn = document.getElementById("display-settings-switch");
+        if (settingBtn) {
+            settingBtn.onclick = async function () {
+                await panelManager.togglePanel('display-setting');
+            };
+        }
+
+        let menuBtn = document.getElementById("nav-menu-switch");
+        if (menuBtn) {
+            menuBtn.onclick = async function () {
+                await panelManager.togglePanel('nav-menu-panel');
+            };
+        }
+    } catch (error) {
+        console.error('Failed to load panel manager:', error);
+        // 备用逻辑
+        let settingBtn = document.getElementById("display-settings-switch");
+        if (settingBtn) {
+            settingBtn.onclick = function () {
+                let settingPanel = document.getElementById("display-setting");
+                if (settingPanel) {
+                    settingPanel.classList.toggle("float-panel-closed");
+                }
+            };
+        }
+
+        let menuBtn = document.getElementById("nav-menu-switch");
+        if (menuBtn) {
+            menuBtn.onclick = function () {
+                let menuPanel = document.getElementById("nav-menu-panel");
+                if (menuPanel) {
+                    menuPanel.classList.toggle("float-panel-closed");
+                }
+            };
+        }
+    }
+}
+
+loadButtonScript();
+
+// 为semifull模式添加滚动检测逻辑
+function isNavbarHomePage(navbar: HTMLElement) {
+    const value = navbar.getAttribute('data-is-home');
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return navbar.hasAttribute('data-is-home');
+}
+
+const SEMIFULL_FADE_END = 50;
+let lastSemifullFadeKey = "";
+
+function applySemifullNavbarVisualState(scrollTop: number, isHomePage: boolean) {
+    const navbar = document.getElementById('navbar');
+    if (!navbar || navbar.getAttribute('data-transparent-mode') !== 'semifull') {
+        return;
+    }
+
+    if (isHomePage) {
+        const progress = Math.min(1, Math.max(0, scrollTop / SEMIFULL_FADE_END));
+        const shouldScroll = scrollTop >= SEMIFULL_FADE_END;
+        const fadeKey = progress.toFixed(3) + ":" + String(shouldScroll);
+        if (fadeKey === lastSemifullFadeKey) {
+            return;
+        }
+        lastSemifullFadeKey = fadeKey;
+
+        navbar.style.setProperty('--semifull-fade', String(progress));
+
+        const hasScrolled = navbar.classList.contains('scrolled');
+        if (hasScrolled !== shouldScroll) {
+            navbar.classList.toggle('scrolled', shouldScroll);
+        }
+        return;
+    }
+
+    lastSemifullFadeKey = "";
+    navbar.style.removeProperty('--semifull-fade');
+
+    const hasScrolled = navbar.classList.contains('scrolled');
+    if (!hasScrolled) {
+        navbar.classList.add('scrolled');
+    }
+}
+
+function readDocumentScrollTop() {
+    return window.scrollY || document.documentElement.scrollTop || 0;
+}
+
+function initSemifullScrollDetection(initialScrollTop?: number) {
+    const navbar = document.getElementById('navbar');
+    if (!navbar) return;
+    
+    const transparentMode = navbar.getAttribute('data-transparent-mode');
+    if (transparentMode !== 'semifull') return;
+
+    if (window.__suppressSemifullNavbarReinit) {
+        return;
+    }
+    
+    const isHomePage = isNavbarHomePage(navbar);
+    const resolvedInitialScroll =
+        typeof initialScrollTop === 'number' ? initialScrollTop : readDocumentScrollTop();
+    
+    // 如果不是首页，移除滚动事件监听器并设置为半透明状态
+    if (!isHomePage) {
+        // 移除之前的滚动事件监听器（如果存在）
+        // @ts-ignore
+        if (window.semifullScrollHandler) {
+            // @ts-ignore
+            window.removeEventListener('scroll', window.semifullScrollHandler);
+            // @ts-ignore
+            window.semifullScrollHandler = null;
+        }
+        applySemifullNavbarVisualState(resolvedInitialScroll, false);
+        return;
+    }
+    
+    function updateNavbarState(scrollTop: number) {
+        if (
+            window.__homePreScrollActive ||
+            window.__smoothScrollActive ||
+            document.documentElement.classList.contains('is-manual-scroll-syncing')
+        ) {
+            return;
+        }
+
+        applySemifullNavbarVisualState(scrollTop, true);
+    }
+    
+    function onScroll() {
+        window.__scheduleScrollSync?.(updateNavbarState);
+    }
+    
+    // 移除之前的滚动事件监听器（如果存在）
+    // @ts-ignore
+    if (window.semifullScrollHandler) {
+        // @ts-ignore
+        window.removeEventListener('scroll', window.semifullScrollHandler);
+    }
+    
+    // 保存新的事件处理器引用
+    // @ts-ignore
+    window.semifullScrollHandler = onScroll;
+    
+    // 监听滚动事件
+    window.addEventListener('scroll', onScroll, { passive: true });
+    
+    // 初始化状态（使用调用方预读的 scrollTop，避免 DOM 写入后强制重排）
+    applySemifullNavbarVisualState(resolvedInitialScroll, true);
+}
+
+// 将函数暴露到全局对象，供页面切换时调用
+// @ts-ignore
+window.applySemifullNavbarVisualState = applySemifullNavbarVisualState;
+// @ts-ignore
+window.initSemifullScrollDetection = initSemifullScrollDetection;
+
+// 页面加载完成后初始化滚动检测
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        initSemifullScrollDetection();
+    });
+} else {
+    initSemifullScrollDetection();
+}
+</script>

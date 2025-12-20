@@ -1,0 +1,66 @@
+---
+import I18nKey from "@i18n/i18nKey";
+import { i18n } from "@i18n/translation";
+import { siteConfig } from "@/config";
+import { formatLastModifiedElapsed } from "@utils/last-modified-utils";
+import { Icon } from "astro-icon/components";
+
+interface Props {
+	lastModifiedIso: string;
+}
+
+const { lastModifiedIso } = Astro.props;
+
+const labels = {
+	prefix: i18n(I18nKey.lastModifiedPrefix),
+	year: i18n(I18nKey.year),
+	month: i18n(I18nKey.month),
+	day: i18n(I18nKey.day),
+	hour: i18n(I18nKey.hour),
+	minute: i18n(I18nKey.minute),
+	second: i18n(I18nKey.second),
+};
+
+const initialElapsed = formatLastModifiedElapsed(lastModifiedIso, labels);
+---
+
+{
+	siteConfig.showLastModified && (
+		<>
+			<div
+				id="last-modified"
+				data-last-modified={lastModifiedIso}
+				data-prefix={labels.prefix}
+				data-year={labels.year}
+				data-month={labels.month}
+				data-day={labels.day}
+				data-hour={labels.hour}
+				data-minute={labels.minute}
+				data-second={labels.second}
+				hidden
+			/>
+
+			<div class="card-base p-6 mb-4">
+				<div class="flex items-center gap-3">
+					<div class="flex items-center justify-center h-12 w-12 rounded-lg bg-[var(--enter-btn-bg)]">
+						<Icon
+							name="material-symbols:history-rounded"
+							class="text-3xl text-[var(--primary)]"
+						/>
+					</div>
+					<div class="flex flex-col gap-1">
+						<div
+							id="modifiedtime"
+							class="text-[1.0rem] leading-tight text-black/75 dark:text-white/75"
+						>
+							{initialElapsed}
+						</div>
+						<p class="text-[0.8rem] leading-tight text-black/75 dark:text-white/75">
+							{i18n(I18nKey.lastModifiedOutdated)}
+						</p>
+					</div>
+				</div>
+			</div>
+		</>
+	)
+}

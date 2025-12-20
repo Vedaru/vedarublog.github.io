@@ -1,0 +1,79 @@
+<script lang="ts">
+    import {
+        WALLPAPER_BANNER,
+        WALLPAPER_FULLSCREEN,
+        WALLPAPER_NONE,
+    } from "@constants";
+    import I18nKey from "@i18n/i18nKey";
+    import { i18n } from "@i18n/translation";
+    import "@/lib/iconify-offline";
+    import Icon from "@iconify/svelte";
+    import {
+        getStoredWallpaperMode,
+        setWallpaperMode,
+    } from "@utils/setting-utils";
+    import { siteConfig } from "@/config";
+    import type { WALLPAPER_MODE } from "@/types/config";
+    import { panelManager } from "../../utils/panel-manager.js";
+    import { onMount } from "svelte";
+
+    const wallpaperOptions: { mode: WALLPAPER_MODE; icon: string; label: I18nKey }[] = [
+        { mode: WALLPAPER_BANNER, icon: "material-symbols:image-outline", label: I18nKey.wallpaperBanner },
+        { mode: WALLPAPER_FULLSCREEN, icon: "material-symbols:wallpaper", label: I18nKey.wallpaperFullscreen },
+        { mode: WALLPAPER_NONE, icon: "material-symbols:hide-image-outline", label: I18nKey.wallpaperNone },
+    ];
+
+    let mode: WALLPAPER_MODE = $state(siteConfig.wallpaperMode.defaultMode);
+    let isPanelOpen = $state(false);
+
+    onMount(() => {
+        mode = getStoredWallpaperMode();
+    });
+
+    let currentIcon = $derived(wallpaperOptions.find(opt => opt.mode === mode)?.icon || wallpaperOptions[0].icon);
+
+    function switchWallpaperMode(newMode: WALLPAPER_MODE) {
+        mode = newMode;
+        setWallpaperMode(newMode);
+        isPanelOpen = false;
+        void panelManager.closePanel("wallpaper-mode-panel");
+    }
+
+    async function togglePanel() {
+        await panelManager.closeAllPanelsExcept("wallpaper-mode-panel");
+        await panelManager.togglePanel("wallpaper-mode-panel");
+        const panel = document.getElementById("wallpaper-mode-panel");
+        isPanelOpen = panel ? !panel.classList.contains("float-panel-closed") : false;
+    }
+</script>
+
+<div class="relative z-50">
+    <button
+        aria-label="Wallpaper Mode"
+        aria-haspopup="menu"
+        aria-expanded={isPanelOpen}
+        aria-controls="wallpaper-mode-panel"
+        class="relative btn-plain scale-animation rounded-lg h-11 w-11 active:scale-90 theme-switch-btn"
+        id="wallpaper-mode-switch"
+        onclick={togglePanel}
+    >
+        <Icon icon={currentIcon} class="text-[1.25rem]"></Icon>
+    </button>
+
+    <div id="wallpaper-mode-panel" role="menu" class="absolute transition float-panel-closed top-11 -right-2 pt-5">
+        <div class="card-base float-panel p-2">
+            {#each wallpaperOptions as option}
+                <button
+                    role="menuitem"
+                    class="flex transition whitespace-nowrap items-center !justify-start w-full btn-plain rounded-lg h-9 px-3 font-medium active:scale-95 theme-switch-btn mb-0.5 last:mb-0"
+                    data-active={mode === option.mode}
+                    class:scale-animation={mode !== option.mode}
+                    onclick={() => switchWallpaperMode(option.mode)}
+                >
+                    <Icon icon={option.icon} class="text-[1.25rem] mr-3"></Icon>
+                    {i18n(option.label)}
+                </button>
+            {/each}
+        </div>
+    </div>
+</div>

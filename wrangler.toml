@@ -1,0 +1,5 @@
+# Cloudflare Pages 源站配置
+# 在 Cloudflare Dashboard 连接 Git 后，构建命令仍建议在面板中设置为: pnpm build
+name = "vedarublog"
+compatibility_date = "2024-06-01"
+pages_build_output_dir = "./dist"

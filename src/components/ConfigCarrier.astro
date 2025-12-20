@@ -1,0 +1,32 @@
+---
+
+import { expressiveCodeConfig, siteConfig } from "../config";
+---
+
+<!-- 全局配置载体 -->
+<div id="config-carrier" data-hue={siteConfig.themeColor.hue} data-hide-code-blocks-during-transition={expressiveCodeConfig.hideDuringThemeTransition ? "true" : "false"}>
+</div>
+
+<script type="application/json" id="config-carrier-toc" set:html={JSON.stringify({
+	tocEnable: siteConfig.toc.enable,
+	tocDepth: siteConfig.toc.depth,
+	tocUseJapaneseBadge: siteConfig.toc.useJapaneseBadge,
+})} />
+<script>
+	import {
+		initConfigCarrier,
+		scheduleUmamiShareScript,
+	} from "../scripts/widgets/config-carrier";
+	const el = document.getElementById("config-carrier-toc");
+	if (el) {
+		const { tocEnable, tocDepth, tocUseJapaneseBadge } = JSON.parse(
+			el.textContent || "{}",
+		);
+		initConfigCarrier({
+			enable: tocEnable,
+			depth: tocDepth,
+			useJapaneseBadge: tocUseJapaneseBadge,
+		});
+	}
+	scheduleUmamiShareScript();
+</script>

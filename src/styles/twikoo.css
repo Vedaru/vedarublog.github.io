@@ -1,0 +1,395 @@
+:root {
+  --tk-text: black;
+  --code-block-text: #333; /* 调整为深色但在浅色背景下仍然舒适的值 */
+}
+
+html.dark {
+  --tk-text: #d1d5db;
+  --code-block-text: #d1d5db; /* 在深色模式下使用更亮的颜色 */
+}
+
+.tk-comments {
+  @apply text-[var(--tk-text)];
+}
+
+.tk-submit {
+  .tk-avatar {
+    @apply hidden;
+  }
+}
+
+/* Text Area */
+.tk-row {
+  .tk-col {
+    @apply flex-col-reverse;
+    .tk-input {
+      textarea {
+        @apply rounded-[var(--radius-large)] py-4 px-6 !min-h-[150px] focus:border-[var(--primary)];
+      }
+    }
+  }
+}
+
+/* Meta */
+.tk-meta-input {
+  @apply relative mt-3;
+  div {
+    @apply min-h-10;
+    .el-input-group__prepend {
+      @apply !bg-inherit rounded-l-lg;
+      min-height: inherit;
+    }
+    input {
+      @apply px-4 rounded-r-lg focus:!border-[var(--primary)];
+      min-height: inherit;
+    }
+  }
+}
+
+/* Button */
+.tk-row.actions {
+  @apply w-full !ml-0 !mt-0;
+  .__markdown {
+    @apply !hidden;
+  }
+  .tk-preview,
+  .tk-send,
+  .tk-cancel {
+    @apply border-none rounded-lg px-3 py-0 h-8
+       !bg-[var(--btn-regular-bg-active)] disabled:!bg-[var(--btn-regular-bg)]
+      !text-[var(--btn-content)] disabled:!text-[#ffffffa1];
+  }
+}
+
+/* Comment title */
+.tk-comments-title {
+  .__comments svg {
+    @apply fill-[var(--primary)];
+  }
+}
+
+.tk-comment {
+  @apply border-[1px] border-[rgba(144,147,153,0.31)] p-4 rounded-2xl hover:shadow-md transition-all;
+  .tk-action-icon svg {
+    @apply fill-[var(--primary)];
+  }
+}
+
+.tk-action {
+  .tk-action-count {
+    @apply text-[var(--btn-content)];
+  }
+}
+
+.tk-meta {
+  .tk-tag {
+    @apply border-none rounded-lg text-[var(--btn-content)];
+  }
+
+  .tk-tag-green {
+    @apply bg-[var(--btn-regular-bg)] dark:bg-[var(--primary)] dark:text-[var(--deep-text)];
+  }
+}
+
+/* Content & Preview */
+.tk-content,
+.tk-preview-container {
+  /* by @microsic
+    Make the picture type emoticons display without wrapping
+  */
+  img {
+    @apply inline !align-bottom;
+  }
+
+  a {
+    @apply underline text-[var(--primary)] font-medium;
+  }
+
+  .tk-ruser {
+    @apply no-underline;
+  }
+
+  :not(pre) > code {
+    @apply bg-[var(--inline-code-bg)] rounded-md text-[--inline-code-color] px-1 py-0.5 font-semibold;
+  }
+
+  li {
+    @apply before:content-["•"] before:text-[var(--primary)];
+  }
+}
+
+/* Replies */
+.tk-replies {
+  .tk-comment {
+    @apply bg-[var(--page-bg)];
+    .tk-content {
+      > span:first-of-type {
+        @apply text-xs;
+      }
+    }
+  }
+}
+
+.twikoo .code-block {
+  pre {
+    @apply !rounded-xl;
+  }
+
+  /* Code block fall back */
+  pre:not([class]) {
+    @apply bg-[var(--codeblock-bg)] overflow-auto p-2 text-[var(--code-block-text)];
+  }
+
+  .copy-btn-icon {
+    width: inherit !important;
+    height: inherit !important;
+  }
+}
+
+.tk-expand-wrap .tk-expand,
+.tk-collapse-wrap .tk-expand {
+  @apply hover:rounded-lg mt-1 hover:bg-[var(--btn-plain-bg-hover)];
+}
+
+/* by @SirTamago 
+Make the emoji component display correctly when there are too many emoji packs
+*/
+.comment-card {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
+  overflow-y: visible;
+  view-transition-name: twikoo-comments;
+}
+
+#tcomment,
+.twikoo-root {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+#tcomment.twikoo-ready .twikoo,
+#tcomment .tk-comments {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* 勿对全部 svg 设 max-width:100%，否则无尺寸的 Element UI 图标会被撑满容器 */
+#tcomment .tk-action-icon svg,
+#tcomment .tk-owo svg,
+#tcomment .tk-meta svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  max-width: 1.125rem;
+  max-height: 1.125rem;
+}
+
+#tcomment .tk-empty svg,
+#tcomment .tk-loading svg,
+#tcomment .tk-submit-action-icon svg,
+#tcomment .el-loading-spinner svg,
+#tcomment .el-icon svg {
+  width: 2.5rem !important;
+  height: 2.5rem !important;
+  max-width: 2.5rem !important;
+  max-height: 2.5rem !important;
+  margin-inline: auto;
+  display: block;
+}
+
+#tcomment .el-loading-spinner .circular {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+/* Element UI 表单基础样式（Twikoo 脚本/CSS 未就绪时的兜底） */
+#tcomment .el-input-group {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  line-height: normal;
+}
+
+#tcomment .el-input-group__prepend {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.75rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+  color: var(--primary);
+}
+
+#tcomment .el-input-group__prepend i,
+#tcomment .el-input-group__prepend .el-icon,
+#tcomment .tk-action-icon,
+#tcomment .tk-comments-title .__comments {
+  color: var(--primary);
+}
+
+/* Twikoo 运行时注入 Element UI 默认蓝 (#409eff)，须 !important 覆盖 */
+#tcomment .tk-action-link,
+#tcomment .tk-action-link:hover,
+#tcomment .tk-action-link:focus,
+#tcomment .tk-action-icon,
+#tcomment .tk-action-icon-solid,
+#tcomment .tk-icon.__comments,
+#tcomment .tk-icon.__comments:hover,
+#tcomment .tk-sort-item.__active,
+#tcomment .tk-sort-item:focus,
+#tcomment .tk-actions button,
+#tcomment .tk-nick-link:hover,
+#tcomment .tk-tag-blue {
+  color: var(--primary) !important;
+}
+
+#tcomment .tk-sort-item:not(.__active) {
+  color: color-mix(in srgb, var(--primary) 55%, transparent) !important;
+}
+
+#tcomment .tk-tag-blue {
+  background-color: color-mix(in srgb, var(--primary) 13%, transparent) !important;
+  border-color: color-mix(in srgb, var(--primary) 50%, transparent) !important;
+}
+
+#tcomment .tk-pagination-pager.__current {
+  background-color: var(--primary) !important;
+}
+
+#tcomment .el-loading-spinner .path {
+  stroke: var(--primary) !important;
+}
+
+#tcomment .el-textarea__inner:focus,
+#tcomment .el-input__inner:focus,
+#tcomment .el-input.is-focus .el-input__inner {
+  border-color: var(--primary) !important;
+}
+
+#tcomment .el-input-group__prepend svg,
+#tcomment .el-input-group__prepend svg path,
+#tcomment .tk-action-link svg,
+#tcomment .tk-action-link svg path,
+#tcomment .tk-action-icon svg,
+#tcomment .tk-action-icon svg path,
+#tcomment .tk-action-icon-solid svg,
+#tcomment .tk-action-icon-solid svg path,
+#tcomment .tk-meta svg,
+#tcomment .tk-meta svg path,
+#tcomment .tk-comments-title .__comments svg,
+#tcomment .tk-comments-title .__comments svg path,
+#tcomment .tk-icon.__comments svg,
+#tcomment .tk-icon.__comments svg path,
+#tcomment .tk-owo svg,
+#tcomment .tk-owo svg path,
+#tcomment svg,
+#tcomment svg path {
+  fill: currentColor !important;
+  stroke: currentColor !important;
+}
+
+#tcomment .el-input__inner,
+#tcomment .el-textarea__inner {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+}
+
+#tcomment .el-textarea {
+  width: 100%;
+}
+
+#tcomment .el-textarea__inner,
+#tcomment .tk-input textarea {
+  width: 100% !important;
+  max-width: 100%;
+  min-height: 150px;
+  box-sizing: border-box;
+  background-color: var(--btn-regular-bg);
+  color: var(--btn-content);
+  border: 1px solid var(--line-divider, rgba(144, 147, 153, 0.31));
+  border-radius: var(--radius-large, 0.75rem);
+  padding: 1rem 1.5rem;
+}
+
+.twikoo-loading,
+.twikoo-error {
+  @apply text-sm text-black/60 dark:text-white/60 py-4 text-center;
+}
+
+.twikoo-error-state {
+  min-height: 3rem;
+}
+
+/* 评论内容内长代码/图片不撑破容器 */
+.tk-content,
+.tk-preview-container,
+.tk-preview {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.tk-content pre,
+.tk-preview pre,
+.twikoo .code-block pre {
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.tk-content img:not([class*="owo"]),
+.tk-preview img:not([class*="owo"]) {
+  max-width: 100%;
+  height: auto;
+}
+
+.tk-row,
+.tk-meta-input,
+.tk-input,
+.tk-submit-wrapper {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.tk-meta-input .el-input-group,
+.tk-meta-input input {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* 防止 Twikoo 操作时的意外滚动 */
+.tk-action-icon,
+.tk-owo,
+.tk-submit,
+.tk-cancel,
+.tk-preview,
+.tk-admin,
+.tk-delete,
+.tk-edit {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Hide Twikoo submit icons (visual removal) */
+.tk-submit-action-icon {
+  display: none !important;
+}
+
+/* 确保点击区域足够大 */
+.tk-action {
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+}
+
+/* 防止表单提交时的意外跳转 */
+.tk-submit-wrapper {
+  position: relative;
+}
+
+/* 管理面板样式优化 */
+.tk-admin-panel {
+  position: relative;
+  z-index: 100;
+}

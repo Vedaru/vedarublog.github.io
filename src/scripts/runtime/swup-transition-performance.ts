@@ -1,0 +1,348 @@
+/** Swup 换页性能：分阶段编排 DOM 写入/布局读/idle 重活，减轻换页尖峰强制重排 */
+
+(function () {
+	if (window.__swupPerfBootstrapped) {
+		return;
+	}
+	window.__swupPerfBootstrapped = true;
+
+	let perfListenersRegistered = false;
+	let resumeTimer: ReturnType<typeof setTimeout> | null = null;
+	let transitionDepth = 0;
+	// 每次新换页递增，用于让上一轮换页遗留的异步恢复回调失效，
+	// 避免在 Pio 隐藏未恢复的间隙再次换页时，旧回调中途解锁滚动导致页面跳回。
+	let transitionEpoch = 0;
+	const writePhaseCallbacks: Array<(detail: { scrollTop: number }) => void> =
+		[];
+	const layoutPhaseCallbacks: Array<(detail: { scrollTop: number }) => void> =
+		[];
+	const idlePhaseCallbacks: Array<() => void> = [];
+	let idleWorkQueue: Array<() => void> = [];
+	let idleDrainScheduled = false;
+
+	function getMobileShiftDurationMs() {
+		const raw = getComputedStyle(document.documentElement)
+			.getPropertyValue("--mobile-shift-duration")
+			.trim();
+		const parsed = Number.parseInt(raw, 10);
+		return Number.isFinite(parsed) ? parsed : 700;
+	}
+
+	// 换页期间不再隐藏 Pio：保持其连续渲染，抽动由稳定帧率 + l2d 停顿守卫消除。
+	function setPioContinuousDuringTransition() {
+		if (!window.__PIO_RENDER_CONTROL) {
+			return;
+		}
+
+		// 保持 normal 连续渲染，避免可见状态下降帧/帧率翻转造成的抽动。
+		window.__PIO_RENDER_CONTROL._wasPaused = false;
+		window.__PIO_RENDER_CONTROL.mode = "normal";
+		window.__PIO_RENDER_CONTROL._softResumeUntil = 0;
+	}
+
+	function resumePioSoftly() {
+		if (window.__PIO_RENDER_CONTROL) {
+			// 干净恢复到 normal，不引入软恢复窗口与帧率翻转。
+			window.__PIO_RENDER_CONTROL._wasPaused = false;
+			window.__PIO_RENDER_CONTROL.mode = "normal";
+			window.__PIO_RENDER_CONTROL._softResumeUntil = 0;
+		}
+	}
+
+	function settlePageLayoutBeforeResume(epoch, done) {
+		if (epoch !== transitionEpoch) return;
+
+		// 移动端：在解锁前先设置 .main-panel 位置，避免解锁后闪现空挡
+		if (window.innerWidth <= 1279) {
+			var mainPanel = document.querySelector(
+				".absolute.w-full.z-30",
+			) as HTMLElement | null;
+			if (mainPanel) {
+				var isHome = document.body.classList.contains("is-home");
+				if (!isHome) {
+					mainPanel.style.transition = "none";
+					mainPanel.style.top = "calc(5.5rem + 1rem)";
+					mainPanel.style.minHeight = "calc(100vh - 6.5rem)";
+					mainPanel.classList.add("mobile-main-no-banner");
+				} else {
+					// 回到首页：清理旧文章页遗留的 inline 样式，让 CSS 规则接管
+					mainPanel.style.removeProperty("top");
+					mainPanel.style.removeProperty("min-height");
+					mainPanel.style.removeProperty("transition");
+					mainPanel.classList.remove("mobile-main-no-banner");
+				}
+			}
+		}
+
+		window.__pinPageScrollTop?.();
+		window.__unlockSwupScroll?.();
+
+		// 移动端：解锁后立即滚到顶部（body 已恢复，滚动生效）
+		if (window.innerWidth <= 1279) {
+			var nativeST =
+				window.__nativeScrollTo || window.scrollTo.bind(window);
+			nativeST(0, 0);
+		}
+
+		requestAnimationFrame(function () {
+			if (epoch !== transitionEpoch) return;
+			window.__pinPageScrollTop?.();
+			requestAnimationFrame(function () {
+				if (epoch !== transitionEpoch) return;
+				window.__pinPageScrollTop?.();
+				done();
+			});
+		});
+	}
+
+	function removeTocNotReady() {
+		const toc = document.getElementById("toc-wrapper");
+		if (toc) {
+			toc.classList.remove("toc-not-ready");
+		}
+	}
+
+	function readDocumentScrollTop() {
+		return window.scrollY || document.documentElement.scrollTop || 0;
+	}
+
+	function runWritePhase(scrollTop) {
+		removeTocNotReady();
+		window.__swupPhaseScrollTop = scrollTop;
+		window.__swupPhaseInnerHeight = window.innerHeight;
+
+		if (window.__pendingWallpaperSync) {
+			window.__pendingWallpaperSync = false;
+			window.__runWallpaperNavbarSyncOnTransition?.(scrollTop);
+		}
+
+		for (let i = 0; i < writePhaseCallbacks.length; i++) {
+			writePhaseCallbacks[i]({ scrollTop: scrollTop });
+		}
+	}
+
+	function runLayoutPhase(scrollTop) {
+		const detail = { scrollTop: scrollTop };
+		for (let i = 0; i < layoutPhaseCallbacks.length; i++) {
+			layoutPhaseCallbacks[i](detail);
+		}
+	}
+
+	function runIdleWorkQueue() {
+		for (let i = 0; i < idleWorkQueue.length; i++) {
+			idleWorkQueue[i]();
+		}
+		idleWorkQueue = [];
+	}
+
+	function runIdlePhaseCallbacks() {
+		for (let i = 0; i < idlePhaseCallbacks.length; i++) {
+			idlePhaseCallbacks[i]();
+		}
+	}
+
+	function runPioAndBannerResume() {
+		resumePioSoftly();
+		window.__bannerDriftResume?.();
+		window.__resetHomePreScrollState?.();
+	}
+
+	function dispatchTransitionReady() {
+		document.dispatchEvent(
+			new CustomEvent("swup:transition-ready", {
+				detail: { path: window.location.pathname },
+			}),
+		);
+	}
+
+	function scheduleIdlePhase(epoch, done) {
+		const schedule =
+			window.requestIdleCallback ||
+			function (cb) {
+				setTimeout(cb, 48);
+			};
+		schedule(
+			function () {
+				if (epoch !== transitionEpoch) return;
+				runIdleWorkQueue();
+				requestAnimationFrame(function () {
+					if (epoch !== transitionEpoch) return;
+					runIdlePhaseCallbacks();
+					requestAnimationFrame(function () {
+						if (epoch !== transitionEpoch) return;
+						runPioAndBannerResume();
+						if (typeof done === "function") {
+							done();
+						}
+					});
+				});
+			},
+			{ timeout: 500 },
+		);
+	}
+
+	function finishTransitionResume(epoch) {
+		settlePageLayoutBeforeResume(epoch, function () {
+			if (epoch !== transitionEpoch) return;
+
+			document.documentElement.classList.remove("swup-perf-active");
+
+			const scrollTop = window.__homePreScrollWasUsed
+				? 0
+				: readDocumentScrollTop();
+			runWritePhase(scrollTop);
+
+			requestAnimationFrame(function () {
+				if (epoch !== transitionEpoch) return;
+				runLayoutPhase(scrollTop);
+				scheduleIdlePhase(epoch, function () {
+					requestAnimationFrame(dispatchTransitionReady);
+				});
+			});
+		});
+	}
+
+	function scheduleTransitionResume() {
+		if (resumeTimer !== null) {
+			clearTimeout(resumeTimer);
+		}
+
+		const epoch = transitionEpoch;
+		const isMobile = window.matchMedia("(max-width: 1279px)").matches;
+		const hadHomePreScroll = !!window.__homePreScrollWasUsed;
+		const baseDelay = isMobile ? getMobileShiftDurationMs() + 80 : 48;
+		const delay = hadHomePreScroll ? baseDelay + 80 : baseDelay;
+
+		resumeTimer = setTimeout(function () {
+			// 已有新换页开始，放弃这一轮恢复，交由新换页自己的恢复流程处理。
+			if (epoch !== transitionEpoch) {
+				return;
+			}
+
+			if (
+				document.documentElement.classList.contains("is-animating") ||
+				document.documentElement.classList.contains("is-changing")
+			) {
+				scheduleTransitionResume();
+				return;
+			}
+
+			finishTransitionResume(epoch);
+		}, delay);
+	}
+
+	function pauseTransitionHeavyWork() {
+		if (window.__homePreScrollActive) {
+			return;
+		}
+
+		transitionDepth += 1;
+		if (transitionDepth > 1) return;
+
+		// 新一轮换页开始：递增 epoch，使上一轮遗留的恢复回调全部失效。
+		transitionEpoch += 1;
+
+		if (resumeTimer !== null) {
+			clearTimeout(resumeTimer);
+			resumeTimer = null;
+		}
+		document.documentElement.classList.add("swup-perf-active");
+		setPioContinuousDuringTransition();
+	}
+
+	function resumeTransitionHeavyWork() {
+		transitionDepth = Math.max(0, transitionDepth - 1);
+		if (transitionDepth > 0) return;
+		scheduleTransitionResume();
+	}
+
+	function registerSwupPerfListeners() {
+		if (perfListenersRegistered || !window.swup?.hooks) return;
+		perfListenersRegistered = true;
+
+		window.swup.hooks.on("visit:start", pauseTransitionHeavyWork);
+		window.swup.hooks.on("animation:out:start", pauseTransitionHeavyWork);
+		window.swup.hooks.on("animation:in:end", resumeTransitionHeavyWork);
+		window.swup.hooks.on("visit:end", resumeTransitionHeavyWork);
+
+		// 移动端：content:replace 时立即设置文章页布局，避免过渡期间的 gap 闪现
+		window.swup.hooks.on("content:replace", function () {
+			if (window.innerWidth > 1279) return;
+			if (document.body.classList.contains("is-home")) return;
+			var mainPanel = document.querySelector(
+				".absolute.w-full.z-30",
+			) as HTMLElement | null;
+			if (!mainPanel) return;
+			mainPanel.style.transition = "none";
+			mainPanel.style.top = "calc(5.5rem + 1rem)";
+			mainPanel.style.minHeight = "calc(100vh - 6.5rem)";
+			mainPanel.classList.add("mobile-main-no-banner");
+		});
+	}
+
+	function bootstrapSwupPerf() {
+		registerSwupPerfListeners();
+	}
+
+	window.__swupPerfPause = pauseTransitionHeavyWork;
+	window.__swupPerfResume = resumeTransitionHeavyWork;
+
+	window.__onSwupPageWritePhase = function (fn) {
+		if (typeof fn === "function") {
+			writePhaseCallbacks.push(fn);
+		}
+	};
+
+	window.__onSwupPageLayoutPhase = function (fn) {
+		if (typeof fn === "function") {
+			layoutPhaseCallbacks.push(fn);
+		}
+	};
+
+	window.__onSwupPageIdlePhase = function (fn) {
+		if (typeof fn === "function") {
+			idlePhaseCallbacks.push(fn);
+		}
+	};
+
+	window.__scheduleSwupIdleWork = function (fn) {
+		if (typeof fn === "function") {
+			idleWorkQueue.push(fn);
+		}
+		if (
+			transitionDepth === 0 &&
+			!idleDrainScheduled &&
+			idleWorkQueue.length > 0
+		) {
+			idleDrainScheduled = true;
+			var schedule =
+				window.requestIdleCallback ||
+				function (cb) {
+					setTimeout(cb, 48);
+				};
+			schedule(
+				function () {
+					idleDrainScheduled = false;
+					if (transitionDepth === 0) {
+						runIdleWorkQueue();
+					}
+				},
+				{ timeout: 500 },
+			);
+		}
+	};
+
+	window.__deferWallpaperNavbarSync = function () {
+		window.__pendingWallpaperSync = true;
+	};
+
+	document.dispatchEvent(new CustomEvent("swup:swup-perf-ready"));
+
+	document.addEventListener("swup:enable", registerSwupPerfListeners);
+
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", bootstrapSwupPerf);
+	} else {
+		bootstrapSwupPerf();
+	}
+})();

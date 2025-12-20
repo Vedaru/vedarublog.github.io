@@ -1,0 +1,31 @@
+# Netlify = CDN 入口（用户访问的域名指向 Netlify）
+# Cloudflare Pages = 源站（在此构建并托管 dist）
+#
+# 部署步骤:
+# 1. Cloudflare Pages 源站: https://vedarublog-github-io.pages.dev
+# 2. Netlify 连接同一仓库，构建后会生成全站回源代理规则
+# 3. 公网 DNS（如 www.vedaru.cn）CNAME 指向 Netlify 站点
+#
+# 减少 deploy：ignore 脚本仅对比代理层文件（见 scripts/netlify-should-build.mjs）。
+#   - 改文章/前端/CI 等 → 不 deploy
+#   - 改 netlify.toml / netlify-proxy-build.js / netlify-should-build.mjs → deploy
+# 手动 deploy：Netlify Build Hook，或 UI「Retry deploy」
+# credits 用尽：Netlify UI → Build & deploy → Stop builds
+
+[build]
+  # exit 0 = 跳过；仅代理层文件 git diff 有变更时才 deploy
+  ignore = "node ./scripts/netlify-should-build.mjs"
+  command = "node ./scripts/netlify-proxy-build.js"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+  # 源站地址（不含末尾斜杠），也可在 Netlify 环境变量中覆盖
+  CLOUDFLARE_ORIGIN = "https://vedarublog-github-io.pages.dev"
+
+# force = true：即使存在静态文件也强制回源代理
+[[redirects]]
+  from = "/*"
+  to = "https://vedarublog-github-io.pages.dev/:splat"
+  status = 200
+  force = true

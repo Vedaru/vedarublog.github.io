@@ -1,0 +1,480 @@
+---
+import type { MarkdownHeading } from "astro";
+
+interface Props {
+	class?: string;
+	headings: MarkdownHeading[];
+}
+
+let { headings = [] } = Astro.props;
+
+let minDepth = 10;
+for (const heading of headings) {
+	minDepth = Math.min(minDepth, heading.depth);
+}
+
+const className = Astro.props.class;
+---
+<table-of-contents class:list={[className, "group"]} id="toc">
+    <!-- TOC内容将由JavaScript动态生成 -->
+</table-of-contents>
+
+<script>
+import {
+	buildSidebarTocMarkup,
+	calculateActiveIndicatorPosition,
+	cacheTocEntryOffsets,
+	collectHeadingsFromDocument,
+	isInRange,
+	isPostPagePath,
+	scheduleTocDomInit,
+	scrollToTocHeading,
+	shouldSkipTocLayoutWork,
+	throttle,
+} from "../../utils/toc-utils";
+
+class TableOfContents extends HTMLElement {
+    tocEl: HTMLElement | null = null;
+    scrollContainer: HTMLElement | null = null;
+    visibleClass = "visible";
+    observer: IntersectionObserver;
+    anchorNavTarget: HTMLElement | null = null;
+    headingIdxMap = new Map<string, number>();
+    headings: HTMLElement[] = [];
+    sections: HTMLElement[] = [];
+    tocEntries: HTMLAnchorElement[] = [];
+    tocEntryOffsets: (Array<{ offsetTop: number; offsetHeight: number } | null>) = [];
+    active: boolean[] = [];
+    activeIndicator: HTMLElement | null = null;
+    updateRaf = 0;
+    lastToggleTime = 0;
+    cachedTocClientHeight = 0;
+    cachedTocScrollTop = 0;
+    cachedTocScrollHeight = 0;
+    tocScrollHandler: ((() => void) | null) = null;
+    smoothScrollEndRaf = 0;
+    navbarHeight = 80;
+
+    resolveTocSection = (heading: HTMLElement): HTMLElement => {
+        const path = window.location.pathname;
+        if (path.includes("/diary")) {
+            return heading;
+        }
+
+        const parent = heading.parentElement;
+        if (!parent) return heading;
+        if (parent.childElementCount > 1) {
+            return heading;
+        }
+        return parent;
+    };
+
+    constructor() {
+        super();
+        this.observer = new IntersectionObserver(this.markVisibleSection.bind(this), {
+            threshold: 0,
+        });
+    }
+
+    isSmoothScrollActive = (): boolean => {
+        return (
+            !!window.__smoothScrollActive ||
+            document.documentElement.classList.contains("is-smooth-scrolling")
+        );
+    };
+
+    scheduleSmoothScrollEndUpdate = () => {
+        if (this.smoothScrollEndRaf) return;
+        const waitForScrollEnd = () => {
+            if (this.isSmoothScrollActive()) {
+                this.smoothScrollEndRaf = requestAnimationFrame(waitForScrollEnd);
+                return;
+            }
+            this.smoothScrollEndRaf = 0;
+            this.updateSync();
+        };
+        this.smoothScrollEndRaf = requestAnimationFrame(waitForScrollEnd);
+    };
+
+    markVisibleSection = (entries: IntersectionObserverEntry[]) => {
+        if (shouldSkipTocLayoutWork()) {
+            return;
+        }
+
+        entries.forEach((entry) => {
+            const target = entry.target as HTMLElement;
+            const id =
+                target.getAttribute("id") ||
+                target.children[0]?.getAttribute("id");
+            const idx = id ? this.headingIdxMap.get(id) : undefined;
+            if (idx != undefined && idx < this.active.length) {
+                this.active[idx] = entry.isIntersecting;
+            }
+
+            if (
+                entry.isIntersecting &&
+                (this.anchorNavTarget === entry.target ||
+                    this.anchorNavTarget === entry.target.firstChild)
+            ) {
+                this.anchorNavTarget = null;
+            }
+        });
+
+        if (!this.active.includes(true)) {
+            this.fallback();
+        }
+
+        // 页面平滑滚动期间不执行 layout 密集型更新（避免 forced reflow），
+        // 改为调度滚动结束后的延迟更新
+        if (this.isSmoothScrollActive()) {
+            this.scheduleSmoothScrollEndUpdate();
+        } else {
+            this.updateSync();
+        }
+    };
+
+    observeSections = () => {
+        this.sections.forEach((section) => {
+            if (section) this.observer.observe(section);
+        });
+    };
+
+    toggleActiveHeading = () => {
+        let min = this.active.length;
+        let max = -1;
+
+        for (let i = this.active.length - 1; i >= 0; i--) {
+            if (this.active[i]) {
+                min = Math.min(min, i);
+                max = Math.max(max, i);
+            }
+        }
+
+        // 阶段1：批量写入 classList（无效化样式，但不触发 layout）
+        this.tocEntries.forEach((entry, i) => {
+            if (this.active[i]) {
+                entry.classList.add(this.visibleClass);
+            } else {
+                entry.classList.remove(this.visibleClass);
+            }
+        });
+
+        if (min > max) {
+            // 无可⻅标题时保持指示器在上次位置，不隐藏
+            return;
+        }
+
+	const minOffset = this.tocEntryOffsets[min];
+	const maxOffset = this.tocEntryOffsets[max];
+	if (!minOffset || !maxOffset || !this.tocEl) return;
+
+	// 全部使用缓存值计算：offsetTop/offsetHeight 缓存于 init()，clientHeight/scrollHeight/scrollTop 缓存 + 被动跟踪
+	const { top, height } = calculateActiveIndicatorPosition(minOffset, maxOffset);
+	const tocHeight = this.cachedTocClientHeight;
+	const tocScrollTop = this.cachedTocScrollTop;
+	const tocScrollHeight = this.cachedTocScrollHeight;
+	const indicatorBottom = top + height;
+	const visibleBottom = tocScrollTop + tocHeight;
+
+	// 阶段3：批量写入（所有布局读取完成后，不再读取布局属性）
+	this.activeIndicator?.setAttribute(
+		"style",
+		`top: ${top}px; height: ${height}px`,
+	);
+
+	// 纯算术计算目标位置（使用缓存值，零 live 布局查询）
+	let targetScroll = tocScrollTop;
+	if (indicatorBottom > visibleBottom - 4) {
+		targetScroll = indicatorBottom - tocHeight + 40;
+	} else if (top < tocScrollTop + 4) {
+		targetScroll = top - 40;
+	}
+
+	targetScroll = Math.max(
+		0,
+		Math.min(targetScroll, tocScrollHeight - tocHeight),
+	);
+
+	if (Math.abs(targetScroll - tocScrollTop) > 8) {
+			this.tocEl.scrollTo({ top: targetScroll, behavior: "smooth" });
+	}
+    };
+
+    scrollToActiveHeading = throttle(() => {
+        const scrollContainer = this.scrollContainer || this.tocEl;
+        if (this.anchorNavTarget || !this.tocEl || !scrollContainer) return;
+
+        // 页面平滑滚动期间跳过 TOC 内部滚动，避免与页面滚动冲突导致 forced reflow
+        if (this.isSmoothScrollActive()) return;
+
+        const activeEntries = this.tocEntries.filter((entry) =>
+            entry.classList.contains(this.visibleClass),
+        );
+        if (activeEntries.length === 0) return;
+
+        const topmost = activeEntries[0] as HTMLElement;
+        const bottommost = activeEntries[activeEntries.length - 1] as HTMLElement;
+        const tocHeight = scrollContainer.clientHeight;
+
+        // 阶段1：批量读取所有布局值（避免与后续 scrollTo 写入交错导致 forced reflow）
+        const topmostRect = topmost.getBoundingClientRect();
+        const bottommostRect = bottommost.getBoundingClientRect();
+        const topmostOffset = topmost.offsetTop;
+        const bottommostOffset = bottommost.offsetTop;
+        const scrollHeight = scrollContainer.scrollHeight;
+        const currentScrollTop = scrollContainer.scrollTop || 0;
+
+        const visibleHeight = bottommostRect.bottom - topmostRect.top;
+
+        // 阶段2：计算目标滚动位置（纯算术，无布局查询）
+        let top: number;
+        if (visibleHeight < 0.9 * tocHeight) {
+            top = topmostOffset - 32;
+        } else {
+            top = bottommostOffset - tocHeight * 0.8;
+        }
+
+        const maxTop = Math.max(0, scrollHeight - tocHeight);
+        top = Math.max(0, Math.min(top, maxTop));
+
+        if (Math.abs(currentScrollTop - top) < 24) return;
+
+        // 阶段3：写入（触发滚动，无后续布局读取）
+        scrollContainer.scrollTo({ top, left: 0, behavior: "smooth" });
+    }, 200);
+
+    updateSync = () => {
+        if (this.updateRaf) cancelAnimationFrame(this.updateRaf);
+        this.updateRaf = requestAnimationFrame(() => {
+            this.updateRaf = 0;
+            this.toggleActiveHeading();
+        });
+    };
+
+    fallback = () => {
+        // 平滑滚动期间跳过 fallback，避免 getBoundingClientRect 导致 forced reflow
+        if (this.isSmoothScrollActive()) return;
+        if (!this.sections.length) return;
+
+        const innerHeight = window.innerHeight;
+
+        // 阶段1：批量读取所有布局信息（只读，避免读写交错导致 forced reflow）
+        const rects: Array<{ top: number; bottom: number } | null> = [];
+        for (let i = 0; i < this.sections.length; i++) {
+            const section = this.sections[i];
+            if (!section) {
+                rects.push(null);
+                continue;
+            }
+            const r = section.getBoundingClientRect();
+            rects.push({ top: r.top, bottom: r.bottom });
+        }
+
+        // 阶段2：基于缓存的布局数据更新状态（只写，不触发额外 reflow）
+        for (let i = 0; i < rects.length; i++) {
+            const rect = rects[i];
+            if (!rect) continue;
+            if (
+                isInRange(rect.top, 0, innerHeight) ||
+                isInRange(rect.bottom, 0, innerHeight) ||
+                (rect.top < 0 && rect.bottom > innerHeight)
+            ) {
+                this.active[i] = true;
+            } else if (rect.top > innerHeight) {
+                break;
+            }
+        }
+    };
+
+    markActiveHeading = (idx: number) => {
+        this.active.fill(false);
+        this.active[idx] = true;
+    };
+
+    handleAnchorClick = (event: Event) => {
+        const anchor = event
+            .composedPath()
+            .find((element) => element instanceof HTMLAnchorElement);
+
+        if (anchor) {
+            event.preventDefault();
+            window.tocClickTimestamp = Date.now();
+
+            const id = decodeURIComponent(anchor.hash?.substring(1));
+            const idx = this.headingIdxMap.get(id);
+
+            if (idx !== undefined) {
+                this.anchorNavTarget = this.headings[idx];
+            } else {
+                this.anchorNavTarget = null;
+            }
+
+            scrollToTocHeading(id);
+        }
+    };
+
+    connectedCallback() {
+        if ((window as any).swup) {
+            return;
+        }
+
+        scheduleTocDomInit(() => this.init());
+    }
+
+    teardown() {
+        if (this.updateRaf) cancelAnimationFrame(this.updateRaf);
+        if (this.smoothScrollEndRaf) cancelAnimationFrame(this.smoothScrollEndRaf);
+        this.updateRaf = 0;
+        this.smoothScrollEndRaf = 0;
+
+        this.sections.forEach((section) => {
+            if (section) this.observer.unobserve(section);
+        });
+
+        this.tocEl?.removeEventListener("click", this.handleAnchorClick, {
+            capture: true,
+        });
+
+        this.sections = [];
+        this.headings = [];
+        this.tocEntries = []; this.tocEntryOffsets = [];
+if (this.tocScrollHandler && this.scrollContainer) {
+		this.scrollContainer.removeEventListener("scroll", this.tocScrollHandler);
+		this.tocScrollHandler = null;
+	}
+        this.active = [];
+        this.headingIdxMap.clear();
+        this.anchorNavTarget = null;
+        this.tocEl = null;
+        this.scrollContainer = null;
+        this.activeIndicator = null;
+    }
+
+    init() {
+        this.teardown();
+        this.dataset.managedByLayout = "true";
+
+        this.regenerateTOC();
+
+        this.tocEl = this;
+        // #toc-inner-wrapper has overflow:hidden and never scrolls.
+        // The actual scrollable element is <table-of-contents> itself,
+        // which has overflow:auto via its CSS.
+        this.scrollContainer = this.tocEl;
+
+        this.tocEl.addEventListener("click", this.handleAnchorClick, {
+            capture: true,
+        });
+
+        this.activeIndicator = this.querySelector("#active-indicator");
+
+        this.tocEntries = Array.from(
+            this.querySelectorAll<HTMLAnchorElement>("a[href^='#']"),
+        );
+
+        if (this.tocEntries.length === 0) return;
+
+        this.sections = new Array(this.tocEntries.length);
+        this.headings = new Array(this.tocEntries.length);
+        for (let i = 0; i < this.tocEntries.length; i++) {
+            const id = decodeURIComponent(this.tocEntries[i].hash?.substring(1));
+            const heading = document.getElementById(id);
+            const section = heading
+                ? this.resolveTocSection(heading)
+                : null;
+            if (heading instanceof HTMLElement && section instanceof HTMLElement) {
+                this.headings[i] = heading;
+                this.sections[i] = section;
+                this.headingIdxMap.set(id, i);
+            }
+        }
+	this.active = new Array(this.tocEntries.length).fill(false);
+
+	// 将布局读取推迟到 rAF，避免初始化期间 sticky 重算导致 41ms 强制重排
+	requestAnimationFrame(() => {
+		if (!this.isConnected || this.tocEntries.length === 0) return;
+
+		this.tocEntryOffsets = cacheTocEntryOffsets(this.tocEntries as any as HTMLElement[]);
+
+		const container = this.scrollContainer || this.tocEl;
+		if (container) {
+			this.cachedTocClientHeight = container.clientHeight;
+			this.cachedTocScrollHeight = container.scrollHeight;
+			this.cachedTocScrollTop = container.scrollTop || 0;
+
+			if (this.tocScrollHandler) container.removeEventListener("scroll", this.tocScrollHandler);
+			this.tocScrollHandler = () => { this.cachedTocScrollTop = container.scrollTop || 0; };
+			container.addEventListener("scroll", this.tocScrollHandler, { passive: true });
+		}
+
+		this.observeSections();
+		this.fallback();
+		this.updateSync();
+	});
+    }
+
+    regenerateTOC(retryCount = 0) {
+        if (!isPostPagePath()) {
+            this.innerHTML = "";
+            delete this.dataset.loaded;
+            return;
+        }
+
+        const headings = collectHeadingsFromDocument();
+        if (headings.length === 0 && retryCount < 3) {
+            setTimeout(() => this.regenerateTOC(retryCount + 1), 120);
+            return;
+        }
+        if (headings.length === 0) {
+            this.innerHTML = "";
+            delete this.dataset.loaded;
+            return;
+        }
+
+        this.innerHTML = buildSidebarTocMarkup(headings);
+        this.dataset.loaded = "true";
+    }
+
+    disconnectedCallback() {
+        this.teardown();
+        this.observer.disconnect();
+    }
+}
+
+if (!customElements.get("table-of-contents")) {
+    customElements.define("table-of-contents", TableOfContents);
+}
+</script>
+
+<style>
+  table-of-contents#toc {
+      max-height: calc(100vh - 200px);
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      position: relative;
+      scroll-behavior: auto;
+      display: block;
+      contain: layout style;
+  }
+
+  table-of-contents#toc #active-indicator {
+      position: absolute;
+      left: 0;
+      right: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+  }
+
+  table-of-contents#toc a.visible > div:last-child {
+      @apply text-black/90 dark:text-white/90;
+  }
+
+  table-of-contents#toc a.visible > div:first-child.bg-\[var\(--toc-badge-bg\)\] {
+      @apply bg-[var(--primary)] text-[var(--btn-content)];
+  }
+
+  table-of-contents#toc::-webkit-scrollbar {
+      display: none;
+  }
+</style>

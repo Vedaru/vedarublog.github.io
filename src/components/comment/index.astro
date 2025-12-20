@@ -1,0 +1,27 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { commentConfig } from "@/config";
+import { getPostUrl } from "@/utils/url-utils";
+import Twikoo from "./Twikoo.astro";
+
+interface Props {
+	post: CollectionEntry<"posts">;
+}
+
+const { id, data: _data } = Astro.props.post;
+
+// Use canonical post URL (respects global/custom permalinks) and remove trailing slash for compatibility with Twikoo
+const path = getPostUrl({ id, data: _data }).replace(/\/$/, "");
+// const url = `${Astro.site?.href}${path}`;
+
+let commentService = "";
+if (commentConfig?.enable && commentConfig?.twikoo) {
+	commentService = "twikoo";
+}
+---
+{commentConfig?.enable && (
+  <div class="card-base comment-card p-6 mb-4">
+    {commentService === 'twikoo' && <Twikoo path={path} />}
+    {commentService === '' && null}
+  </div>
+)}

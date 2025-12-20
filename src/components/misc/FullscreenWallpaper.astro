@@ -1,0 +1,125 @@
+---
+import { siteConfig } from "../../config";
+import type { FullscreenWallpaperConfig } from "../../types/config";
+import { url } from "../../utils/url-utils";
+
+interface Props {
+	config: FullscreenWallpaperConfig;
+	className?: string;
+}
+
+const { config, className } = Astro.props;
+
+const getImageSources = async () => {
+	let srcConfig = config.src;
+
+	if (siteConfig.banner.imageApi?.enable && siteConfig.banner.imageApi?.url) {
+		try {
+			const response = await fetch(siteConfig.banner.imageApi.url);
+			const text = await response.text();
+			const apiImages = text.split("\n").filter((line) => line.trim());
+			if (apiImages.length > 0) {
+				return { desktop: apiImages[0], mobile: apiImages[0] };
+			}
+		} catch (error) {
+			console.warn("Failed to fetch images from API:", error);
+		}
+	}
+
+	const firstSrc = (src: string | string[] | undefined): string | undefined => {
+		if (Array.isArray(src)) return src[0];
+		if (typeof src === "string" && src) return src;
+		return undefined;
+	};
+
+	if (
+		typeof srcConfig === "object" &&
+		srcConfig !== null &&
+		!Array.isArray(srcConfig)
+	) {
+		const desktop = firstSrc(srcConfig.desktop);
+		const mobile = firstSrc(srcConfig.mobile);
+		return {
+			desktop: desktop || mobile,
+			mobile: mobile || desktop,
+		};
+	}
+
+	const all = firstSrc(srcConfig as string | string[]);
+	return { desktop: all, mobile: all };
+};
+
+const imageSources = await getImageSources();
+if (!imageSources.desktop && !imageSources.mobile) return null;
+
+const position = config.position || "center";
+const zIndex = config.zIndex ?? 0;
+const opacity = config.opacity || 0.8;
+const blurAmount = config.blur || 0;
+const blurStyle =
+	blurAmount > 0 ? `filter: blur(${blurAmount}px);` : "";
+const positionClass = (() => {
+	switch (position) {
+		case "top":
+			return "object-top";
+		case "bottom":
+			return "object-bottom";
+		default:
+			return "object-center";
+	}
+})();
+---
+
+<div
+	class:list={[
+		"fixed inset-0 w-full h-full overflow-hidden pointer-events-none",
+		className,
+	]}
+	style={`z-index: ${zIndex}; opacity: ${opacity}; transform: translateZ(0); perspective: 1000px;`}
+	data-fullscreen-wallpaper
+>
+	<div id="wallpaper-single-container" class="relative w-full h-full">
+		{imageSources.desktop && (
+			<div class="hidden md:block absolute inset-0">
+				<div class="banner-breathe-wrap h-full w-full overflow-hidden">
+					<img
+						src={url(imageSources.desktop)}
+						alt="Desktop wallpaper"
+						class={`object-cover ${positionClass}`}
+						style={blurStyle}
+						loading="eager"
+						decoding="async"
+					/>
+				</div>
+			</div>
+		)}
+		{imageSources.mobile && (
+			<div class="block md:hidden absolute inset-0">
+				<div class="banner-breathe-wrap h-full w-full overflow-hidden">
+					<img
+						src={url(imageSources.mobile)}
+						alt="Mobile wallpaper"
+						class={`object-cover ${positionClass}`}
+						style={blurStyle}
+						loading="eager"
+						decoding="async"
+					/>
+				</div>
+			</div>
+		)}
+		<script>
+			import { scheduleBannerDrift } from "../../scripts/runtime/banner-drift-trigger";
+			scheduleBannerDrift("wallpaper-single-container");
+		</script>
+	</div>
+</div>
+
+<style is:global>
+	[data-fullscreen-wallpaper] {
+		z-index: 0;
+	}
+
+	body.wallpaper-transparent [data-fullscreen-wallpaper] {
+		z-index: 0 !important;
+	}
+</style>

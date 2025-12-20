@@ -1,0 +1,154 @@
+---
+import type { MarkdownHeading } from "astro";
+import { widgetManager } from "../../utils/widget-manager";
+import Announcement from "./Announcement.astro";
+import Calendar from "./Calendar.astro";
+import Categories from "./Categories.astro";
+import MusicPlayer from "./MusicPlayer.svelte";
+import Profile from "./Profile.astro";
+import SiteStats from "./SiteStats.astro";
+import Tags from "./Tags.astro";
+import TOC from "./TOC.astro";
+
+interface Props {
+	class?: string;
+	headings?: MarkdownHeading[];
+}
+
+const { class: className, headings } = Astro.props;
+
+// 获取不同设备下的组件列表
+const mobileTopComponents = widgetManager.getComponentsByPosition("top", "drawer", "mobile");
+const mobileStickyComponents = widgetManager.getComponentsByPosition("sticky", "drawer", "mobile");
+
+const tabletTopComponents = widgetManager.getComponentsByPosition("top", "left", "tablet");
+const tabletStickyComponents = widgetManager.getComponentsByPosition("sticky", "left", "tablet");
+
+// 组件映射表
+const componentMap = {
+	profile: Profile,
+	announcement: Announcement,
+	categories: Categories,
+	tags: Tags,
+	toc: TOC,
+	"music-player": MusicPlayer,
+	"site-stats": SiteStats,
+	calendar: Calendar,
+};
+
+// 渲染组件的辅助函数
+function renderComponent(component: any, index: number, _components: any[]) {
+	const ComponentToRender =
+		componentMap[component.type as keyof typeof componentMap];
+	if (!ComponentToRender) return null;
+
+	const componentClass = widgetManager.getComponentClass(component, index);
+	const componentStyle = widgetManager.getComponentStyle(component, index);
+
+	return {
+		Component: ComponentToRender,
+		props: {
+			class: componentClass,
+			style: componentStyle,
+			headings: component.type === "toc" ? headings : undefined,
+			...component.customProps,
+		},
+	};
+}
+---
+
+<div id="sidebar" class:list={[className, "w-full sidebar-root"]}>
+	<!-- 顶部组件区域 -->
+	<div class="flex flex-col w-full gap-4 mb-4">
+		<!-- 手机端顶部组件 -->
+		{mobileTopComponents.length > 0 && (
+			<div class="flex flex-col w-full gap-4 md:hidden">
+				{mobileTopComponents.map((component, index) => {
+					const renderData = renderComponent(component, index, mobileTopComponents);
+					if (!renderData) return null;
+					
+					const { Component, props } = renderData;
+					return <Component {...props} />;
+				})}
+			</div>
+		)}
+
+		<!-- 平板和桌面端顶部组件 -->
+		{tabletTopComponents.length > 0 && (
+			<div class="hidden md:flex flex-col w-full gap-4">
+				{tabletTopComponents.map((component, index) => {
+					const renderData = renderComponent(component, index, tabletTopComponents);
+					if (!renderData) return null;
+					
+					const { Component, props } = renderData;
+					return <Component {...props} />;
+				})}
+			</div>
+		)}
+	</div>
+	
+	<!-- 粘性组件区域 -->
+	<div id="sidebar-sticky" class="flex flex-col w-full gap-4 sticky top-4">
+		<!-- 手机端粘性组件 -->
+		{mobileStickyComponents.length > 0 && (
+			<div class="flex flex-col w-full gap-4 md:hidden">
+				{mobileStickyComponents.map((component, index) => {
+					const renderData = renderComponent(component, index, mobileStickyComponents);
+					if (!renderData) return null;
+					
+					const { Component, props } = renderData;
+					return <Component {...props} />;
+				})}
+			</div>
+		)}
+
+		<!-- 平板和桌面端粘性组件 -->
+		{tabletStickyComponents.length > 0 && (
+			<div class="hidden md:flex flex-col w-full gap-4">
+				{tabletStickyComponents.map((component, index) => {
+					const renderData = renderComponent(component, index, tabletStickyComponents);
+					if (!renderData) return null;
+					
+					const { Component, props } = renderData;
+					return <Component {...props} />;
+				})}
+			</div>
+		)}
+	</div>
+</div>
+
+<!-- 响应式样式和JavaScript -->
+<style>
+	/* 响应式断点样式 */
+	@media (max-width: 1280px) {
+		#sidebar {
+			display: var(--sidebar-mobile-display, block);
+		}
+	}
+	
+	@media (min-width: 769px) and (max-width: 1279px) {
+		#sidebar {
+			display: var(--sidebar-tablet-display, block);
+		}
+	}
+
+	@media (min-width: 1280px) {
+		#sidebar {
+			display: var(--sidebar-desktop-display, block);
+		}
+	}
+</style>
+
+<script type="application/json" id="sidebar-config" set:html={JSON.stringify({
+	breakpoints: widgetManager.getBreakpoints(),
+	mobileShowSidebar: widgetManager.shouldShowSidebar('mobile'),
+	tabletShowSidebar: widgetManager.shouldShowSidebar('tablet'),
+	desktopShowSidebar: widgetManager.shouldShowSidebar('desktop'),
+	hasMobileComponents: mobileTopComponents.length > 0 || mobileStickyComponents.length > 0,
+	hasTabletComponents: tabletTopComponents.length > 0 || tabletStickyComponents.length > 0,
+})} />
+<script>
+	import { initSidebarManager } from "../../scripts/widgets/sidebar-manager";
+	const el = document.getElementById("sidebar-config");
+	if (el) initSidebarManager(JSON.parse(el.textContent || "{}"));
+</script>

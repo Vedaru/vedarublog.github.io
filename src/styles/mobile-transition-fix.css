@@ -1,0 +1,80 @@
+/**
+ * 移动端页面切换闪烁修复 — 灵感来自 Mizuki 主题
+ * 专门解决手机端切换页面时的闪烁和抽动问题
+ */
+
+@media (max-width: 768px) {
+  /* 为所有动画元素添加硬件加速（不加 perspective 避免子像素抖动） */
+
+  /* 优化侧边栏动画 */
+  #dynamic-sidebar {
+    transition: all 0.2s ease-in-out;
+  }
+
+  .widget-container {
+    transition: all 0.2s ease-in-out;
+  }
+
+  /* 网格布局切换由 layout-switching 类 + main-grid-float 动画处理；
+     页面过渡由 transition.css 的 .transition-main 统一管理，
+     #main-grid 自身不设置 transition，避免与页面过渡动画冲突 */
+
+  /* 防止图片加载时的闪烁 */
+  img {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+
+  /* 优化滚动行为 */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* 减少动画元素的数量 */
+  .onload-animation {
+    animation-duration: 0.3s;
+  }
+
+  /* 导航栏过渡保护 — 切换页面时不触发 navbar 本身的 transition */
+  html.is-changing #navbar-wrapper,
+  html.is-animating #navbar-wrapper {
+    transition: none !important;
+  }
+}
+
+/* 超小屏幕设备优化 */
+@media (max-width: 480px) {
+  /* 保留轻微位移（位移量由 _transition-vars.css 在 ≤480 收敛为 0.375rem），
+     不再强制 transform: none，使淡入淡出更顺滑 */
+
+  #dynamic-sidebar {
+    transition: all 0.15s ease-in-out;
+  }
+
+  .widget-container {
+    transition: all 0.15s ease-in-out;
+  }
+
+  /* 导航栏过渡保护 */
+  html.is-changing #navbar-wrapper,
+  html.is-animating #navbar-wrapper {
+    transition: none !important;
+  }
+}
+
+/* 性能优化：为减少动画的用户提供支持 */
+@media (prefers-reduced-motion: reduce) {
+  .transition-main,
+  .transition-leaving,
+  .onload-animation,
+  .transition-slide-in,
+  .card-animation,
+  .nav-animation,
+  #dynamic-sidebar,
+  .widget-container {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    will-change: auto !important;
+  }
+}

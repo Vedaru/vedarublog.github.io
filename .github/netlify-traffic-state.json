@@ -1,0 +1,19 @@
+{
+  "checkedAt": "2026-08-02T20:52:28.174Z",
+  "currentMode": "cloudflare",
+  "targetMode": "netlify",
+  "reason": "credits restored (remaining≈300)",
+  "wwwFqdn": "www.vedaru.cn",
+  "dryRun": false,
+  "changes": [
+    "www: → CNAME lustrous-sunburst-2ed6f8.netlify.app (dns-only)",
+    "apex: → A 75.2.60.5 (dns-only)"
+  ],
+  "pagesDomains": [],
+  "probe": {
+    "ok": true,
+    "status": 200
+  },
+  "action": "switched",
+  "pagesAuthOk": true
+}
