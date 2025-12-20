@@ -3,6 +3,9 @@
 	"outputDirectory": "dist",
 	"installCommand": "pnpm install",
 	"framework": "astro",
+	"env": {
+		"VERCEL": "1"
+	},
 	"headers": [
 		{
 			"source": "/(.*)",

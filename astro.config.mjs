@@ -29,8 +29,10 @@ import { remarkReadingTime } from "./src/plugins/remark-reading-time.mjs";
 export default defineConfig({
 	site: siteConfig.siteURL,
 
-	// Project site on GitHub Pages: needs repo name as base path
-	base: "/vedarublog.github.io/",
+	// 根据部署环境设置 base 路径
+	// GitHub Pages: /vedarublog.github.io/
+	// Vercel 和其他平台: /
+	base: process.env.VERCEL ? "/" : "/vedarublog.github.io/",
 	trailingSlash: "always",
 	integrations: [
 		tailwind({
