@@ -587,6 +587,10 @@ export const sakuraConfig: SakuraConfig = {
 };
 
 // Pio 看板娘配置
+export const pioCDNBase =
+	import.meta.env.PUBLIC_PIO_CDN_BASE ||
+	"https://cdn.jsdelivr.net/gh/Vedaru/vedarublog.github.io@gh-pages/"; // 免费 CDN 加速（可用环境变量覆盖）
+
 export const pioConfig: import("./types/config").PioConfig = {
 	enable: true, // 启用看板娘
 	models: ["/pio/models/pio/model.json"], // 默认模型路径

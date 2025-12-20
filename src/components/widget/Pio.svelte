@@ -3,18 +3,26 @@ import { onDestroy, onMount } from "svelte";
 import { pioConfig } from "@/config";
 
 export let baseURL = "/";
+export let cdnBase = "";
 const MOBILE_BREAKPOINT = 768;
 let isMobileClient = false;
 
 // 将配置转换为 Pio 插件需要的格式
-const pioOptions = {
-	mode: pioConfig.mode,
-	hidden: pioConfig.hiddenOnMobile,
-	content: pioConfig.dialog || {},
-	model: (pioConfig.models || ["/pio/models/pio/model.json"]).map(path => 
-		path.startsWith('/') ? baseURL + path.replace(/^\//, '') : path
-	),
-};
+function buildPioOptions(base) {
+	const normalized = base.replace(/\/+$/, "/");
+	return {
+		mode: pioConfig.mode,
+		hidden: pioConfig.hiddenOnMobile,
+		content: pioConfig.dialog || {},
+		model: (pioConfig.models || ["/pio/models/pio/model.json"]).map((path) => {
+			if (/^https?:\/\//i.test(path)) return path; // 绝对路径直接返回
+			const clean = path.replace(/^\//, "");
+			return normalized + clean;
+		}),
+	};
+}
+
+const pioOptions = buildPioOptions(cdnBase || baseURL);
 
 // 全局Pio实例引用
 let pioInstance = null;
@@ -117,8 +125,9 @@ function loadPioAssets() {
 	};
 
 	// 按顺序加载脚本
-	const l2dPath = baseURL + "pio/static/l2d.js";
-	const piojsPath = baseURL + "pio/static/pio.js";
+	const base = (cdnBase || baseURL).replace(/\/+$/, "/");
+	const l2dPath = base + "pio/static/l2d.js";
+	const piojsPath = base + "pio/static/pio.js";
 	
 	// 检查脚本是否已在加载
 	if (!window._piL2dLoading && !window._pioPioLoading) {
