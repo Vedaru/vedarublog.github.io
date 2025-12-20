@@ -314,7 +314,7 @@ if (siteConfig.font) {
 		{musicPlayerConfig.enable && <MusicPlayer client:load />}
 		
 		<!-- Pio 看板娘组件 - 仅在启用时加载 -->
-		{pioConfig.enable && <Pio client:load />}
+		{pioConfig.enable && <Pio client:load baseURL={import.meta.env.BASE_URL} />}
 		
 		<!-- increase the page height during page transition to prevent the scrolling animation from jumping -->
 		<div id="page-height-extend" class="hidden h-[300vh]"></div>
