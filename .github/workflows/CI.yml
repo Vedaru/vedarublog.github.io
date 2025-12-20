@@ -1,19 +1,18 @@
-name: Fuwari-yCENzh CI
+name: Deploy Astro to GitHub Pages
+
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 permissions:
   contents: read
   pages: write
   id-token: write
+
+concurrency:
+  group: "pages-${{ github.ref }}"
+  cancel-in-progress: true
 
 jobs:
   check:
@@ -21,14 +20,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: 20
+          cache: 'pnpm'
 
-      - name: Setup pnpm     
+      - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           run_install: false
@@ -41,17 +41,22 @@ jobs:
         env:
           ENABLE_CONTENT_SYNC: false
 
-  build:
-    name: Astro Build
+  build-and-deploy:
+    name: Build and Deploy
+    needs: check
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
-          node-version: lts/*
+          node-version: 20
+          cache: 'pnpm'
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -62,30 +67,68 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run Astro Build
-        run: pnpm astro build
+        run: |
+          # 设置基础路径（重要！）
+          echo "GITHUB_REPOSITORY=${{ github.repository }}"
+          echo "GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}"
+          echo "BASE_PATH=/${{ github.event.repository.name }}/"
+          pnpm astro build
         env:
-          ENABLE_CONTENT_SYNC: false
+          # 设置基础路径，确保静态资源正确引用
+          BASE_PATH: "/${{ github.event.repository.name }}/"
+          PUBLIC_URL: "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
 
-  deploy:
-    name: Upload Pages Artifact
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+      - name: Verify build output
+        run: |
+          echo "=== 验证构建输出 ==="
+          echo "当前目录: $(pwd)"
+          echo "dist目录内容:"
+          ls -la dist/
+          echo ""
+          echo "检查 index.html:"
+          if [ -f "dist/index.html" ]; then
+            echo "✅ index.html 存在"
+            echo "文件大小: $(wc -l < dist/index.html) 行"
+          else
+            echo "❌ index.html 不存在，查找HTML文件:"
+            find . -name "*.html" -type f
+            exit 1
+          fi
+      
+      - name: Create .nojekyll file
+        run: |
+          touch dist/.nojekyll
+          echo "创建了 .nojekyll 文件"
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v1
+      - name: Create 404 page for GitHub Pages
+        run: |
+          if [ -f "dist/index.html" ]; then
+            cp dist/index.html dist/404.html
+            echo "创建了 404.html 文件"
+          fi
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist
+          retention-days: 1
 
-  deploy-pages:
-    name: Deploy to GitHub Pages
-    needs: deploy
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    steps:
       - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v1
+        id: deployment
+        uses: actions/deploy-pages@v4
+      
+      - name: Display deployment info
+        run: |
+          echo "🎉 部署成功！"
+          echo ""
+          echo "=== 网站信息 ==="
+          echo "🌐 主访问地址: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          echo "🔗 GitHub Pages URL: ${{ steps.deployment.outputs.page_url }}"
+          echo ""
+          echo "=== 部署详情 ==="
+          echo "📁 仓库: ${{ github.repository }}"
+          echo "🎯 分支: ${{ github.ref_name }}"
+          echo "⏰ 时间: $(date '+%Y-%m-%d %H:%M:%S %Z')"
+          echo ""
+          echo "💡 提示: 首次访问可能需要等待1-2分钟缓存更新"
+          echo "        如果看到404，请尝试强制刷新 (Ctrl+F5)"
