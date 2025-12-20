@@ -13,8 +13,8 @@ const config = {
 ---
 
 <div id="tcomment"></div>
-<script is:inline src="/scroll-protection.js"></script>
-<script is:inline src="/assets/js/twikoo.all.min.js"></script>
+<script is:inline src={`${import.meta.env.BASE_URL}scroll-protection.js`}></script>
+<script is:inline src={`${import.meta.env.BASE_URL}assets/js/twikoo.all.min.js`}></script>
 <script is:inline define:vars={{ config }}>
   // 获取当前页面路径
   function getCurrentPath() {
