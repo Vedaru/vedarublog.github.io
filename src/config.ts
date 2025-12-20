@@ -93,17 +93,17 @@ export const siteConfig: SiteConfig = {
 		// 支持单张图片或图片数组，当数组长度 > 1 时自动启用轮播
 		src: {
 			desktop: [
-				"/assets/desktop-banner/703c235a202e38293fa8037d04fc44500256417f.jpg",
-				"/assets/desktop-banner/54ae9fc257542e969dda9d9bcf07405999facb13.jpg",
-				"/assets/desktop-banner/831fb1cdaeead8de1cae31354771e244290750052.jpg",
-				"/assets/desktop-banner/be809be42311aa693fc459cf189339c36ca3ecbb.png",
-				"/assets/desktop-banner/8b31043a430bb793c6bd2949adb5ae1bb0825f25.png",
+				"/assets/desktop-banner/703c235a202e38293fa8037d04fc44500256417f.webp",
+				"/assets/desktop-banner/54ae9fc257542e969dda9d9bcf07405999facb13.webp",
+				"/assets/desktop-banner/831fb1cdaeead8de1cae31354771e244290750052.webp",
+				"/assets/desktop-banner/be809be42311aa693fc459cf189339c36ca3ecbb.webp",
+				"/assets/desktop-banner/8b31043a430bb793c6bd2949adb5ae1bb0825f25.webp",
 			], // 桌面横幅图片
 			mobile: [
-				"/assets/mobile-banner/e72646f638b299c4aac3acf81932d2e8290750052.jpg",
-				"/assets/mobile-banner/6ef052ba91921b0e396eee8f4cc264eddf86308d.png",
-				"/assets/mobile-banner/270f1b9b9b0bb275802a3b20ac21672d33a6663c.jpg",
-				"/assets/mobile-banner/5edec7a9d26759736603ad45e8e93241cd0dc735.jpg",
+				"/assets/mobile-banner/e72646f638b299c4aac3acf81932d2e8290750052.webp",
+				"/assets/mobile-banner/6ef052ba91921b0e396eee8f4cc264eddf86308d.webp",
+				"/assets/mobile-banner/270f1b9b9b0bb275802a3b20ac21672d33a6663c.webp",
+				"/assets/mobile-banner/5edec7a9d26759736603ad45e8e93241cd0dc735.webp",
 			], // 移动横幅图片
 		}, // 使用本地横幅图片
 
@@ -208,17 +208,17 @@ export const siteConfig: SiteConfig = {
 export const fullscreenWallpaperConfig: FullscreenWallpaperConfig = {
 	src: {
 		desktop: [
-			"/assets/desktop-banner/703c235a202e38293fa8037d04fc44500256417f.jpg",
-			"/assets/desktop-banner/54ae9fc257542e969dda9d9bcf07405999facb13.jpg",
-			"/assets/desktop-banner/831fb1cdaeead8de1cae31354771e244290750052.jpg",
-			"/assets/desktop-banner/be809be42311aa693fc459cf189339c36ca3ecbb.png",
-			"/assets/desktop-banner/8b31043a430bb793c6bd2949adb5ae1bb0825f25.png",
+			"/assets/desktop-banner/703c235a202e38293fa8037d04fc44500256417f.webp",
+			"/assets/desktop-banner/54ae9fc257542e969dda9d9bcf07405999facb13.webp",
+			"/assets/desktop-banner/831fb1cdaeead8de1cae31354771e244290750052.webp",
+			"/assets/desktop-banner/be809be42311aa693fc459cf189339c36ca3ecbb.webp",
+			"/assets/desktop-banner/8b31043a430bb793c6bd2949adb5ae1bb0825f25.webp",
 		], // 桌面横幅图片
 		mobile: [
-			"/assets/mobile-banner/e72646f638b299c4aac3acf81932d2e8290750052.jpg",
-			"/assets/mobile-banner/6ef052ba91921b0e396eee8f4cc264eddf86308d.png",
-			"/assets/mobile-banner/270f1b9b9b0bb275802a3b20ac21672d33a6663c.jpg",
-			"/assets/mobile-banner/5edec7a9d26759736603ad45e8e93241cd0dc735.jpg",
+			"/assets/mobile-banner/e72646f638b299c4aac3acf81932d2e8290750052.webp",
+			"/assets/mobile-banner/6ef052ba91921b0e396eee8f4cc264eddf86308d.webp",
+			"/assets/mobile-banner/270f1b9b9b0bb275802a3b20ac21672d33a6663c.webp",
+			"/assets/mobile-banner/5edec7a9d26759736603ad45e8e93241cd0dc735.webp",
 		], // 移动横幅图片
 	}, // 使用本地横幅图片
 	position: "center", // 壁纸位置，等同于 object-position
