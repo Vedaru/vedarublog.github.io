@@ -245,12 +245,12 @@ export type WALLPAPER_MODE =
 export type BlogPostData = {
 	body: string;
 	title: string;
-	published: Date;
+    published: string | Date;
 	description: string;
 	tags: string[];
 	draft?: boolean;
 	image?: string;
-	category?: string;
+	category?: string | null;
 	pinned?: boolean;
 	prevTitle?: string;
 	prevSlug?: string;

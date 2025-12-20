@@ -14,9 +14,9 @@ if (!siteConfig.featurePages.diary) {
 const moments = getDiaryList(Number.MAX_SAFE_INTEGER);
 
 // 按年 -> 月分组（外层年份，内层月份；均倒序）
-const groupByYearMonth = (list) => {
+const groupByYearMonth = (list: any[]) => {
 	const yearMap = new Map();
-	list.forEach((m) => {
+	list.forEach((m: any) => {
 		const d = new Date(m.date);
 		const y = d.getFullYear();
 		const mth = String(d.getMonth() + 1).padStart(2, "0");
@@ -113,7 +113,7 @@ function formatClock(dateString: string): string {
 							<summary class="moment-group-header flex items-center gap-2 text-sm md:text-base font-semibold text-90">
 								<span class="group-toggle">▸</span>
 								<span class="group-label">{year}</span>
-								<span class="group-count text-50 text-xs md:text-sm">({months.reduce((acc, [, arr]) => acc + arr.length, 0)})</span>
+								<span class="group-count text-50 text-xs md:text-sm">({months.reduce((acc: number, [, arr]: any) => acc + arr.length, 0)})</span>
 							</summary>
 							<div class="space-y-3">
 							{months.map(([month, items]) => (
@@ -124,13 +124,13 @@ function formatClock(dateString: string): string {
 										<span class="group-count text-50 text-xs md:text-sm">({items.length})</span>
 									</summary>
 									<div class="space-y-4">
-									{items.map(moment => (
+									{items.map((moment: any) => (
 										<div class="moment-item card-base p-4 lg:p-8 hover:shadow-lg transition-all">
 											<div class="moment-content">
 												<p class="moment-text text-sm lg:text-lg leading-relaxed mb-3 text-90">{moment.content}</p>
 												{moment.images && moment.images.length > 0 && (
 					<div class="moment-images grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-4 mb-3">
-						{moment.images.map((image, _index) => (
+						{moment.images.map((image: any, _index: number) => (
 						<div class="image-item relative rounded-md overflow-hidden aspect-square cursor-pointer hover:scale-105 transition-transform">
 							<img 
 								src={image} 

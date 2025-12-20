@@ -19,8 +19,8 @@ interface Post {
 	data: {
 		title: string;
 		tags: string[];
-		category?: string;
-		published: Date;
+        category?: string;
+        published: string | Date;
 		permalink?: string; // 添加 permalink 字段
 	};
 }
@@ -32,9 +32,10 @@ interface Group {
 
 let groups: Group[] = [];
 
-function formatDate(date: Date) {
-	const month = (date.getMonth() + 1).toString().padStart(2, "0");
-	const day = date.getDate().toString().padStart(2, "0");
+function formatDate(date: string | Date) {
+	const d = typeof date === "string" ? new Date(date) : date;
+	const month = (d.getMonth() + 1).toString().padStart(2, "0");
+	const day = d.getDate().toString().padStart(2, "0");
 	return `${month}-${day}`;
 }
 
@@ -64,13 +65,13 @@ onMount(async () => {
 	}
 
 	// 按发布时间倒序排序，确保不受置顶影响
-	filteredPosts = filteredPosts
-		.slice()
-		.sort((a, b) => b.data.published.getTime() - a.data.published.getTime());
+    filteredPosts = filteredPosts
+    .slice()
+    .sort((a, b) => new Date(b.data.published).getTime() - new Date(a.data.published).getTime());
 
 	const grouped = filteredPosts.reduce(
 		(acc, post) => {
-			const year = post.data.published.getFullYear();
+			const year = new Date(post.data.published).getFullYear();
 			if (!acc[year]) {
 				acc[year] = [];
 			}

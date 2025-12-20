@@ -130,9 +130,8 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
     }
 </style>
 
-<script type="module">
+<script type="module" is:inline>
     document.addEventListener('DOMContentLoaded', function() {
-        const navMenuPanel = document.getElementById('nav-menu-panel');
         const mobileDropdowns = document.querySelectorAll('[data-mobile-dropdown]');
         
         // 导入 panelManager
@@ -144,7 +143,7 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
                 // 绑定子菜单项点击事件
                 const submenuItems = document.querySelectorAll('[data-submenu-item]');
                 submenuItems.forEach(item => {
-                    item.addEventListener('click', async function(e) {
+                    item.addEventListener('click', async function(_e) {
                         console.log('Submenu item clicked, closing nav-menu-panel');
                         // 关闭 nav-menu-panel
                         await panelManager.closePanel('nav-menu-panel');
