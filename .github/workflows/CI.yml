@@ -100,7 +100,7 @@ jobs:
           PUBLIC_URL: "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
 
       - name: Verify build output
-        run: |
+        run: |-
           echo "=== 验证构建输出 ==="
           echo "当前目录: $(pwd)"
           echo "dist目录内容:"
@@ -117,45 +117,42 @@ jobs:
             find . -name "*.html" -type f
             # 创建临时 index.html
             echo "创建临时 index.html..."
-            cat > dist/index.html << 'EOF'
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vedaru Blog - 部署成功</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; 
-                margin: 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                min-height: 100vh; color: white; text-align: center; }
-        .container { max-width: 800px; margin: 100px auto; padding: 40px; background: rgba(255,255,255,0.1); 
-                    border-radius: 20px; backdrop-filter: blur(10px); }
-        h1 { font-size: 3em; margin-bottom: 20px; }
-        .url { background: rgba(0,0,0,0.2); padding: 10px 20px; border-radius: 10px; 
-              display: inline-block; margin: 20px 0; font-family: monospace; font-size: 1.2em; }
-        .success { color: #4ade80; font-weight: bold; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>🚀 部署成功！</h1>
-        <p class="success">GitHub Pages 工作正常</p>
-        <p>Astro 项目已成功部署到</p>
-        <div class="url">https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/</div>
-        <p>如果这是您第一次看到此页面，请检查：</p>
-        <ul style="text-align: left; display: inline-block;">
-            <li>1. Astro 构建配置是否正确</li>
-            <li>2. 是否有 .astro 页面文件</li>
-            <li>3. 构建是否生成实际内容</li>
-        </ul>
-        <p style="margin-top: 30px;">构建时间: <span id="time"></span></p>
-        <script>
-            document.getElementById('time').textContent = new Date().toLocaleString('zh-CN');
-        </script>
-    </div>
-</body>
-</html>
-EOF
+            mkdir -p dist
+            cat > dist/index.html << 'HTMLEOF'
+          <!DOCTYPE html>
+          <html lang="zh-CN">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Vedaru Blog - 部署成功</title>
+              <style>
+                  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 20px; background: linear-gradient(135deg, 0x667eea 0%, 0x764ba2 100%); min-height: 100vh; color: white; text-align: center; }
+                  .container { max-width: 800px; margin: 100px auto; padding: 40px; background: rgba(255,255,255,0.1); border-radius: 20px; backdrop-filter: blur(10px); }
+                  h1 { font-size: 3em; margin-bottom: 20px; }
+                  .url { background: rgba(0,0,0,0.2); padding: 10px 20px; border-radius: 10px; display: inline-block; margin: 20px 0; font-family: monospace; font-size: 1.2em; }
+                  .success { color: 0x4ade80; font-weight: bold; }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <h1>🚀 部署成功！</h1>
+                  <p class="success">GitHub Pages 工作正常</p>
+                  <p>Astro 项目已成功部署到</p>
+                  <div class="url">https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/</div>
+                  <p>如果这是您第一次看到此页面，请检查：</p>
+                  <ul style="text-align: left; display: inline-block;">
+                      <li>1. Astro 构建配置是否正确</li>
+                      <li>2. 是否有 .astro 页面文件</li>
+                      <li>3. 构建是否生成实际内容</li>
+                  </ul>
+                  <p style="margin-top: 30px;">构建时间: <span id="time"></span></p>
+                  <script>
+                      document.getElementById('time').textContent = new Date().toLocaleString('zh-CN');
+                  </script>
+              </div>
+          </body>
+          </html>
+          HTMLEOF
             echo "临时 index.html 已创建"
           fi
       
