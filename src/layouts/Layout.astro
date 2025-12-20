@@ -14,9 +14,6 @@ import {
 } from "@/config";
 import { umamiConfig } from "../config";
 
-// 使用 Astro 的 getImage 处理图片路径，或使用 Astro.url 来获取正确的基础 URL
-const baseUrl = new URL("/", Astro.site || "https://example.com");
-
 const BANNER_HEIGHT = 35;
 const BANNER_HEIGHT_EXTEND = 30;
 const BANNER_HEIGHT_HOME = BANNER_HEIGHT + BANNER_HEIGHT_EXTEND;
@@ -294,7 +291,7 @@ if (siteConfig.font) {
 		<slot name="head"></slot>
 
 		<!-- Pio 看板娘样式 - 仅在启用时加载 -->
-		{pioConfig.enable && <link rel="stylesheet" href={new URL("pio/static/pio.css", Astro.site || `${baseUrl}`).pathname} />}
+		{pioConfig.enable && <link rel="stylesheet" href={import.meta.env.BASE_URL + "pio/static/pio.css"} />}
 
 		<link rel="alternate" type="application/rss+xml" title={profileConfig.name} href={`${Astro.site}rss.xml`}/>
 
@@ -1047,14 +1044,14 @@ if (document.readyState === 'loading') {
 		showBanner();
 		// 初始化面板管理器
 		try {
-			await import('../utils/panel-manager');
+			const panelModule = await import('../utils/panel-manager');
 			console.log('Panel manager initialized');
 		} catch (error) {
 			console.error('Failed to initialize panel manager:', error);
 		}
 		// 初始化右侧栏布局管理器
 		try {
-			await import('../scripts/right-sidebar-layout.js');
+			const layoutModule = await import('../scripts/right-sidebar-layout.js');
 			console.log('Right sidebar layout initialized');
 		} catch (error) {
 			console.error('Failed to initialize right sidebar layout:', error);
@@ -1065,14 +1062,14 @@ if (document.readyState === 'loading') {
 	// 页面已经加载完成，立即初始化面板管理器
 	(async () => {
 		try {
-			await import('../utils/panel-manager');
+			const panelModule = await import(/* webpackChunkName: "panel-manager" */ '../utils/panel-manager');
 			console.log('Panel manager initialized');
 		} catch (error) {
 			console.error('Failed to initialize panel manager:', error);
 		}
 		// 初始化右侧栏布局管理器
 		try {
-			await import('../scripts/right-sidebar-layout.js');
+			const layoutModule = await import(/* webpackChunkName: "right-sidebar" */ '../scripts/right-sidebar-layout.js');
 			console.log('Right sidebar layout initialized');
 		} catch (error) {
 			console.error('Failed to initialize right sidebar layout:', error);
