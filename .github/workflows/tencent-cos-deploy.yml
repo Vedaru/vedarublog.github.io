@@ -104,15 +104,15 @@ try:
             'ErrorDocument': {'Key': 'index.html'},
         }
     )
-    print('✓ Static website configured: index.html as index & error doc')
+    print('[OK] Static website configured: index.html as index and error doc')
     response = client.get_bucket_website(Bucket=BUCKET)
     if 'WebsiteConfiguration' in response:
         cfg = response['WebsiteConfiguration']
         index = cfg.get('IndexDocument', {}).get('Suffix', 'NOT SET')
         error = cfg.get('ErrorDocument', {}).get('Key', 'NOT SET')
-        print(f'✓ Verified: IndexDocument={index}, ErrorDocument={error}')
+        print(f'[OK] Verified: IndexDocument={index}, ErrorDocument={error}')
 except Exception as e:
-    print(f'✗ Failed to configure static website: {e}', file=sys.stderr)
+    print(f'[ERROR] Failed to configure static website: {e}', file=sys.stderr)
     sys.exit(1)
 PYSCRIPT
 
