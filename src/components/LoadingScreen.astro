@@ -41,17 +41,47 @@
 	// 防止 FOUC（Flash of Unstyled Content）
 	document.documentElement.style.overflow = 'hidden';
 	
-	// 模拟加载进度
+	// 模拟加载进度（更平滑的曲线）
 	const progressBar = document.getElementById('loading-progress');
-	let progress = 30;
+	let progress = 20;
+	let lastUpdateTime = Date.now();
+	let loadingStartTime = Date.now();
 
-	const progressInterval = setInterval(() => {
-		progress += Math.random() * 30;
-		if (progress > 85) progress = 85;
+	const updateProgress = () => {
+		const elapsed = Date.now() - loadingStartTime;
+		const maxWait = 8000; // 最多等待8秒
+
+		if (progress < 50) {
+			// 前期快速增长 (20% -> 50%)
+			progress += Math.random() * 15 + 5;
+		} else if (progress < 80) {
+			// 中期逐渐变慢 (50% -> 80%)
+			progress += Math.random() * 8 + 2;
+		} else {
+			// 后期非常慢 (80% -> 95%)
+			progress += Math.random() * 3 + 0.5;
+		}
+
+		// 防止溢出
+		progress = Math.min(progress, 95);
+
 		if (progressBar) {
 			progressBar.style.width = progress + '%';
 		}
-	}, 300);
+
+		// 如果加载超时，加快进度
+		if (elapsed > maxWait && progress < 90) {
+			progress = 90;
+		}
+
+		// 继续更新直到页面加载完成
+		if (progress < 95) {
+			lastUpdateTime = Date.now();
+			setTimeout(updateProgress, 200 + Math.random() * 300);
+		}
+	};
+
+	updateProgress();
 
 	// 监听页面加载完成
 	window.addEventListener('load', () => {
@@ -59,7 +89,6 @@
 		if (progressBar) {
 			progressBar.style.width = '100%';
 		}
-		clearInterval(progressInterval);
 
 		// 延迟一下以确保所有资源都加载完成
 		setTimeout(() => {

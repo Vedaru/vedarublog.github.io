@@ -148,29 +148,16 @@ onMount(() => {
 		console.warn("Unable to set posterGirl localStorage", e);
 	}
 
-	// 监听加载屏幕隐藏事件，以同步初始化 Pio
-	// 避免加载屏幕移除后 Pio 的 canvas 状态不一致
-	const loadingScreen = document.getElementById('loading-screen');
-	const onLoadingScreenHidden = () => {
-		console.log("Loading screen hidden, initializing Pio immediately...");
-		waitForScripts().then(() => {
-			console.log("Pio scripts ready, initializing...");
-			initPio();
-		}).catch((err) => {
-			console.error("Failed to wait for Pio scripts:", err);
-		});
-	};
-
-	if (loadingScreen) {
-		// 监听加载屏幕的 hide 动画完成（动画时长 500ms + 延迟 200ms）
-		loadingScreen.addEventListener('animationstart', () => {
-			setTimeout(onLoadingScreenHidden, 0);
-		}, { once: true });
-	} else {
-		// 如果加载屏幕已经移除，立即初始化
-		// 或使用较短的延迟（100ms）以确保DOM稳定
-		setTimeout(onLoadingScreenHidden, 100);
-	}
+	// 立即开始初始化 Pio，避免加载屏幕覆盖问题
+	// 脚本加载后立即初始化，不等加载屏幕移除
+	console.log("Pio onMount: starting script load...");
+	waitForScripts().then(() => {
+		console.log("Pio scripts ready, initializing immediately...");
+		// 确保 DOM 已经渲染再初始化（微任务）
+		Promise.resolve().then(() => initPio());
+	}).catch((err) => {
+		console.error("Failed to wait for Pio scripts:", err);
+	});
 
 	// 初始画布尺寸与窗口变化自适应（节流）
 	const handleResize = throttle(() => sizeCanvas(), 200);

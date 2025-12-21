@@ -724,23 +724,12 @@ onMount(() => {
 	if (!musicPlayerConfig.enable) {
 		return;
 	}
-	// 延迟加载播放列表到浏览器空闲或用户首次展开播放器时
+	// 延迟加载播放列表到用户首次展开播放器时（响应式延迟）
 	if (mode === "meting") {
-		// 使用 requestIdleCallback 延迟加载 Meting API 请求，避免阻塞首屏渲染
-		if ('requestIdleCallback' in window) {
-			requestIdleCallback(() => {
-				console.log("Loading music playlist in idle time...");
-				fetchMetingPlaylist();
-			}, { timeout: 5000 });
-		} else {
-			// 降级方案：延迟 2 秒加载
-			setTimeout(() => {
-				console.log("Loading music playlist after delay...");
-				fetchMetingPlaylist();
-			}, 2000);
-		}
+		// 仅在用户展开播放器时才加载 Meting API，避免不必要的网络请求
+		console.log("MusicPlayer: Meting playlist will load on user interaction");
 	} else {
-		// 本地播放列表：立即加载（无网络请求）
+		// 本地播放列表：立即加载（无网络请求，成本低）
 		playlist = [...localPlaylist];
 		if (playlist.length > 0) {
 			loadSong(playlist[0]);

@@ -341,11 +341,11 @@ if (siteConfig.font) {
 		<ConfigCarrier></ConfigCarrier>
 		<slot />
 		
-		<!-- Music Player - 仅在启用时加载 -->
-		{musicPlayerConfig.enable && <MusicPlayer client:idle />}
+		<!-- Music Player - 用户首次交互时才加载，减少初始化开销 -->
+		{musicPlayerConfig.enable && <MusicPlayer client:interaction />}
 		
-		<!-- Pio 看板娘组件 - 所有页面启用，视口可见时渲染 -->
-		{pioConfig.enable && <Pio client:visible baseURL={import.meta.env.BASE_URL} />}
+		<!-- Pio 看板娘组件 - 立即在主线程加载以防止白色矩形问题 -->
+		{pioConfig.enable && <Pio client:load baseURL={import.meta.env.BASE_URL} />}
 		
 		<!-- increase the page height during page transition to prevent the scrolling animation from jumping -->
 		<div id="page-height-extend" class="hidden h-[300vh]"></div>
