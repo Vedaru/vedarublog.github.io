@@ -51,6 +51,15 @@ jobs:
           COS_BUCKET: ${{ secrets.COS_BUCKET }}
           COS_REGION: ${{ secrets.COS_REGION }}
         run: |
+          if [ -z "$TENCENT_SECRET_ID" ] || [ -z "$TENCENT_SECRET_KEY" ] || [ -z "$COS_BUCKET" ] || [ -z "$COS_REGION" ]; then
+            echo "❌ Error: Missing required secrets. Please configure in GitHub repository settings:"
+            echo "  - TENCENT_SECRET_ID"
+            echo "  - TENCENT_SECRET_KEY"
+            echo "  - COS_BUCKET (e.g., vedaru-123456)"
+            echo "  - COS_REGION (e.g., ap-shanghai)"
+            exit 1
+          fi
+          echo "✓ Configuring coscmd with bucket: $COS_BUCKET in region: $COS_REGION"
           coscmd config -a "$TENCENT_SECRET_ID" -s "$TENCENT_SECRET_KEY" -b "$COS_BUCKET" -r "$COS_REGION"
 
       - name: Upload dist/ to COS bucket root
