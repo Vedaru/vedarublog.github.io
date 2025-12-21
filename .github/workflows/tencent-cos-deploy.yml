@@ -119,6 +119,15 @@ jobs:
         run: |
           python scripts/verify-cos-config.py
 
+      - name: Diagnose COS headers
+        env:
+          TENCENT_SECRET_ID: ${{ secrets.TENCENT_SECRET_ID }}
+          TENCENT_SECRET_KEY: ${{ secrets.TENCENT_SECRET_KEY }}
+          COS_BUCKET: ${{ secrets.COS_BUCKET }}
+          COS_REGION: ${{ secrets.COS_REGION }}
+        run: |
+          python scripts/diagnose-cos-headers.py
+
       - name: Print COS Website URL
         run: |
           echo "COS Website URL: http://${{ secrets.COS_BUCKET }}.cos-website.${{ secrets.COS_REGION }}.myqcloud.com"
