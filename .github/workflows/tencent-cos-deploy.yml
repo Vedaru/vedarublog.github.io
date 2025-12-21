@@ -91,6 +91,49 @@ jobs:
           pip install --upgrade cos-python-sdk-v5
           DIST_DIR=./dist python scripts/fix-cos-mime.py
 
+      - name: Force HTML Content-Disposition to inline
+        env:
+          TENCENT_SECRET_ID: ${{ secrets.TENCENT_SECRET_ID }}
+          TENCENT_SECRET_KEY: ${{ secrets.TENCENT_SECRET_KEY }}
+          COS_BUCKET: ${{ secrets.COS_BUCKET }}
+          COS_REGION: ${{ secrets.COS_REGION }}
+        run: |
+          python << 'HTMLFIX'
+import os
+from pathlib import Path
+from qcloud_cos import CosConfig, CosS3Client
+
+SECRET_ID = os.environ.get('TENCENT_SECRET_ID')
+SECRET_KEY = os.environ.get('TENCENT_SECRET_KEY')
+BUCKET = os.environ.get('COS_BUCKET')
+REGION = os.environ.get('COS_REGION')
+
+config = CosConfig(Region=REGION, SecretId=SECRET_ID, SecretKey=SECRET_KEY, Scheme='https')
+client = CosS3Client(config)
+
+dist_dir = Path('./dist')
+html_count = 0
+
+for html_file in dist_dir.rglob('*.html'):
+    rel_key = html_file.relative_to(dist_dir).as_posix()
+    try:
+        with open(html_file, 'rb') as f:
+            body = f.read()
+        client.put_object(
+            Bucket=BUCKET,
+            Key=rel_key,
+            Body=body,
+            ContentType='text/html; charset=utf-8',
+            ContentDisposition='inline'
+        )
+        html_count += 1
+        print(f'[HTML] {rel_key}: Content-Disposition=inline')
+    except Exception as e:
+        print(f'[ERROR] {rel_key}: {e}')
+
+print(f'Total HTML files fixed: {html_count}')
+HTMLFIX
+
       - name: Verify COS configuration
         env:
           TENCENT_SECRET_ID: ${{ secrets.TENCENT_SECRET_ID }}

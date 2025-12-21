@@ -70,7 +70,8 @@ def guess_headers(local_path: str) -> Tuple[str, str]:
     }
     
     ct = explicit_types.get(ext) or mimetypes.guess_type(local_path)[0] or 'application/octet-stream'
-    cd = 'inline' if ext in INLINE_EXTS else 'attachment'
+    # Always set Content-Disposition: inline to prevent download on all files
+    cd = 'inline'
     return ct, cd
 
 fixed = 0
