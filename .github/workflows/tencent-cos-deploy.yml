@@ -91,6 +91,15 @@ jobs:
           pip install --upgrade cos-python-sdk-v5
           DIST_DIR=./dist python scripts/fix-cos-mime.py
 
+      - name: Verify COS MIME types
+        env:
+          TENCENT_SECRET_ID: ${{ secrets.TENCENT_SECRET_ID }}
+          TENCENT_SECRET_KEY: ${{ secrets.TENCENT_SECRET_KEY }}
+          COS_BUCKET: ${{ secrets.COS_BUCKET }}
+          COS_REGION: ${{ secrets.COS_REGION }}
+        run: |
+          python scripts/verify-cos-mime.py
+
       - name: Force HTML Content-Disposition to inline
         env:
           TENCENT_SECRET_ID: ${{ secrets.TENCENT_SECRET_ID }}
