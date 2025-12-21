@@ -38,10 +38,17 @@ except Exception as e:
 config = CosConfig(Region=REGION, SecretId=SECRET_ID, SecretKey=SECRET_KEY, Token=None, Scheme='https')
 client = CosS3Client(config)
 
+INLINE_EXTS = {
+    '.html', '.htm', '.css', '.js', '.mjs', '.json', '.svg', '.ico',
+    '.png', '.jpg', '.jpeg', '.webp', '.gif',
+    '.woff', '.woff2', '.ttf', '.otf',
+}
+
 def guess_headers(local_path: str) -> Tuple[str, str]:
     """Return (content_type, content_disposition)"""
     ct = mimetypes.guess_type(local_path)[0] or 'application/octet-stream'
-    cd = 'inline' if local_path.lower().endswith('.html') else ''
+    ext = Path(local_path).suffix.lower()
+    cd = 'inline' if ext in INLINE_EXTS else ''
     return ct, cd
 
 fixed = 0
