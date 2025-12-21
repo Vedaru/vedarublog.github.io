@@ -128,6 +128,14 @@ jobs:
         run: |
           python scripts/diagnose-cos-headers.py
 
+      - name: Test actual HTTP headers from website domain
+        env:
+          COS_BUCKET: ${{ secrets.COS_BUCKET }}
+          COS_REGION: ${{ secrets.COS_REGION }}
+        run: |
+          pip install requests
+          python scripts/test-http-headers.py
+
       - name: Print COS Website URL
         run: |
           echo "COS Website URL: http://${{ secrets.COS_BUCKET }}.cos-website.${{ secrets.COS_REGION }}.myqcloud.com"
