@@ -67,6 +67,20 @@ jobs:
           # 递归上传并跳过未变更文件，减少带宽与耗时
           coscmd upload -rs dist/ /
 
+      - name: List bucket root (debug)
+        run: |
+          coscmd list /
+
+      - name: Fix COS MIME types to prevent HTML download
+        env:
+          TENCENT_SECRET_ID: ${{ secrets.TENCENT_SECRET_ID }}
+          TENCENT_SECRET_KEY: ${{ secrets.TENCENT_SECRET_KEY }}
+          COS_BUCKET: ${{ secrets.COS_BUCKET }}
+          COS_REGION: ${{ secrets.COS_REGION }}
+        run: |
+          pip install --upgrade cos-python-sdk-v5
+          python scripts/fix-cos-mime.py
+
       - name: Print COS Website URL
         run: |
           echo "COS Website URL: http://${{ secrets.COS_BUCKET }}.cos-website.${{ secrets.COS_REGION }}.myqcloud.com"
