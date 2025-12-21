@@ -100,6 +100,16 @@ jobs:
         run: |
           python scripts/fix-html-inline.py
 
+      - name: Upload root index.html with proper headers
+        env:
+          TENCENT_SECRET_ID: ${{ secrets.TENCENT_SECRET_ID }}
+          TENCENT_SECRET_KEY: ${{ secrets.TENCENT_SECRET_KEY }}
+          COS_BUCKET: ${{ secrets.COS_BUCKET }}
+          COS_REGION: ${{ secrets.COS_REGION }}
+        run: |
+          pip install --upgrade cos-python-sdk-v5
+          python scripts/upload-root-index.py
+
       - name: Verify COS configuration
         env:
           TENCENT_SECRET_ID: ${{ secrets.TENCENT_SECRET_ID }}
