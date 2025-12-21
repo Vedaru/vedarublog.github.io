@@ -341,8 +341,8 @@ if (siteConfig.font) {
 		<ConfigCarrier></ConfigCarrier>
 		<slot />
 		
-		<!-- Music Player - 用户首次交互时才加载，减少初始化开销 -->
-		{musicPlayerConfig.enable && <MusicPlayer client:interaction />}
+		<!-- Music Player - 浏览器空闲时加载，减少初始化开销 -->
+		{musicPlayerConfig.enable && <MusicPlayer client:idle />}
 		
 		<!-- Pio 看板娘组件 - 立即在主线程加载以防止白色矩形问题 -->
 		{pioConfig.enable && <Pio client:load baseURL={import.meta.env.BASE_URL} />}
