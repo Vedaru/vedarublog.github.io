@@ -46,9 +46,31 @@ INLINE_EXTS = {
 
 def guess_headers(local_path: str) -> Tuple[str, str]:
     """Return (content_type, content_disposition)"""
-    ct = mimetypes.guess_type(local_path)[0] or 'application/octet-stream'
     ext = Path(local_path).suffix.lower()
-    cd = 'inline' if ext in INLINE_EXTS else ''
+    
+    # Explicitly set correct MIME types to prevent download
+    explicit_types = {
+        '.html': 'text/html; charset=utf-8',
+        '.htm': 'text/html; charset=utf-8',
+        '.css': 'text/css; charset=utf-8',
+        '.js': 'application/javascript; charset=utf-8',
+        '.mjs': 'application/javascript; charset=utf-8',
+        '.json': 'application/json; charset=utf-8',
+        '.svg': 'image/svg+xml',
+        '.ico': 'image/x-icon',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.webp': 'image/webp',
+        '.gif': 'image/gif',
+        '.woff': 'font/woff',
+        '.woff2': 'font/woff2',
+        '.ttf': 'font/ttf',
+        '.otf': 'font/otf',
+    }
+    
+    ct = explicit_types.get(ext) or mimetypes.guess_type(local_path)[0] or 'application/octet-stream'
+    cd = 'inline' if ext in INLINE_EXTS else 'attachment'
     return ct, cd
 
 fixed = 0
@@ -68,10 +90,8 @@ for p in root.rglob('*'):
             'Key': rel_key,
             'Body': body,
             'ContentType': ct,
+            'ContentDisposition': cd,  # Always set this, even for attachments
         }
-        if cd:
-            kwargs['ContentDisposition'] = cd
-        # Re-upload with proper headers
         client.put_object(**kwargs)
         fixed += 1
         print(f'Uploaded with headers: {rel_key} -> ct={ct} cd={cd or ""}')
