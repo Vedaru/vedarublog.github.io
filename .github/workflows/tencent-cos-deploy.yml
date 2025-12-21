@@ -1,0 +1,75 @@
+name: Deploy to Tencent COS
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cos-deploy
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Astro site
+        env:
+          ASTRO_BASE: /
+        run: pnpm build
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install coscmd
+        run: pip install --upgrade coscmd
+
+      - name: Configure coscmd
+        env:
+          TENCENT_SECRET_ID: ${{ secrets.TENCENT_SECRET_ID }}
+          TENCENT_SECRET_KEY: ${{ secrets.TENCENT_SECRET_KEY }}
+          COS_BUCKET: ${{ secrets.COS_BUCKET }}
+          COS_REGION: ${{ secrets.COS_REGION }}
+        run: |
+          coscmd config -a "$TENCENT_SECRET_ID" -s "$TENCENT_SECRET_KEY" -b "$COS_BUCKET" -r "$COS_REGION"
+
+      - name: Upload dist/ to COS bucket root
+        run: |
+          # 递归上传并跳过未变更文件，减少带宽与耗时
+          coscmd upload -rs dist/ /
+
+      - name: Print COS Website URL
+        run: |
+          echo "COS Website URL: http://${{ secrets.COS_BUCKET }}.cos-website.${{ secrets.COS_REGION }}.myqcloud.com"
+
+      # Optional: Purge CDN cache after deploy (enable by adding CDN_ENABLED=true secret and fill CDN_DOMAIN)
+      # - name: Purge CDN cache (optional)
+      #   if: ${{ secrets.CDN_ENABLED == 'true' }}
+      #   env:
+      #     TENCENT_SECRET_ID: ${{ secrets.TENCENT_SECRET_ID }}
+      #     TENCENT_SECRET_KEY: ${{ secrets.TENCENT_SECRET_KEY }}
+      #     CDN_DOMAIN: ${{ secrets.CDN_DOMAIN }}
+      #   run: |
+      #     npm init -y >/dev/null 2>&1 || true
+      #     npm i @tencentcloud/cdn -y
+      #     node -e "(async()=>{const { CdnClient } = require('@tencentcloud/cdn'); const client = new CdnClient({ credential: { secretId: process.env.TENCENT_SECRET_ID, secretKey: process.env.TENCENT_SECRET_KEY }, region: 'ap-guangzhou', profile: { httpProfile: { endpoint: 'cdn.tencentcloudapi.com' }}}); const params = { Paths: [`https://${process.env.CDN_DOMAIN}/`], FlushType: 'flush', Urls: [`https://${process.env.CDN_DOMAIN}/`] }; try { const res = await client.PurgePathCache(params); console.log('CDN purge response:', res); } catch(e){ console.error(e); process.exit(1);} })()"
