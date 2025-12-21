@@ -130,14 +130,14 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
     }
 </style>
 
-<script type="module" is:inline>
+<script type="module">
     document.addEventListener('DOMContentLoaded', function() {
         const mobileDropdowns = document.querySelectorAll('[data-mobile-dropdown]');
         
         // 导入 panelManager
         (async () => {
             try {
-                // @ts-ignore
+                // 通过打包后的模块加载（由 Astro/Vite 处理路径与哈希）
                 const { panelManager } = await import('../../utils/panel-manager');
                 
                 // 绑定子菜单项点击事件

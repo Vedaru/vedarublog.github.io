@@ -351,7 +351,7 @@ if (siteConfig.font) {
 		<div id="page-height-extend" class="hidden h-[300vh]"></div>
 
 		<!-- 注册 Service Worker，用于静态资源缓存（_astro 与 pio assets） -->
-		<script is:inline>
+		<script type="module">
 			if ('serviceWorker' in navigator) {
 				window.addEventListener('load', () => {
 					const base = import.meta.env?.BASE_URL || '/';
