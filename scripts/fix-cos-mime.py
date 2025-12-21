@@ -14,6 +14,25 @@ mimetypes.add_type('font/woff2', '.woff2')
 mimetypes.add_type('font/woff', '.woff')
 mimetypes.add_type('font/ttf', '.ttf')
 mimetypes.add_type('image/x-icon', '.ico')
+mimetypes.add_type('image/avif', '.avif')
+mimetypes.add_type('image/webp', '.webp')
+mimetypes.add_type('image/png', '.png')
+mimetypes.add_type('image/jpeg', '.jpg')
+mimetypes.add_type('image/jpeg', '.jpeg')
+mimetypes.add_type('image/gif', '.gif')
+mimetypes.add_type('image/bmp', '.bmp')
+mimetypes.add_type('application/xml', '.xml')
+mimetypes.add_type('text/plain', '.txt')
+mimetypes.add_type('application/wasm', '.wasm')
+mimetypes.add_type('application/pdf', '.pdf')
+mimetypes.add_type('audio/mpeg', '.mp3')
+mimetypes.add_type('audio/mp4', '.m4a')
+mimetypes.add_type('audio/ogg', '.ogg')
+mimetypes.add_type('audio/wav', '.wav')
+mimetypes.add_type('video/mp4', '.mp4')
+mimetypes.add_type('video/webm', '.webm')
+mimetypes.add_type('application/manifest+json', '.webmanifest')
+mimetypes.add_type('application/vnd.ms-fontobject', '.eot')
 
 SECRET_ID = os.environ.get('TENCENT_SECRET_ID')
 SECRET_KEY = os.environ.get('TENCENT_SECRET_KEY')
@@ -53,20 +72,35 @@ def guess_headers(local_path: str) -> Tuple[str, str]:
         '.html': 'text/html; charset=utf-8',
         '.htm': 'text/html; charset=utf-8',
         '.css': 'text/css; charset=utf-8',
-        '.js': 'application/javascript; charset=utf-8',
-        '.mjs': 'application/javascript; charset=utf-8',
-        '.json': 'application/json; charset=utf-8',
+        '.js': 'application/javascript',
+        '.mjs': 'application/javascript',
+        '.json': 'application/json',
+        '.map': 'application/json',
         '.svg': 'image/svg+xml',
         '.ico': 'image/x-icon',
         '.png': 'image/png',
         '.jpg': 'image/jpeg',
         '.jpeg': 'image/jpeg',
         '.webp': 'image/webp',
+        '.avif': 'image/avif',
         '.gif': 'image/gif',
+        '.bmp': 'image/bmp',
+        '.xml': 'application/xml',
+        '.txt': 'text/plain; charset=utf-8',
+        '.webmanifest': 'application/manifest+json',
         '.woff': 'font/woff',
         '.woff2': 'font/woff2',
         '.ttf': 'font/ttf',
         '.otf': 'font/otf',
+        '.eot': 'application/vnd.ms-fontobject',
+        '.wasm': 'application/wasm',
+        '.pdf': 'application/pdf',
+        '.mp3': 'audio/mpeg',
+        '.m4a': 'audio/mp4',
+        '.ogg': 'audio/ogg',
+        '.wav': 'audio/wav',
+        '.mp4': 'video/mp4',
+        '.webm': 'video/webm',
     }
     
     ct = explicit_types.get(ext) or mimetypes.guess_type(local_path)[0] or 'application/octet-stream'
