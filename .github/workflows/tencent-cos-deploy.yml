@@ -79,36 +79,45 @@ jobs:
           COS_REGION: ${{ secrets.COS_REGION }}
         run: |
           pip install --upgrade cos-python-sdk-v5
-          python - << 'EOF'
-          import os
-          import sys
-          from qcloud_cos import CosConfig, CosS3Client
+          python << 'PYSCRIPT'
+import os
+import sys
+from qcloud_cos import CosConfig, CosS3Client
 
-          SECRET_ID = os.environ.get('TENCENT_SECRET_ID')
-          SECRET_KEY = os.environ.get('TENCENT_SECRET_KEY')
-          BUCKET = os.environ.get('COS_BUCKET')
-          REGION = os.environ.get('COS_REGION')
+SECRET_ID = os.environ.get('TENCENT_SECRET_ID')
+SECRET_KEY = os.environ.get('TENCENT_SECRET_KEY')
+BUCKET = os.environ.get('COS_BUCKET')
+REGION = os.environ.get('COS_REGION')
 
-          if not all([SECRET_ID, SECRET_KEY, BUCKET, REGION]):
-              print('Missing env variables', file=sys.stderr)
-              sys.exit(1)
+if not all([SECRET_ID, SECRET_KEY, BUCKET, REGION]):
+    print('Missing env variables', file=sys.stderr)
+    sys.exit(1)
 
-          config = CosConfig(Region=REGION, SecretId=SECRET_ID, SecretKey=SECRET_KEY, Scheme='https')
-          client = CosS3Client(config)
+config = CosConfig(Region=REGION, SecretId=SECRET_ID, SecretKey=SECRET_KEY, Scheme='https')
+client = CosS3Client(config)
 
-          try:
-              response = client.put_bucket_website(
-                  Bucket=BUCKET,
-                  WebsiteConfiguration={
-                      'IndexDocument': {'Suffix': 'index.html'},
-                      'ErrorDocument': {'Key': 'index.html'},
-                  }
-              )
-              print('✓ Static website configured: index.html as index, index.html as error doc')
-          except Exception as e:
-              print(f'✗ Failed to configure static website: {e}', file=sys.stderr)
-              sys.exit(1)
-          EOF
+try:
+    # 配置静态网站：索引文档为 index.html，错误文档也为 index.html（SPA友好）
+    response = client.put_bucket_website(
+        Bucket=BUCKET,
+        WebsiteConfiguration={
+            'IndexDocument': {'Suffix': 'index.html'},
+            'ErrorDocument': {'Key': 'index.html'},
+        }
+    )
+    print('✓ Static website configured: index.html as index & error doc')
+    
+    # 获取配置确认
+    response = client.get_bucket_website(Bucket=BUCKET)
+    if 'WebsiteConfiguration' in response:
+        cfg = response['WebsiteConfiguration']
+        index = cfg.get('IndexDocument', {}).get('Suffix', 'NOT SET')
+        error = cfg.get('ErrorDocument', {}).get('Key', 'NOT SET')
+        print(f'✓ Verified: IndexDocument={index}, ErrorDocument={error}')
+except Exception as e:
+    print(f'✗ Failed to configure static website: {e}', file=sys.stderr)
+    sys.exit(1)
+PYSCRIPT
 
       - name: Fix COS MIME types to prevent HTML download
         env:
@@ -119,6 +128,61 @@ jobs:
         run: |
           pip install --upgrade cos-python-sdk-v5
           DIST_DIR=./dist python scripts/fix-cos-mime.py
+
+      - name: Verify index.html configuration
+        env:
+          TENCENT_SECRET_ID: ${{ secrets.TENCENT_SECRET_ID }}
+          TENCENT_SECRET_KEY: ${{ secrets.TENCENT_SECRET_KEY }}
+          COS_BUCKET: ${{ secrets.COS_BUCKET }}
+          COS_REGION: ${{ secrets.COS_REGION }}
+        run: |
+          python << 'VERIFY'
+import os
+import sys
+from qcloud_cos import CosConfig, CosS3Client
+
+SECRET_ID = os.environ.get('TENCENT_SECRET_ID')
+SECRET_KEY = os.environ.get('TENCENT_SECRET_KEY')
+BUCKET = os.environ.get('COS_BUCKET')
+REGION = os.environ.get('COS_REGION')
+
+config = CosConfig(Region=REGION, SecretId=SECRET_ID, SecretKey=SECRET_KEY, Scheme='https')
+client = CosS3Client(config)
+
+print('🔍 Verifying COS configuration...')
+print()
+
+# 检查静态网站配置
+try:
+    response = client.get_bucket_website(Bucket=BUCKET)
+    cfg = response.get('WebsiteConfiguration', {})
+    index = cfg.get('IndexDocument', {}).get('Suffix', 'NOT SET')
+    error = cfg.get('ErrorDocument', {}).get('Key', 'NOT SET')
+    print(f'✓ Static Website Config:')
+    print(f'  IndexDocument: {index}')
+    print(f'  ErrorDocument: {error}')
+except Exception as e:
+    print(f'✗ Failed to get static website config: {e}')
+
+print()
+
+# 检查index.html的元数据
+try:
+    response = client.head_object(Bucket=BUCKET, Key='index.html')
+    ct = response.get('Content-Type', 'NOT SET')
+    cd = response.get('Content-Disposition', 'NOT SET')
+    print(f'✓ index.html Headers:')
+    print(f'  Content-Type: {ct}')
+    print(f'  Content-Disposition: {cd}')
+    
+    if 'text/html' not in ct:
+        print('⚠️  WARNING: Content-Type should contain "text/html"')
+    if 'inline' not in cd:
+        print('⚠️  WARNING: Content-Disposition should be "inline"')
+except Exception as e:
+    print(f'✗ Failed to check index.html: {e}')
+
+VERIFY
 
       - name: Print COS Website URL
         run: |
