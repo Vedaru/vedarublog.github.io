@@ -71,6 +71,45 @@ jobs:
         run: |
           coscmd list /
 
+      - name: Configure COS static website (index.html & 404.html)
+        env:
+          TENCENT_SECRET_ID: ${{ secrets.TENCENT_SECRET_ID }}
+          TENCENT_SECRET_KEY: ${{ secrets.TENCENT_SECRET_KEY }}
+          COS_BUCKET: ${{ secrets.COS_BUCKET }}
+          COS_REGION: ${{ secrets.COS_REGION }}
+        run: |
+          pip install --upgrade cos-python-sdk-v5
+          python - << 'EOF'
+          import os
+          import sys
+          from qcloud_cos import CosConfig, CosS3Client
+
+          SECRET_ID = os.environ.get('TENCENT_SECRET_ID')
+          SECRET_KEY = os.environ.get('TENCENT_SECRET_KEY')
+          BUCKET = os.environ.get('COS_BUCKET')
+          REGION = os.environ.get('COS_REGION')
+
+          if not all([SECRET_ID, SECRET_KEY, BUCKET, REGION]):
+              print('Missing env variables', file=sys.stderr)
+              sys.exit(1)
+
+          config = CosConfig(Region=REGION, SecretId=SECRET_ID, SecretKey=SECRET_KEY, Scheme='https')
+          client = CosS3Client(config)
+
+          try:
+              response = client.put_bucket_website(
+                  Bucket=BUCKET,
+                  WebsiteConfiguration={
+                      'IndexDocument': {'Suffix': 'index.html'},
+                      'ErrorDocument': {'Key': 'index.html'},
+                  }
+              )
+              print('✓ Static website configured: index.html as index, index.html as error doc')
+          except Exception as e:
+              print(f'✗ Failed to configure static website: {e}', file=sys.stderr)
+              sys.exit(1)
+          EOF
+
       - name: Fix COS MIME types to prevent HTML download
         env:
           TENCENT_SECRET_ID: ${{ secrets.TENCENT_SECRET_ID }}
