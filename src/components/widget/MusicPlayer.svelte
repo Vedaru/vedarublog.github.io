@@ -150,31 +150,38 @@ async function preloadSingleCover(coverUrl: string, timeout = 8000): Promise<voi
 		return;
 	}
 	
-	// 对于外部 URL，尝试 fetch 转为 blob URL
+	// 对于外部 URL，优先尝试用 CORS 模式 fetch（以便读取 blob）；若失败则回退为直接使用外部 URL
 	loadingCovers.add(coverUrl);
 	try {
 		const controller = new AbortController();
 		const timeoutId = setTimeout(() => controller.abort(), timeout);
-		
-		const res = await fetch(coverUrl, { 
-			mode: "no-cors",
-			signal: controller.signal,
-			cache: "force-cache"
-		});
+
+		// 尝试以 cors 模式获取图片，这样可以在支持 CORS 的情况下将图片转为 blob，避免跨域图像污染页面缓存
+		let res: Response | null = null;
+		try {
+			res = await fetch(coverUrl, { signal: controller.signal, cache: "force-cache", mode: "cors" });
+		} catch (innerErr) {
+			// 如果 cors 模式失败（常见于无 CORS 的第三方图片），我们不抛出，而是回退到使用原始 URL
+			res = null;
+		}
 		clearTimeout(timeoutId);
-		
-		if (res.ok || res.status === 0) {
-			const blob = await res.blob();
-			const objectUrl = URL.createObjectURL(blob);
-			coverCache.set(coverUrl, objectUrl);
-			persistCoverCache();
+
+		if (res && res.ok) {
+			try {
+				const blob = await res.blob();
+				const objectUrl = URL.createObjectURL(blob);
+				coverCache.set(coverUrl, objectUrl);
+				persistCoverCache();
+			} catch (e) {
+				// 读取 blob 失败，降级为直接使用原始 URL
+				coverCache.set(coverUrl, coverUrl);
+			}
 		} else {
-			// 降级：直接使用原始 URL
+			// 无法以 cors 读取，直接使用外部 URL 交给浏览器渲染（最兼容的做法）
 			coverCache.set(coverUrl, coverUrl);
 		}
 	} catch (e) {
 		console.debug(`Failed to preload cover: ${coverUrl}`, e);
-		// 降级：直接使用原始 URL
 		coverCache.set(coverUrl, coverUrl);
 	} finally {
 		loadingCovers.delete(coverUrl);
@@ -1070,11 +1077,21 @@ onDestroy(() => {
 					 class:spinning={isPlaying && !isLoading}
 					 class:animate-pulse={isLoading}
 					 loading="eager" decoding="sync" fetchpriority="high"
-					 on:error={(event) => {
-						const img = event.currentTarget as HTMLImageElement;
-						if (img.src.endsWith('/favicon/favicon.ico')) return;
-						img.src = '/favicon/favicon.ico';
-					}} />
+						 on:error={(event) => {
+							const img = event.currentTarget as HTMLImageElement;
+							const src = img.src;
+							if (src.endsWith('/favicon/favicon.ico')) return;
+							// 若缓存中存在指向此 src 的映射，删除以便下一次尝试重新加载原始 URL
+							try {
+								for (const [key, val] of coverCache.entries()) {
+									if (val === src || key === currentSong.cover) {
+										coverCache.delete(key);
+									}
+								}
+								persistCoverCache();
+							} catch (e) {}
+							img.src = '/favicon/favicon.ico';
+						}} />
                 <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                     {#if isLoading}
                         <Icon icon="eos-icons:loading" class="text-white text-xl" />
