@@ -118,9 +118,16 @@ function restoreCoverCache() {
 	try {
 		const cached = sessionStorage.getItem('musicCoverCache');
 		if (cached) {
-			const data = JSON.parse(cached);
-			for (const [url, blobUrl] of Object.entries(data)) {
-				coverCache.set(url, blobUrl as string);
+			const data = JSON.parse(cached) as Record<string, string>;
+			// 注意：不要从持久化恢复 blob: (object URL)，因为 object URL 只在当前页面生命周期内有效。
+			for (const [url, value] of Object.entries(data)) {
+				if (!value) continue;
+				if (value.startsWith('blob:')) {
+					// 忽略已过期或不可跨会话使用的 object URL
+					continue;
+				}
+				// 只恢复可跨会话使用的 URL（http/https 或 data:）
+				coverCache.set(url, value);
 			}
 		}
 	} catch (e) {
@@ -130,15 +137,58 @@ function restoreCoverCache() {
 
 // 持久化缓存到 SessionStorage
 function persistCoverCache() {
-	if (typeof sessionStorage === 'undefined' || coverCache.size === 0) return;
+	if (typeof sessionStorage === 'undefined') return;
 	try {
+		// 只持久化可以跨会话使用的值：http(s) 或 data:, 不保存 blob:（object URL）
 		const data: Record<string, string> = {};
-		coverCache.forEach((url, key) => { data[key] = url; });
-		sessionStorage.setItem('musicCoverCache', JSON.stringify(data));
+		coverCache.forEach((value, key) => {
+			if (!value) return;
+			if (value.startsWith('blob:')) return; // 不持久化临时 object URL
+			data[key] = value;
+		});
+		// 如果没有可持久化的项则移除存储
+		if (Object.keys(data).length === 0) {
+			sessionStorage.removeItem('musicCoverCache');
+		} else {
+			sessionStorage.setItem('musicCoverCache', JSON.stringify(data));
+		}
 	} catch (e) {
 		console.debug('Failed to persist cover cache', e);
 	}
 }
+
+// 撤销当前内存中的 object URLs，以防内存泄漏
+function revokeObjectURLs() {
+	try {
+		coverCache.forEach((value) => {
+			if (typeof value === 'string' && value.startsWith('blob:')) {
+				try { URL.revokeObjectURL(value); } catch (e) {}
+			}
+		});
+	} catch (e) {
+		// 忽略
+	}
+}
+
+// 在组件挂载时恢复持久化的缓存（但不恢复 blob: object URLs）
+onMount(() => {
+	try {
+		restoreCoverCache();
+	} catch (e) {
+		console.debug('restoreCoverCache failed on mount', e);
+	}
+});
+
+// 在组件销毁时撤销临时 object URLs 并保存可持久化的条目
+onDestroy(() => {
+	try {
+		revokeObjectURLs();
+	} catch (e) {}
+	try {
+		persistCoverCache();
+	} catch (e) {}
+	try { cleanupIO(); } catch (e) {}
+});
 
 async function preloadSingleCover(coverUrl: string, timeout = 8000): Promise<void> {
 	if (!coverUrl || coverCache.has(coverUrl) || loadingCovers.has(coverUrl)) return;
