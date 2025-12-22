@@ -1,5 +1,7 @@
 ---
 // 加载画面组件 - 在页面加载完成后自动隐藏
+import { siteConfig } from "../config";
+const configHue = siteConfig.themeColor.hue;
 ---
 
 <div id="loading-screen" class="fixed inset-0 z-[9999] flex items-center justify-center bg-white dark:bg-neutral-950 transition-opacity duration-500">
@@ -85,7 +87,11 @@
 	}
 </style>
 
-<script is:inline>
+<script is:inline define:vars={{ configHue }}>
+	// 在最早阶段设置主题色变量
+	const savedHue = localStorage.getItem('hue') || configHue;
+	document.documentElement.style.setProperty('--hue', savedHue);
+	
 	// 防止 FOUC（Flash of Unstyled Content）
 	document.documentElement.style.overflow = 'hidden';
 	
