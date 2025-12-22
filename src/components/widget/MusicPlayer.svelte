@@ -106,25 +106,53 @@ type Song = {
 	duration: number;
 };
 
+// 封面加载缓存和状态
+const coverCache = new Map<string, string>();
+const loadingCovers = new Set<string>();
+
+async function preloadSingleCover(coverUrl: string, timeout = 8000): Promise<void> {
+	if (!coverUrl || coverCache.has(coverUrl) || loadingCovers.has(coverUrl)) return;
+	
+	loadingCovers.add(coverUrl);
+	try {
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), timeout);
+		
+		const res = await fetch(coverUrl, { 
+			mode: "no-cors",
+			signal: controller.signal,
+			cache: "force-cache" // 强制使用缓存
+		});
+		clearTimeout(timeoutId);
+		
+		if (res.ok || res.status === 0) {
+			const blob = await res.blob();
+			const objectUrl = URL.createObjectURL(blob);
+			coverCache.set(coverUrl, objectUrl);
+		}
+	} catch (e) {
+		console.debug(`Failed to preload cover: ${coverUrl}`, e);
+	} finally {
+		loadingCovers.delete(coverUrl);
+	}
+}
+
 async function preloadCurrentAndNextCovers() {
 	try {
-		const toPreload: Promise<void | Response>[] = [];
-		// 仅预加载当前歌曲封面
+		const toPreload: Promise<void>[] = [];
+		// 预加载当前歌曲封面（更短超时，因为用户正在听）
 		if (currentIndex < playlist.length && playlist[currentIndex]?.cover) {
-			toPreload.push(
-				fetch(playlist[currentIndex].cover, { mode: "no-cors" }).catch(
-					() => {},
-				),
-			);
+			toPreload.push(preloadSingleCover(playlist[currentIndex].cover, 5000));
 		}
 		// 预加载下一首歌曲封面
 		const nextIdx = (currentIndex + 1) % playlist.length;
 		if (nextIdx < playlist.length && playlist[nextIdx]?.cover) {
-			toPreload.push(
-				fetch(playlist[nextIdx].cover, { mode: "no-cors" }).catch(
-					() => {},
-				),
-			);
+			toPreload.push(preloadSingleCover(playlist[nextIdx].cover, 8000));
+		}
+		// 预加载后一首
+		const nextnextIdx = (currentIndex + 2) % playlist.length;
+		if (nextnextIdx < playlist.length && playlist[nextnextIdx]?.cover && playlist.length > 2) {
+			toPreload.push(preloadSingleCover(playlist[nextnextIdx].cover, 10000));
 		}
 		if (toPreload.length > 0) {
 			await Promise.all(toPreload);
@@ -967,11 +995,11 @@ onDestroy(() => {
                  role="button"
                  tabindex="0"
                  aria-label={isPlaying ? '暂停' : '播放'}>
-				 <img src={getAssetPath(currentSong.cover)} alt="封面"
+				 <img src={coverCache.get(currentSong.cover) || getAssetPath(currentSong.cover)} alt="封面"
 					 class="w-full h-full object-cover transition-transform duration-300"
 					 class:spinning={isPlaying && !isLoading}
 					 class:animate-pulse={isLoading}
-					 loading="lazy" decoding="async" fetchpriority="low" />
+					 loading="eager" decoding="sync" fetchpriority="high" />
                 <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                     {#if isLoading}
                         <Icon icon="eos-icons:loading" class="text-white text-xl" />
@@ -1017,11 +1045,11 @@ onDestroy(() => {
          class:pointer-events-none={!isExpanded}>
         <div class="flex items-center gap-4 mb-4">
             <div class="cover-container relative w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
-				 <img src={getAssetPath(currentSong.cover)} alt="封面"
+				 <img src={coverCache.get(currentSong.cover) || getAssetPath(currentSong.cover)} alt="封面"
 					 class="w-full h-full object-cover transition-transform duration-300"
 					 class:spinning={isPlaying && !isLoading}
 					 class:animate-pulse={isLoading}
-					 loading="lazy" decoding="async" fetchpriority="low" />
+					 loading="eager" decoding="sync" fetchpriority="high" />
             </div>
             <div class="flex-1 min-w-0">
                 <div class="song-title text-lg font-bold text-90 truncate mb-1">{currentSong.title}</div>
@@ -1214,7 +1242,7 @@ onDestroy(() => {
                         </div>
                         <!-- 歌单列表内封面仍为圆角矩形 -->
                         <div class="w-10 h-10 rounded-lg overflow-hidden bg-[var(--btn-regular-bg)] flex-shrink-0">
-							<img src={getAssetPath(song.cover)} alt={song.title} class="w-full h-full object-cover" loading="lazy" decoding="async" fetchpriority="low" />
+							<img src={coverCache.get(song.cover) || getAssetPath(song.cover)} alt={song.title} class="w-full h-full object-cover" loading="lazy" decoding="async" fetchpriority="low" />
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="font-medium truncate" class:text-[var(--primary)]={index === currentIndex} class:text-90={index !== currentIndex}>
