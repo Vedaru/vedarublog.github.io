@@ -141,19 +141,31 @@ function persistCoverCache() {
 async function preloadSingleCover(coverUrl: string, timeout = 8000): Promise<void> {
 	if (!coverUrl || coverCache.has(coverUrl) || loadingCovers.has(coverUrl)) return;
 	
+	// 对于本地路径，直接设为缓存（不需要 fetch）
+	if (coverUrl.startsWith('/') && !coverUrl.match(/^https?:\/\//)) {
+		coverCache.set(coverUrl, coverUrl);
+		persistCoverCache();
+		return;
+	}
+	
+	// 对于外部 URL，尝试 fetch 转为 blob URL
+	if (!coverUrl.startsWith('http://') && !coverUrl.startsWith('https://')) {
+		return; // 无效的 URL，跳过
+	}
+	
 	loadingCovers.add(coverUrl);
 	try {
 		const controller = new AbortController();
 		const timeoutId = setTimeout(() => controller.abort(), timeout);
 		
 		const res = await fetch(coverUrl, { 
-			mode: "no-cors",
+			mode: "cors",
 			signal: controller.signal,
 			cache: "force-cache"
 		});
 		clearTimeout(timeoutId);
 		
-		if (res.ok || res.status === 0) {
+		if (res.ok) {
 			const blob = await res.blob();
 			const objectUrl = URL.createObjectURL(blob);
 			coverCache.set(coverUrl, objectUrl);
@@ -161,6 +173,8 @@ async function preloadSingleCover(coverUrl: string, timeout = 8000): Promise<voi
 		}
 	} catch (e) {
 		console.debug(`Failed to preload cover: ${coverUrl}`, e);
+		// 降级：直接使用原始 URL
+		coverCache.set(coverUrl, coverUrl);
 	} finally {
 		loadingCovers.delete(coverUrl);
 	}
@@ -174,6 +188,7 @@ async function preloadCurrentAndNextCovers() {
 			.filter((x, i, arr) => arr.findIndex(y => y.idx === x.idx) === i);
 		for (const c of candidates) {
 			if (playlist[c.idx]?.cover) {
+				// 使用处理后的 cover 路径作为缓存 key
 				toPreload.push(preloadSingleCover(playlist[c.idx].cover, c.timeout));
 			}
 		}
@@ -408,6 +423,16 @@ function playSong(index: number) {
 	currentIndex = index;
 	if (audio) audio.pause();
 	loadSong(playlist[currentIndex]);
+	
+	// 预加载当前歌曲及后续歌曲的封面
+	if (playlist[currentIndex]?.cover) {
+		preloadSingleCover(playlist[currentIndex].cover, 3000);
+	}
+	const nextIndex = currentIndex + 1;
+	if (nextIndex < playlist.length && playlist[nextIndex]?.cover) {
+		preloadSingleCover(playlist[nextIndex].cover, 5000);
+	}
+	
 	// 尝试立即预取下一首（如果尚未预取）以降低切换等待
 	const maybeNext = currentIndex + 1;
 	if (
@@ -892,12 +917,8 @@ onMount(() => {
 		}));
 		if (playlist.length > 0) {
 			loadSong(playlist[0]);
-			// 空闲时预取当前+下一首封面
-			if ((window as any).requestIdleCallback) {
-			  (window as any).requestIdleCallback(preloadCurrentAndNextCovers);
-			} else {
-			  setTimeout(preloadCurrentAndNextCovers, 300);
-			}
+			// 立即预加载当前+后续歌曲的封面，不等待空闲时刻
+			preloadCurrentAndNextCovers().catch(() => {});
 		} else {
 			showErrorMessage("本地播放列表为空");
 		}
