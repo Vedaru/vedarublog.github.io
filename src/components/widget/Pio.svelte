@@ -31,6 +31,7 @@ let pioContainer;
 let pioReady = false;
 let pioCanvas;
 let removeShowListener;
+let _revealInterval = null;
 
 // 设备像素比上限与网络状况自适应，降低首帧渲染压力
 function getEffectivePixelRatio() {
@@ -168,34 +169,50 @@ onMount(() => {
 		console.warn("Unable to set posterGirl localStorage", e);
 	}
 
-	// 延迟初始化：优先等加载屏幕被移除，避免在加载界面上渲染 pio 气泡
-	function waitForLoadingDone(timeoutMs = 5000) {
-		return new Promise((resolve) => {
-			if (typeof window === 'undefined') return resolve();
-			try {
-				if (window.__loadingScreenDone) return resolve();
-			} catch (e) {}
+	// 立即在后台开始加载并初始化 Pio（在加载屏幕期间保持隐藏），
+	// 这样首页出现时 Pio 已经准备好，不会出现卡顿弹入。
+	console.log("Pio onMount: starting script load...");
+	// 在开始前先把容器保持不可见状态，防止渲染到加载画面上
+	try {
+		if (pioContainer) {
+			pioContainer.style.visibility = 'hidden';
+			pioContainer.style.opacity = '0';
+			pioContainer.style.pointerEvents = 'none';
+			pioContainer.style.transition = 'opacity 240ms ease';
+		}
+	} catch (e) {}
+
+	waitForScripts().then(() => {
+		console.log("Pio scripts ready, initializing immediately...");
+		// 确保 DOM 已经渲染再初始化（微任务）
+		Promise.resolve().then(() => initPio());
+	}).catch((err) => {
+		console.error("Failed to wait for Pio scripts:", err);
+	});
+
+	// 在后台轮询加载屏幕状态，加载完成或超时后显示 Pio 容器
+	function revealWhenLoadingDone(timeoutMs = 5000) {
+		try {
 			const start = Date.now();
-			const check = () => {
+			_revealInterval = setInterval(() => {
 				try {
-					if (window.__loadingScreenDone) return resolve();
-				} catch (e) {}
-				if (Date.now() - start > timeoutMs) return resolve();
-				setTimeout(check, 100);
-			};
-			check();
-		});
+					if (window.__loadingScreenDone || Date.now() - start > timeoutMs) {
+						if (pioContainer) {
+							pioContainer.style.visibility = '';
+							pioContainer.style.opacity = '1';
+							pioContainer.style.pointerEvents = 'auto';
+						}
+						clearInterval(_revealInterval);
+						_revealInterval = null;
+					}
+				} catch (e) {
+					// ignore
+				}
+			}, 100);
+		} catch (e) {}
 	}
 
-	waitForLoadingDone(5000).then(() => {
-		console.log("Pio: loading screen removed or timeout reached — proceeding to load scripts");
-		waitForScripts().then(() => {
-			// 确保 DOM 已经渲染再初始化（微任务）
-			Promise.resolve().then(() => initPio());
-		}).catch((err) => {
-			console.error("Failed to wait for Pio scripts:", err);
-		});
-	});
+	revealWhenLoadingDone(5000);
 
 	// 初始画布尺寸与窗口变化自适应（节流）
 	const handleResize = throttle(() => sizeCanvas(), 200);
@@ -234,6 +251,11 @@ onDestroy(() => {
 	// Svelte 组件销毁时不需要清理 Pio 实例
 	// 因为我们希望它在页面切换时保持状态
 	if (removeShowListener) removeShowListener();
+	// 清理 reveal 定时器
+	if (_revealInterval) {
+		clearInterval(_revealInterval);
+		_revealInterval = null;
+	}
 });
 </script>
 

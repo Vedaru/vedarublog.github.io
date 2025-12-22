@@ -215,6 +215,10 @@ if (siteConfig.font) {
 				setTimeout(loadAnalytics, 5000);
 			}
 		</script>
+		<!-- 将构建时静态导入的 panelManager 暴露给运行时脚本，避免部分页面使用动态导入导致 404 -->
+		<script is:inline>
+			try { window.panelManager = panelManagerStatic; } catch (e) { /* ignore */ }
+		</script>
 
 		<title>{pageTitle}</title>
 
