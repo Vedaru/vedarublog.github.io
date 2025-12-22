@@ -90,7 +90,7 @@ const allTags = Array.from(new Set(friendsList.flatMap((item) => item.tags)));
 
 			<!-- 友链卡片网格 -->
 			<div id="friends-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 mb-6">
-				{friendsList.map((item) => (
+				{friendsList.map((item, idx) => (
 					<div 
 						class="friend-card group relative bg-transparent rounded-xl border border-black/10 dark:border-white/10
 								 overflow-hidden transition-all duration-300
@@ -112,7 +112,8 @@ const allTags = Array.from(new Set(friendsList.flatMap((item) => item.tags)));
 										src={item.imgurl} 
 										alt={item.title}
 										class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300"
-										loading="lazy"
+										loading={idx < 6 ? "eager" : "lazy"}
+										fetchpriority={idx < 6 ? "high" : "low"}
 										decoding="async"
 									/>
 								</div>
