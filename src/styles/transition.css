@@ -48,6 +48,15 @@ html.is-animating .transition-swup-fade {
     transform: translateY(1.5rem);
 }
 
+/* 防止 Pio 组件在页面切换时错位 */
+html.is-changing .pio-container,
+html.is-animating .pio-container,
+html.is-leaving .pio-container {
+    transform: none !important;
+    transition: none !important;
+    will-change: auto !important;
+}
+
 /* 增强的淡入动画 - 添加侧滑效果 */
 @keyframes fade-in-up {
     from {
