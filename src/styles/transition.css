@@ -57,6 +57,8 @@ html.is-leaving .pio-container {
     will-change: auto !important;
     position: fixed !important;
     bottom: 0 !important;
+    z-index: 9999 !important;
+    pointer-events: auto !important;
 }
 
 html.is-changing .pio-container.left,
