@@ -636,10 +636,13 @@ function hideError() {
 function setProgress(event: MouseEvent) {
 	if (!audio || !progressBar) return;
 	const rect = progressBar.getBoundingClientRect();
-	const percent = (event.clientX - rect.left) / rect.width;
+	const percent = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
 	const newTime = percent * duration;
-	audio.currentTime = newTime;
-	currentTime = newTime;
+	// 避免不必要的重复设置
+	if (Math.abs(currentTime - newTime) > 0.01) {
+		audio.currentTime = newTime;
+		currentTime = newTime;
+	}
 }
 
 function scheduleProgressUpdate(clientX: number) {
@@ -655,8 +658,11 @@ function scheduleProgressUpdate(clientX: number) {
 				Math.min(1, (lastProgressClientX - rect.left) / rect.width),
 			);
 			const newTime = percent * duration;
-			currentTime = newTime;
-			audio.currentTime = newTime;
+			// 避免不必要的重复设置，特别是当拖动超出边界时
+			if (Math.abs(currentTime - newTime) > 0.01) { // 只有当时间变化超过10ms时才更新
+				currentTime = newTime;
+				audio.currentTime = newTime;
+			}
 			tooltipTime = newTime;
 			progressTooltipPercent = percent * 100;
 			lastProgressClientX = null;
