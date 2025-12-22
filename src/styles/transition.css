@@ -55,6 +55,28 @@ html.is-leaving .pio-container {
     transform: none !important;
     transition: none !important;
     will-change: auto !important;
+    position: fixed !important;
+    bottom: 0 !important;
+}
+
+html.is-changing .pio-container.left,
+html.is-animating .pio-container.left,
+html.is-leaving .pio-container.left {
+    left: 0 !important;
+    right: auto !important;
+}
+
+html.is-changing .pio-container.right,
+html.is-animating .pio-container.right,
+html.is-leaving .pio-container.right {
+    right: 0 !important;
+    left: auto !important;
+}
+
+html.is-changing #pio,
+html.is-animating #pio,
+html.is-leaving #pio {
+    transform: none !important;
 }
 
 /* 增强的淡入动画 - 添加侧滑效果 */
