@@ -140,19 +140,13 @@ async function preloadSingleCover(coverUrl: string, timeout = 8000): Promise<voi
 async function preloadCurrentAndNextCovers() {
 	try {
 		const toPreload: Promise<void>[] = [];
-		// 预加载当前歌曲封面（更短超时，因为用户正在听）
-		if (currentIndex < playlist.length && playlist[currentIndex]?.cover) {
-			toPreload.push(preloadSingleCover(playlist[currentIndex].cover, 5000));
-		}
-		// 预加载下一首歌曲封面
-		const nextIdx = (currentIndex + 1) % playlist.length;
-		if (nextIdx < playlist.length && playlist[nextIdx]?.cover) {
-			toPreload.push(preloadSingleCover(playlist[nextIdx].cover, 8000));
-		}
-		// 预加载后一首
-		const nextnextIdx = (currentIndex + 2) % playlist.length;
-		if (nextnextIdx < playlist.length && playlist[nextnextIdx]?.cover && playlist.length > 2) {
-			toPreload.push(preloadSingleCover(playlist[nextnextIdx].cover, 10000));
+		const candidates = [0,1,2,3,4]
+			.map((offset, i) => ({ idx: (currentIndex + offset) % playlist.length, timeout: 5000 + i * 2000 }))
+			.filter((x, i, arr) => arr.findIndex(y => y.idx === x.idx) === i);
+		for (const c of candidates) {
+			if (playlist[c.idx]?.cover) {
+				toPreload.push(preloadSingleCover(playlist[c.idx].cover, c.timeout));
+			}
 		}
 		if (toPreload.length > 0) {
 			await Promise.all(toPreload);
@@ -1242,7 +1236,10 @@ onDestroy(() => {
                         </div>
                         <!-- 歌单列表内封面仍为圆角矩形 -->
                         <div class="w-10 h-10 rounded-lg overflow-hidden bg-[var(--btn-regular-bg)] flex-shrink-0">
-							<img src={coverCache.get(song.cover) || getAssetPath(song.cover)} alt={song.title} class="w-full h-full object-cover" loading="lazy" decoding="async" fetchpriority="low" />
+							<img src={coverCache.get(song.cover) || getAssetPath(song.cover)} alt={song.title} class="w-full h-full object-cover"
+								loading={index < 8 ? "eager" : "lazy"}
+								fetchpriority={index < 8 ? "high" : "low"}
+								decoding="async" />
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="font-medium truncate" class:text-[var(--primary)]={index === currentIndex} class:text-90={index !== currentIndex}>

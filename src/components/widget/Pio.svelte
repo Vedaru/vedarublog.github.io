@@ -28,6 +28,7 @@ const pioOptions = buildPioOptions(cdnBase || baseURL);
 let pioInstance = null;
 let pioInitialized = false;
 let pioContainer;
+let pioReady = false;
 let pioCanvas;
 let removeShowListener;
 
@@ -84,6 +85,8 @@ function initPio() {
 				sizeCanvas();
 				pioInstance = new Paul_Pio(pioOptions);
 				pioInitialized = true;
+				pioReady = true;
+				pioContainer?.classList.add('pio-ready');
 				console.log("Pio initialized successfully (Svelte)");
 			} else if (!pioContainer || !pioCanvas) {
 				console.warn("Pio DOM elements not found, retrying...");

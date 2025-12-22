@@ -67,6 +67,14 @@ html.is-leaving .pio-container {
     pointer-events: auto !important;
 }
 
+/* 切页时隐藏 Pio 的三个按钮，避免闪现 */
+html.is-changing .pio-action,
+html.is-animating .pio-action,
+html.is-leaving .pio-action {
+    display: none !important;
+    opacity: 0 !important;
+}
+
 /* 切页期间隐藏 Pio 对话气泡，避免触发离场文案导致布局抖动 */
 html.is-changing .pio-container .pio-dialog,
 html.is-leaving .pio-container .pio-dialog,
