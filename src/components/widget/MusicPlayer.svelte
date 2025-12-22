@@ -101,26 +101,31 @@ type Song = {
 	duration: number;
 };
 
-async function preloadAssets(songs: Song[]) {
+async function preloadCurrentAndNextCovers() {
 	try {
-		await Promise.all(
-			songs.map(async (song) => {
-				const tasks = [] as Promise<Response | void>[];
-				if (song.cover) {
-					tasks.push(
-						fetch(getAssetPath(song.cover), { mode: "no-cors" }).catch(() => {}),
-					);
-				}
-				if (song.url) {
-					tasks.push(fetch(getAssetPath(song.url), { mode: "cors" }).catch(() => {}));
-				}
-				if (tasks.length > 0) {
-					await Promise.all(tasks);
-				}
-			}),
-		);
+		const toPreload = [];
+		// 仅预加载当前歌曲封面
+		if (currentIndex < playlist.length && playlist[currentIndex]?.cover) {
+			toPreload.push(
+				fetch(playlist[currentIndex].cover, { mode: "no-cors" }).catch(
+					() => {},
+				),
+			);
+		}
+		// 预加载下一首歌曲封面
+		const nextIdx = (currentIndex + 1) % playlist.length;
+		if (nextIdx < playlist.length && playlist[nextIdx]?.cover) {
+			toPreload.push(
+				fetch(playlist[nextIdx].cover, { mode: "no-cors" }).catch(
+					() => {},
+				),
+			);
+		}
+		if (toPreload.length > 0) {
+			await Promise.all(toPreload);
+		}
 	} catch (e) {
-		console.debug("Preload assets skipped", e);
+		console.debug("Preload covers skipped", e);
 	}
 }
 
@@ -750,10 +755,14 @@ onMount(() => {
 	if (!musicPlayerConfig.enable) {
 		return;
 	}
-	// 首屏同步加载播放列表，确保封面和曲目尽早缓存
+	// 延迟加载歌单：在空闲时或用户交互时加载数据
 	if (mode === "meting") {
-		fetchMetingPlaylist();
+		// Meting：延迟 1 秒后加载歌单，不阻塞首屏
+		setTimeout(() => {
+			fetchMetingPlaylist();
+		}, 1000);
 	} else {
+		// 本地歌单：立即加载（成本低），但不预加载所有资源
 		playlist = localPlaylist.map((s) => ({
 			...s,
 			cover: getAssetPath(s.cover),
@@ -761,7 +770,8 @@ onMount(() => {
 		}));
 		if (playlist.length > 0) {
 			loadSong(playlist[0]);
-			preloadAssets(playlist);
+			// 只预加载当前和下一首封面，不加载所有资源
+			preloadCurrentAndNextCovers();
 		} else {
 			showErrorMessage("本地播放列表为空");
 		}
