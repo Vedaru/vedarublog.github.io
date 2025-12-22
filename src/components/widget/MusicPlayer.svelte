@@ -155,49 +155,67 @@ function persistCoverCache() {
 	}
 }
 
-async function preloadSingleCover(coverUrl: string, timeout = 8000): Promise<void> {
+async function sleep(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
+
+// 增强版：带重试与指数回退的封面预加载
+async function preloadSingleCover(coverUrl: string, timeout = 8000, maxRetries = 2): Promise<void> {
 	if (!coverUrl || coverCache.has(coverUrl) || loadingCovers.has(coverUrl)) return;
-	
+
 	// 对于本地路径（不是 http/https），直接设为缓存（不需要 fetch）
 	if (!coverUrl.startsWith('http://') && !coverUrl.startsWith('https://')) {
 		coverCache.set(coverUrl, coverUrl);
 		persistCoverCache();
 		return;
 	}
-	
-	// 对于外部 URL，优先尝试用 CORS 模式 fetch（以便读取 blob）；若失败则回退为直接使用外部 URL
+
 	loadingCovers.add(coverUrl);
 	try {
-		const controller = new AbortController();
-		const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-		// 尝试以 cors 模式获取图片，这样可以在支持 CORS 的情况下将图片转为 blob，避免跨域图像污染页面缓存
-		let res: Response | null = null;
-		try {
-			res = await fetch(coverUrl, { signal: controller.signal, cache: "force-cache", mode: "cors" });
-		} catch (innerErr) {
-			// 如果 cors 模式失败（常见于无 CORS 的第三方图片），我们不抛出，而是回退到使用原始 URL
-			res = null;
-		}
-		clearTimeout(timeoutId);
-
-		if (res && res.ok) {
+		let attempt = 0;
+		let lastError: any = null;
+		while (attempt <= maxRetries) {
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), timeout + attempt * 2000);
 			try {
-				const blob = await res.blob();
-				const objectUrl = URL.createObjectURL(blob);
-				coverCache.set(coverUrl, objectUrl);
-				persistCoverCache();
+				// 尝试以 cors 模式获取图片，这样可以在支持 CORS 的情况下将图片转为 blob；若失败则回退
+				const res = await fetch(coverUrl, { signal: controller.signal, cache: 'force-cache', mode: 'cors' });
+				clearTimeout(timeoutId);
+				if (res && res.ok) {
+					try {
+						const blob = await res.blob();
+						const objectUrl = URL.createObjectURL(blob);
+						coverCache.set(coverUrl, objectUrl);
+						persistCoverCache();
+						return;
+					} catch (e) {
+						lastError = e;
+						// 如果读取 blob 失败，继续重试
+					}
+				} else {
+					lastError = new Error(`HTTP ${res?.status}`);
+				}
 			} catch (e) {
-				// 读取 blob 失败，降级为直接使用原始 URL
-				coverCache.set(coverUrl, coverUrl);
+				lastError = e;
+			} finally {
+				try { clearTimeout(timeoutId); } catch {}
 			}
-		} else {
-			// 无法以 cors 读取，直接使用外部 URL 交给浏览器渲染（最兼容的做法）
-			coverCache.set(coverUrl, coverUrl);
+
+			// 重试等待：指数回退并带一点抖动
+			attempt++;
+			const backoff = Math.min(2000 * Math.pow(2, attempt), 8000) + Math.floor(Math.random() * 300);
+			await sleep(backoff);
 		}
-	} catch (e) {
-		console.debug(`Failed to preload cover: ${coverUrl}`, e);
+
+		// 所有尝试失败：降级为直接使用原始 URL 交给浏览器渲染，同时安排后台重试以便后续修复
 		coverCache.set(coverUrl, coverUrl);
+		persistCoverCache();
+
+		// 安排一次后台重试（延迟更长）以利用 CDN/网络短暂故障恢复
+		setTimeout(() => {
+			// 不等待此 promise
+			preloadSingleCover(coverUrl, timeout, Math.max(1, Math.floor(maxRetries / 2))).catch(() => {});
+		}, 5000 + Math.floor(Math.random() * 5000));
+
+		console.debug(`preloadSingleCover failed after retries for ${coverUrl}`, lastError);
 	} finally {
 		loadingCovers.delete(coverUrl);
 	}
@@ -1159,6 +1177,8 @@ onDestroy(() => {
 						} else {
 							img.src = '/favicon/favicon.ico';
 						}
+						// 触发后台重试以便尽快补全缓存
+						preloadSingleCover(currentSong.cover, 8000, 2).catch(() => {});
 						}} />
                 <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                     {#if isLoading}
@@ -1427,6 +1447,8 @@ onDestroy(() => {
 									} else {
 										img.src = '/favicon/favicon.ico';
 									}
+									// 触发后台重试以便尽快补全缓存
+									preloadSingleCover(song.cover, 8000, 2).catch(() => {});
 								}} />
                         </div>
                         <div class="flex-1 min-w-0">

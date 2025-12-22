@@ -168,15 +168,33 @@ onMount(() => {
 		console.warn("Unable to set posterGirl localStorage", e);
 	}
 
-	// 立即开始初始化 Pio，避免加载屏幕覆盖问题
-	// 脚本加载后立即初始化，不等加载屏幕移除
-	console.log("Pio onMount: starting script load...");
-	waitForScripts().then(() => {
-		console.log("Pio scripts ready, initializing immediately...");
-		// 确保 DOM 已经渲染再初始化（微任务）
-		Promise.resolve().then(() => initPio());
-	}).catch((err) => {
-		console.error("Failed to wait for Pio scripts:", err);
+	// 延迟初始化：优先等加载屏幕被移除，避免在加载界面上渲染 pio 气泡
+	function waitForLoadingDone(timeoutMs = 5000) {
+		return new Promise((resolve) => {
+			if (typeof window === 'undefined') return resolve();
+			try {
+				if (window.__loadingScreenDone) return resolve();
+			} catch (e) {}
+			const start = Date.now();
+			const check = () => {
+				try {
+					if (window.__loadingScreenDone) return resolve();
+				} catch (e) {}
+				if (Date.now() - start > timeoutMs) return resolve();
+				setTimeout(check, 100);
+			};
+			check();
+		});
+	}
+
+	waitForLoadingDone(5000).then(() => {
+		console.log("Pio: loading screen removed or timeout reached — proceeding to load scripts");
+		waitForScripts().then(() => {
+			// 确保 DOM 已经渲染再初始化（微任务）
+			Promise.resolve().then(() => initPio());
+		}).catch((err) => {
+			console.error("Failed to wait for Pio scripts:", err);
+		});
 	});
 
 	// 初始画布尺寸与窗口变化自适应（节流）

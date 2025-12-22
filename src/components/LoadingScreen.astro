@@ -158,9 +158,12 @@ const configHue = siteConfig.themeColor.hue;
 			setTimeout(() => {
 				loadingScreen.remove();
 				restoreScroll();
+				// 标记加载屏幕已移除，供客户端其他脚本判断
+				try { window.__loadingScreenDone = true; } catch (e) {}
 			}, 500);
 		} else {
 			restoreScroll();
+			try { window.__loadingScreenDone = true; } catch (e) {}
 		}
 	}
 
