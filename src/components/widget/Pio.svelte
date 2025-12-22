@@ -175,40 +175,40 @@ onMount(() => {
 	// 在开始前先把容器保持不可见状态，防止渲染到加载画面上
 	try {
 		if (pioContainer) {
-			pioContainer.style.visibility = 'hidden';
-			pioContainer.style.opacity = '0';
-			pioContainer.style.pointerEvents = 'none';
-			pioContainer.style.transition = 'opacity 240ms ease';
-		}
-	} catch (e) {}
+            pioContainer.style.display = 'none';
+            pioContainer.style.opacity = '0';
+            pioContainer.style.pointerEvents = 'none';
+            pioContainer.style.transition = 'opacity 240ms ease';
+        }
+    } catch (e) {}
 
-	waitForScripts().then(() => {
-		console.log("Pio scripts ready, initializing immediately...");
-		// 确保 DOM 已经渲染再初始化（微任务）
-		Promise.resolve().then(() => initPio());
-	}).catch((err) => {
-		console.error("Failed to wait for Pio scripts:", err);
-	});
+    waitForScripts().then(() => {
+        console.log("Pio scripts ready, initializing immediately...");
+        // 确保 DOM 已经渲染再初始化（微任务）
+        Promise.resolve().then(() => initPio());
+    }).catch((err) => {
+        console.error("Failed to wait for Pio scripts:", err);
+    });
 
-	// 在后台轮询加载屏幕状态，加载完成或超时后显示 Pio 容器
-	function revealWhenLoadingDone(timeoutMs = 5000) {
-		try {
-			const start = Date.now();
-			_revealInterval = setInterval(() => {
-				try {
-					if (window.__loadingScreenDone || Date.now() - start > timeoutMs) {
-						if (pioContainer) {
-							pioContainer.style.visibility = '';
-							pioContainer.style.opacity = '1';
-							pioContainer.style.pointerEvents = 'auto';
-						}
-						clearInterval(_revealInterval);
-						_revealInterval = null;
-					}
-				} catch (e) {
-					// ignore
-				}
-			}, 100);
+    // 在后台轮询加载屏幕状态，加载完成或超时后显示 Pio 容器
+    function revealWhenLoadingDone(timeoutMs = 5000) {
+        try {
+            const start = Date.now();
+            _revealInterval = setInterval(() => {
+                try {
+                    if (window.__loadingScreenDone || Date.now() - start > timeoutMs) {
+                        if (pioContainer) {
+                            pioContainer.style.display = '';
+                            pioContainer.style.opacity = '1';
+                            pioContainer.style.pointerEvents = 'auto';
+                        }
+                        clearInterval(_revealInterval);
+                        _revealInterval = null;
+                    }
+                } catch (e) {
+                    // ignore
+                }
+            }, 100);
 		} catch (e) {}
 	}
 

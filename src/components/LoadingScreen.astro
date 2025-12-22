@@ -92,6 +92,37 @@ const configHue = siteConfig.themeColor.hue;
 	const savedHue = localStorage.getItem('hue') || configHue;
 	document.documentElement.style.setProperty('--hue', savedHue);
 	
+	// 设置主题（防止加载屏幕移除后主题闪回）
+	const DEFAULT_THEME = 'auto';
+	const LIGHT_MODE = 'light';
+	const DARK_MODE = 'dark';
+	const theme = localStorage.getItem('theme') || DEFAULT_THEME;
+	let isDark = false;
+	switch (theme) {
+		case LIGHT_MODE:
+			document.documentElement.classList.remove('dark');
+			isDark = false;
+			break;
+		case DARK_MODE:
+			document.documentElement.classList.add('dark');
+			isDark = true;
+			break;
+		default: // auto
+			isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+			if (isDark) {
+				document.documentElement.classList.add('dark');
+			} else {
+				document.documentElement.classList.remove('dark');
+			}
+			break;
+	}
+	// Set the theme for Expressive Code based on current mode
+	const expressiveTheme = isDark ? "github-dark" : "github-light";
+	const currentTheme = document.documentElement.getAttribute("data-theme");
+	if (currentTheme !== expressiveTheme) {
+		document.documentElement.setAttribute("data-theme", expressiveTheme);
+	}
+	
 	// 防止 FOUC（Flash of Unstyled Content）
 	const prevHtmlOverflow = document.documentElement.style.overflow;
 	const prevBodyOverflow = document.body ? document.body.style.overflow : '';
