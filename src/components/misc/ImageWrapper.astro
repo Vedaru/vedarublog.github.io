@@ -10,13 +10,12 @@ interface Props {
 	basePath?: string;
 	lazy?: boolean;
 	priority?: boolean;
-	placeholder?: string;
 }
 
 import { Image } from "astro:assets";
 import { url } from "../../utils/url-utils";
 
-const { id, src, alt, position = "center", basePath = "/", lazy = true, priority = false, placeholder } = Astro.props;
+const { id, src, alt, position = "center", basePath = "/", lazy = true, priority = false } = Astro.props;
 const className = Astro.props.class;
 
 const isLocal = !(
@@ -48,20 +47,12 @@ if (isLocal) {
 	}
 }
 
-const imageClass = "w-full h-full object-cover transition-opacity duration-300";
+const imageClass = "w-full h-full object-cover";
 const imageStyle = `object-position: ${position}`;
 const shouldLazy = lazy && !priority;
 ---
-<div id={id} class:list={[className, 'overflow-hidden relative']}>
-    <!-- 占位符背景 -->
-    <div class="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 transition-opacity duration-300" class:opacity-100={!placeholder} class:opacity-0={placeholder}></div>
-    {placeholder && (
-        <div class="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800">
-            <div class="w-8 h-8 border-2 border-gray-300 dark:border-gray-600 border-t-blue-500 rounded-full animate-spin"></div>
-        </div>
-    )}
-
-    {isLocal && img && <Image src={img} alt={alt || ""} class={imageClass} style={imageStyle} loading={priority ? "eager" : shouldLazy ? "lazy" : "eager"}/>}
+<div id={id} class:list={[className, 'overflow-hidden']}>
+    {isLocal && img && <Image src={img} alt={alt || ""} class={imageClass} style={imageStyle} loading={priority ? "eager" : shouldLazy ? "lazy" : "eager"} decoding="async"/>}
     {!isLocal && (
         <img
             src={isPublic ? url(src) : src}
