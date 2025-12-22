@@ -93,7 +93,10 @@ const configHue = siteConfig.themeColor.hue;
 	document.documentElement.style.setProperty('--hue', savedHue);
 	
 	// 防止 FOUC（Flash of Unstyled Content）
+	const prevHtmlOverflow = document.documentElement.style.overflow;
+	const prevBodyOverflow = document.body ? document.body.style.overflow : '';
 	document.documentElement.style.overflow = 'hidden';
+	if (document.body) document.body.style.overflow = 'hidden';
 	
 	// 模拟加载进度（更平滑的曲线）
 	const progressBar = document.getElementById('loading-progress');
@@ -142,6 +145,25 @@ const configHue = siteConfig.themeColor.hue;
 
 	updateProgress();
 
+	function restoreScroll() {
+		// 恢复滚动（双保险：同时恢复 html 和 body）
+		document.documentElement.style.overflow = prevHtmlOverflow || '';
+		if (document.body) document.body.style.overflow = prevBodyOverflow || '';
+	}
+
+	function removeLoadingScreen() {
+		const loadingScreen = document.getElementById('loading-screen');
+		if (loadingScreen) {
+			loadingScreen.classList.add('hide');
+			setTimeout(() => {
+				loadingScreen.remove();
+				restoreScroll();
+			}, 500);
+		} else {
+			restoreScroll();
+		}
+	}
+
 	// 监听页面加载完成
 	window.addEventListener('load', () => {
 		// 完成进度条
@@ -150,30 +172,20 @@ const configHue = siteConfig.themeColor.hue;
 		}
 
 		// 延迟一下以确保所有资源都加载完成
-		setTimeout(() => {
-			const loadingScreen = document.getElementById('loading-screen');
-			if (loadingScreen) {
-				loadingScreen.classList.add('hide');
-				// 动画完成后移除元素，释放 overflow hidden
-				setTimeout(() => {
-					loadingScreen.remove();
-					document.documentElement.style.overflow = '';
-				}, 500);
-			}
-		}, 200);
+		setTimeout(removeLoadingScreen, 200);
 	});
 
 	// 确保 DOM 交互性强时隐藏加载屏幕
 	if (document.readyState === 'complete') {
-		const loadingScreen = document.getElementById('loading-screen');
-		if (loadingScreen) {
-			loadingScreen.classList.add('hide');
-			setTimeout(() => {
-				loadingScreen.remove();
-				document.documentElement.style.overflow = '';
-			}, 500);
-		}
 		if (percentText) percentText.textContent = '100%';
 		if (progressBar) progressBar.style.width = '100%';
+		removeLoadingScreen();
 	}
+
+	// 与 Swup 集成：无论何时内容替换完成，都确保移除加载层并恢复滚动
+	document.addEventListener('swup:contentReplaced', removeLoadingScreen, { once: true });
+	document.addEventListener('swup:animationOutDone', restoreScroll);
+
+	// 安全兜底：3 秒后强制恢复滚动（防止极端情况下事件未触发）
+	setTimeout(restoreScroll, 3000);
 </script>

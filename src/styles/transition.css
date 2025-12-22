@@ -67,6 +67,15 @@ html.is-leaving .pio-container {
     pointer-events: auto !important;
 }
 
+/* 切页期间隐藏 Pio 对话气泡，避免触发离场文案导致布局抖动 */
+html.is-changing .pio-container .pio-dialog,
+html.is-leaving .pio-container .pio-dialog,
+html.is-animating .pio-container .pio-dialog {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
 html.is-changing .pio-container.left,
 html.is-animating .pio-container.left,
 html.is-leaving .pio-container.left {

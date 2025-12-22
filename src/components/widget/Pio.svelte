@@ -147,6 +147,8 @@ onMount(() => {
 		pioContainer.style.bottom = '0';
 		pioContainer.style.zIndex = '9999';
 		pioContainer.style.pointerEvents = 'auto';
+		pioContainer.style.minHeight = (pioConfig.height || 250) + 'px';
+		pioContainer.style.minWidth = (pioConfig.width || 280) + 'px';
 		if ((pioConfig.position || 'right') === 'left') {
 			pioContainer.style.left = '0';
 			pioContainer.style.right = 'auto';
@@ -218,7 +220,7 @@ onDestroy(() => {
 	<div
 		class={`pio-container ${pioConfig.position || 'right'}`}
 		bind:this={pioContainer}
-		style={`position:fixed;bottom:0;z-index:9999;pointer-events:auto;${(pioConfig.position || 'right') === 'left' ? 'left:0;right:auto;' : 'right:0;left:auto;'}`}
+		style={`position:fixed;bottom:0;z-index:9999;pointer-events:auto;${(pioConfig.position || 'right') === 'left' ? 'left:0;right:auto;' : 'right:0;left:auto;'}min-height:${(pioConfig.height||250)}px;min-width:${(pioConfig.width||280)}px;`}
 	>
     <div class="pio-action"></div>
     <canvas 
