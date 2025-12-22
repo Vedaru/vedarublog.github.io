@@ -335,6 +335,9 @@ if (siteConfig.font) {
 		
 		<!-- 加载画面 - 页面加载完成后自动隐藏 -->
 		<LoadingScreen />
+
+		<!-- 顶部页面进度条（用于路由跳转与资源加载） -->
+		<div id="page-progress" class="fixed left-0 top-0 h-[3px] bg-[var(--primary)] z-[9999] w-0 opacity-0 transition-[width,opacity] duration-200"></div>
 		
 		<!-- 页面顶部渐变高光效果 - 只在full和semifull模式下显示 -->
 		{shouldShowTopHighlight && <div class="top-gradient-highlight"></div>}
@@ -359,6 +362,58 @@ if (siteConfig.font) {
 					navigator.serviceWorker.register(swUrl, { scope: base }).catch(() => {});
 				});
 			}
+		</script>
+
+		<!-- 路由进度条控制（支持 Swup 与原生跳转） -->
+		<script type="module">
+			const bar = document.getElementById('page-progress');
+			let timer = null;
+			let value = 0;
+
+			const start = () => {
+				if (!bar) return;
+				clearInterval(timer);
+				value = 0;
+				bar.style.opacity = '1';
+				bar.style.width = '10%';
+				timer = setInterval(() => {
+					// 模拟缓慢逼近 90%
+					value = Math.min(90, value + 8 + Math.random() * 10);
+					bar.style.width = value + '%';
+				}, 180);
+			};
+
+			const done = () => {
+				if (!bar) return;
+				clearInterval(timer);
+				bar.style.width = '100%';
+				setTimeout(() => {
+					bar.style.opacity = '0';
+					// 回收为 0，避免影响下次动画
+					setTimeout(() => (bar.style.width = '0%'), 150);
+				}, 180);
+			};
+
+			// Swup 导航钩子
+			const bindSwup = () => {
+				try {
+					if (window?.swup?.hooks) {
+						window.swup.hooks.on('visit:start', start);
+						window.swup.hooks.on('page:view', done);
+						window.swup.hooks.on('visit:end', done);
+						return true;
+					}
+				} catch {}
+				return false;
+			};
+
+			if (!bindSwup()) {
+				document.addEventListener('swup:enable', bindSwup, { once: true });
+			}
+
+			// 原生跳转兜底
+			window.addEventListener('beforeunload', start);
+			window.addEventListener('load', done);
 		</script>
 	</body>
 </html>
