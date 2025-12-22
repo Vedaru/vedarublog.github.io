@@ -288,6 +288,14 @@ export type MusicPlayerConfig = {
 	type: string; // 音乐类型
 	// 可选：当浏览器支持 WebAudio 时，增益倍数用于放大输出（例如 2.0 表示最多放大 2 倍）
 	gainBoost?: number;
+	// 可选性能/行为配置
+	preload?: "none" | "metadata" | "auto"; // 音频预加载策略
+	autoplay?: boolean; // 是否自动播放
+	volume?: number; // 默认音量（0-1）
+	listMaxHeight?: string; // 播放列表最大高度（CSS 值，例如 "250px"）
+	order?: "list" | "random"; // 播放顺序
+	mutex?: boolean; // 互斥模式，防止多个播放器同时播放
+	storageName?: string; // localStorage 缓存键名
 };
 
 export type FooterConfig = {

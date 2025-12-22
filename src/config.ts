@@ -397,11 +397,15 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 	id: "17514570572", // 歌单ID（建议控制在50首以内以加快加载）
 	server: "netease", // 音乐源服务器。有的meting的api源支持更多平台,一般来说,netease=网易云音乐, tencent=QQ音乐, kugou=酷狗音乐, xiami=虾米音乐, baidu=百度音乐
 	type: "playlist", // 播单类型
-	// 性能优化建议：
-	// 1. 考虑在播放器组件中添加 preload="metadata" 以仅预加载元数据
-	// 2. 设置 autoplay: false 可加快初始页面加载
-	// 3. 可添加 listMaxHeight 限制播放列表高度
-	// 4. 启用 localStorage 缓存机制减少重复请求
+	
+	// === 性能优化配置 ===
+	autoplay: false, // 禁用自动播放，减少初始页面加载负担
+	volume: 0.7, // 默认音量（0-1之间）
+	listMaxHeight: "250px", // 限制播放列表最大高度，避免列表过长影响性能
+	order: "list", // 播放顺序：list=列表顺序, random=随机播放
+	mutex: true, // 互斥模式，阻止多个播放器同时播放
+	storageName: "music-player-cache", // localStorage 缓存键名，用于缓存播放列表数据减少重复请求
+	
 	// 可选：当浏览器支持 WebAudio 时，增益倍数用于放大输出（例如 2.0 表示最多放大 2 倍）
 	// 若音源受 CORS 限制而回退为非 WebAudio 模式，则此配置无效。
 };
