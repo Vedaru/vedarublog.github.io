@@ -389,11 +389,19 @@ export const announcementConfig: AnnouncementConfig = {
 export const musicPlayerConfig: MusicPlayerConfig = {
 	enable: true, // 启用音乐播放器功能
 	mode: "meting", // 音乐播放器模式，可选 "local" 或 "meting"
+	// 使用更快的 Meting API 镜像源以提升加载速度
+	// 备选源: https://music.lolico.moe/api?server=:server&type=:type&id=:id
+	//        https://netease-cloud-music-api-gules-mu.vercel.app/api?server=:server&type=:type&id=:id
 	meting_api:
-		"https://www.bilibili.uno/api?server=:server&type=:type&id=:id&auth=:auth&r=:r", // Meting API 地址
-	id: "17514570572", // 歌单ID
+		"https://api.injahow.cn/meting/?server=:server&type=:type&id=:id&auth=:auth&r=:r", // Meting API 地址（已优化为更快的源）
+	id: "17514570572", // 歌单ID（建议控制在50首以内以加快加载）
 	server: "netease", // 音乐源服务器。有的meting的api源支持更多平台,一般来说,netease=网易云音乐, tencent=QQ音乐, kugou=酷狗音乐, xiami=虾米音乐, baidu=百度音乐
 	type: "playlist", // 播单类型
+	// 性能优化建议：
+	// 1. 考虑在播放器组件中添加 preload="metadata" 以仅预加载元数据
+	// 2. 设置 autoplay: false 可加快初始页面加载
+	// 3. 可添加 listMaxHeight 限制播放列表高度
+	// 4. 启用 localStorage 缓存机制减少重复请求
 	// 可选：当浏览器支持 WebAudio 时，增益倍数用于放大输出（例如 2.0 表示最多放大 2 倍）
 	// 若音源受 CORS 限制而回退为非 WebAudio 模式，则此配置无效。
 };
