@@ -101,6 +101,29 @@ type Song = {
 	duration: number;
 };
 
+async function preloadAssets(songs: Song[]) {
+	try {
+		await Promise.all(
+			songs.map(async (song) => {
+				const tasks = [] as Promise<Response | void>[];
+				if (song.cover) {
+					tasks.push(
+						fetch(getAssetPath(song.cover), { mode: "no-cors" }).catch(() => {}),
+					);
+				}
+				if (song.url) {
+					tasks.push(fetch(getAssetPath(song.url), { mode: "cors" }).catch(() => {}));
+				}
+				if (tasks.length > 0) {
+					await Promise.all(tasks);
+				}
+			}),
+		);
+	} catch (e) {
+		console.debug("Preload assets skipped", e);
+	}
+}
+
 let playlist: Song[] = [];
 let currentIndex = 0;
 let audio: HTMLAudioElement;
@@ -172,6 +195,7 @@ async function fetchMetingPlaylist() {
 		});
 		if (playlist.length > 0) {
 			loadSong(playlist[0]);
+			preloadAssets(playlist);
 		}
 		isLoading = false;
 	} catch (e) {
@@ -724,15 +748,14 @@ onMount(() => {
 	if (!musicPlayerConfig.enable) {
 		return;
 	}
-	// 延迟加载播放列表到用户首次展开播放器时（响应式延迟）
+	// 首屏同步加载播放列表，确保封面和曲目尽早缓存
 	if (mode === "meting") {
-		// 仅在用户展开播放器时才加载 Meting API，避免不必要的网络请求
-		console.log("MusicPlayer: Meting playlist will load on user interaction");
+		fetchMetingPlaylist();
 	} else {
-		// 本地播放列表：立即加载（无网络请求，成本低）
 		playlist = [...localPlaylist];
 		if (playlist.length > 0) {
 			loadSong(playlist[0]);
+			preloadAssets(playlist);
 		} else {
 			showErrorMessage("本地播放列表为空");
 		}
