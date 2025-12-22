@@ -170,7 +170,7 @@ const localPlaylist = [
 	},
 ];
 
-async function fetchMetingPlaylist() {
+async function fetchMetingPlaylist(retryCount = 0) {
 	if (!meting_api || !meting_id) return;
 	isLoading = true;
 	const apiUrl = meting_api
@@ -180,10 +180,23 @@ async function fetchMetingPlaylist() {
 		.replace(":auth", "")
 		.replace(":r", Date.now().toString());
 	try {
-		const res = await fetch(apiUrl);
-		if (!res.ok) throw new Error("meting api error");
+		const controller = new AbortController();
+		const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+		
+		const res = await fetch(apiUrl, { 
+			signal: controller.signal,
+			cache: "default" // 允许浏览器缓存
+		});
+		clearTimeout(timeoutId);
+		
+		if (!res.ok) throw new Error(`meting api error: ${res.status}`);
 		const list = await res.json();
-			playlist = list.map((song) => {
+		
+		if (!Array.isArray(list) || list.length === 0) {
+			throw new Error("歌单为空");
+		}
+		
+		playlist = list.map((song) => {
 			let title = song.name ?? song.title ?? "未知歌曲";
 			let artist = song.artist ?? song.author ?? "未知艺术家";
 			let dur = song.duration ?? 0;
@@ -191,21 +204,44 @@ async function fetchMetingPlaylist() {
 			if (!Number.isFinite(dur) || dur <= 0) dur = 0;
 			return {
 				id: song.id,
-					title,
-					artist,
-					cover: getAssetPath(song.pic ?? ""),
-					url: getAssetPath(song.url ?? ""),
+				title,
+				artist,
+				cover: getAssetPath(song.pic ?? ""),
+				url: getAssetPath(song.url ?? ""),
 				duration: dur,
 			};
 		});
 		if (playlist.length > 0) {
 			loadSong(playlist[0]);
-			preloadAssets(playlist);
+			preloadCurrentAndNextCovers();
 		}
 		isLoading = false;
 	} catch (e) {
-		showErrorMessage("Meting 歌单获取失败");
+		console.error("Meting fetch error:", e);
 		isLoading = false;
+		
+		// 重试机制：最多重试2次，间隔递增
+		if (retryCount < 2) {
+			const delay = (retryCount + 1) * 1000; // 1秒、2秒
+			console.log(`Retrying Meting API in ${delay}ms... (${retryCount + 1}/2)`);
+			setTimeout(() => {
+				fetchMetingPlaylist(retryCount + 1);
+			}, delay);
+		} else {
+			// 最终失败：回退到本地歌单或显示友好错误
+			showErrorMessage("Meting 歌单加载失败，正在使用本地歌单");
+			if (localPlaylist.length > 0) {
+				playlist = localPlaylist.map((s) => ({
+					...s,
+					cover: getAssetPath(s.cover),
+					url: getAssetPath(s.url),
+				}));
+				if (playlist.length > 0) {
+					loadSong(playlist[0]);
+					preloadCurrentAndNextCovers();
+				}
+			}
+		}
 	}
 }
 
@@ -757,10 +793,10 @@ onMount(() => {
 	}
 	// 延迟加载歌单：在空闲时或用户交互时加载数据
 	if (mode === "meting") {
-		// Meting：延迟 200ms 加载，确保首页完整展示
+		// Meting：延迟 500ms 加载，给浏览器更多准备时间
 		setTimeout(() => {
 			fetchMetingPlaylist();
-		}, 200);
+		}, 500);
 	} else {
 		// 本地歌单：立即加载（成本低），但不预加载所有资源
 		playlist = localPlaylist.map((s) => ({
