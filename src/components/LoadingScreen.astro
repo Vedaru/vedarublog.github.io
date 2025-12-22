@@ -45,18 +45,18 @@ const configHue = siteConfig.themeColor.hue;
 	#loading-progress {
 		background: linear-gradient(
 			90deg,
-			hsl(var(--hue, 60) 90% 55%),
-			hsl(var(--hue, 60) 90% 65%),
-			hsl(var(--hue, 60) 90% 55%)
+			color-mix(in oklch, var(--primary) 88%, white 12%),
+			color-mix(in oklch, var(--primary) 78%, white 22%),
+			color-mix(in oklch, var(--primary) 88%, white 12%)
 		);
 		background-size: 200% 100%;
 		animation: gradientMove 2s linear infinite;
 		position: relative;
 		overflow: hidden;
 		box-shadow: 
-			0 0 10px hsl(var(--hue, 60) 70% 60% / 0.6),
-			0 0 20px hsl(var(--hue, 60) 70% 60% / 0.3),
-			inset 0 1px 0 hsl(var(--hue, 60) 100% 100% / 0.3);
+			0 0 10px color-mix(in oklch, var(--primary) 70%, transparent),
+			0 0 20px color-mix(in oklch, var(--primary) 50%, transparent),
+			inset 0 1px 0 color-mix(in oklch, var(--primary) 60%, white 40%);
 	}
 
 	#loading-progress::after {
@@ -98,18 +98,6 @@ const configHue = siteConfig.themeColor.hue;
 	// 模拟加载进度（更平滑的曲线）
 	const progressBar = document.getElementById('loading-progress');
 	const percentText = document.getElementById('loading-percent');
-	
-	// 直接设置进度条的背景色，使用主题色
-	if (progressBar) {
-		const hue = savedHue;
-		progressBar.style.background = `linear-gradient(90deg, hsl(${hue} 90% 55%), hsl(${hue} 90% 65%), hsl(${hue} 90% 55%))`;
-		progressBar.style.backgroundSize = '200% 100%';
-		progressBar.style.boxShadow = `
-			0 0 10px hsl(${hue} 70% 60% / 0.6),
-			0 0 20px hsl(${hue} 70% 60% / 0.3),
-			inset 0 1px 0 hsl(${hue} 100% 100% / 0.3)
-		`;
-	}
 	
 	let progress = 20;
 	let lastUpdateTime = Date.now();

@@ -141,6 +141,21 @@ onMount(() => {
 		return;
 	}
 
+	// 先锁定容器的定位与层级，避免页面切换瞬间错位
+	if (pioContainer) {
+		pioContainer.style.position = 'fixed';
+		pioContainer.style.bottom = '0';
+		pioContainer.style.zIndex = '9999';
+		pioContainer.style.pointerEvents = 'auto';
+		if ((pioConfig.position || 'right') === 'left') {
+			pioContainer.style.left = '0';
+			pioContainer.style.right = 'auto';
+		} else {
+			pioContainer.style.right = '0';
+			pioContainer.style.left = 'auto';
+		}
+	}
+
 	// 确保默认显示，不受本地存储隐藏状态影响
 	try {
 		localStorage.setItem("posterGirl", "1");
