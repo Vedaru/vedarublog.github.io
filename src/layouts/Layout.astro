@@ -460,6 +460,8 @@ const BANNER_HEIGHT_HOME = window.BANNER_HEIGHT_HOME || 65;
 import { siteConfig } from '../config';
 import { widgetConfigs } from "../config";
 import { initSakura } from "../utils/sakura-manager";
+// 尝试静态导入面板管理器，确保构建时被打包并能在运行时直接使用
+import { panelManager as panelManagerStatic } from '../utils/panel-manager';
 
 // const setTimeout = window.setTimeout;
 // @ts-ignore
@@ -514,9 +516,9 @@ const bannerEnabled = !!document.getElementById('banner-wrapper')
 // 导入面板管理器
 async function initializePanelManager() {
 	try {
-		// @ts-ignore
-		const { panelManager } = await import('../utils/panel-manager');
-		
+		// 使用静态导入的实例，避免运行时尝试去请求未映射的路径
+		const panelManager = panelManagerStatic;
+
 		// 防止重复绑定
 		if ((window as any).__panelManagerInitialized) {
 			return panelManager;
@@ -1103,10 +1105,9 @@ window.onresize = () => {
 if (document.readyState === 'loading') {
 	document.addEventListener('DOMContentLoaded', async () => {
 		showBanner();
-		// 初始化面板管理器
+		// 初始化面板管理器（使用静态导入实例）
 		try {
-			const panelModule = await import('../utils/panel-manager');
-			console.log('Panel manager initialized');
+			if (panelManagerStatic) console.log('Panel manager initialized');
 		} catch (error) {
 			console.error('Failed to initialize panel manager:', error);
 		}
@@ -1123,8 +1124,7 @@ if (document.readyState === 'loading') {
 	// 页面已经加载完成，立即初始化面板管理器
 	(async () => {
 		try {
-			const panelModule = await import(/* webpackChunkName: "panel-manager" */ '../utils/panel-manager');
-			console.log('Panel manager initialized');
+			if (panelManagerStatic) console.log('Panel manager initialized');
 		} catch (error) {
 			console.error('Failed to initialize panel manager:', error);
 		}
