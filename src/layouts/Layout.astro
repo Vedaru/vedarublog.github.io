@@ -344,8 +344,14 @@ if (siteConfig.font) {
 		<ConfigCarrier></ConfigCarrier>
 		<slot />
 		
-		<!-- Music Player - 延迟加载（仅在用户接近或交互时） -->
-		{musicPlayerConfig.enable && <MusicPlayer client:visible />}
+		<!-- Music Player - 首页立即加载，其他页面延迟加载 -->
+		{musicPlayerConfig.enable && (
+			isHomePage ? (
+				<MusicPlayer client:load />
+			) : (
+				<MusicPlayer client:visible />
+			)
+		)}
 		
 		<!-- Pio 看板娘组件 - 立即在主线程加载以防止白色矩形问题 -->
 		{pioConfig.enable && <Pio client:load baseURL={import.meta.env.BASE_URL} />}

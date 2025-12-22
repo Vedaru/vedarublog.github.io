@@ -757,10 +757,10 @@ onMount(() => {
 	}
 	// 延迟加载歌单：在空闲时或用户交互时加载数据
 	if (mode === "meting") {
-		// Meting：延迟 1 秒后加载歌单，不阻塞首屏
+		// Meting：延迟 200ms 加载，确保首页完整展示
 		setTimeout(() => {
 			fetchMetingPlaylist();
-		}, 1000);
+		}, 200);
 	} else {
 		// 本地歌单：立即加载（成本低），但不预加载所有资源
 		playlist = localPlaylist.map((s) => ({
