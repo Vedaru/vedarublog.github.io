@@ -103,7 +103,7 @@ type Song = {
 
 async function preloadCurrentAndNextCovers() {
 	try {
-		const toPreload = [];
+		const toPreload: Promise<void | Response>[] = [];
 		// 仅预加载当前歌曲封面
 		if (currentIndex < playlist.length && playlist[currentIndex]?.cover) {
 			toPreload.push(
