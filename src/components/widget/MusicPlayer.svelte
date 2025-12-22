@@ -89,10 +89,12 @@ let metingLoaded = false; // 防止重复加载 Meting 播放列表
 let io: IntersectionObserver | null = null; // 视口可见触发
 
 // 当前歌曲信息
+const DEFAULT_COVER = "/favicon/favicon.ico";
+
 let currentSong = {
 	title: "Sample Song",
 	artist: "Sample Artist",
-	cover: "/favicon/favicon.ico",
+	cover: DEFAULT_COVER,
 	url: "",
 	duration: 0,
 };
@@ -298,12 +300,13 @@ async function fetchMetingPlaylist(retryCount = 0) {
 			let dur = song.duration ?? 0;
 			if (dur > 10000) dur = Math.floor(dur / 1000);
 			if (!Number.isFinite(dur) || dur <= 0) dur = 0;
-			const coverUrl = song.pic ?? song.cover ?? song.image ?? "";
+			const rawCover = normalizeCoverUrl(song.pic ?? song.cover ?? song.image ?? "");
+			const processedCover = rawCover ? getAssetPath(rawCover) : DEFAULT_COVER;
 			return {
 				id: song.id,
 				title,
 				artist,
-				cover: getAssetPath(coverUrl),
+				cover: processedCover,
 				url: getAssetPath(song.url ?? ""),
 				duration: dur,
 			};
@@ -328,11 +331,15 @@ async function fetchMetingPlaylist(retryCount = 0) {
 			// 最终失败：回退到本地歌单或显示友好错误
 			showErrorMessage("Meting 歌单加载失败，正在使用本地歌单");
 			if (localPlaylist.length > 0) {
-				playlist = localPlaylist.map((s) => ({
-					...s,
-					cover: getAssetPath(s.cover),
-					url: getAssetPath(s.url),
-				}));
+				playlist = localPlaylist.map((s) => {
+					const rawCover = normalizeCoverUrl(s.cover);
+					const processedCover = rawCover ? getAssetPath(rawCover) : DEFAULT_COVER;
+					return {
+						...s,
+						cover: processedCover,
+						url: getAssetPath(s.url),
+					};
+				});
 				if (playlist.length > 0) {
 					loadSong(playlist[0]);
 					preloadCurrentAndNextCovers();
@@ -487,6 +494,13 @@ function getAssetPath(path: string): string {
 	if (path.startsWith("http://") || path.startsWith("https://")) return path;
 	if (path.startsWith("/")) return `${base}${path}`;
 	return `${base}/${path}`;
+}
+
+function normalizeCoverUrl(path: string): string {
+	if (!path) return "";
+	// 避免 https 页面加载 http 资源被阻止，尝试替换为 https
+	if (path.startsWith("http://")) return "https://" + path.slice(7);
+	return path;
 }
 
 function loadSong(song: typeof currentSong) {
@@ -915,11 +929,15 @@ onMount(() => {
 	}
 	else {
 		// 本地歌单：立即加载（成本低），但不预加载所有资源
-		playlist = localPlaylist.map((s) => ({
-			...s,
-			cover: getAssetPath(s.cover),
-			url: getAssetPath(s.url),
-		}));
+		playlist = localPlaylist.map((s) => {
+			const rawCover = normalizeCoverUrl(s.cover);
+			const processedCover = rawCover ? getAssetPath(rawCover) : DEFAULT_COVER;
+			return {
+				...s,
+				cover: processedCover,
+				url: getAssetPath(s.url),
+			};
+		});
 		if (playlist.length > 0) {
 			loadSong(playlist[0]);
 			// 立即预加载当前+后续歌曲的封面，不等待空闲时刻
