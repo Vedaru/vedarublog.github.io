@@ -1,0 +1,20 @@
+/* Roboto 字体异步加载配置 */
+/* 使用 font-display: swap 防止阻塞渲染 */
+
+/* Roboto Regular (400) */
+@font-face {
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap');
+}
+
+/* Roboto Bold (700) */
+@font-face {
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('https://fonts.googleapis.com/css2?family=Roboto:wght@700&display=swap');
+}

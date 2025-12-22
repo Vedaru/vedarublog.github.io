@@ -1,8 +1,4 @@
 ---
-// 只加载最常用的字体权重，减少加载时间
-import "@fontsource/roboto/400.css";
-import "@fontsource/roboto/700.css";
-
 import ConfigCarrier from "@components/ConfigCarrier.astro";
 import LoadingScreen from "@components/LoadingScreen.astro";
 import MusicPlayer from "@components/widget/MusicPlayer.svelte";
@@ -30,6 +26,8 @@ import type { Favicon } from "../types/config";
 import { pathsEqual, url } from "../utils/url-utils";
 
 import "katex/dist/katex.css";
+// 字体使用异步加载配置
+import "../styles/fonts-async.css";
 import "../styles/mobile-navbar.css";
 import "../styles/wallpaper-navbar-transparent.css";
 import "../styles/fancybox-custom.css";
@@ -205,11 +203,11 @@ if (siteConfig.font) {
 				(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window, document, "clarity", "script", "tjr3vkhj8i");
 			}
 			
-			// 在浏览器空闲时加载，或者在 3 秒后加载
+			// 延迟5秒加载分析脚本，确保首屏完全加载
 			if ('requestIdleCallback' in window) {
-				requestIdleCallback(loadAnalytics, { timeout: 3000 });
+				requestIdleCallback(loadAnalytics, { timeout: 5000 });
 			} else {
-				setTimeout(loadAnalytics, 3000);
+				setTimeout(loadAnalytics, 5000);
 			}
 		</script>
 
@@ -283,9 +281,6 @@ if (siteConfig.font) {
 			let offset = Math.floor(window.innerHeight * (BANNER_HEIGHT_EXTEND / 100));
 			offset = offset - offset % 4;
 			document.documentElement.style.setProperty('--banner-height-extend', `${offset}px`);
-
-				// Early debug log to confirm this inline module executed before other scripts
-				console.log('[Layout] inline init', { theme, isDark, hue, BANNER_HEIGHT: window.BANNER_HEIGHT });
 		</script>
 		<style define:vars={{
 			configHue,
@@ -296,15 +291,12 @@ if (siteConfig.font) {
 
 		<slot name="head"></slot>
 
-		<!-- Pio 看板娘样式和脚本预加载 - 仅在启用时加载 -->
+		<!-- Pio 看板娘样式和脚本延迟加载 -->
 		{pioConfig.enable && (
 			<>
-				<link rel="preload" as="script" href={import.meta.env.BASE_URL + "pio/static/l2d.js"} />
-				<link rel="preload" as="script" href={import.meta.env.BASE_URL + "pio/static/pio.js"} />
-				<link rel="preload" as="fetch" href={import.meta.env.BASE_URL + "pio/models/pio/model.json"} crossorigin />
-				<script src={import.meta.env.BASE_URL + "pio/static/l2d.js"} async></script>
-				<script src={import.meta.env.BASE_URL + "pio/static/pio.js"} async></script>
-				<link rel="stylesheet" href={import.meta.env.BASE_URL + "pio/static/pio.css"} />
+				<script src={import.meta.env.BASE_URL + "pio/static/l2d.js"} defer></script>
+				<script src={import.meta.env.BASE_URL + "pio/static/pio.js"} defer></script>
+				<link rel="stylesheet" href={import.meta.env.BASE_URL + "pio/static/pio.css"} media="print" onload="this.media='all'" />
 			</>
 		)}
 

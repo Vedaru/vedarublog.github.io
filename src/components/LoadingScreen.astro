@@ -98,17 +98,17 @@
 
 	const updateProgress = () => {
 		const elapsed = Date.now() - loadingStartTime;
-		const maxWait = 8000; // 最多等待8秒
+		const maxWait = 5000; // 最多等待5秒（减少等待时间）
 
 		if (progress < 50) {
 			// 前期快速增长 (20% -> 50%)
-			progress += Math.random() * 15 + 5;
+			progress += Math.random() * 20 + 10;
 		} else if (progress < 80) {
 			// 中期逐渐变慢 (50% -> 80%)
-			progress += Math.random() * 8 + 2;
+			progress += Math.random() * 12 + 5;
 		} else {
 			// 后期非常慢 (80% -> 95%)
-			progress += Math.random() * 2 + 0.5;
+			progress += Math.random() * 3 + 1;
 		}
 
 		// 防止溢出
@@ -129,7 +129,7 @@
 		// 继续更新直到页面加载完成
 		if (progress < 95) {
 			lastUpdateTime = Date.now();
-			setTimeout(updateProgress, 200 + Math.random() * 300);
+			setTimeout(updateProgress, 100 + Math.random() * 200); // 更新更频繁
 		}
 	};
 
