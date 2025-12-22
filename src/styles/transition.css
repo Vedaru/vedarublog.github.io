@@ -48,6 +48,12 @@ html.is-animating .transition-swup-fade {
     transform: translateY(1.5rem);
 }
 
+/* Pio 基础层级与定位，避免初始闪动 */
+.pio-container {
+    z-index: 9999 !important;
+    pointer-events: auto !important;
+}
+
 /* 防止 Pio 组件在页面切换时错位 */
 html.is-changing .pio-container,
 html.is-animating .pio-container,
