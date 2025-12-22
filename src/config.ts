@@ -399,6 +399,7 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 	type: "playlist", // 播单类型
 	
 	// === 性能优化配置 ===
+	preload: "metadata", // 仅预加载元数据，不预加载完整音频，加快初始加载速度
 	autoplay: false, // 禁用自动播放，减少初始页面加载负担
 	volume: 0.7, // 默认音量（0-1之间）
 	listMaxHeight: "250px", // 限制播放列表最大高度，避免列表过长影响性能

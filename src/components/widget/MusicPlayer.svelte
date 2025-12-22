@@ -1140,19 +1140,25 @@ onDestroy(() => {
 					 class:animate-pulse={isLoading}
 					 loading="eager" decoding="sync" fetchpriority="high"
 						 on:error={(event) => {
-							const img = event.currentTarget as HTMLImageElement;
-							const src = img.src;
-							if (src.endsWith('/favicon/favicon.ico')) return;
-							// 若缓存中存在指向此 src 的映射，删除以便下一次尝试重新加载原始 URL
-							try {
-								for (const [key, val] of coverCache.entries()) {
-									if (val === src || key === currentSong.cover) {
-										coverCache.delete(key);
-									}
+						const img = event.currentTarget as HTMLImageElement;
+						if (img.src.endsWith('/favicon/favicon.ico')) return;
+						// 若首次失败，尝试使用原始 URL 重新加载一次；第二次失败才回退为 favicon
+						const retried = img.dataset.retry === '1';
+						try {
+							// 删除可能的坏缓存映射
+							for (const [key, val] of coverCache.entries()) {
+								if (val === img.src || key === currentSong.cover) {
+									coverCache.delete(key);
 								}
-								persistCoverCache();
-							} catch (e) {}
+							}
+							persistCoverCache();
+						} catch (e) {}
+						if (!retried) {
+							img.dataset.retry = '1';
+							img.src = currentSong.cover;
+						} else {
 							img.src = '/favicon/favicon.ico';
+						}
 						}} />
                 <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                     {#if isLoading}
@@ -1408,7 +1414,19 @@ onDestroy(() => {
 								on:error={(event) => {
 									const img = event.currentTarget as HTMLImageElement;
 									if (img.src.endsWith('/favicon/favicon.ico')) return;
-									img.src = '/favicon/favicon.ico';
+									const retried = img.dataset.retry === '1';
+									try {
+										for (const [key, val] of coverCache.entries()) {
+											if (val === img.src || key === song.cover) coverCache.delete(key);
+										}
+										persistCoverCache();
+									} catch (e) {}
+									if (!retried) {
+										img.dataset.retry = '1';
+										img.src = song.cover;
+									} else {
+										img.src = '/favicon/favicon.ico';
+									}
 								}} />
                         </div>
                         <div class="flex-1 min-w-0">

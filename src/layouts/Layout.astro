@@ -185,6 +185,13 @@ if (siteConfig.font) {
 	  data-overlayscrollbars-initialize
 >
 	<head>
+		<!-- Preload local fonts to reduce FOUT on loading screen -->
+		{siteConfig.font?.asciiFont?.localFonts?.map((f) => (
+			<link rel="preload" as="font" href={import.meta.env.BASE_URL + `assets/font/${f}`} type="font/ttf" crossorigin />
+		))}
+		{siteConfig.font?.cjkFont?.localFonts?.map((f) => (
+			<link rel="preload" as="font" href={import.meta.env.BASE_URL + `assets/font/${f}`} type="font/ttf" crossorigin />
+		))}
 		<!-- 第三方分析脚本 - 延迟加载优化 -->
 		<script is:inline>
 			// 预定义全局变量避免运行时 undefined 错误
