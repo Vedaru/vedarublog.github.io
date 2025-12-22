@@ -422,6 +422,45 @@ function toggleHidden() {
 
 function togglePlaylist() {
 	showPlaylist = !showPlaylist;
+	// 当用户打开歌单时，确保歌单已加载并尝试预加载列表中所有封面（分批并发以避免过多并发请求）
+	if (showPlaylist) {
+		// 如果在 meting 模式，先确保已加载 Meting 歌单
+		if (mode === 'meting') {
+			ensureMetingLoaded();
+		}
+		// 异步触发全部封面预加载（不阻塞 UI）
+		setTimeout(() => {
+			preloadAllPlaylistCovers().catch(() => {});
+		}, 50);
+	}
+}
+
+// 分批并发预加载整个歌单的封面（限制并发以避免突发大量请求）
+async function preloadAllPlaylistCovers(concurrency = 6) {
+	if (!playlist || playlist.length === 0) return;
+	const covers = playlist.map((s) => s.cover).filter(Boolean) as string[];
+	const queue = covers.slice();
+	const workers: Promise<void>[] = [];
+
+	const worker = async () => {
+		while (queue.length > 0) {
+			const url = queue.shift();
+			if (!url) break;
+			try {
+				await preloadSingleCover(url, 8000);
+			} catch (e) {
+				// 单个封面预加载失败无需抛出
+			}
+			// small delay to avoid hammering some CDNs
+			await new Promise((r) => setTimeout(r, 20));
+		}
+	};
+
+	for (let i = 0; i < Math.min(concurrency, covers.length); i++) {
+		workers.push(worker());
+	}
+
+	await Promise.all(workers);
 }
 
 function toggleShuffle() {
