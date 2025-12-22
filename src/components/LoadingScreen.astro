@@ -20,7 +20,7 @@
 
 		<!-- 进度条 -->
 		<div class="w-56 h-2 bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden shadow-inner">
-			<div id="loading-progress" class="h-full bg-gradient-to-r from-[var(--primary)] via-[var(--secondary)] to-[var(--primary)] bg-size-200 animate-[gradientMove_2s_linear_infinite] rounded-full w-1/4 transition-[width] duration-300 ease-out"></div>
+			<div id="loading-progress" class="h-full bg-gradient-to-r from-[var(--primary)] via-[var(--secondary)] to-[var(--primary)] bg-size-200 animate-[gradientMove_2s_linear_infinite] rounded-full transition-[width] duration-300 ease-out" style="width:0%"></div>
 		</div>
 	</div>
 </div>
@@ -66,14 +66,14 @@
 			progress += Math.random() * 8 + 2;
 		} else {
 			// 后期非常慢 (80% -> 95%)
-			progress += Math.random() * 3 + 0.5;
+			progress += Math.random() * 2 + 0.5;
 		}
 
 		// 防止溢出
 		progress = Math.min(progress, 95);
 
 		if (progressBar) {
-			progressBar.style.width = progress + '%';
+			progressBar.style.width = Math.min(progress, 98) + '%';
 		}
 		if (percentText) {
 			percentText.textContent = `${Math.round(progress)}%`;
@@ -125,5 +125,6 @@
 			}, 500);
 		}
 		if (percentText) percentText.textContent = '100%';
+		if (progressBar) progressBar.style.width = '100%';
 	}
 </script>
