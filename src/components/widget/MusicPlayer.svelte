@@ -141,35 +141,34 @@ function persistCoverCache() {
 async function preloadSingleCover(coverUrl: string, timeout = 8000): Promise<void> {
 	if (!coverUrl || coverCache.has(coverUrl) || loadingCovers.has(coverUrl)) return;
 	
-	// 对于本地路径，直接设为缓存（不需要 fetch）
-	if (coverUrl.startsWith('/') && !coverUrl.match(/^https?:\/\//)) {
+	// 对于本地路径（不是 http/https），直接设为缓存（不需要 fetch）
+	if (!coverUrl.startsWith('http://') && !coverUrl.startsWith('https://')) {
 		coverCache.set(coverUrl, coverUrl);
 		persistCoverCache();
 		return;
 	}
 	
 	// 对于外部 URL，尝试 fetch 转为 blob URL
-	if (!coverUrl.startsWith('http://') && !coverUrl.startsWith('https://')) {
-		return; // 无效的 URL，跳过
-	}
-	
 	loadingCovers.add(coverUrl);
 	try {
 		const controller = new AbortController();
 		const timeoutId = setTimeout(() => controller.abort(), timeout);
 		
 		const res = await fetch(coverUrl, { 
-			mode: "cors",
+			mode: "no-cors",
 			signal: controller.signal,
 			cache: "force-cache"
 		});
 		clearTimeout(timeoutId);
 		
-		if (res.ok) {
+		if (res.ok || res.status === 0) {
 			const blob = await res.blob();
 			const objectUrl = URL.createObjectURL(blob);
 			coverCache.set(coverUrl, objectUrl);
 			persistCoverCache();
+		} else {
+			// 降级：直接使用原始 URL
+			coverCache.set(coverUrl, coverUrl);
 		}
 	} catch (e) {
 		console.debug(`Failed to preload cover: ${coverUrl}`, e);
@@ -288,17 +287,23 @@ async function fetchMetingPlaylist(retryCount = 0) {
 			throw new Error("歌单为空");
 		}
 		
+		// 调试：打印第一首歌的结构
+		if (list.length > 0) {
+			console.log("🎵 Meting API 第一首歌数据:", list[0]);
+		}
+		
 		playlist = list.map((song) => {
 			let title = song.name ?? song.title ?? "未知歌曲";
 			let artist = song.artist ?? song.author ?? "未知艺术家";
 			let dur = song.duration ?? 0;
 			if (dur > 10000) dur = Math.floor(dur / 1000);
 			if (!Number.isFinite(dur) || dur <= 0) dur = 0;
+			const coverUrl = song.pic ?? song.cover ?? song.image ?? "";
 			return {
 				id: song.id,
 				title,
 				artist,
-				cover: getAssetPath(song.pic ?? ""),
+				cover: getAssetPath(coverUrl),
 				url: getAssetPath(song.url ?? ""),
 				duration: dur,
 			};
@@ -1042,11 +1047,16 @@ onDestroy(() => {
                  role="button"
                  tabindex="0"
                  aria-label={isPlaying ? '暂停' : '播放'}>
-				 <img src={coverCache.get(currentSong.cover) || getAssetPath(currentSong.cover)} alt="封面"
+				 <img src={coverCache.get(currentSong.cover) ?? currentSong.cover} alt="封面"
 					 class="w-full h-full object-cover transition-transform duration-300"
 					 class:spinning={isPlaying && !isLoading}
 					 class:animate-pulse={isLoading}
-					 loading="eager" decoding="sync" fetchpriority="high" />
+					 loading="eager" decoding="sync" fetchpriority="high"
+					 on:error={(event) => {
+						const img = event.currentTarget as HTMLImageElement;
+						if (img.src.endsWith('/favicon/favicon.ico')) return;
+						img.src = '/favicon/favicon.ico';
+					}} />
                 <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                     {#if isLoading}
                         <Icon icon="eos-icons:loading" class="text-white text-xl" />
@@ -1092,11 +1102,16 @@ onDestroy(() => {
          class:pointer-events-none={!isExpanded}>
         <div class="flex items-center gap-4 mb-4">
             <div class="cover-container relative w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
-				 <img src={coverCache.get(currentSong.cover) || getAssetPath(currentSong.cover)} alt="封面"
+				 <img src={coverCache.get(currentSong.cover) ?? currentSong.cover} alt="封面"
 					 class="w-full h-full object-cover transition-transform duration-300"
 					 class:spinning={isPlaying && !isLoading}
 					 class:animate-pulse={isLoading}
-					 loading="eager" decoding="sync" fetchpriority="high" />
+					 loading="eager" decoding="sync" fetchpriority="high"
+					 on:error={(event) => {
+						const img = event.currentTarget as HTMLImageElement;
+						if (img.src.endsWith('/favicon/favicon.ico')) return;
+						img.src = '/favicon/favicon.ico';
+					}} />
             </div>
             <div class="flex-1 min-w-0">
                 <div class="song-title text-lg font-bold text-90 truncate mb-1">{currentSong.title}</div>
@@ -1289,10 +1304,15 @@ onDestroy(() => {
                         </div>
                         <!-- 歌单列表内封面仍为圆角矩形 -->
                         <div class="w-10 h-10 rounded-lg overflow-hidden bg-[var(--btn-regular-bg)] flex-shrink-0">
-							<img src={coverCache.get(song.cover) || getAssetPath(song.cover)} alt={song.title} class="w-full h-full object-cover"
+							<img src={coverCache.get(song.cover) ?? song.cover} alt={song.title} class="w-full h-full object-cover"
 								loading={index < 12 ? "eager" : "lazy"}
 								fetchpriority={index < 12 ? "high" : "low"}
-								decoding="async" />
+								decoding="async"
+								on:error={(event) => {
+									const img = event.currentTarget as HTMLImageElement;
+									if (img.src.endsWith('/favicon/favicon.ico')) return;
+									img.src = '/favicon/favicon.ico';
+								}} />
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="font-medium truncate" class:text-[var(--primary)]={index === currentIndex} class:text-90={index !== currentIndex}>
