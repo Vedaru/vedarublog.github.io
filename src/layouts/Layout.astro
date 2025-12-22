@@ -330,7 +330,7 @@ if (siteConfig.font) {
 		<LoadingScreen />
 
 		<!-- 顶部页面进度条（用于路由跳转与资源加载） -->
-		<div id="page-progress" class="fixed left-0 top-0 h-[3px] bg-[var(--primary)] z-[9999] w-0 opacity-0 transition-[width,opacity] duration-200"></div>
+		<div id="page-progress" class="fixed left-0 top-0 h-[3px] z-[9999] w-0 opacity-0 transition-[width,opacity] duration-200" style="background: var(--primary);"></div>
 		
 		<!-- 页面顶部渐变高光效果 - 只在full和semifull模式下显示 -->
 		{shouldShowTopHighlight && <div class="top-gradient-highlight"></div>}
