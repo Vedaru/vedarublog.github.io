@@ -110,6 +110,34 @@ type Song = {
 const coverCache = new Map<string, string>();
 const loadingCovers = new Set<string>();
 
+// 从 SessionStorage 恢复缓存
+function restoreCoverCache() {
+	if (typeof sessionStorage === 'undefined') return;
+	try {
+		const cached = sessionStorage.getItem('musicCoverCache');
+		if (cached) {
+			const data = JSON.parse(cached);
+			for (const [url, blobUrl] of Object.entries(data)) {
+				coverCache.set(url, blobUrl as string);
+			}
+		}
+	} catch (e) {
+		console.debug('Failed to restore cover cache', e);
+	}
+}
+
+// 持久化缓存到 SessionStorage
+function persistCoverCache() {
+	if (typeof sessionStorage === 'undefined' || coverCache.size === 0) return;
+	try {
+		const data: Record<string, string> = {};
+		coverCache.forEach((url, key) => { data[key] = url; });
+		sessionStorage.setItem('musicCoverCache', JSON.stringify(data));
+	} catch (e) {
+		console.debug('Failed to persist cover cache', e);
+	}
+}
+
 async function preloadSingleCover(coverUrl: string, timeout = 8000): Promise<void> {
 	if (!coverUrl || coverCache.has(coverUrl) || loadingCovers.has(coverUrl)) return;
 	
@@ -121,7 +149,7 @@ async function preloadSingleCover(coverUrl: string, timeout = 8000): Promise<voi
 		const res = await fetch(coverUrl, { 
 			mode: "no-cors",
 			signal: controller.signal,
-			cache: "force-cache" // 强制使用缓存
+			cache: "force-cache"
 		});
 		clearTimeout(timeoutId);
 		
@@ -129,6 +157,7 @@ async function preloadSingleCover(coverUrl: string, timeout = 8000): Promise<voi
 			const blob = await res.blob();
 			const objectUrl = URL.createObjectURL(blob);
 			coverCache.set(coverUrl, objectUrl);
+			persistCoverCache();
 		}
 	} catch (e) {
 		console.debug(`Failed to preload cover: ${coverUrl}`, e);
@@ -164,17 +193,17 @@ function cleanupIO() {
 function ensureMetingLoaded() {
 	if (metingLoaded || mode !== "meting" || isLoading) return;
 	metingLoaded = true;
-	const conn: any = (navigator as any)?.connection;
-	const isSlow = conn?.saveData || ["slow-2g","2g"].includes(conn?.effectiveType);
+	
+	// 立即开始列表获取，不等待其他资源
 	fetchMetingPlaylist().then(() => {
-		if (!isSlow) {
-			if ((window as any).requestIdleCallback) {
-				(window as any).requestIdleCallback(preloadCurrentAndNextCovers);
-			} else {
-				setTimeout(preloadCurrentAndNextCovers, 300);
-			}
-		}
+		// 列表获取后立即预加载，不等待 requestIdleCallback
+		preloadCurrentAndNextCovers();
 	});
+	
+	// 也在后台继续尝试预加载，以应对未来歌曲
+	setTimeout(() => {
+		if (playlist.length > 0) preloadCurrentAndNextCovers();
+	}, 1500);
 }
 
 let playlist: Song[] = [];
@@ -794,6 +823,9 @@ function handleAudioEvents() {
 }
 
 onMount(() => {
+	// 尽早恢复缓存
+	restoreCoverCache();
+	
 	audio = new Audio();
 	// 为跨域音频尝试启用匿名请求，必须在设置 src 之前设置
 	audio.crossOrigin = "anonymous";
@@ -1237,8 +1269,8 @@ onDestroy(() => {
                         <!-- 歌单列表内封面仍为圆角矩形 -->
                         <div class="w-10 h-10 rounded-lg overflow-hidden bg-[var(--btn-regular-bg)] flex-shrink-0">
 							<img src={coverCache.get(song.cover) || getAssetPath(song.cover)} alt={song.title} class="w-full h-full object-cover"
-								loading={index < 8 ? "eager" : "lazy"}
-								fetchpriority={index < 8 ? "high" : "low"}
+								loading={index < 12 ? "eager" : "lazy"}
+								fetchpriority={index < 12 ? "high" : "low"}
 								decoding="async" />
                         </div>
                         <div class="flex-1 min-w-0">

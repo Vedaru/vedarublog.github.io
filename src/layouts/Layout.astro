@@ -332,13 +332,9 @@ if (siteConfig.font) {
 		<ConfigCarrier></ConfigCarrier>
 		<slot />
 		
-		<!-- Music Player - 首页立即加载，其他页面空闲时加载 -->
+		<!-- Music Player - 立即加载以确保封面快速显示 -->
 		{musicPlayerConfig.enable && (
-			isHomePage ? (
-				<MusicPlayer client:load />
-			) : (
-				<MusicPlayer client:idle />
-			)
+			<MusicPlayer client:load />
 		)}
 		
 		<!-- Pio 看板娘组件 - 浏览器空闲时加载以优化性能 -->
