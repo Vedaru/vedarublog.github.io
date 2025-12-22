@@ -83,6 +83,11 @@ let errorMessage = "";
 // 是否显示错误信息，默认为 false
 let showError = false;
 
+// 组件根节点与按需加载控制
+let rootEl: HTMLElement;
+let metingLoaded = false; // 防止重复加载 Meting 播放列表
+let io: IntersectionObserver | null = null; // 视口可见触发
+
 // 当前歌曲信息
 let currentSong = {
 	title: "Sample Song",
@@ -127,6 +132,27 @@ async function preloadCurrentAndNextCovers() {
 	} catch (e) {
 		console.debug("Preload covers skipped", e);
 	}
+}
+
+function cleanupIO() {
+	try { io?.disconnect(); } catch {}
+	io = null;
+}
+
+function ensureMetingLoaded() {
+	if (metingLoaded || mode !== "meting" || isLoading) return;
+	metingLoaded = true;
+	const conn: any = (navigator as any)?.connection;
+	const isSlow = conn?.saveData || ["slow-2g","2g"].includes(conn?.effectiveType);
+	fetchMetingPlaylist().then(() => {
+		if (!isSlow) {
+			if ((window as any).requestIdleCallback) {
+				(window as any).requestIdleCallback(preloadCurrentAndNextCovers);
+			} else {
+				setTimeout(preloadCurrentAndNextCovers, 300);
+			}
+		}
+	});
 }
 
 let playlist: Song[] = [];
@@ -281,11 +307,8 @@ function toggleExpanded() {
 	if (isExpanded) {
 		showPlaylist = false;
 		isHidden = false;
-		// 当用户首次展开播放器时，立即加载 Meting 播放列表（如果还未加载）
-		if (mode === "meting" && playlist.length === 0 && !isLoading) {
-			console.log("User expanded player, fetching Meting playlist now...");
-			fetchMetingPlaylist();
-		}
+		// 展开时确保按需加载
+		ensureMetingLoaded();
 	}
 }
 
@@ -752,8 +775,8 @@ onMount(() => {
 	audio = new Audio();
 	// 为跨域音频尝试启用匿名请求，必须在设置 src 之前设置
 	audio.crossOrigin = "anonymous";
-	// 改用 'metadata' 预加载策略：只加载元数据，不预加载音频数据，减少带宽占用
-	audio.preload = "metadata";
+	// 更激进：首屏不加载音频数据，进入视口或交互后再拉取
+	audio.preload = "none";
 	// 初始化平滑音量当前/目标值（使用灵敏度压缩以使初始低音量更平滑）
 	const initAdjusted = applySensitivity(volume, SENSITIVITY_GAMMA);
 	audioVolumeCurrent = getLogVolume(initAdjusted);
@@ -791,13 +814,22 @@ onMount(() => {
 	if (!musicPlayerConfig.enable) {
 		return;
 	}
-	// 延迟加载歌单：在空闲时或用户交互时加载数据
-	if (mode === "meting") {
-		// Meting：延迟 500ms 加载，给浏览器更多准备时间
-		setTimeout(() => {
-			fetchMetingPlaylist();
-		}, 500);
-	} else {
+	// 视口可见后再加载 Meting 歌单
+	if (isBrowser && mode === "meting") {
+		io = new IntersectionObserver((entries) => {
+			if (entries[0]?.isIntersecting) {
+				ensureMetingLoaded();
+				cleanupIO();
+			}
+		}, { rootMargin: "200px" });
+		if (rootEl) io.observe(rootEl);
+
+		// 任意一次用户交互也触发加载
+		const trigger = () => ensureMetingLoaded();
+		window.addEventListener("click", trigger, { once: true, capture: true });
+		window.addEventListener("keydown", trigger, { once: true, capture: true });
+	}
+	else {
 		// 本地歌单：立即加载（成本低），但不预加载所有资源
 		playlist = localPlaylist.map((s) => ({
 			...s,
@@ -806,8 +838,12 @@ onMount(() => {
 		}));
 		if (playlist.length > 0) {
 			loadSong(playlist[0]);
-			// 只预加载当前和下一首封面，不加载所有资源
-			preloadCurrentAndNextCovers();
+			// 空闲时预取当前+下一首封面
+			if ((window as any).requestIdleCallback) {
+			  (window as any).requestIdleCallback(preloadCurrentAndNextCovers);
+			} else {
+			  setTimeout(preloadCurrentAndNextCovers, 300);
+			}
 		} else {
 			showErrorMessage("本地播放列表为空");
 		}
@@ -815,6 +851,7 @@ onMount(() => {
 });
 
 onDestroy(() => {
+	cleanupIO();
 	if (audio) {
 		audio.pause();
 		audio.src = "";
@@ -882,8 +919,9 @@ onDestroy(() => {
 {/if}
 
 <div class="music-player fixed bottom-4 right-4 z-50 transition-all duration-300 ease-in-out"
-     class:expanded={isExpanded}
-     class:hidden-mode={isHidden}>
+	bind:this={rootEl}
+	class:expanded={isExpanded}
+	class:hidden-mode={isHidden}>
     <!-- 隐藏状态的小圆球 -->
     <div class="orb-player w-12 h-12 bg-[var(--primary)] rounded-full shadow-lg cursor-pointer transition-all duration-500 ease-in-out flex items-center justify-center hover:scale-110 active:scale-95"
          class:opacity-0={!isHidden}

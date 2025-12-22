@@ -238,6 +238,9 @@ if (siteConfig.font) {
 
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
+		<!-- 预连接 Meting API 与可能的 CDN 域名，降低首次握手成本 -->
+		<link rel="preconnect" href="https://www.bilibili.uno" crossorigin>
+		<link rel="dns-prefetch" href="https://www.bilibili.uno">
 		{favicons.map(favicon => (
 			<link rel="icon"
 				  href={favicon.src.startsWith('/') ? url(favicon.src) : favicon.src}
