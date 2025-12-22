@@ -11,20 +11,26 @@
 			<div class="absolute inset-0 rounded-full border-4 border-transparent border-t-[var(--primary)] border-r-[var(--primary)] animate-spin"></div>
 		</div>
 
-		<!-- 加载文本 -->
-		<div class="flex flex-col items-center gap-2">
+		<!-- 加载文本与进度百分比 -->
+		<div class="flex flex-col items-center gap-1">
 			<p class="text-lg font-semibold text-neutral-900 dark:text-neutral-100">加载中...</p>
 			<p class="text-sm text-neutral-500 dark:text-neutral-500">正在准备精彩内容</p>
+			<p id="loading-percent" class="text-xs text-neutral-500 dark:text-neutral-400">0%</p>
 		</div>
 
 		<!-- 进度条 -->
-		<div class="w-48 h-1 bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden">
-			<div id="loading-progress" class="h-full bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] rounded-full w-1/3 transition-all duration-300"></div>
+		<div class="w-56 h-2 bg-neutral-200 dark:bg-neutral-800 rounded-full overflow-hidden shadow-inner">
+			<div id="loading-progress" class="h-full bg-gradient-to-r from-[var(--primary)] via-[var(--secondary)] to-[var(--primary)] bg-size-200 animate-[gradientMove_2s_linear_infinite] rounded-full w-1/4 transition-[width] duration-300 ease-out"></div>
 		</div>
 	</div>
 </div>
 
 <style>
+	@keyframes gradientMove {
+		0% { background-position: 0% 50%; }
+		100% { background-position: 200% 50%; }
+	}
+
 	@keyframes fadeOut {
 		to {
 			opacity: 0;
@@ -43,6 +49,7 @@
 	
 	// 模拟加载进度（更平滑的曲线）
 	const progressBar = document.getElementById('loading-progress');
+	const percentText = document.getElementById('loading-percent');
 	let progress = 20;
 	let lastUpdateTime = Date.now();
 	let loadingStartTime = Date.now();
@@ -67,6 +74,9 @@
 
 		if (progressBar) {
 			progressBar.style.width = progress + '%';
+		}
+		if (percentText) {
+			percentText.textContent = `${Math.round(progress)}%`;
 		}
 
 		// 如果加载超时，加快进度
@@ -114,5 +124,6 @@
 				document.documentElement.style.overflow = '';
 			}, 500);
 		}
+		if (percentText) percentText.textContent = '100%';
 	}
 </script>

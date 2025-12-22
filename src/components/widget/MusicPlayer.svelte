@@ -178,7 +178,7 @@ async function fetchMetingPlaylist() {
 		const res = await fetch(apiUrl);
 		if (!res.ok) throw new Error("meting api error");
 		const list = await res.json();
-		playlist = list.map((song) => {
+			playlist = list.map((song) => {
 			let title = song.name ?? song.title ?? "未知歌曲";
 			let artist = song.artist ?? song.author ?? "未知艺术家";
 			let dur = song.duration ?? 0;
@@ -186,10 +186,10 @@ async function fetchMetingPlaylist() {
 			if (!Number.isFinite(dur) || dur <= 0) dur = 0;
 			return {
 				id: song.id,
-				title,
-				artist,
-				cover: song.pic ?? "",
-				url: song.url ?? "",
+					title,
+					artist,
+					cover: getAssetPath(song.pic ?? ""),
+					url: getAssetPath(song.url ?? ""),
 				duration: dur,
 			};
 		});
@@ -337,14 +337,16 @@ async function prefetchNext() {
 }
 
 function getAssetPath(path: string): string {
+	const base = (import.meta.env?.BASE_URL || "/").replace(/\/$/, "");
+	if (!path) return base + "/";
 	if (path.startsWith("http://") || path.startsWith("https://")) return path;
-	if (path.startsWith("/")) return path;
-	return `/${path}`;
+	if (path.startsWith("/")) return `${base}${path}`;
+	return `${base}/${path}`;
 }
 
 function loadSong(song: typeof currentSong) {
 	if (!song || !audio) return;
-	currentSong = { ...song };
+	currentSong = { ...song, cover: getAssetPath(song.cover) };
 	if (song.url) {
 		isLoading = true;
 		audio.pause();
@@ -752,7 +754,11 @@ onMount(() => {
 	if (mode === "meting") {
 		fetchMetingPlaylist();
 	} else {
-		playlist = [...localPlaylist];
+		playlist = localPlaylist.map((s) => ({
+			...s,
+			cover: getAssetPath(s.cover),
+			url: getAssetPath(s.url),
+		}));
 		if (playlist.length > 0) {
 			loadSong(playlist[0]);
 			preloadAssets(playlist);
