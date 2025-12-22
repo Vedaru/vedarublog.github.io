@@ -463,6 +463,32 @@ if (siteConfig.font) {
 			transform: translate3d(85px, 0, 0);
 		}
 	}
+
+	/* 顶端导航栏渐变高光动画（与主题色联动） */
+	.top-gradient-highlight {
+		position: fixed;
+		left: 0;
+		right: 0;
+		top: 0;
+		height: 4px;
+		z-index: 9998;
+		pointer-events: none;
+		/* 使用主题色 hue 构建渐变 */
+		background: linear-gradient(90deg,
+			hsl(var(--hue, 60) 90% 62%),
+			hsl(var(--hue, 60) 90% 70%),
+			hsl(var(--hue, 60) 90% 62%)
+		);
+		background-size: 200% 100%;
+		opacity: 0.75;
+		filter: drop-shadow(0 0 6px hsl(var(--hue, 60) 90% 60% / 0.4));
+		animation: navbarGradientMove 6s linear infinite;
+	}
+
+	@keyframes navbarGradientMove {
+		0% { background-position: 0% 50%; }
+		100% { background-position: 200% 50%; }
+	}
 }
 </style>
 
