@@ -1,5 +1,5 @@
 ---
-import ImageWrapper from "../components/misc/ImageWrapper.astro";
+
 import AnimeCard from "../components/AnimeCard.astro";
 import { sidebarLayoutConfig, siteConfig } from "../config";
 import localAnimeList from "../data/anime";
@@ -595,6 +595,9 @@ function getStatusInfo(status: string) {
         subtree: true
       });
 
+      // 页面卸载时清理
+      window.addEventListener('beforeunload', () => {
+        observer.disconnect();
         import('@/utils/animeImagePreloader.ts').then(({ destroyAnimeImagePreloader }) => {
           destroyAnimeImagePreloader();
         });
