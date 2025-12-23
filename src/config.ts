@@ -390,16 +390,17 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 	enable: true, // 启用音乐播放器功能
 	mode: "meting", // 音乐播放器模式，可选 "local" 或 "meting"
 	// 使用更快的 Meting API 镜像源以提升加载速度
-	// 备选源: https://music.lolico.moe/api?server=:server&type=:type&id=:id
+	// 备选源: https://api.injahow.cn/meting/?server=:server&type=:type&id=:id&auth=:auth&r=:r
 	//        https://netease-cloud-music-api-gules-mu.vercel.app/api?server=:server&type=:type&id=:id
+	// 当前默认：lolico.moe 镜像，国内加速更快且稳定
 	meting_api:
-		"https://api.injahow.cn/meting/?server=:server&type=:type&id=:id&auth=:auth&r=:r", // Meting API 地址（已优化为更快的源）
+		"https://music.lolico.moe/api?server=:server&type=:type&id=:id", // Meting API 地址（加速镜像）
 	id: "17514570572", // 歌单ID（建议控制在50首以内以加快加载）
 	server: "netease", // 音乐源服务器。有的meting的api源支持更多平台,一般来说,netease=网易云音乐, tencent=QQ音乐, kugou=酷狗音乐, xiami=虾米音乐, baidu=百度音乐
 	type: "playlist", // 播单类型
 	
 	// === 性能优化配置 ===
-	preload: "metadata", // 仅预加载元数据，不预加载完整音频，加快初始加载速度
+	preload: "auto", // 仅预加载元数据，不预加载完整音频，加快初始加载速度
 	autoplay: false, // 禁用自动播放，减少初始页面加载负担
 	volume: 0.7, // 默认音量（0-1之间）
 	listMaxHeight: "250px", // 限制播放列表最大高度，避免列表过长影响性能
