@@ -60,21 +60,8 @@ if (footerConfig.enable) {
         if (typeof window.__toggleSakura === 'function') {
             try {
                 window.__toggleSakura();
-                
-                // 等待状态更新
-                setTimeout(function() {
-                    const isRunning = typeof window.__getSakuraStatus === 'function' ? window.__getSakuraStatus() : false;
-                    console.log('樱花状态:', isRunning ? '开启' : '关闭');
-                    
-                    const trigger = document.getElementById('sakura-trigger');
-                    if (trigger) {
-                        if (isRunning) {
-                            trigger.textContent = '再点一下试试';
-                        } else {
-                            trigger.textContent = '点击一下什么都不会发生吧';
-                        }
-                    }
-                }, 100);
+                const isRunning = typeof window.__getSakuraStatus === 'function' ? window.__getSakuraStatus() : false;
+                console.log('樱花状态:', isRunning ? '开启' : '关闭');
             } catch (error) {
                 console.error('切换樱花时出错:', error);
             }
@@ -99,6 +86,24 @@ if (footerConfig.enable) {
     // 立即初始化樱花管理器（使用enable:false，这样toggle时才会启动）
     const config = { ...sakuraConfig, enable: false };
     initSakura(config);
+    
+    // 预加载图片以提高响应速度
+    (function preloadSeasonalImage() {
+        const month = new Date().getMonth() + 1;
+        let imageName = "sakura.png";
+        
+        if (month >= 3 && month <= 5) {
+            imageName = "sakura.png";
+        } else if (month >= 9 && month <= 11) {
+            imageName = "mapleleaf.png";
+        } else if (month === 12 || month === 1 || month === 2) {
+            imageName = "snowflake.png";
+        }
+        
+        const img = new Image();
+        img.src = `/${imageName}`;
+        console.log(`预加载季节图片: ${imageName}`);
+    })();
     
     console.log('樱花管理器已初始化（待命状态）');
 </script>
