@@ -51,6 +51,14 @@ async function togglePanel() {
 	color: black;
 }
 
+:global(.dark) .current-theme-btn {
+	color: white;
+}
+
+:global(.dark) .current-theme-btn:hover {
+	color: white;
+}
+
 /* 确保主题切换按钮的背景色即时更新 */
 :global(.theme-switch-btn)::before {
 	transition: transform 75ms ease-out, background-color 0ms !important;
