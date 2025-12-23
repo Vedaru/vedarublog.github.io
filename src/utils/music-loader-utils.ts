@@ -60,9 +60,6 @@ export function getFallbackCovers(originalUrl: string): string[] {
 		});
 	}
 	
-	// 最后添加默认封面
-	fallbacks.push(DEFAULT_COVER);
-	
 	// 去重
 	return Array.from(new Set(fallbacks));
 }
@@ -87,43 +84,39 @@ export async function loadImageWithRetry(
 	}
 	
 	const fallbackUrls = getFallbackCovers(url);
-	
+	let lastError: unknown = null;
+
 	for (const testUrl of fallbackUrls) {
 		for (let attempt = 0; attempt <= maxRetries; attempt++) {
 			try {
 				const controller = new AbortController();
 				const timeoutId = setTimeout(() => controller.abort(), timeout);
 				
-				const response = await fetch(testUrl, {
-					method: 'HEAD', // 只检查头部，不下载全部内容
-					mode: 'no-cors', // 避免CORS问题
-					cache: 'force-cache',
+				// 使用 GET + no-cors，避免部分源拒绝 HEAD；发生 CORS 也不抛错
+				await fetch(testUrl, {
+					method: "GET",
+					mode: "no-cors",
+					cache: "force-cache",
 					signal: controller.signal,
 				});
-				
 				clearTimeout(timeoutId);
-				
-				// no-cors模式下response.ok可能为false，但只要没抛错就认为可用
 				return testUrl;
 			} catch (error) {
-				// 最后一次尝试失败才记录
-				if (attempt === maxRetries) {
-					console.debug(`Failed to load cover ${testUrl} after ${maxRetries + 1} attempts`);
-				}
-				
-				// 指数退避
+				lastError = error;
 				if (attempt < maxRetries) {
-					await new Promise(resolve => 
-						setTimeout(resolve, Math.min(1000 * Math.pow(2, attempt), 5000))
+					await new Promise((resolve) =>
+						setTimeout(resolve, Math.min(1000 * Math.pow(2, attempt), 5000)),
 					);
+				} else {
+					console.debug(`Failed to load cover ${testUrl} after ${maxRetries + 1} attempts`);
 				}
 			}
 		}
 	}
-	
-	// 所有尝试都失败，返回默认封面
-	console.warn(`All cover URLs failed for: ${url}, using default`);
-	return DEFAULT_COVER;
+
+	console.warn(`All cover URLs failed for: ${url}, fallback to original`, lastError);
+	// 返回原始 URL，让浏览器自行尝试加载；仅在空字符串时回退默认封面
+	return url || DEFAULT_COVER;
 }
 
 /**
