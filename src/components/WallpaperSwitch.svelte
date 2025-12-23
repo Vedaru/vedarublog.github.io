@@ -43,11 +43,12 @@ async function togglePanel() {
 <style>
 .current-theme-btn {
 	background-color: var(--primary);
-	color: white;
+	color: black;
 }
 
 .current-theme-btn:hover {
 	background-color: var(--primary) !important;
+	color: black;
 }
 
 /* 确保主题切换按钮的背景色即时更新 */
