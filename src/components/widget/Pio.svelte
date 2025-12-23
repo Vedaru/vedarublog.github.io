@@ -1,6 +1,6 @@
 <script>
 import { onDestroy, onMount } from "svelte";
-import { pioConfig } from "@/config";
+import { pioConfig } from "../../config";
 
 export let baseURL = "/";
 export let cdnBase = "";

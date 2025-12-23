@@ -3,12 +3,12 @@ import {
 	WALLPAPER_BANNER,
 	WALLPAPER_FULLSCREEN,
 	WALLPAPER_NONE,
-} from "@constants/constants";
-import I18nKey from "@i18n/i18nKey";
-import { i18n } from "@i18n/translation";
+} from "../constants/constants";
+import I18nKey from "../i18n/i18nKey";
+import { i18n } from "../i18n/translation";
 import Icon from "@iconify/svelte";
-import { getStoredWallpaperMode, setWallpaperMode } from "@utils/setting-utils";
-import type { WALLPAPER_MODE } from "@/types/config";
+import { getStoredWallpaperMode, setWallpaperMode } from "../utils/setting-utils";
+import type { WALLPAPER_MODE } from "../types/config";
 import { panelManager } from "../utils/panel-manager";
 
 const seq: WALLPAPER_MODE[] = [
