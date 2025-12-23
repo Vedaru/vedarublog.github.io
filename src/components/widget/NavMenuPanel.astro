@@ -138,7 +138,7 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
         (() => {
             try {
                 // 使用已暴露的全局 panelManager
-                const panelManager = (window as any).panelManager;
+                const panelManager = window['panelManager'];
                 if (!panelManager) {
                     console.warn('panelManager not initialized');
                     return;
@@ -194,9 +194,6 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
             submenu.addEventListener('click', function(e) {
                 e.stopPropagation();
             });
-            } catch (error) {
-                console.warn('Failed to initialize NavMenuPanel:', error);
-            }
-        })();
+        });
     });
 </script>

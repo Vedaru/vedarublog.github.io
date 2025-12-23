@@ -110,7 +110,7 @@ let links: NavBarLink[] = navBarConfig.links.map(
 async function loadButtonScript() {
     try {
         // 使用全局已暴露的 panelManager
-        const panelManager = (window as any).panelManager;
+        const panelManager = (window as Record<string, any>).panelManager;
         if (!panelManager) {
             console.warn('panelManager not initialized');
             return;
