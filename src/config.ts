@@ -591,7 +591,7 @@ export const sakuraConfig: SakuraConfig = {
 	speed: {
 		horizontal: {
 			min: -0.5, // 水平移动速度最小值
-			max: -0.7, // 水平移动速度最大值
+			max: 0.5, // 水平移动速度最大值
 		},
 		vertical: {
 			min: 1.0, // 垂直移动速度最小值
