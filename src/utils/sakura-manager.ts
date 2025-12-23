@@ -326,7 +326,11 @@ export class SakuraManager {
 		if (this.isRunning) {
 			this.stop();
 		} else {
+			// 临时启用配置以允许初始化
+			const originalEnable = this.config.enable;
+			this.config.enable = true;
 			this.init();
+			this.config.enable = originalEnable;
 		}
 	}
 

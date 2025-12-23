@@ -56,45 +56,30 @@ if (footerConfig.enable) {
     // 全局处理函数
     window.handleSakuraToggle = function() {
         console.log('=== 触发樱花切换 ===');
-        console.log('window.__toggleSakura 存在:', typeof window.__toggleSakura);
-        console.log('window.__getSakuraStatus 存在:', typeof window.__getSakuraStatus);
-        console.log('window.__initSakura 存在:', typeof window.__initSakura);
-        
-        // 确保樱花管理器已初始化
-        if (typeof window.__initSakura === 'function' && !window.__sakuraManagerCreated) {
-            console.log('首次点击，初始化樱花管理器...');
-            window.__initSakura();
-            window.__sakuraManagerCreated = true;
-        }
         
         if (typeof window.__toggleSakura === 'function') {
             try {
                 window.__toggleSakura();
-                const isRunning = typeof window.__getSakuraStatus === 'function' ? window.__getSakuraStatus() : false;
-                console.log('樱花状态已切换:', isRunning ? '开启' : '关闭');
                 
-                const trigger = document.getElementById('sakura-trigger');
-                if (trigger) {
-                    if (isRunning) {
-                        trigger.textContent = '再点一下试试';
-                    } else {
-                        trigger.textContent = '点击一下什么都不会发生吧';
+                // 等待状态更新
+                setTimeout(function() {
+                    const isRunning = typeof window.__getSakuraStatus === 'function' ? window.__getSakuraStatus() : false;
+                    console.log('樱花状态:', isRunning ? '开启' : '关闭');
+                    
+                    const trigger = document.getElementById('sakura-trigger');
+                    if (trigger) {
+                        if (isRunning) {
+                            trigger.textContent = '再点一下试试';
+                        } else {
+                            trigger.textContent = '点击一下什么都不会发生吧';
+                        }
                     }
-                }
+                }, 100);
             } catch (error) {
                 console.error('切换樱花时出错:', error);
             }
         } else {
-            console.error('樱花管理器未加载，等待初始化...');
-            // 延迟重试
-            setTimeout(function() {
-                if (typeof window.__toggleSakura === 'function') {
-                    console.log('重试成功');
-                    window.handleSakuraToggle();
-                } else {
-                    console.error('樱花管理器仍未加载');
-                }
-            }, 100);
+            console.error('樱花管理器未加载');
         }
     };
     console.log('全局樱花处理函数已注册');
@@ -104,20 +89,16 @@ if (footerConfig.enable) {
     import { toggleSakura, getSakuraStatus, initSakura } from '../utils/sakura-manager';
     import { sakuraConfig } from '../config';
 
+    // 阻止Layout.astro中的樱花初始化
+    (window as any).sakuraInitialized = true;
+    
     // 挂载到window对象
     (window as any).__toggleSakura = toggleSakura;
     (window as any).__getSakuraStatus = getSakuraStatus;
     
-    // 挂载初始化函数
-    (window as any).__initSakura = function() {
-        if (!(window as any).sakuraInitialized) {
-            // 使用enable:true来初始化管理器，这样toggle才能工作
-            const config = { ...sakuraConfig, enable: true };
-            initSakura(config);
-            (window as any).sakuraInitialized = true;
-            console.log('樱花管理器已完全初始化');
-        }
-    };
+    // 立即初始化樱花管理器（使用enable:false，这样toggle时才会启动）
+    const config = { ...sakuraConfig, enable: false };
+    initSakura(config);
     
-    console.log('樱花函数已挂载到window');
+    console.log('樱花管理器已初始化（待命状态）');
 </script>
