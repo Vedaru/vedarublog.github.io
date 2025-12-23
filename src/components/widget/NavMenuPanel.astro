@@ -138,7 +138,7 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
         (async () => {
             try {
                 // 通过打包后的模块加载（由 Astro/Vite 处理路径与哈希）
-                const { panelManager } = await import('../../utils/panel-manager');
+                const { panelManager } = await import('@/utils/panel-manager');
                 
                 // 绑定子菜单项点击事件
                 const submenuItems = document.querySelectorAll('[data-submenu-item]');

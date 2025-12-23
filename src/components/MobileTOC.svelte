@@ -4,7 +4,7 @@ import { onMount } from "svelte";
 import I18nKey from "../i18n/i18nKey";
 import { i18n } from "../i18n/translation";
 import { navigateToPage } from "../utils/navigation-utils";
-import { panelManager } from "../utils/panel-manager";
+import { panelManager } from "@/utils/panel-manager";
 
 let tocItems: Array<{
 	id: string;
