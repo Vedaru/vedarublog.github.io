@@ -202,16 +202,29 @@ export class SakuraManager {
 			return;
 		}
 
+		// 根据月份选择图片
+		const month = new Date().getMonth() + 1; // getMonth() 返回 0-11
+		let imageName = "sakura.png"; // 默认樱花
+		
+		if (month >= 3 && month <= 5) {
+			imageName = "sakura.png"; // 3-5月：樱花
+		} else if (month >= 9 && month <= 11) {
+			imageName = "mapleleaf.png"; // 9-11月：枫叶
+		} else if (month === 12 || month === 1 || month === 2) {
+			imageName = "snowflake.png"; // 12-2月：雪花
+		}
+
 		// 创建图片对象
 		this.img = new Image();
-		this.img.src = "/sakura.png"; // 使用樱花图片
+		this.img.src = `/${imageName}`;
+		console.log(`加载季节图片: ${imageName} (月份: ${month})`);
 
 		// 等待图片加载完成
 		await new Promise<void>((resolve, reject) => {
 			if (this.img) {
 				this.img.onload = () => resolve();
 				this.img.onerror = () =>
-					reject(new Error("Failed to load sakura image"));
+					reject(new Error(`Failed to load image: ${imageName}`));
 			}
 		});
 

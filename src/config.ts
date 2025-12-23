@@ -590,12 +590,12 @@ export const sakuraConfig: SakuraConfig = {
 	},
 	speed: {
 		horizontal: {
-			min: -1.1, // 水平移动速度最小值
-			max: -1.2, // 水平移动速度最大值
+			min: -0.5, // 水平移动速度最小值
+			max: -0.7, // 水平移动速度最大值
 		},
 		vertical: {
-			min: 1.5, // 垂直移动速度最小值
-			max: 1.7, // 垂直移动速度最大值
+			min: 1.0, // 垂直移动速度最小值
+			max: 1.3, // 垂直移动速度最大值
 		},
 		rotation: 0.03, // 旋转速度
 		fadeSpeed: 0.03, // 消失速度，不应大于最小不透明度
