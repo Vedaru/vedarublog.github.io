@@ -591,18 +591,28 @@ function normalizeCoverUrl(path: string): string {
 	return path;
 }
 
+function cacheCoverVariants(raw: string) {
+	try {
+		const normalized = getAssetPath(raw);
+		const base = (import.meta.env?.BASE_URL || "/").replace(/\/$/, "");
+		const stripped = normalized.startsWith(base)
+			? normalized.slice(base.length)
+			: normalized;
+		coverCache.set(raw, normalized);
+		coverCache.set(normalized, normalized);
+		coverCache.set(stripped, normalized);
+		persistCoverCache();
+	} catch (e) {
+		console.debug('cacheCoverVariants failed', e);
+	}
+}
+
 function loadSong(song: typeof currentSong) {
 	if (!song || !audio) return;
 	const normalizedCover = getAssetPath(song.cover);
 	currentSong = { ...song, cover: normalizedCover };
-	// 将当前封面写入缓存，确保歌单列表与迷你封面共享同一资源
-	try {
-		coverCache.set(song.cover, normalizedCover);
-		coverCache.set(normalizedCover, normalizedCover);
-		persistCoverCache();
-	} catch (e) {
-		console.debug('Failed to sync cover cache', e);
-	}
+	// 将当前封面写入缓存的多版本键，确保歌单列表与迷你封面共享同一资源
+	cacheCoverVariants(song.cover);
 	if (song.url) {
 		isLoading = true;
 		audio.pause();
@@ -1472,8 +1482,12 @@ onDestroy(() => {
 								on:error={(event) => {
 									const img = event.currentTarget as HTMLImageElement;
 									if (img.src.endsWith('/favicon/favicon.ico')) return;
-									const retried = img.dataset.retry === '1';
-									const cached = coverCache.get(song.cover) ?? coverCache.get(currentSong.cover);
+									const attempt = Number(img.dataset.attempt || '0');
+									const cached = coverCache.get(song.cover)
+										?? coverCache.get(currentSong.cover)
+										?? coverCache.get(getAssetPath(song.cover));
+									const fallbacks = [cached, song.cover, currentSong.cover]
+										.filter(Boolean) as string[];
 									try {
 										for (const [key, val] of coverCache.entries()) {
 											if (val === img.src || key === song.cover) coverCache.delete(key);
@@ -1481,10 +1495,10 @@ onDestroy(() => {
 										persistCoverCache();
 									} catch (e) {}
 
-									if (!retried) {
-										img.dataset.retry = '1';
-										// 优先使用缓存命中的封面，其次再试原始 URL
-										img.src = cached ?? song.cover;
+									const next = fallbacks[attempt];
+									if (next) {
+										img.dataset.attempt = String(attempt + 1);
+										img.src = next;
 										preloadSingleCover(song.cover, 8000, 2).catch(() => {});
 									} else {
 										img.src = '/favicon/favicon.ico';
@@ -1679,13 +1693,17 @@ onDestroy(() => {
     }
     .progress-section > div,
     .bottom-controls > div:nth-child(2) {
-        height: 12px;
+
+	:global(.playlist-content) {
     }
 }
 /* 自定义旋转动画，停止时保持当前位置 */
+		padding-right: 6px; /* 预留空间避免内容被遮挡 */
 @keyframes spin-continuous {
     from {
-        transform: rotate(0deg);
+		width: 0;
+		height: 0;
+		background: transparent;
     }
     to {
         transform: rotate(360deg);
