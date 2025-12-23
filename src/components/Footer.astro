@@ -48,13 +48,41 @@ if (footerConfig.enable) {
         Powered by
         <a class="transition link text-[var(--primary)] font-medium" target="_blank" href="https://astro.build">Astro</a> &
         <a class="transition link text-[var(--primary)] font-medium" target="_blank" href="https://github.com/matsuzaka-yuki/mizuki">Mizuki</a>&nbsp; Version <a class="transition link text-[var(--primary)] font-medium" target="_blank" href="https://github.com/matsuzaka-yuki/mizuki">7.6</a><br>
-        <a id="sakura-trigger" class="transition link text-[var(--primary)] font-medium cursor-pointer" style="user-select: none;" href="javascript:void(0);">点击一下什么都不会发生吧</a>
+        <a id="sakura-trigger" class="transition link text-[var(--primary)] font-medium cursor-pointer" style="user-select: none;" href="#" onclick="event.preventDefault(); window.handleSakuraToggle?.(); return false;">点击一下什么都不会发生吧</a>
     </div>
 </div>
+
+<script is:inline>
+    // 全局处理函数
+    window.handleSakuraToggle = function() {
+        console.log('触发樱花切换');
+        
+        if (typeof window.__toggleSakura === 'function') {
+            window.__toggleSakura();
+            const isRunning = typeof window.__getSakuraStatus === 'function' ? window.__getSakuraStatus() : false;
+            
+            const trigger = document.getElementById('sakura-trigger');
+            if (trigger) {
+                if (isRunning) {
+                    trigger.textContent = '再点一下试试';
+                } else {
+                    trigger.textContent = '点击一下什么都不会发生吧';
+                }
+            }
+            console.log('樱花状态已切换:', isRunning ? '开启' : '关闭');
+        } else {
+            console.error('樱花管理器未加载');
+        }
+    };
+</script>
 
 <script>
     import { toggleSakura, getSakuraStatus, initSakura } from '../utils/sakura-manager';
     import { sakuraConfig } from '../config';
+
+    // 挂载到window对象
+    (window as any).__toggleSakura = toggleSakura;
+    (window as any).__getSakuraStatus = getSakuraStatus;
 
     // 初始化樱花管理器（默认关闭状态）
     if (!(window as any).sakuraInitialized) {
@@ -63,58 +91,4 @@ if (footerConfig.enable) {
         (window as any).sakuraInitialized = true;
         console.log('樱花管理器已初始化（默认关闭）');
     }
-
-    function initSakuraTrigger() {
-        const trigger = document.getElementById('sakura-trigger');
-        if (!trigger) {
-            console.log('樱花触发器未找到');
-            return;
-        }
-        
-        console.log('樱花触发器已找到，绑定点击事件');
-
-        // 确保只绑定一次事件
-        if ((trigger as any).__sakuraListenerBound) {
-            console.log('事件已绑定，跳过');
-            return;
-        }
-
-        trigger.addEventListener('click', function() {
-            console.log('点击了樱花触发器');
-            try {
-                toggleSakura();
-                const isRunning = getSakuraStatus();
-                console.log('樱花状态:', isRunning ? '开启' : '关闭');
-                
-                if (isRunning) {
-                    trigger.textContent = '再点一下试试';
-                } else {
-                    trigger.textContent = '点击一下什么都不会发生吧';
-                }
-            } catch (error) {
-                console.error('切换樱花特效时出错:', error);
-            }
-        });
-
-        (trigger as any).__sakuraListenerBound = true;
-        console.log('事件绑定完成');
-    }
-
-    // 初始化
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initSakuraTrigger);
-    } else {
-        initSakuraTrigger();
-    }
-
-    // 支持 Swup 页面切换
-    document.addEventListener('swup:contentReplaced', function() {
-        console.log('页面切换，重新初始化');
-        // 重置标记以便重新绑定
-        const trigger = document.getElementById('sakura-trigger');
-        if (trigger) {
-            (trigger as any).__sakuraListenerBound = false;
-        }
-        initSakuraTrigger();
-    });
 </script>
