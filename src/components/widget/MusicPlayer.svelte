@@ -437,10 +437,10 @@ function togglePlay() {
 	}
 	
 	// 播放逻辑
-	// 确保音频上下文恢复，以启用增益节点
-	if (audioContext?.state === "suspended") {
-		audioContext.resume().catch(() => {});
-	}
+	// 由于禁用了 AudioContext，此处不需要恢复音频上下文
+	// if (audioContext?.state === "suspended") {
+	// 	audioContext.resume().catch(() => {});
+	// }
 	
 	// 确保取消静音并有合理音量
 	audio.muted = false;
@@ -513,7 +513,6 @@ function togglePlay() {
 		src: audio.src,
 		volume: audio.volume,
 		muted: audio.muted,
-		audioContextState: audioContext?.state,
 		readyState: audio.readyState,
 		networkState: audio.networkState,
 		currentSongUrl: currentSong.url
@@ -1173,34 +1172,11 @@ onMount(() => {
 	audioVolumeTarget = audioVolumeCurrent;
 	if (audio) audio.volume = audioVolumeCurrent;
 	
-	// 尝试创建 Web Audio 增益节点以提升最大音量
-	if (isBrowser && !audioContext && useAudioContext) {
-		try {
-			audioContext = new AudioContext();
-			// 在某些跨域源（无 CORS）下，createMediaElementSource 仍可创建节点但输出会被清零；
-			// 因此我们在 try/catch 中创建并在出错时回退到不使用 AudioContext。
-			audioSource = audioContext.createMediaElementSource(audio);
-			audioSource.connect(audioContext.destination);
-		} catch (e) {
-			// 如果创建或连接失败（可能是 CORS 或安全限制），回退到不使用 WebAudio
-			console.warn(
-				"AudioContext or MediaElementAudioSource init failed, falling back:",
-				e,
-			);
-			try {
-				if (audioSource) {
-					audioSource.disconnect();
-				}
-				if (gainNode) {
-					gainNode.disconnect();
-				}
-			} catch (ignore) {}
-			audioSource = null;
-			gainNode = null;
-			audioContext = null;
-			useAudioContext = false;
-		}
-	}
+	// 禁用 Web Audio API 以避免 CORS 问题
+	// Web Audio API 的 MediaElementAudioSource 在跨域音频源上会因 CORS 限制而输出零值（静音）
+	// 因此我们直接使用原生 Audio 元素，虽然无法使用增益节点提升音量，但至少能正常播放
+	useAudioContext = false;
+	console.debug("Audio context disabled to avoid CORS issues");
 	
 	handleAudioEvents();
 	
