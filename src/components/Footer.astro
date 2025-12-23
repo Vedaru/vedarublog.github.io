@@ -52,64 +52,69 @@ if (footerConfig.enable) {
     </div>
 </div>
 
-<script is:inline>
-    (function() {
-        function initSakuraTrigger() {
-            const trigger = document.getElementById('sakura-trigger');
-            if (!trigger) {
-                console.log('樱花触发器未找到');
-                return;
-            }
-            
-            console.log('樱花触发器已初始化');
-
-            // 移除旧的监听器
-            const newTrigger = trigger.cloneNode(true);
-            trigger.parentNode.replaceChild(newTrigger, trigger);
-
-            newTrigger.addEventListener('click', function() {
-                console.log('樱花触发器被点击');
-                
-                // 动态导入樱花管理器
-                if (typeof window.toggleSakura === 'function') {
-                    window.toggleSakura();
-                    const isRunning = typeof window.getSakuraStatus === 'function' ? window.getSakuraStatus() : false;
-                    
-                    if (isRunning) {
-                        newTrigger.textContent = '再点一下试试';
-                    } else {
-                        newTrigger.textContent = '点击一下什么都不会发生吧';
-                    }
-                } else {
-                    console.error('樱花管理器未加载');
-                }
-            });
-        }
-
-        // 初始化
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initSakuraTrigger);
-        } else {
-            initSakuraTrigger();
-        }
-
-        // 支持 Swup 页面切换
-        document.addEventListener('swup:contentReplaced', initSakuraTrigger);
-    })();
-</script>
-
 <script>
     import { toggleSakura, getSakuraStatus, initSakura } from '../utils/sakura-manager';
     import { sakuraConfig } from '../config';
-
-    // 将函数挂载到window对象供内联脚本使用
-    (window as any).toggleSakura = toggleSakura;
-    (window as any).getSakuraStatus = getSakuraStatus;
 
     // 初始化樱花管理器（默认关闭状态）
     if (!(window as any).sakuraInitialized) {
         const config = { ...sakuraConfig, enable: false };
         initSakura(config);
         (window as any).sakuraInitialized = true;
+        console.log('樱花管理器已初始化（默认关闭）');
     }
+
+    function initSakuraTrigger() {
+        const trigger = document.getElementById('sakura-trigger');
+        if (!trigger) {
+            console.log('樱花触发器未找到');
+            return;
+        }
+        
+        console.log('樱花触发器已找到，绑定点击事件');
+
+        // 确保只绑定一次事件
+        if ((trigger as any).__sakuraListenerBound) {
+            console.log('事件已绑定，跳过');
+            return;
+        }
+
+        trigger.addEventListener('click', function() {
+            console.log('点击了樱花触发器');
+            try {
+                toggleSakura();
+                const isRunning = getSakuraStatus();
+                console.log('樱花状态:', isRunning ? '开启' : '关闭');
+                
+                if (isRunning) {
+                    trigger.textContent = '再点一下试试';
+                } else {
+                    trigger.textContent = '点击一下什么都不会发生吧';
+                }
+            } catch (error) {
+                console.error('切换樱花特效时出错:', error);
+            }
+        });
+
+        (trigger as any).__sakuraListenerBound = true;
+        console.log('事件绑定完成');
+    }
+
+    // 初始化
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initSakuraTrigger);
+    } else {
+        initSakuraTrigger();
+    }
+
+    // 支持 Swup 页面切换
+    document.addEventListener('swup:contentReplaced', function() {
+        console.log('页面切换，重新初始化');
+        // 重置标记以便重新绑定
+        const trigger = document.getElementById('sakura-trigger');
+        if (trigger) {
+            (trigger as any).__sakuraListenerBound = false;
+        }
+        initSakuraTrigger();
+    });
 </script>
