@@ -134,11 +134,15 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
     document.addEventListener('DOMContentLoaded', function() {
         const mobileDropdowns = document.querySelectorAll('[data-mobile-dropdown]');
         
-        // 导入 panelManager
-        (async () => {
+        // 使用全局 panelManager
+        (() => {
             try {
-                // 通过打包后的模块加载（由 Astro/Vite 处理路径与哈希）
-                const { panelManager } = await import('@/utils/panel-manager');
+                // 使用已暴露的全局 panelManager
+                const panelManager = (window as any).panelManager;
+                if (!panelManager) {
+                    console.warn('panelManager not initialized');
+                    return;
+                }
                 
                 // 绑定子菜单项点击事件
                 const submenuItems = document.querySelectorAll('[data-submenu-item]');
@@ -190,6 +194,9 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
             submenu.addEventListener('click', function(e) {
                 e.stopPropagation();
             });
-        });
+            } catch (error) {
+                console.warn('Failed to initialize NavMenuPanel:', error);
+            }
+        })();
     });
 </script>

@@ -109,13 +109,11 @@ let links: NavBarLink[] = navBarConfig.links.map(
 
 async function loadButtonScript() {
     try {
-        // 优先使用全局已暴露的 panelManager，避免动态导入导致的 404
-        let panelManager;
-        try { panelManager = (window as any).panelManager; } catch (e) { panelManager = undefined; }
+        // 使用全局已暴露的 panelManager
+        const panelManager = (window as any).panelManager;
         if (!panelManager) {
-            // 如果未暴露，再通过动态导入加载（保留兼容性）
-            const mod = await import('@/utils/panel-manager');
-            panelManager = mod.panelManager;
+            console.warn('panelManager not initialized');
+            return;
         }
         
         let settingBtn = document.getElementById("display-settings-switch");
