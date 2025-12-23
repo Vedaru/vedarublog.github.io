@@ -6,7 +6,7 @@ import { navigateToPage } from "@utils/navigation-utils";
 import { url } from "@utils/url-utils";
 import { onMount } from "svelte";
 import type { SearchResult } from "@/global";
-import { panelManager } from "@/utils/panel-manager";
+import { panelManager } from "../utils/panel-manager";
 
 let keywordDesktop = "";
 let keywordMobile = "";
