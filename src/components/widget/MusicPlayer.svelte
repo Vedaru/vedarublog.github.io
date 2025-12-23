@@ -593,7 +593,16 @@ function normalizeCoverUrl(path: string): string {
 
 function loadSong(song: typeof currentSong) {
 	if (!song || !audio) return;
-	currentSong = { ...song, cover: getAssetPath(song.cover) };
+	const normalizedCover = getAssetPath(song.cover);
+	currentSong = { ...song, cover: normalizedCover };
+	// 将当前封面写入缓存，确保歌单列表与迷你封面共享同一资源
+	try {
+		coverCache.set(song.cover, normalizedCover);
+		coverCache.set(normalizedCover, normalizedCover);
+		persistCoverCache();
+	} catch (e) {
+		console.debug('Failed to sync cover cache', e);
+	}
 	if (song.url) {
 		isLoading = true;
 		audio.pause();
@@ -1464,20 +1473,22 @@ onDestroy(() => {
 									const img = event.currentTarget as HTMLImageElement;
 									if (img.src.endsWith('/favicon/favicon.ico')) return;
 									const retried = img.dataset.retry === '1';
+									const cached = coverCache.get(song.cover) ?? coverCache.get(currentSong.cover);
 									try {
 										for (const [key, val] of coverCache.entries()) {
 											if (val === img.src || key === song.cover) coverCache.delete(key);
 										}
 										persistCoverCache();
 									} catch (e) {}
+
 									if (!retried) {
 										img.dataset.retry = '1';
-										img.src = song.cover;
+										// 优先使用缓存命中的封面，其次再试原始 URL
+										img.src = cached ?? song.cover;
+										preloadSingleCover(song.cover, 8000, 2).catch(() => {});
 									} else {
 										img.src = '/favicon/favicon.ico';
 									}
-									// 触发后台重试以便尽快补全缓存
-									preloadSingleCover(song.cover, 8000, 2).catch(() => {});
 								}} />
                         </div>
                         <div class="flex-1 min-w-0">
@@ -1630,12 +1641,12 @@ onDestroy(() => {
     }
     .controls button:nth-child(3) {
         width: 40px;
-	.playlist-content {
+	:global(.playlist-content) {
 		/* 隐藏滚动条，仅保留滚动功能 */
 		-ms-overflow-style: none; /* IE/Edge */
 		scrollbar-width: none; /* Firefox */
 	}
-	.playlist-content::-webkit-scrollbar {
+	:global(.playlist-content::-webkit-scrollbar) {
 		display: none; /* Chrome/Safari */
 	}
         height: 40px;
