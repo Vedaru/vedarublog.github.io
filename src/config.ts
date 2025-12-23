@@ -388,7 +388,7 @@ export const announcementConfig: AnnouncementConfig = {
 
 export const musicPlayerConfig: MusicPlayerConfig = {
 	enable: true, // 启用音乐播放器功能
-	mode: "local", // 音乐播放器模式，可选 "local" 或 "meting"
+	mode: "meting", // 音乐播放器模式，可选 "local" 或 "meting"
 	// 使用官方及第三方 Meting API 镜像源，自动轮询切换确保可用性
 	// 优先级（从高到低）:
 	//   1. https://api.i-meto.com/meting/api (官方演示，有时由于用的人多会慢)
@@ -397,7 +397,7 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 	//   4. https://api.injahow.cn/meting/?server=:server&type=:type&id=:id&auth=:auth&r=:r (加速镜像)
 	// 当前默认：官方演示源 api.i-meto.com
 	meting_api:
-		"https://api.injahow.cn/meting/?server=:server&type=:type&id=:id&auth=:auth&r=:r", // Meting API 地址（官方演示源）
+		"https://meting.qjqq.cn/meting/?server=:server&type=:type&id=:id&auth=:auth&r=:r", // Meting API 地址（官方演示源）
 	id: "17514570572", // 歌单ID（建议控制在50首以内以加快加载）
 	server: "netease", // 音乐源服务器。有的meting的api源支持更多平台,一般来说,netease=网易云音乐, tencent=QQ音乐, kugou=酷狗音乐, xiami=虾米音乐, baidu=百度音乐
 	type: "playlist", // 播单类型
