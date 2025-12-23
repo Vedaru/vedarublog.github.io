@@ -1450,7 +1450,7 @@ onDestroy(() => {
                     <Icon icon="material-symbols:close" class="text-lg" />
                 </button>
             </div>
-            <div class="playlist-content overflow-y-auto max-h-80">
+            <div class="playlist-content overflow-y-auto max-h-80" style="scrollbar-width: none; -ms-overflow-style: none;">
                 {#each playlist as song, index}
                     <div class="playlist-item flex items-center gap-3 p-3 hover:bg-[var(--btn-plain-bg-hover)] cursor-pointer transition-colors"
                          class:bg-[var(--btn-plain-bg)]={index === currentIndex}
@@ -1717,13 +1717,24 @@ button.bg-\[var\(--primary\)\] {
     border: none;
 }
 
-/* 隐藏歌单列表滚动条 */
+/* 隐藏歌单列表滚动条 - 强制覆盖 */
+.playlist-content {
+	-ms-overflow-style: none !important; /* IE/Edge */
+	scrollbar-width: none !important; /* Firefox */
+}
+.playlist-content::-webkit-scrollbar {
+	display: none !important; /* Chrome/Safari */
+	width: 0 !important;
+	height: 0 !important;
+}
 :global(.playlist-content) {
-	-ms-overflow-style: none; /* IE/Edge */
-	scrollbar-width: none; /* Firefox */
+	-ms-overflow-style: none !important;
+	scrollbar-width: none !important;
 }
 :global(.playlist-content::-webkit-scrollbar) {
-	display: none; /* Chrome/Safari */
+	display: none !important;
+	width: 0 !important;
+	height: 0 !important;
 }
 </style>
 {/if}
