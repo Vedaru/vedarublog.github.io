@@ -46,10 +46,8 @@ async function togglePanel() {
 	color: white;
 }
 
-/* 覆盖已选择按钮的hover效果，取消阴影但保留点击动画 */
 .current-theme-btn:hover {
-	background-color: var(--primary);
-	box-shadow: none !important;
+	background-color: var(--primary) !important;
 }
 
 /* 确保主题切换按钮的背景色即时更新 */
