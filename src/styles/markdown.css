@@ -28,8 +28,15 @@
         &:hover, &:active {
             @apply decoration-transparent;
             background: var(--btn-plain-bg-hover);
-            border-bottom: 1px dashed var(--link-hover);
             text-decoration: none;
+            /* 全局圆角矩形阴影样式 */
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+            padding: 0.1rem 0.3rem;
+            border-bottom: none !important;
+            /* 跨行保持块状与圆角 */
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
         }
     }
 
