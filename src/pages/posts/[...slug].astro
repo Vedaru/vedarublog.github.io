@@ -279,6 +279,7 @@ const jsonLd = {
                 <script is:inline>
                     function runtime() {
                         const lastModifiedElement = document.getElementById('last-modified');
+                        if (!lastModifiedElement) return;
                         const startDate = new Date(lastModifiedElement.dataset.lastModified);
                         const currentDate = new Date();
                         const diff = currentDate - startDate;
@@ -324,7 +325,10 @@ const jsonLd = {
                             runtimeString += `${secs} ${secondKey}`;
                         }
 
-                        document.getElementById("modifiedtime").innerHTML = runtimeString;
+                        const modifiedtimeElement = document.getElementById("modifiedtime");
+                        if (modifiedtimeElement) {
+                            modifiedtimeElement.innerHTML = runtimeString;
+                        }
                     }
                     setInterval(runtime, 1000);
                 </script>
