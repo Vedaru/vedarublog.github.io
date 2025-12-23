@@ -1693,8 +1693,7 @@ onDestroy(() => {
     }
     .progress-section > div,
     .bottom-controls > div:nth-child(2) {
-
-	:global(.playlist-content) {
+        /* 触摸设备优化 */
     }
 }
 /* 自定义旋转动画，停止时保持当前位置 */
