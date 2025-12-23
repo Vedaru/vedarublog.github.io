@@ -239,8 +239,9 @@ async function preloadSingleCover(coverUrl: string, timeout = 5000, maxRetries =
 async function preloadCurrentAndNextCovers() {
 	try {
 		const toPreload: Promise<void>[] = [];
-		const candidates = [0,1,2,3,4]
-			.map((offset, i) => ({ idx: (currentIndex + offset) % playlist.length, timeout: 5000 + i * 2000 }))
+		// 优化：只预加载当前和下一首，减少初始加载时间
+		const candidates = [0, 1]
+			.map((offset, i) => ({ idx: (currentIndex + offset) % playlist.length, timeout: 3000 + i * 1000 }))
 			.filter((x, i, arr) => arr.findIndex(y => y.idx === x.idx) === i);
 		for (const c of candidates) {
 			if (playlist[c.idx]?.cover) {
@@ -1655,14 +1656,6 @@ onDestroy(() => {
     }
     .controls button:nth-child(3) {
         width: 40px;
-	:global(.playlist-content) {
-		/* 隐藏滚动条，仅保留滚动功能 */
-		-ms-overflow-style: none; /* IE/Edge */
-		scrollbar-width: none; /* Firefox */
-	}
-	:global(.playlist-content::-webkit-scrollbar) {
-		display: none; /* Chrome/Safari */
-	}
         height: 40px;
     }
     .playlist-item {
@@ -1722,6 +1715,15 @@ onDestroy(() => {
 button.bg-\[var\(--primary\)\] {
     box-shadow: 0 0 0 2px var(--primary);
     border: none;
+}
+
+/* 隐藏歌单列表滚动条 */
+:global(.playlist-content) {
+	-ms-overflow-style: none; /* IE/Edge */
+	scrollbar-width: none; /* Firefox */
+}
+:global(.playlist-content::-webkit-scrollbar) {
+	display: none; /* Chrome/Safari */
 }
 </style>
 {/if}
