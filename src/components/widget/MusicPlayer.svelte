@@ -377,57 +377,166 @@ async function fetchMetingPlaylist() {
 	}
 }
 
+// 确保播放器已经正确初始化
+function ensurePlayerReady(): boolean {
+	if (!audio) {
+		console.warn("Audio element not initialized");
+		return false;
+	}
+	
+	// 检查播放列表是否已加载
+	if (playlist.length === 0) {
+		console.debug("Playlist is empty, attempting to load");
+		if (mode === "meting") {
+			ensureMetingLoaded();
+			return false;
+		}
+	}
+	
+	// 检查当前歌曲是否已加载
+	if (!currentSong.url && playlist.length > 0) {
+		console.debug("Current song not loaded, loading first song");
+		loadSong(playlist[0]);
+		return false;
+	}
+	
+	// 检查音频源是否设置
+	if (!audio.src && currentSong.url) {
+		console.debug("Audio src not set, reloading current song");
+		loadSong(currentSong);
+		return false;
+	}
+	
+	return true;
+}
+
 function togglePlay() {
-	if (!audio || !currentSong.url) {
-		console.warn("Audio not ready or no song URL");
+	// 首先确保播放器已初始化
+	if (!ensurePlayerReady()) {
+		console.debug("Player not ready, waiting for initialization");
+		// 如果播放器未就绪，等待一段时间后重试
+		setTimeout(() => {
+			if (ensurePlayerReady() && audio) {
+				// 重新触发播放
+				togglePlay();
+			} else {
+				showErrorMessage("播放器初始化中，请稍后再试");
+			}
+		}, 500);
 		return;
 	}
+	
+	if (!audio) {
+		console.warn("Audio element not initialized");
+		return;
+	}
+	
 	if (isPlaying) {
 		audio.pause();
-	} else {
-		// 确保音频上下文恢复，以启用增益节点
-		if (audioContext?.state === "suspended") {
-			audioContext.resume().catch(() => {});
+		return;
+	}
+	
+	// 播放逻辑
+	// 确保音频上下文恢复，以启用增益节点
+	if (audioContext?.state === "suspended") {
+		audioContext.resume().catch(() => {});
+	}
+	
+	// 确保取消静音并有合理音量
+	audio.muted = false;
+	if (!Number.isFinite(audio.volume) || audio.volume === 0) {
+		audio.volume = Math.max(0.01, audioVolumeCurrent || 0.3);
+	}
+	
+	// 如果音频未加载或没有歌曲URL，尝试加载当前歌曲
+	if (!audio.src || !currentSong.url || audio.readyState === 0) {
+		console.debug("Audio source not ready, loading...");
+		
+		// 如果播放列表为空，尝试确保加载
+		if (playlist.length === 0) {
+			console.debug("Playlist empty, attempting to load...");
+			if (mode === "meting") {
+				ensureMetingLoaded();
+				// 等待一小段时间让播放列表加载
+				setTimeout(() => {
+					if (playlist.length > 0 && audio) {
+						loadSong(playlist[0]);
+						audio.play().catch((err) => {
+							console.error("Audio play failed:", err);
+							showErrorMessage("播放失败，请重试");
+						});
+					}
+				}, 500);
+				return;
+			}
 		}
-		// 调试信息：输出当前音频状态，便于排查无声问题
-		console.debug("Audio play request", {
-			src: audio.src,
-			volume: audio.volume,
-			muted: audio.muted,
-			audioContextState: audioContext?.state,
-			gain: gainNode?.gain?.value,
-			readyState: audio.readyState,
-			networkState: audio.networkState,
-		});
-
-		// 如果音频还没有加载，重新加载
-		if (!audio.src || audio.readyState === 0) {
-			console.debug("Audio source not set, reloading...");
+		
+		// 如果有当前歌曲但未加载，加载它
+		if (currentSong.url) {
 			loadSong(currentSong);
 			// 等待加载完成后播放
-			audio.addEventListener("canplay", () => {
-				audio.play().catch((err) => {
-					console.error("Audio play failed after reload:", err);
-					showErrorMessage(
-						"播放被阻止或音频资源不可用，请检查浏览器控制台与网络请求",
-					);
-				});
-			}, { once: true });
-			return;
+			const playWhenReady = () => {
+				if (audio.readyState >= 2) {
+					audio.play().catch((err) => {
+						console.error("Audio play failed after reload:", err);
+						showErrorMessage("播放失败，请重试");
+					});
+				} else {
+					audio.addEventListener("canplay", () => {
+						audio.play().catch((err) => {
+							console.error("Audio play failed:", err);
+							showErrorMessage("播放失败，请重试");
+						});
+					}, { once: true });
+				}
+			};
+			playWhenReady();
+		} else if (playlist.length > 0) {
+			// 如果当前歌曲无URL但播放列表有歌曲，加载第一首
+			loadSong(playlist[0]);
+			setTimeout(() => {
+				if (audio && audio.readyState >= 2) {
+					audio.play().catch((err) => {
+						console.error("Audio play failed:", err);
+						showErrorMessage("播放失败，请重试");
+					});
+				}
+			}, 200);
+		} else {
+			showErrorMessage("播放列表为空，请稍候");
 		}
-
-		// 确保取消静音并有合理音量后播放
-		audio.muted = false;
-		if (!Number.isFinite(audio.volume) || audio.volume === 0) {
-			audio.volume = Math.max(0.01, audioVolumeCurrent || 0.3);
-		}
-		audio.play().catch((err) => {
-			console.error("Audio play failed:", err);
-			showErrorMessage(
-				"播放被阻止或音频资源不可用，请检查浏览器控制台与网络请求",
-			);
-		});
+		return;
 	}
+	
+	// 调试信息：输出当前音频状态
+	console.debug("Audio play request", {
+		src: audio.src,
+		volume: audio.volume,
+		muted: audio.muted,
+		audioContextState: audioContext?.state,
+		readyState: audio.readyState,
+		networkState: audio.networkState,
+		currentSongUrl: currentSong.url
+	});
+	
+	// 直接播放
+	audio.play().catch((err) => {
+		console.error("Audio play failed:", err);
+		// 如果播放失败，尝试重新加载
+		if (err.name === 'NotAllowedError') {
+			showErrorMessage("播放被浏览器阻止，请先点击页面任意位置");
+		} else if (err.name === 'NotSupportedError') {
+			showErrorMessage("音频格式不支持或资源不可用");
+			// 尝试重新加载
+			setTimeout(() => {
+				if (audio && currentSong.url) {
+					loadSong(currentSong);
+				}
+			}, 100);
+		} else {
+			showErrorMessage("播放失败，请重试");
+		}
+	});
 }
 
 function toggleExpanded() {
@@ -522,7 +631,15 @@ function playSong(index: number) {
 	if (index < 0 || index >= playlist.length) return;
 	const wasPlaying = isPlaying;
 	currentIndex = index;
-	if (audio) audio.pause();
+	
+	if (audio) {
+		try {
+			audio.pause();
+		} catch (e) {
+			console.debug("Pause failed in playSong:", e);
+		}
+	}
+	
 	loadSong(playlist[currentIndex]);
 	
 	// 预加载当前歌曲及后续歌曲的封面
@@ -544,21 +661,43 @@ function playSong(index: number) {
 		prefetchedForIndex = maybeNext;
 		prefetchNext();
 	}
+	
+	// 如果之前在播放或用户期望播放，等待音频准备就绪后播放
 	if (wasPlaying || !isPlaying) {
 		setTimeout(() => {
 			if (!audio) return;
+			
+			const attemptPlay = () => {
+				audio.play().catch((err) => {
+					console.warn("Play failed after song change:", err);
+					// 如果播放失败，尝试再次加载
+					if (err.name === 'NotSupportedError' || err.name === 'AbortError') {
+						setTimeout(() => {
+							if (audio && audio.readyState < 2) {
+								console.debug("Reloading audio after play failure");
+								audio.load();
+								audio.addEventListener("canplay", () => {
+									audio.play().catch(() => {});
+								}, { once: true });
+							}
+						}, 200);
+					}
+				});
+			};
+			
 			if (audio.readyState >= 2) {
-				audio.play().catch(() => {});
+				attemptPlay();
 			} else {
-				audio.addEventListener(
-					"canplay",
-					() => {
-						audio.play().catch(() => {});
-					},
-					{ once: true },
-				);
+				audio.addEventListener("canplay", attemptPlay, { once: true });
+				// 如果 3 秒后还没有触发 canplay，强制尝试播放
+				setTimeout(() => {
+					if (audio && audio.readyState < 2) {
+						console.debug("Forcing play attempt after timeout");
+						attemptPlay();
+					}
+				}, 3000);
 			}
-		}, 100);
+		}, 150);
 	}
 }
 
@@ -609,36 +748,64 @@ function cacheCoverVariants(raw: string) {
 }
 
 function loadSong(song: typeof currentSong) {
-	if (!song || !audio) return;
+	if (!song || !audio) {
+		console.warn("Cannot load song: missing song data or audio element");
+		return;
+	}
+	
 	const normalizedCover = getAssetPath(song.cover);
 	currentSong = { ...song, cover: normalizedCover };
+	
 	// 将当前封面写入缓存的多版本键，确保歌单列表与迷你封面共享同一资源
 	cacheCoverVariants(song.cover);
-	if (song.url) {
-		isLoading = true;
+	
+	if (!song.url) {
+		console.warn("Song has no URL:", song);
+		isLoading = false;
+		return;
+	}
+	
+	isLoading = true;
+	
+	// 暂停当前播放
+	try {
 		audio.pause();
-		audio.currentTime = 0;
-		currentTime = 0;
-		duration = song.duration ?? 0;
-		audio.removeEventListener("loadeddata", handleLoadSuccess);
-		audio.removeEventListener("error", handleLoadError);
-		audio.removeEventListener("loadstart", handleLoadStart);
-		audio.addEventListener("loadeddata", handleLoadSuccess, { once: true });
-		audio.addEventListener("error", handleLoadError, { once: true });
-		audio.addEventListener("loadstart", handleLoadStart, { once: true });
+	} catch (e) {
+		console.debug("Pause failed:", e);
+	}
+	
+	audio.currentTime = 0;
+	currentTime = 0;
+	duration = song.duration ?? 0;
+	
+	// 清理旧的事件监听器
+	audio.removeEventListener("loadeddata", handleLoadSuccess);
+	audio.removeEventListener("error", handleLoadError);
+	audio.removeEventListener("loadstart", handleLoadStart);
+	
+	// 添加新的事件监听器
+	audio.addEventListener("loadeddata", handleLoadSuccess, { once: true });
+	audio.addEventListener("error", handleLoadError, { once: true });
+	audio.addEventListener("loadstart", handleLoadStart, { once: true });
 
-		const audioUrl = getAssetPath(song.url);
-		console.debug("Loading audio:", audioUrl);
-		audio.src = audioUrl;
-		audio.load();
+	const audioUrl = getAssetPath(song.url);
+	console.debug("Loading audio:", audioUrl, "readyState:", audio.readyState);
+	
+	// 设置音频源并加载
+	audio.src = audioUrl;
+	audio.load();
 
-		// 确保音频元素准备好后可以播放
+	// 确保音频元素准备好后可以播放
+	// 使用 setTimeout 确保在下一个事件循环中检查
+	setTimeout(() => {
 		if (audio.readyState >= 2) {
 			handleLoadSuccess();
+		} else if (audio.readyState === 0) {
+			// 如果仍然是 HAVE_NOTHING 状态，可能需要重新加载
+			console.debug("Audio still not loaded, attempting reload");
+			audio.load();
 		}
-	} else {
-		isLoading = false;
-	}
+	}, 100);
 }
 
 function handleLoadSuccess() {
@@ -993,15 +1160,19 @@ onMount(() => {
 	restoreCoverCache();
 
 	audio = new Audio();
-	// 为跨域音频尝试启用匿名请求，必须在设置 src 之前设置
-	audio.crossOrigin = "anonymous";
-	// 更激进：首屏不加载音频数据，进入视口或交互后再拉取
-	audio.preload = "none";
+	// 关键修复：仅在确定音源支持CORS时才设置crossOrigin
+	// 默认情况下不设置，避免CORS错误阻止播放
+	// audio.crossOrigin = "anonymous"; // 注释掉，改为按需设置
+	
+	// 修改预加载策略：使用 metadata 而非 none，确保基本信息可用
+	audio.preload = "metadata";
+	
 	// 初始化平滑音量当前/目标值（使用灵敏度压缩以使初始低音量更平滑）
 	const initAdjusted = applySensitivity(volume, SENSITIVITY_GAMMA);
 	audioVolumeCurrent = getLogVolume(initAdjusted);
 	audioVolumeTarget = audioVolumeCurrent;
 	if (audio) audio.volume = audioVolumeCurrent;
+	
 	// 尝试创建 Web Audio 增益节点以提升最大音量
 	if (isBrowser && !audioContext && useAudioContext) {
 		try {
@@ -1030,10 +1201,13 @@ onMount(() => {
 			useAudioContext = false;
 		}
 	}
+	
 	handleAudioEvents();
+	
 	if (!musicPlayerConfig.enable) {
 		return;
 	}
+	
 	// 视口可见后再加载 Meting 歌单
 	if (isBrowser && mode === "meting") {
 		io = new IntersectionObserver((entries) => {
@@ -1045,9 +1219,16 @@ onMount(() => {
 		if (rootEl) io.observe(rootEl);
 
 		// 任意一次用户交互也触发加载
-		const trigger = () => ensureMetingLoaded();
+		const trigger = () => {
+			ensureMetingLoaded();
+		};
 		window.addEventListener("click", trigger, { once: true, capture: true });
 		window.addEventListener("keydown", trigger, { once: true, capture: true });
+		
+		// 刷新后立即尝试加载，不等待交互
+		setTimeout(() => {
+			ensureMetingLoaded();
+		}, 100);
 	}
 	else {
 		// 本地歌单：立即加载（成本低），但不预加载所有资源
@@ -1064,10 +1245,11 @@ onMount(() => {
 			loadSong(playlist[0]);
 			// 确保音频元素有正确的初始状态
 			setTimeout(() => {
-				if (audio && !audio.src) {
+				if (audio && (!audio.src || audio.readyState === 0)) {
+					console.debug("Ensuring audio is loaded on mount");
 					loadSong(playlist[0]);
 				}
-			}, 100);
+			}, 200);
 			// 立即预加载当前+后续歌曲的封面，不等待空闲时刻
 			preloadCurrentAndNextCovers().catch(() => {});
 		} else {
