@@ -10,6 +10,18 @@ import { musicPlayerConfig } from "../../config";
 // 导入国际化相关的 Key 和 i18n 实例
 import Key from "../../i18n/i18nKey";
 import { i18n } from "../../i18n/translation";
+// 导入音乐加载优化工具函数
+import {
+	loadImageWithRetry,
+	preloadImage,
+	batchPreloadCovers,
+	processSongData,
+	fetchMetingAPI,
+	getFallbackCovers,
+	DEFAULT_COVER as UTILS_DEFAULT_COVER,
+	type SongData,
+	type ProcessedSong,
+} from "../../utils/music-loader-utils";
 
 // 音乐播放器模式，可选 "local" 或 "meting"，从本地配置中获取或使用默认值 "meting"
 let mode = musicPlayerConfig.mode ?? "meting";
@@ -100,12 +112,13 @@ let currentSong = {
 };
 
 type Song = {
-	id: number;
+	id: string | number;
 	title: string;
 	artist: string;
 	cover: string;
 	url: string;
 	duration: number;
+	coverLoaded?: boolean;
 };
 
 // 封面加载缓存和状态
@@ -157,8 +170,8 @@ function persistCoverCache() {
 
 async function sleep(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
 
-// 增强版：带重试与指数回退的封面预加载
-async function preloadSingleCover(coverUrl: string, timeout = 8000, maxRetries = 2): Promise<void> {
+// 增强版：带重试与指数回退的封面预加载（使用新的工具函数）
+async function preloadSingleCover(coverUrl: string, timeout = 5000, maxRetries = 2): Promise<void> {
 	if (!coverUrl || coverCache.has(coverUrl) || loadingCovers.has(coverUrl)) return;
 
 	// 对于本地路径（不是 http/https），直接设为缓存（不需要 fetch）
@@ -170,52 +183,45 @@ async function preloadSingleCover(coverUrl: string, timeout = 8000, maxRetries =
 
 	loadingCovers.add(coverUrl);
 	try {
-		let attempt = 0;
-		let lastError: any = null;
-		while (attempt <= maxRetries) {
-			const controller = new AbortController();
-			const timeoutId = setTimeout(() => controller.abort(), timeout + attempt * 2000);
+		// 使用优化的图片加载函数，自动处理备用源和重试
+		const loadedUrl = await loadImageWithRetry(coverUrl, timeout, maxRetries);
+		
+		if (loadedUrl && loadedUrl !== UTILS_DEFAULT_COVER) {
+			// 成功加载，尝试转换为blob以提高性能
 			try {
-				// 尝试以 cors 模式获取图片，这样可以在支持 CORS 的情况下将图片转为 blob；若失败则回退
-				const res = await fetch(coverUrl, { signal: controller.signal, cache: 'force-cache', mode: 'cors' });
+				const controller = new AbortController();
+				const timeoutId = setTimeout(() => controller.abort(), timeout);
+				const res = await fetch(loadedUrl, { 
+					signal: controller.signal, 
+					cache: 'force-cache', 
+					mode: 'no-cors' // 避免CORS问题
+				});
 				clearTimeout(timeoutId);
+				
 				if (res && res.ok) {
-					try {
-						const blob = await res.blob();
-						const objectUrl = URL.createObjectURL(blob);
-						coverCache.set(coverUrl, objectUrl);
-						persistCoverCache();
-						return;
-					} catch (e) {
-						lastError = e;
-						// 如果读取 blob 失败，继续重试
-					}
+					const blob = await res.blob();
+					const objectUrl = URL.createObjectURL(blob);
+					coverCache.set(coverUrl, objectUrl);
 				} else {
-					lastError = new Error(`HTTP ${res?.status}`);
+					// 无法转blob，直接使用URL
+					coverCache.set(coverUrl, loadedUrl);
 				}
 			} catch (e) {
-				lastError = e;
-			} finally {
-				try { clearTimeout(timeoutId); } catch {}
+				// Blob转换失败，直接使用URL
+				coverCache.set(coverUrl, loadedUrl);
+				console.debug('Failed to convert cover to blob, using URL directly:', e);
 			}
-
-			// 重试等待：指数回退并带一点抖动
-			attempt++;
-			const backoff = Math.min(2000 * Math.pow(2, attempt), 8000) + Math.floor(Math.random() * 300);
-			await sleep(backoff);
+		} else {
+			// 加载失败，使用默认封面
+			coverCache.set(coverUrl, DEFAULT_COVER);
 		}
-
-		// 所有尝试失败：降级为直接使用原始 URL 交给浏览器渲染，同时安排后台重试以便后续修复
-		coverCache.set(coverUrl, coverUrl);
+		
 		persistCoverCache();
-
-		// 安排一次后台重试（延迟更长）以利用 CDN/网络短暂故障恢复
-		setTimeout(() => {
-			// 不等待此 promise
-			preloadSingleCover(coverUrl, timeout, Math.max(1, Math.floor(maxRetries / 2))).catch(() => {});
-		}, 5000 + Math.floor(Math.random() * 5000));
-
-		console.debug(`preloadSingleCover failed after retries for ${coverUrl}`, lastError);
+	} catch (error) {
+		// 最终失败，使用默认封面
+		coverCache.set(coverUrl, DEFAULT_COVER);
+		persistCoverCache();
+		console.warn(`Failed to preload cover ${coverUrl}, using default`, error);
 	} finally {
 		loadingCovers.delete(coverUrl);
 	}
@@ -303,94 +309,58 @@ const localPlaylist = [
 	},
 ];
 
-async function fetchMetingPlaylist(retryCount = 0) {
+async function fetchMetingPlaylist() {
 	if (!meting_api || !meting_id) return;
 	isLoading = true;
+	
 	const apiUrl = meting_api
 		.replace(":server", meting_server)
 		.replace(":type", meting_type)
 		.replace(":id", meting_id)
 		.replace(":auth", "")
 		.replace(":r", Date.now().toString());
+	
 	try {
-		const controller = new AbortController();
-		// 增加超时时间：首次 15 秒，重试时递增
-		const timeout = 15000 + (retryCount * 5000);
-		const timeoutId = setTimeout(() => controller.abort(), timeout);
+		// 使用优化的API调用函数，自动处理超时和重试
+		const list = await fetchMetingAPI(apiUrl, 10000, 3);
 		
-		const res = await fetch(apiUrl, { 
-			signal: controller.signal,
-			cache: "default", // 允许浏览器缓存
-			headers: {
-				'Accept': 'application/json',
-				'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-			}
-		});
-		clearTimeout(timeoutId);
-		
-		if (!res.ok) throw new Error(`meting api error: ${res.status}`);
-		const list = await res.json();
-		
-		if (!Array.isArray(list) || list.length === 0) {
-			throw new Error("歌单为空");
-		}
-		
-		// 调试：打印第一首歌的结构
 		if (list.length > 0) {
-			console.log("🎵 Meting API 第一首歌数据:", list[0]);
+			console.log("🎵 Meting API 成功获取歌单，共", list.length, "首歌");
+			console.log("🎵 第一首歌数据:", list[0]);
 		}
 		
-		playlist = list.map((song) => {
-			let title = song.name ?? song.title ?? "未知歌曲";
-			let artist = song.artist ?? song.author ?? "未知艺术家";
-			let dur = song.duration ?? 0;
-			if (dur > 10000) dur = Math.floor(dur / 1000);
-			if (!Number.isFinite(dur) || dur <= 0) dur = 0;
-			const rawCover = normalizeCoverUrl(song.pic ?? song.cover ?? song.image ?? "");
-			const processedCover = rawCover ? getAssetPath(rawCover) : DEFAULT_COVER;
-			return {
-				id: song.id,
-				title,
-				artist,
-				cover: processedCover,
-				url: getAssetPath(song.url ?? ""),
-				duration: dur,
-			};
-		});
+		// 使用优化的歌曲数据处理函数
+		playlist = list.map((song: SongData) => 
+			processSongData(song, getAssetPath, normalizeCoverUrl)
+		);
+		
 		if (playlist.length > 0) {
 			loadSong(playlist[0]);
-			preloadCurrentAndNextCovers();
+			// 异步预加载封面，不阻塞播放
+			preloadCurrentAndNextCovers().catch(e => 
+				console.debug('封面预加载失败:', e)
+			);
 		}
+		
 		isLoading = false;
 	} catch (e) {
-		console.error("Meting fetch error:", e);
+		console.error("Meting API 最终失败:", e);
 		isLoading = false;
 		
-		// 重试机制：最多重试3次，间隔递增（指数退避）
-		if (retryCount < 3) {
-			const delay = (retryCount + 1) * 1500; // 1.5秒、3秒、4.5秒
-			console.log(`Retrying Meting API in ${delay}ms... (${retryCount + 1}/3)`);
-			setTimeout(() => {
-				fetchMetingPlaylist(retryCount + 1);
-			}, delay);
-		} else {
-			// 最终失败：回退到本地歌单或显示友好错误
-			console.warn("Meting API failed after 3 retries, falling back to local playlist");
-			showErrorMessage("Meting 歌单加载失败，正在使用本地歌单");
-			if (localPlaylist.length > 0) {
-				playlist = localPlaylist.map((s) => {
-					const rawCover = normalizeCoverUrl(s.cover);
-					const processedCover = rawCover ? getAssetPath(rawCover) : DEFAULT_COVER;
-					return {
-						...s,
-						cover: processedCover,
-						url: getAssetPath(s.url),
-					};
-				});
-				if (playlist.length > 0) {
-					loadSong(playlist[0]);
-					preloadCurrentAndNextCovers();
-				}
+		// 回退到本地歌单
+		console.warn("正在使用本地歌单作为备用");
+		showErrorMessage("在线歌单加载失败，正在使用本地歌单");
+		
+		if (localPlaylist.length > 0) {
+			playlist = localPlaylist.map((s) => 
+				processSongData(s as SongData, getAssetPath, normalizeCoverUrl)
+			);
+			
+			if (playlist.length > 0) {
+				loadSong(playlist[0]);
+				preloadCurrentAndNextCovers().catch(e => 
+					console.debug('封面预加载失败:', e)
+				);
 			}
 		}
 	}
