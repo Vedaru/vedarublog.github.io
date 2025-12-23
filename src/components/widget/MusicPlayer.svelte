@@ -390,7 +390,10 @@ async function fetchMetingPlaylist(retryCount = 0) {
 }
 
 function togglePlay() {
-	if (!audio || !currentSong.url) return;
+	if (!audio || !currentSong.url) {
+		console.warn("Audio not ready or no song URL");
+		return;
+	}
 	if (isPlaying) {
 		audio.pause();
 	} else {
@@ -405,7 +408,26 @@ function togglePlay() {
 			muted: audio.muted,
 			audioContextState: audioContext?.state,
 			gain: gainNode?.gain?.value,
+			readyState: audio.readyState,
+			networkState: audio.networkState,
 		});
+
+		// 如果音频还没有加载，重新加载
+		if (!audio.src || audio.readyState === 0) {
+			console.debug("Audio source not set, reloading...");
+			loadSong(currentSong);
+			// 等待加载完成后播放
+			audio.addEventListener("canplay", () => {
+				audio.play().catch((err) => {
+					console.error("Audio play failed after reload:", err);
+					showErrorMessage(
+						"播放被阻止或音频资源不可用，请检查浏览器控制台与网络请求",
+					);
+				});
+			}, { once: true });
+			return;
+		}
+
 		// 确保取消静音并有合理音量后播放
 		audio.muted = false;
 		if (!Number.isFinite(audio.volume) || audio.volume === 0) {
@@ -597,8 +619,16 @@ function loadSong(song: typeof currentSong) {
 		audio.addEventListener("loadeddata", handleLoadSuccess, { once: true });
 		audio.addEventListener("error", handleLoadError, { once: true });
 		audio.addEventListener("loadstart", handleLoadStart, { once: true });
-		audio.src = getAssetPath(song.url);
+
+		const audioUrl = getAssetPath(song.url);
+		console.debug("Loading audio:", audioUrl);
+		audio.src = audioUrl;
 		audio.load();
+
+		// 确保音频元素准备好后可以播放
+		if (audio.readyState >= 2) {
+			handleLoadSuccess();
+		}
 	} else {
 		isLoading = false;
 	}
@@ -954,7 +984,7 @@ function handleAudioEvents() {
 onMount(() => {
 	// 尽早恢复缓存
 	restoreCoverCache();
-	
+
 	audio = new Audio();
 	// 为跨域音频尝试启用匿名请求，必须在设置 src 之前设置
 	audio.crossOrigin = "anonymous";
@@ -1025,6 +1055,12 @@ onMount(() => {
 		});
 		if (playlist.length > 0) {
 			loadSong(playlist[0]);
+			// 确保音频元素有正确的初始状态
+			setTimeout(() => {
+				if (audio && !audio.src) {
+					loadSong(playlist[0]);
+				}
+			}, 100);
 			// 立即预加载当前+后续歌曲的封面，不等待空闲时刻
 			preloadCurrentAndNextCovers().catch(() => {});
 		} else {
