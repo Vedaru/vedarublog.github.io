@@ -56,14 +56,17 @@ function formatTime(dateString: string): string {
 		(now.getTime() - date.getTime()) / (1000 * 60),
 	);
 
-	if (diffInMinutes < 60) {
-		return `${diffInMinutes}${i18n(I18nKey.diaryMinutesAgo)}`;
+	// 如果时间是负数（未来的日期），使用绝对值
+	const absDiffInMinutes = Math.abs(diffInMinutes);
+
+	if (absDiffInMinutes < 60) {
+		return `${absDiffInMinutes}${i18n(I18nKey.diaryMinutesAgo)}`;
 	}
-	if (diffInMinutes < 1440) {
-		const hours = Math.floor(diffInMinutes / 60);
+	if (absDiffInMinutes < 1440) {
+		const hours = Math.floor(absDiffInMinutes / 60);
 		return `${hours}${i18n(I18nKey.diaryHoursAgo)}`;
 	}
-	const days = Math.floor(diffInMinutes / 1440);
+	const days = Math.floor(absDiffInMinutes / 1440);
 	return `${days}${i18n(I18nKey.diaryDaysAgo)}`;
 }
 
