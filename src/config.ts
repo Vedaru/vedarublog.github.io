@@ -23,7 +23,7 @@ export const siteConfig: SiteConfig = {
 	title: "Vedaruの心之海",
 	subtitle: "",
 	siteURL: "https://vedaru.github.io/vedarublog.github.io/", // 项目页需包含仓库路径
-	siteStartDate: "2025-01-01", // 站点开始运行日期，用于站点统计组件计算运行天数
+	siteStartDate: "2025-12-01", // 站点开始运行日期，用于站点统计组件计算运行天数
 
 	timeZone: SITE_TIMEZONE,
 
