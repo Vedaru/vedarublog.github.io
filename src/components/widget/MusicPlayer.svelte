@@ -314,11 +314,17 @@ async function fetchMetingPlaylist(retryCount = 0) {
 		.replace(":r", Date.now().toString());
 	try {
 		const controller = new AbortController();
-		const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
+		// 增加超时时间：首次 15 秒，重试时递增
+		const timeout = 15000 + (retryCount * 5000);
+		const timeoutId = setTimeout(() => controller.abort(), timeout);
 		
 		const res = await fetch(apiUrl, { 
 			signal: controller.signal,
-			cache: "default" // 允许浏览器缓存
+			cache: "default", // 允许浏览器缓存
+			headers: {
+				'Accept': 'application/json',
+				'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+			}
 		});
 		clearTimeout(timeoutId);
 		
@@ -360,15 +366,16 @@ async function fetchMetingPlaylist(retryCount = 0) {
 		console.error("Meting fetch error:", e);
 		isLoading = false;
 		
-		// 重试机制：最多重试2次，间隔递增
-		if (retryCount < 2) {
-			const delay = (retryCount + 1) * 1000; // 1秒、2秒
-			console.log(`Retrying Meting API in ${delay}ms... (${retryCount + 1}/2)`);
+		// 重试机制：最多重试3次，间隔递增（指数退避）
+		if (retryCount < 3) {
+			const delay = (retryCount + 1) * 1500; // 1.5秒、3秒、4.5秒
+			console.log(`Retrying Meting API in ${delay}ms... (${retryCount + 1}/3)`);
 			setTimeout(() => {
 				fetchMetingPlaylist(retryCount + 1);
 			}, delay);
 		} else {
 			// 最终失败：回退到本地歌单或显示友好错误
+			console.warn("Meting API failed after 3 retries, falling back to local playlist");
 			showErrorMessage("Meting 歌单加载失败，正在使用本地歌单");
 			if (localPlaylist.length > 0) {
 				playlist = localPlaylist.map((s) => {
