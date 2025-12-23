@@ -49,9 +49,15 @@ const diaryStats = getDiaryStats();
 
 // 时间格式化函数（相对时间，基于 siteConfig.timeZone）
 function formatTime(dateString: string): string {
-	// 使用本地时区计算相对时间
+	// 如果日期字符串中没有时区信息，按 siteConfig.timeZone（UTC+8）解析
+	let dateToUse = dateString;
+	if (!dateString.includes('+') && !dateString.includes('Z')) {
+		// 没有时区信息，按 UTC+8 解析
+		dateToUse = dateString + '+08:00';
+	}
+	
 	const now = new Date();
-	const date = new Date(dateString);
+	const date = new Date(dateToUse);
 	const diffInMinutes = Math.floor(
 		(now.getTime() - date.getTime()) / (1000 * 60),
 	);
