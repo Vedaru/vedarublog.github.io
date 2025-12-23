@@ -215,7 +215,8 @@ if (siteConfig.font) {
 		</script>
 		<!-- 将构建时静态导入的 panelManager 暴露给运行时脚本，避免部分页面使用动态导入导致 404 -->
 		<script is:inline>
-			try { window.panelManager = panelManagerStatic; } catch (e) { /* ignore */ }
+			// panelManager 已在 frontmatter 中导入并在初始化脚本中暴露
+			// 这里只是确保它被正确设置
 		</script>
 
 		<title>{pageTitle}</title>
@@ -578,7 +579,10 @@ async function initializePanelManager() {
 		return null;
 	}
 }
-initializePanelManager();
+const pmInstance = initializePanelManager();
+if (pmInstance) {
+	(window as any).panelManager = pmInstance;
+}
 
 
 // function _loadTheme() {
