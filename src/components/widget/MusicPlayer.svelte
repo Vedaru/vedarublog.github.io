@@ -1630,6 +1630,14 @@ onDestroy(() => {
     }
     .controls button:nth-child(3) {
         width: 40px;
+	.playlist-content {
+		/* 隐藏滚动条，仅保留滚动功能 */
+		-ms-overflow-style: none; /* IE/Edge */
+		scrollbar-width: none; /* Firefox */
+	}
+	.playlist-content::-webkit-scrollbar {
+		display: none; /* Chrome/Safari */
+	}
         height: 40px;
     }
     .playlist-item {
