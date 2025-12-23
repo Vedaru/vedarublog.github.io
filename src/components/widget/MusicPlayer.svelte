@@ -29,6 +29,15 @@ let mode = musicPlayerConfig.mode ?? "meting";
 let meting_api =
 	musicPlayerConfig.meting_api ??
 	"https://www.bilibili.uno/api?server=:server&type=:type&id=:id&auth=:auth&r=:r";
+
+// Meting API 候选列表，按优先级排列，当前源失败时自动切换到下一个
+const metingApiCandidates = [
+	meting_api, // 当前配置源（官方演示 api.i-meto.com）
+	"https://api.wuenci.com/meting/api/?server=:server&type=:type&id=:id", // 第三方搭建
+	"https://meting.qjqq.cn/api?server=:server&type=:type&id=:id", // 第三方搭建
+	"https://api.injahow.cn/meting/?server=:server&type=:type&id=:id&auth=:auth&r=:r", // 加速镜像
+	"https://netease-cloud-music-api-gules-mu.vercel.app/api?server=:server&type=:type&id=:id", // Vercel 备份
+].filter(Boolean);
 // Meting API 的 ID，从配置中获取或使用默认值
 let meting_id = musicPlayerConfig.id ?? "14164869977";
 // Meting API 的服务器，从配置中获取或使用默认值,有的meting的api源支持更多平台,一般来说,netease=网易云音乐, tencent=QQ音乐, kugou=酷狗音乐, xiami=虾米音乐, baidu=百度音乐
@@ -309,59 +318,60 @@ const localPlaylist = [
 	},
 ];
 
-async function fetchMetingPlaylist() {
-	if (!meting_api || !meting_id) return;
-	isLoading = true;
-	
-	const apiUrl = meting_api
+function buildMetingUrl(template: string) {
+	return template
 		.replace(":server", meting_server)
 		.replace(":type", meting_type)
 		.replace(":id", meting_id)
 		.replace(":auth", "")
 		.replace(":r", Date.now().toString());
-	
-	try {
-		// 使用优化的API调用函数，自动处理超时和重试
-		const list = await fetchMetingAPI(apiUrl, 10000, 3);
-		
-		if (list.length > 0) {
-			console.log("🎵 Meting API 成功获取歌单，共", list.length, "首歌");
-			console.log("🎵 第一首歌数据:", list[0]);
-		}
-		
-		// 使用优化的歌曲数据处理函数
-		playlist = list.map((song: SongData) => 
-			processSongData(song, getAssetPath, normalizeCoverUrl)
-		);
-		
-		if (playlist.length > 0) {
-			loadSong(playlist[0]);
-			// 异步预加载封面，不阻塞播放
-			preloadCurrentAndNextCovers().catch(e => 
-				console.debug('封面预加载失败:', e)
+}
+
+async function fetchMetingPlaylist() {
+	if (!meting_id) return;
+	isLoading = true;
+
+	for (let i = 0; i < metingApiCandidates.length; i++) {
+		const template = metingApiCandidates[i];
+		if (!template) continue;
+		const apiUrl = buildMetingUrl(template);
+		console.log(`尝试使用 Meting API 源 (${i + 1}/${metingApiCandidates.length}):`, apiUrl);
+		try {
+			const list = await fetchMetingAPI(apiUrl, 10000 + i * 3000, 3);
+			if (list.length > 0) {
+				console.log("🎵 Meting API 成功获取歌单，共", list.length, "首歌");
+				console.log("🎵 第一首歌数据:", list[0]);
+			}
+			playlist = list.map((song: SongData) =>
+				processSongData(song, getAssetPath, normalizeCoverUrl)
 			);
-		}
-		
-		isLoading = false;
-	} catch (e) {
-		console.error("Meting API 最终失败:", e);
-		isLoading = false;
-		
-		// 回退到本地歌单
-		console.warn("正在使用本地歌单作为备用");
-		showErrorMessage("在线歌单加载失败，正在使用本地歌单");
-		
-		if (localPlaylist.length > 0) {
-			playlist = localPlaylist.map((s) => 
-				processSongData(s as SongData, getAssetPath, normalizeCoverUrl)
-			);
-			
 			if (playlist.length > 0) {
 				loadSong(playlist[0]);
-				preloadCurrentAndNextCovers().catch(e => 
-					console.debug('封面预加载失败:', e)
+				preloadCurrentAndNextCovers().catch((e) =>
+					console.debug("封面预加载失败:", e),
 				);
 			}
+			isLoading = false;
+			return; // 成功后退出
+		} catch (e) {
+			console.warn(`Meting API 源失败 (${i + 1}/${metingApiCandidates.length}):`, e);
+			// 尝试下一个候选源
+		}
+	}
+
+	// 所有候选源都失败，使用本地歌单
+	isLoading = false;
+	console.warn("所有 Meting API 源均失败，使用本地歌单");
+	showErrorMessage("在线歌单加载失败，正在使用本地歌单");
+	if (localPlaylist.length > 0) {
+		playlist = localPlaylist.map((s) =>
+			processSongData(s as SongData, getAssetPath, normalizeCoverUrl),
+		);
+		if (playlist.length > 0) {
+			loadSong(playlist[0]);
+			preloadCurrentAndNextCovers().catch((e) =>
+				console.debug("封面预加载失败:", e),
+			);
 		}
 	}
 }
