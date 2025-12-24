@@ -30,13 +30,9 @@ let meting_api =
 	musicPlayerConfig.meting_api ??
 	"https://www.bilibili.uno/api?server=:server&type=:type&id=:id&auth=:auth&r=:r";
 
-// Meting API 候选列表，按优先级排列，当前源失败时自动切换到下一个
+// 仅使用单一 Meting API 源（不轮询备用源）
 const metingApiCandidates = [
-	meting_api, // 配置的优先源（injahow + nocache）
-	"https://api.wuenci.com/meting/api/?server=:server&type=:type&id=:id&nocache=1&r=:r", // 第三方，nocache
-	"https://meting.qjqq.cn/api?server=:server&type=:type&id=:id&nocache=1&r=:r", // 第三方，nocache
-	"https://api.i-meto.com/meting/api?server=:server&type=:type&id=:id&r=:r", // 官方演示
-	"https://netease-cloud-music-api-gules-mu.vercel.app/api?server=:server&type=:type&id=:id", // Vercel 备份
+	meting_api, // 配置的官方 API
 ].filter(Boolean);
 // Meting API 的 ID，从配置中获取或使用默认值
 let meting_id = musicPlayerConfig.id ?? "17514570572";
