@@ -32,10 +32,11 @@ let meting_api =
 
 // Meting API 候选列表，按优先级排列，当前源失败时自动切换到下一个
 const metingApiCandidates = [
-	meting_api, // 当前配置源（官方演示 api.i-meto.com）
-	"https://api.wuenci.com/meting/api/?server=:server&type=:type&id=:id", // 第三方搭建
-	"https://meting.qjqq.cn/api?server=:server&type=:type&id=:id", // 第三方搭建
-	"https://api.injahow.cn/meting/?server=:server&type=:type&id=:id&auth=:auth&r=:r", // 加速镜像
+	meting_api, // 配置的优先源
+	"https://meting.qjqq.cn/api?server=:server&type=:type&id=:id&nocache=1&r=:r", // 第三方，不缓存
+	"https://api.i-meto.com/meting/api?server=:server&type=:type&id=:id&r=:r", // 官方演示
+	"https://api.wuenci.com/meting/api/?server=:server&type=:type&id=:id&nocache=1&r=:r", // 第三方，带 nocache
+	"https://api.injahow.cn/meting/?server=:server&type=:type&id=:id&auth=:auth&r=:r", // 备份源（可能缓存）
 	"https://netease-cloud-music-api-gules-mu.vercel.app/api?server=:server&type=:type&id=:id", // Vercel 备份
 ].filter(Boolean);
 // Meting API 的 ID，从配置中获取或使用默认值
