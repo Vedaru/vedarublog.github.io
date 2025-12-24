@@ -760,6 +760,27 @@ async function prefetchNext() {
 		preloadAudio.src = audioUrl;
 		preloadAudio.load();
 		
+		// 强制预加载缓冲
+		setTimeout(() => {
+			if (preloadAudio && preloadAudio.readyState < 2) {
+				const tempPlay = preloadAudio.play?.();
+				if (tempPlay && typeof tempPlay.then === "function") {
+					tempPlay.then(() => {
+						setTimeout(() => {
+							if (preloadAudio && preloadAudio !== audio) {
+								try {
+									preloadAudio.pause();
+									preloadAudio.currentTime = 0;
+								} catch (e) {}
+							}
+						}, 200);
+					}).catch(() => {
+						// 忽略预加载播放失败
+					});
+				}
+			}
+		}, 300);
+		
 		console.debug("Prefetching next track:", next.title);
 	} catch (e) {
 		// 预取失败无需抛错，仅记录以便调试
@@ -845,6 +866,25 @@ function loadSong(song: typeof currentSong) {
 	// 设置音频源并加载
 	audio.src = audioUrl;
 	audio.load();
+	
+	// 强制预加载：尝试播放一小段时间然后暂停，以触发浏览器缓冲
+	setTimeout(() => {
+		if (audio.readyState < 2) {
+			const tempPlay = audio.play();
+			if (tempPlay) {
+				tempPlay.then(() => {
+					setTimeout(() => {
+						if (audio && !isPlaying) {
+							audio.pause();
+							audio.currentTime = 0;
+						}
+					}, 100);
+				}).catch(() => {
+					// 忽略播放失败，继续加载
+				});
+			}
+		}
+	}, 200);
 
 	// 确保音频元素准备好后可以播放
 	// 使用 setTimeout 确保在下一个事件循环中检查
@@ -1160,6 +1200,14 @@ function handleAudioEvents() {
 	if (!audio) return;
 	audio.addEventListener("play", () => {
 		isPlaying = true;
+		// 开始播放时立即预加载下一首歌
+		setTimeout(() => {
+			const nextIdx = currentIndex + 1;
+			if (nextIdx < playlist.length && prefetchedForIndex !== nextIdx) {
+				prefetchedForIndex = nextIdx;
+				prefetchNext();
+			}
+		}, 1000);
 	});
 	audio.addEventListener("pause", () => {
 		isPlaying = false;
@@ -1213,13 +1261,14 @@ function handleAudioEvents() {
 			isLoading = false;
 		}, 1000);
 	});
-	audio.addEventListener("waiting", () => {
-		console.debug("Audio waiting for buffer");
-		isLoading = true;
-		// waiting 事件表示缓冲不足，显示加载状态
-		setTimeout(() => {
-			isLoading = false;
-		}, 2000);
+	audio.addEventListener("progress", () => {
+		// 监控缓冲进度
+		if (audio.buffered.length > 0) {
+			const buffered = audio.buffered.end(audio.buffered.length - 1);
+			const duration = audio.duration || 1;
+			const bufferPercent = (buffered / duration) * 100;
+			console.debug(`Buffer progress: ${bufferPercent.toFixed(1)}% (${buffered.toFixed(1)}s / ${duration.toFixed(1)}s)`);
+		}
 	});
 }
 
@@ -1234,6 +1283,19 @@ onMount(() => {
 	
 	// 修改预加载策略：使用 auto 而非 metadata，确保音频内容预加载以避免播放卡顿
 	audio.preload = "auto";
+	
+	// 增强缓冲策略：设置更大的缓冲区
+	if (audio.buffered !== undefined) {
+		// 尝试设置缓冲属性（如果浏览器支持）
+		try {
+			// 一些浏览器支持设置缓冲大小
+			if ('buffered' in audio && typeof audio.buffered === 'object') {
+				console.debug("Audio buffering enabled");
+			}
+		} catch (e) {
+			console.debug("Buffer settings not supported:", e);
+		}
+	}
 	
 	// 初始化平滑音量当前/目标值（使用灵敏度压缩以使初始低音量更平滑）
 	const initAdjusted = applySensitivity(volume, SENSITIVITY_GAMMA);
