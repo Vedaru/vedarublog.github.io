@@ -57,7 +57,6 @@ body.wallpaper-transparent,
 body {
     background: var(--page-bg);
     color: rgba(0, 0, 0, 0.85);
-    font-family: "Microsoft YaHei", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 }
 
 :root.dark body {
