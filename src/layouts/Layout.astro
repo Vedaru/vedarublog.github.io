@@ -65,6 +65,7 @@ const configHue = siteConfig.themeColor.hue;
 const navbarTransparentMode =
 	siteConfig.banner?.navbar?.transparentMode || "semi";
 // 判断是否应该显示顶部高光效果（只在full和semifull模式下显示）
+console.debug('Navbar transparent mode:', navbarTransparentMode);
 
 // 获取默认banner图片的辅助函数
 const getDefaultBanner = (): string => {
@@ -307,7 +308,7 @@ if (siteConfig.font) {
 			<>
 				<script src={import.meta.env.BASE_URL + "pio/static/l2d.js"} defer is:inline></script>
 				<script src={import.meta.env.BASE_URL + "pio/static/pio.js"} defer is:inline></script>
-				<link rel="stylesheet" href={import.meta.env.BASE_URL + "pio/static/pio.css"} media="print" onload="this.media='all'" />
+				<link rel="stylesheet" href={import.meta.env.BASE_URL + "pio/static/pio.css"} />
 			</>
 		)}
 
@@ -1127,7 +1128,7 @@ if (document.readyState === 'loading') {
 		// 初始化右侧栏布局管理器
 		try {
 			const layoutModule = await import('../scripts/right-sidebar-layout.js');
-			console.log('Right sidebar layout initialized');
+			if (layoutModule) console.log('Right sidebar layout initialized');
 		} catch (error) {
 			console.error('Failed to initialize right sidebar layout:', error);
 		}
@@ -1144,7 +1145,7 @@ if (document.readyState === 'loading') {
 		// 初始化右侧栏布局管理器
 		try {
 			const layoutModule = await import(/* webpackChunkName: "right-sidebar" */ '../scripts/right-sidebar-layout.js');
-			console.log('Right sidebar layout initialized');
+			if (layoutModule) console.log('Right sidebar layout initialized');
 		} catch (error) {
 			console.error('Failed to initialize right sidebar layout:', error);
 		}
