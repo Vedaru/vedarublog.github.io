@@ -26,7 +26,7 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 10.22.0
-          run_install: true  # 确保安装 pnpm
+          run_install: false  # 不在此处自动安装依赖，稍后在已安装 Node 的步骤中运行 pnpm install
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -68,7 +68,7 @@ jobs:
         uses: pnpm/action-setup@v4
         with:
           version: 10.22.0
-          run_install: true  # 确保安装 pnpm
+          run_install: false  # 不在此处自动安装依赖，稍后在已安装 Node 的步骤中运行 pnpm install
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
