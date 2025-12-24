@@ -281,6 +281,7 @@ function ensureMetingLoaded() {
 let playlist: Song[] = [];
 let currentIndex = 0;
 let audio: HTMLAudioElement;
+let preloadAudio: HTMLAudioElement | null = null; // 预加载下一首歌的音频元素
 let progressBar: HTMLElement;
 let volumeBar: HTMLElement;
 let audioContext: AudioContext | null = null;
@@ -631,6 +632,41 @@ function playSong(index: number) {
 	const wasPlaying = isPlaying;
 	currentIndex = index;
 	
+	// 检查是否可以直接使用预加载的音频
+	if (preloadAudio && prefetchedForIndex === index && preloadAudio.readyState >= 2) {
+		console.debug("Using preloaded audio for:", playlist[index].title);
+		// 暂停当前音频
+		if (audio) {
+			try {
+				audio.pause();
+			} catch (e) {
+				console.debug("Pause failed in playSong:", e);
+			}
+		}
+		// 切换到预加载音频
+		audio = preloadAudio;
+		preloadAudio = null;
+		prefetchedForIndex = null;
+		currentSong = { ...playlist[currentIndex], cover: getAssetPath(playlist[currentIndex].cover) };
+		audio.volume = audioVolumeCurrent;
+		handleAudioEvents(); // 重新绑定事件监听器
+		
+		// 如果之前在播放，立即开始播放
+		if (wasPlaying) {
+			audio.play().catch((err) => {
+				console.warn("Play preloaded audio failed:", err);
+			});
+		}
+		
+		// 预加载下一首
+		const nextIdx = currentIndex + 1;
+		if (nextIdx < playlist.length && prefetchedForIndex !== nextIdx) {
+			prefetchedForIndex = nextIdx;
+			prefetchNext();
+		}
+		return;
+	}
+	
 	if (audio) {
 		try {
 			audio.pause();
@@ -707,8 +743,24 @@ async function prefetchNext() {
 		if (!playlist || nextIndex >= playlist.length) return;
 		const next = playlist[nextIndex];
 		if (!next || !next.url) return;
-		// 使用 fetch 尝试预取资源到浏览器缓存（若服务端允许 CORS）
-		await fetch(getAssetPath(next.url), { method: "GET", mode: "cors" });
+		
+		// 清理之前的预加载音频
+		if (preloadAudio) {
+			preloadAudio.pause();
+			preloadAudio.src = '';
+			preloadAudio = null;
+		}
+		
+		// 创建新的预加载音频元素
+		preloadAudio = new Audio();
+		preloadAudio.preload = 'auto';
+		preloadAudio.volume = 0; // 静音预加载
+		
+		const audioUrl = getAssetPath(next.url);
+		preloadAudio.src = audioUrl;
+		preloadAudio.load();
+		
+		console.debug("Prefetching next track:", next.title);
 	} catch (e) {
 		// 预取失败无需抛错，仅记录以便调试
 		console.debug("Prefetch next track failed:", e);
@@ -1150,8 +1202,25 @@ function handleAudioEvents() {
 	audio.addEventListener("error", (_event) => {
 		isLoading = false;
 	});
-	audio.addEventListener("stalled", () => {});
-	audio.addEventListener("waiting", () => {});
+	audio.addEventListener("stalled", () => {
+		console.debug("Audio stalled, attempting to reload");
+		isLoading = true;
+		// 尝试重新加载音频
+		setTimeout(() => {
+			if (audio && audio.readyState < 3) {
+				audio.load();
+			}
+			isLoading = false;
+		}, 1000);
+	});
+	audio.addEventListener("waiting", () => {
+		console.debug("Audio waiting for buffer");
+		isLoading = true;
+		// waiting 事件表示缓冲不足，显示加载状态
+		setTimeout(() => {
+			isLoading = false;
+		}, 2000);
+	});
 }
 
 onMount(() => {
@@ -1239,6 +1308,11 @@ onDestroy(() => {
 	if (audio) {
 		audio.pause();
 		audio.src = "";
+	}
+	if (preloadAudio) {
+		preloadAudio.pause();
+		preloadAudio.src = "";
+		preloadAudio = null;
 	}
 	if (isBrowser) {
 		document.removeEventListener("pointermove", onVolumePointerMove);
