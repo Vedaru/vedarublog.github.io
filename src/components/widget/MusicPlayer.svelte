@@ -1163,8 +1163,8 @@ onMount(() => {
 	// 默认情况下不设置，避免CORS错误阻止播放
 	// audio.crossOrigin = "anonymous"; // 注释掉，改为按需设置
 	
-	// 修改预加载策略：使用 metadata 而非 none，确保基本信息可用
-	audio.preload = "metadata";
+	// 修改预加载策略：使用 auto 而非 metadata，确保音频内容预加载以避免播放卡顿
+	audio.preload = "auto";
 	
 	// 初始化平滑音量当前/目标值（使用灵敏度压缩以使初始低音量更平滑）
 	const initAdjusted = applySensitivity(volume, SENSITIVITY_GAMMA);
