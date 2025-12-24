@@ -1,7 +1,7 @@
 /* Simple runtime cache for static assets on GitHub Pages
  * Scope is set to BASE_URL by registration in Layout.astro
  */
-const CACHE_NAME = 'site-static-v1';
+const CACHE_NAME = 'site-static-v2'; // 更新版本号以清除旧缓存
 // 静态资源缓存模式（Cache-first with stale-while-revalidate）
 const STATIC_PATTERNS = [
   /\/(_astro)\//,            // Vite hashed bundles
@@ -56,6 +56,11 @@ self.addEventListener('fetch', (event) => {
   const isSameOrigin = (() => {
     try { return new URL(url).origin === self.location.origin; } catch { return false; }
   })();
+
+  // 排除 Meting API 请求，让它们总是走网络（不使用缓存）
+  if (url.includes('/meting/') || url.includes('meting')) {
+    return; // 不拦截，直接走网络
+  }
 
   if (!isSameOrigin) return; // only cache same-origin
 
