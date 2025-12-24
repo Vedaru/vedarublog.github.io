@@ -265,7 +265,7 @@ export async function fetchMetingAPI(
 			
 			const response = await fetch(apiUrl, {
 				signal: controller.signal,
-				cache: "default",
+				cache: "no-store", // 不使用缓存，每次都获取最新数据
 				headers: {
 					"Accept": "application/json",
 					"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
