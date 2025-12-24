@@ -330,12 +330,14 @@ const localPlaylist = [
 ];
 
 function buildMetingUrl(template: string) {
+	// 使用时间戳 + 随机数，更强地破坏缓存
+	const cacheBuster = `${Date.now()}_${Math.random().toString(36).substring(2)}`;
 	return template
 		.replace(":server", meting_server)
 		.replace(":type", meting_type)
 		.replace(":id", meting_id)
 		.replace(":auth", "")
-		.replace(":r", Date.now().toString());
+		.replace(":r", cacheBuster);
 }
 
 async function fetchMetingPlaylist() {
