@@ -133,6 +133,7 @@ type Song = {
 // 封面加载缓存和状态
 const coverCache = new Map<string, string>();
 const loadingCovers = new Set<string>();
+let cacheUpdateCounter = 0; // 用于触发响应式更新
 
 // 从 SessionStorage 恢复缓存
 function restoreCoverCache() {
@@ -172,6 +173,7 @@ function persistCoverCache() {
 			}
 		});
 		sessionStorage.setItem('musicCoverCache', JSON.stringify(data));
+		cacheUpdateCounter++; // 触发响应式更新
 	} catch (e) {
 		console.debug('Failed to persist cover cache', e);
 	}
@@ -238,6 +240,8 @@ async function preloadSingleCover(coverUrl: string, timeout = 5000, maxRetries =
 
 // 从缓存中获取封面URL，如果没有缓存则返回原始URL
 function getCachedCover(coverUrl: string): string {
+	// 使用 cacheUpdateCounter 确保这是响应式的
+	cacheUpdateCounter;
 	return coverCache.get(coverUrl) || coverUrl;
 }
 
@@ -598,8 +602,6 @@ async function preloadVisibleCovers(count = 30, concurrency = 10) {
 			if (!url) break;
 			try {
 				await preloadSingleCover(url, 5000, 1);
-				// 触发组件更新以使用缓存的封面
-				playlist = [...playlist];
 			} catch (e) {
 				// 单个封面预加载失败无需抛出
 			}
@@ -626,8 +628,6 @@ async function preloadAllPlaylistCovers(concurrency = 6) {
 			if (!url) break;
 			try {
 				await preloadSingleCover(url, 8000);
-				// 触发组件更新以使用缓存的封面
-				playlist = [...playlist];
 			} catch (e) {
 				// 单个封面预加载失败无需抛出
 			}
@@ -1862,13 +1862,16 @@ onDestroy(() => {
                         </div>
                         <!-- 歌单列表内封面仍为圆角矩形 -->
                         <div class="w-10 h-10 rounded-lg overflow-hidden bg-[var(--btn-regular-bg)] flex-shrink-0">
-							<img src={getCachedCover(song.cover)} alt={song.title} class="w-full h-full object-cover"
+							<img 
+								src={getCachedCover(song.cover)} 
+								alt={song.title} 
+								class="w-full h-full object-cover"
 								loading="eager"
 								fetchpriority={index < 20 ? "high" : "auto"}
 								decoding="async"
 								on:error={(event) => {
 									const img = event.currentTarget as HTMLImageElement;
-									if (img.src.endsWith('/favicon/favicon.ico')) return;
+									if (img.src.endsWith('/favicon/favicon.ico') || img.src === DEFAULT_COVER) return;
 									const attempt = Number(img.dataset.attempt || '0');
 									// 使用备用封面地址列表
 									const fallbacks = getFallbackCovers(song.cover);
