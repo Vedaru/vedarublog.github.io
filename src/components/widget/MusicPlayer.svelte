@@ -30,9 +30,13 @@ let meting_api =
 	musicPlayerConfig.meting_api ??
 	"https://www.bilibili.uno/api?server=:server&type=:type&id=:id&auth=:auth&r=:r";
 
-// 仅使用单一 Meting API 源（不轮询备用源）
+// Meting API 候选列表，按优先级排列，当前源失败时自动切换到下一个
 const metingApiCandidates = [
-	meting_api, // 配置的官方 API
+	meting_api, // 当前配置源（官方演示 api.i-meto.com）
+	"https://api.wuenci.com/meting/api/?server=:server&type=:type&id=:id", // 第三方搭建
+	"https://meting.qjqq.cn/api?server=:server&type=:type&id=:id", // 第三方搭建
+	"https://api.injahow.cn/meting/?server=:server&type=:type&id=:id&auth=:auth&r=:r", // 加速镜像
+	"https://netease-cloud-music-api-gules-mu.vercel.app/api?server=:server&type=:type&id=:id", // Vercel 备份
 ].filter(Boolean);
 // Meting API 的 ID，从配置中获取或使用默认值
 let meting_id = musicPlayerConfig.id ?? "17514570572";
@@ -129,7 +133,6 @@ type Song = {
 // 封面加载缓存和状态
 const coverCache = new Map<string, string>();
 const loadingCovers = new Set<string>();
-let cacheUpdateCounter = 0; // 用于触发响应式更新
 
 // 从 SessionStorage 恢复缓存
 function restoreCoverCache() {
@@ -169,7 +172,6 @@ function persistCoverCache() {
 			}
 		});
 		sessionStorage.setItem('musicCoverCache', JSON.stringify(data));
-		cacheUpdateCounter++; // 触发响应式更新
 	} catch (e) {
 		console.debug('Failed to persist cover cache', e);
 	}
@@ -232,13 +234,6 @@ async function preloadSingleCover(coverUrl: string, timeout = 5000, maxRetries =
 	} finally {
 		loadingCovers.delete(coverUrl);
 	}
-}
-
-// 从缓存中获取封面URL，如果没有缓存则返回原始URL
-function getCachedCover(coverUrl: string): string {
-	// 使用 cacheUpdateCounter 确保这是响应式的
-	cacheUpdateCounter;
-	return coverCache.get(coverUrl) || coverUrl;
 }
 
 async function preloadCurrentAndNextCovers() {
@@ -326,14 +321,12 @@ const localPlaylist = [
 ];
 
 function buildMetingUrl(template: string) {
-	// 使用时间戳 + 随机数，更强地破坏缓存
-	const cacheBuster = `${Date.now()}_${Math.random().toString(36).substring(2)}`;
 	return template
 		.replace(":server", meting_server)
 		.replace(":type", meting_type)
 		.replace(":id", meting_id)
 		.replace(":auth", "")
-		.replace(":r", cacheBuster);
+		.replace(":r", Date.now().toString());
 }
 
 async function fetchMetingPlaylist() {
@@ -572,45 +565,11 @@ function togglePlaylist() {
 		if (mode === 'meting') {
 			ensureMetingLoaded();
 		}
-		// 立即触发可见区域封面预加载（前30首，不阻塞 UI）
-		setTimeout(() => {
-			preloadVisibleCovers().catch(() => {});
-		}, 10);
-		// 然后触发全部封面预加载（不阻塞 UI）
+		// 异步触发全部封面预加载（不阻塞 UI）
 		setTimeout(() => {
 			preloadAllPlaylistCovers().catch(() => {});
-		}, 500);
+		}, 50);
 	}
-}
-
-// 预加载可见区域的封面（前30首）
-async function preloadVisibleCovers(count = 30, concurrency = 10) {
-	if (!playlist || playlist.length === 0) return;
-	const visibleCovers = playlist
-		.slice(0, Math.min(count, playlist.length))
-		.map((s) => s.cover)
-		.filter(Boolean) as string[];
-	
-	const queue = visibleCovers.slice();
-	const workers: Promise<void>[] = [];
-
-	const worker = async () => {
-		while (queue.length > 0) {
-			const url = queue.shift();
-			if (!url) break;
-			try {
-				await preloadSingleCover(url, 5000, 1);
-			} catch (e) {
-				// 单个封面预加载失败无需抛出
-			}
-		}
-	};
-
-	for (let i = 0; i < Math.min(concurrency, visibleCovers.length); i++) {
-		workers.push(worker());
-	}
-
-	await Promise.all(workers);
 }
 
 // 分批并发预加载整个歌单的封面（限制并发以避免突发大量请求）
@@ -909,12 +868,24 @@ function loadSong(song: typeof currentSong) {
 	audio.src = audioUrl;
 	audio.load();
 	
-	// 优化：等待足够的缓冲再允许播放，避免播放中途卡顿
-	// 监听canplaythrough事件确保有足够的缓冲
-	const canPlayThroughHandler = () => {
-		console.debug("Audio can play through without interruption");
-	};
-	audio.addEventListener("canplaythrough", canPlayThroughHandler, { once: true });
+	// 强制预加载：尝试播放一小段时间然后暂停，以触发浏览器缓冲
+	setTimeout(() => {
+		if (audio.readyState < 2) {
+			const tempPlay = audio.play();
+			if (tempPlay) {
+				tempPlay.then(() => {
+					setTimeout(() => {
+						if (audio && !isPlaying) {
+							audio.pause();
+							audio.currentTime = 0;
+						}
+					}, 100);
+				}).catch(() => {
+					// 忽略播放失败，继续加载
+				});
+			}
+		}
+	}, 200);
 
 	// 确保音频元素准备好后可以播放
 	// 使用 setTimeout 确保在下一个事件循环中检查
@@ -1242,14 +1213,7 @@ function handleAudioEvents() {
 	audio.addEventListener("pause", () => {
 		isPlaying = false;
 	});
-	// 优化：使用节流避免timeupdate事件过于频繁触发
-	let lastTimeUpdate = 0;
 	audio.addEventListener("timeupdate", () => {
-		const now = Date.now();
-		// 节流：最多每100ms更新一次
-		if (now - lastTimeUpdate < 100) return;
-		lastTimeUpdate = now;
-		
 		currentTime = audio.currentTime;
 		// 当快要播放完当前曲目时，预取下一首以减少切换等待（仅在尚未预取时触发）
 		try {
@@ -1261,7 +1225,7 @@ function handleAudioEvents() {
 				Number.isFinite(audio.duration)
 			) {
 				const remaining = audio.duration - audio.currentTime;
-				if (remaining > 0 && remaining <= PREFETCH_THRESHOLD) {
+				if (remaining <= PREFETCH_THRESHOLD) {
 					prefetchedForIndex = nextIdx;
 					prefetchNext();
 				}
@@ -1287,61 +1251,24 @@ function handleAudioEvents() {
 	audio.addEventListener("error", (_event) => {
 		isLoading = false;
 	});
-	// 优化：stalled事件不一定意味着播放失败，可能只是暂时的网络延迟
-	// 只在真正长时间stalled且无缓冲时才重新加载
-	let stalledTimeout: number | null = null;
 	audio.addEventListener("stalled", () => {
-		console.debug("Audio stalled detected");
-		// 清除之前的超时
-		if (stalledTimeout) {
-			clearTimeout(stalledTimeout);
-		}
-		// 等待3秒后检查是否仍然stalled
-		stalledTimeout = window.setTimeout(() => {
-			if (audio && audio.readyState < 2 && audio.networkState === 2) {
-				// 只在readyState不足且networkState为NETWORK_LOADING时才重新加载
-				console.debug("Audio still stalled after 3s, attempting to reload");
-				isLoading = true;
-				audio.load();
-				setTimeout(() => {
-					isLoading = false;
-				}, 1000);
-			}
-			stalledTimeout = null;
-		}, 3000);
-	});
-	
-	// 当音频开始播放或有足够缓冲时，清除stalled超时
-	audio.addEventListener("playing", () => {
-		if (stalledTimeout) {
-			clearTimeout(stalledTimeout);
-			stalledTimeout = null;
-		}
-	});
-	// 添加 waiting 事件监听器，当缓冲不足时显示加载状态
-	audio.addEventListener("waiting", () => {
-		console.debug("Audio waiting for more data (buffering)");
+		console.debug("Audio stalled, attempting to reload");
 		isLoading = true;
-	});
-	
-	// 当有足够数据可以继续播放时，隐藏加载状态
-	audio.addEventListener("canplay", () => {
-		if (isLoading) {
-			console.debug("Audio ready to play again");
+		// 尝试重新加载音频
+		setTimeout(() => {
+			if (audio && audio.readyState < 3) {
+				audio.load();
+			}
 			isLoading = false;
-		}
+		}, 1000);
 	});
-	
 	audio.addEventListener("progress", () => {
 		// 监控缓冲进度
 		if (audio.buffered.length > 0) {
 			const buffered = audio.buffered.end(audio.buffered.length - 1);
 			const duration = audio.duration || 1;
 			const bufferPercent = (buffered / duration) * 100;
-			// 只在缓冲不足时打印日志
-			if (bufferPercent < 90) {
-				console.debug(`Buffer progress: ${bufferPercent.toFixed(1)}% (${buffered.toFixed(1)}s / ${duration.toFixed(1)}s)`);
-			}
+			console.debug(`Buffer progress: ${bufferPercent.toFixed(1)}% (${buffered.toFixed(1)}s / ${duration.toFixed(1)}s)`);
 		}
 	});
 }
@@ -1357,12 +1284,6 @@ onMount(() => {
 	
 	// 修改预加载策略：使用 auto 而非 metadata，确保音频内容预加载以避免播放卡顿
 	audio.preload = "auto";
-	
-	// 设置音频元素属性以优化播放体验
-	audio.autoplay = false;
-	// 预加载足够的数据以确保流畅播放
-	audio.defaultPlaybackRate = 1.0;
-	audio.playbackRate = 1.0;
 	
 	// 增强缓冲策略：设置更大的缓冲区
 	if (audio.buffered !== undefined) {
@@ -1575,43 +1496,33 @@ onDestroy(() => {
                  role="button"
                  tabindex="0"
                  aria-label={isPlaying ? '暂停' : '播放'}>
-				 <img src={getCachedCover(currentSong.cover)} alt="封面"
+				 <img src={currentSong.cover} alt="封面"
 					 class="w-full h-full object-cover transition-transform duration-300"
 					 class:spinning={isPlaying && !isLoading}
 					 class:animate-pulse={isLoading}
 					 loading="eager" decoding="sync" fetchpriority="high"
 						 on:error={(event) => {
 						const img = event.currentTarget as HTMLImageElement;
-						if (img.src.endsWith('/favicon/favicon.ico') || img.src === DEFAULT_COVER) return;
-						
-						const attempt = Number(img.dataset.attempt || '0');
-						const fallbacks = getFallbackCovers(currentSong.cover);
-						
-						// 清除可能损坏的缓存
+						if (img.src.endsWith('/favicon/favicon.ico')) return;
+						// 若首次失败，尝试使用原始 URL 重新加载一次；第二次失败才回退为 favicon
+						const retried = img.dataset.retry === '1';
 						try {
+							// 删除可能的坏缓存映射
 							for (const [key, val] of coverCache.entries()) {
 								if (val === img.src || key === currentSong.cover) {
 									coverCache.delete(key);
 								}
 							}
 							persistCoverCache();
-						} catch (e) {
-							console.debug('Failed to clean cache', e);
-						}
-						
-						// 尝试下一个备用URL
-						const next = fallbacks[attempt + 1]; // +1 因为原始URL是第0个
-						if (next && attempt < fallbacks.length - 1) {
-							img.dataset.attempt = String(attempt + 1);
-							img.src = next;
+						} catch (e) {}
+						if (!retried) {
+							img.dataset.retry = '1';
+							img.src = currentSong.cover;
 						} else {
-							img.src = DEFAULT_COVER;
+							img.src = '/favicon/favicon.ico';
 						}
-						
 						// 触发后台重试以便尽快补全缓存
-						if (attempt === 0) {
-							preloadSingleCover(currentSong.cover, 8000, 2).catch(() => {});
-						}
+						preloadSingleCover(currentSong.cover, 8000, 2).catch(() => {});
 						}} />
                 <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                     {#if isLoading}
@@ -1658,7 +1569,7 @@ onDestroy(() => {
          class:pointer-events-none={!isExpanded}>
         <div class="flex items-center gap-4 mb-4">
             <div class="cover-container relative w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
-				 <img src={getCachedCover(currentSong.cover)} alt="封面"
+				 <img src={currentSong.cover} alt="封面"
 					 class="w-full h-full object-cover transition-transform duration-300"
 					 class:spinning={isPlaying && !isLoading}
 					 class:animate-pulse={isLoading}
@@ -1860,26 +1771,24 @@ onDestroy(() => {
                         </div>
                         <!-- 歌单列表内封面仍为圆角矩形 -->
                         <div class="w-10 h-10 rounded-lg overflow-hidden bg-[var(--btn-regular-bg)] flex-shrink-0">
-							<img 
-								src={getCachedCover(song.cover)} 
-								alt={song.title} 
-								class="w-full h-full object-cover"
-								loading="eager"
-								fetchpriority={index < 20 ? "high" : "auto"}
+							<img src={song.cover} alt={song.title} class="w-full h-full object-cover"
+								loading={index < 12 ? "eager" : "lazy"}
+								fetchpriority={index < 12 ? "high" : "low"}
 								decoding="async"
 								on:error={(event) => {
 									const img = event.currentTarget as HTMLImageElement;
-									if (img.src.endsWith('/favicon/favicon.ico') || img.src === DEFAULT_COVER) return;
+									if (img.src.endsWith('/favicon/favicon.ico')) return;
 									const attempt = Number(img.dataset.attempt || '0');
-									// 使用备用封面地址列表
-									const fallbacks = getFallbackCovers(song.cover);
-									
-									const next = fallbacks[attempt + 1]; // +1 因为原始URL是第0个
-									if (next && attempt < fallbacks.length - 1) {
+									// 使用备用封面地址
+									const fallbacks = [song.cover, DEFAULT_COVER, '/favicon/favicon.ico']
+										.filter(Boolean) as string[];
+
+									const next = fallbacks[attempt];
+									if (next && attempt < fallbacks.length) {
 										img.dataset.attempt = String(attempt + 1);
 										img.src = next;
 									} else {
-										img.src = DEFAULT_COVER;
+										img.src = '/favicon/favicon.ico';
 									}
 								}} />
                         </div>
