@@ -10,6 +10,7 @@
 		"strictNullChecks": true,
 		"allowJs": false,
 		"declaration": true,
+		"types": ["@cloudflare/workers-types"],
 		"plugins": [
 			{
 				"name": "@astrojs/ts-plugin"

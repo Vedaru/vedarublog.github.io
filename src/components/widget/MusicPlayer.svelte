@@ -39,7 +39,7 @@ const metingApiCandidates = [
 	"https://netease-cloud-music-api-gules-mu.vercel.app/api?server=:server&type=:type&id=:id", // Vercel 备份
 ].filter(Boolean);
 // Meting API 的 ID，从配置中获取或使用默认值
-let meting_id = musicPlayerConfig.id ?? "14164869977";
+let meting_id = musicPlayerConfig.id ?? "17514570572";
 // Meting API 的服务器，从配置中获取或使用默认值,有的meting的api源支持更多平台,一般来说,netease=网易云音乐, tencent=QQ音乐, kugou=酷狗音乐, xiami=虾米音乐, baidu=百度音乐
 let meting_server = musicPlayerConfig.server ?? "netease";
 // Meting API 的类型，从配置中获取或使用默认值

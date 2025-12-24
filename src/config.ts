@@ -395,9 +395,10 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 	//   2. https://api.wuenci.com/meting/api/ (第三方搭建)
 	//   3. https://meting.qjqq.cn (第三方搭建)
 	//   4. https://api.injahow.cn/meting/?server=:server&type=:type&id=:id&auth=:auth&r=:r (加速镜像)
-	// 当前默认：官方演示源 api.i-meto.com
+	//   5. 自建CDN: https://music-cdn.your-subdomain.workers.dev/
+	// 当前使用：自建CDN加速服务
 	meting_api:
-		"https://my-music-cdn.l2859794.workers.dev/", // Meting API 地址（官方演示源）
+		"https://music-cdn.your-subdomain.workers.dev/", // 自建CDN地址，请替换为你的Workers URL
 	id: "17514570572", // 歌单ID（建议控制在50首以内以加快加载）
 	server: "netease", // 音乐源服务器。有的meting的api源支持更多平台,一般来说,netease=网易云音乐, tencent=QQ音乐, kugou=酷狗音乐, xiami=虾米音乐, baidu=百度音乐
 	type: "playlist", // 播单类型
@@ -413,6 +414,7 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 	
 	// 可选：当浏览器支持 WebAudio 时，增益倍数用于放大输出（例如 2.0 表示最多放大 2 倍）
 	// 若音源受 CORS 限制而回退为非 WebAudio 模式，则此配置无效。
+	gainBoost: 1.0, // 设置增益倍数为1.0，避免放大导致的卡顿
 };
 
 export const footerConfig: FooterConfig = {
