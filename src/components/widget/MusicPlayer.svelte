@@ -647,7 +647,8 @@ function playSong(index: number) {
 		audio = preloadAudio;
 		preloadAudio = null;
 		prefetchedForIndex = null;
-		currentSong = { ...playlist[currentIndex], cover: getAssetPath(playlist[currentIndex].cover) };
+		// 不要重复处理cover，playlist中的cover已经是完整路径
+		currentSong = { ...playlist[currentIndex] };
 		audio.volume = audioVolumeCurrent;
 		handleAudioEvents(); // 重新绑定事件监听器
 		
@@ -825,8 +826,8 @@ function loadSong(song: typeof currentSong) {
 		return;
 	}
 	
-	const normalizedCover = getAssetPath(song.cover);
-	currentSong = { ...song, cover: normalizedCover };
+	// song.cover已经是完整路径，不需要再次处理
+	currentSong = { ...song };
 	
 	// 将当前封面写入缓存的多版本键，确保歌单列表与迷你封面共享同一资源
 	cacheCoverVariants(song.cover);
@@ -1495,7 +1496,7 @@ onDestroy(() => {
                  role="button"
                  tabindex="0"
                  aria-label={isPlaying ? '暂停' : '播放'}>
-				 <img src={coverCache.get(currentSong.cover) ?? currentSong.cover} alt="封面"
+				 <img src={currentSong.cover} alt="封面"
 					 class="w-full h-full object-cover transition-transform duration-300"
 					 class:spinning={isPlaying && !isLoading}
 					 class:animate-pulse={isLoading}
@@ -1568,7 +1569,7 @@ onDestroy(() => {
          class:pointer-events-none={!isExpanded}>
         <div class="flex items-center gap-4 mb-4">
             <div class="cover-container relative w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
-				 <img src={coverCache.get(currentSong.cover) ?? currentSong.cover} alt="封面"
+				 <img src={currentSong.cover} alt="封面"
 					 class="w-full h-full object-cover transition-transform duration-300"
 					 class:spinning={isPlaying && !isLoading}
 					 class:animate-pulse={isLoading}
@@ -1770,7 +1771,7 @@ onDestroy(() => {
                         </div>
                         <!-- 歌单列表内封面仍为圆角矩形 -->
                         <div class="w-10 h-10 rounded-lg overflow-hidden bg-[var(--btn-regular-bg)] flex-shrink-0">
-							<img src={coverCache.get(song.cover) ?? song.cover} alt={song.title} class="w-full h-full object-cover"
+							<img src={song.cover} alt={song.title} class="w-full h-full object-cover"
 								loading={index < 12 ? "eager" : "lazy"}
 								fetchpriority={index < 12 ? "high" : "low"}
 								decoding="async"
@@ -1778,23 +1779,14 @@ onDestroy(() => {
 									const img = event.currentTarget as HTMLImageElement;
 									if (img.src.endsWith('/favicon/favicon.ico')) return;
 									const attempt = Number(img.dataset.attempt || '0');
-									const cached = coverCache.get(song.cover)
-										?? coverCache.get(currentSong.cover)
-										?? coverCache.get(getAssetPath(song.cover));
-									const fallbacks = [cached, song.cover, currentSong.cover]
+									// 使用备用封面地址
+									const fallbacks = [song.cover, DEFAULT_COVER, '/favicon/favicon.ico']
 										.filter(Boolean) as string[];
-									try {
-										for (const [key, val] of coverCache.entries()) {
-											if (val === img.src || key === song.cover) coverCache.delete(key);
-										}
-										persistCoverCache();
-									} catch (e) {}
 
 									const next = fallbacks[attempt];
-									if (next) {
+									if (next && attempt < fallbacks.length) {
 										img.dataset.attempt = String(attempt + 1);
 										img.src = next;
-										preloadSingleCover(song.cover, 8000, 2).catch(() => {});
 									} else {
 										img.src = '/favicon/favicon.ico';
 									}
