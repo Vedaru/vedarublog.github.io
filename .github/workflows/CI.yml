@@ -26,10 +26,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
-          cache-dependency-path: pnpm-lock.yaml
 
-      - name: Enable corepack (makes pnpm available to cache step)
+      - name: Enable corepack (makes pnpm available)
         run: corepack enable
 
       - name: Setup pnpm
@@ -92,10 +90,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
-          cache-dependency-path: pnpm-lock.yaml
 
-      - name: Enable corepack (makes pnpm available to cache step)
+      - name: Enable corepack (makes pnpm available)
         run: corepack enable
 
       - name: Setup pnpm
