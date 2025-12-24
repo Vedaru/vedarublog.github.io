@@ -400,7 +400,7 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 	// 优先使用响应较快的 injahow，并附带 nocache 避免旧缓存
 	meting_api:
 		"https://api.injahow.cn/meting/?server=:server&type=:type&id=:id&auth=:auth&nocache=1&r=:r",
-	id: "17514570572", // 歌单ID（建议控制在50首以内以加快加载）
+	id: "17514570572", // 歌单ID（如果 API 缓存旧数据，请访问网易云确认歌单实际歌曲数）
 	server: "netease", // 音乐源服务器。有的meting的api源支持更多平台,一般来说,netease=网易云音乐, tencent=QQ音乐, kugou=酷狗音乐, xiami=虾米音乐, baidu=百度音乐
 	type: "playlist", // 播单类型
 	
