@@ -3,62 +3,39 @@
  * 提供封面图片加载重试、备用源、懒加载等功能
  */
 
-// 备用封面CDN源
-const FALLBACK_COVER_CDNS = [
-	"https://p1.music.126.net/",
-	"https://p2.music.126.net/",
-	"https://p3.music.126.net/",
-	"https://p4.music.126.net/",
-];
-
 // 默认封面
 const DEFAULT_COVER = "/favicon/favicon.ico";
 
 /**
- * 从网易云音乐URL中提取封面ID
- */
-function extractCoverId(url: string): string | null {
-	try {
-		// 匹配网易云封面URL模式: https://api.xxx.com/meting/?server=netease&type=pic&id=XXXXX
-		const metingMatch = url.match(/[&?]id=([^&]+)/);
-		if (metingMatch) return metingMatch[1];
-		
-		// 匹配直接的网易云CDN URL: https://pX.music.126.net/HASH/XXXXX.jpg
-		const cdnMatch = url.match(/music\.126\.net\/([^/]+\/)?([^/.]+)/);
-		if (cdnMatch) return cdnMatch[2];
-		
-		return null;
-	} catch {
-		return null;
-	}
-}
-
-/**
  * 获取备用封面URL列表
+ * 对于 Meting API 返回的封面，只使用原始 URL，不尝试重新构建
  */
 export function getFallbackCovers(originalUrl: string): string[] {
 	const fallbacks: string[] = [];
 	
 	// 如果是本地路径，直接返回
 	if (!originalUrl.startsWith("http://") && !originalUrl.startsWith("https://")) {
-		return [originalUrl];
+		return [originalUrl, DEFAULT_COVER];
 	}
 	
 	// 首选原始URL
 	fallbacks.push(originalUrl);
 	
-	// 尝试HTTPS协议
+	// 尝试HTTPS协议（如果原始是HTTP）
 	if (originalUrl.startsWith("http://")) {
 		fallbacks.push("https://" + originalUrl.slice(7));
 	}
 	
-	// 尝试从URL提取ID并生成备用CDN URL
-	const coverId = extractCoverId(originalUrl);
-	if (coverId) {
-		FALLBACK_COVER_CDNS.forEach(cdn => {
-			fallbacks.push(`${cdn}${coverId}.jpg`);
-		});
+	// 如果是 Meting API 代理 URL，不生成备用源（因为代理不稳定）
+	// 直接回退到默认封面
+	if (originalUrl.includes("/meting/") && originalUrl.includes("type=pic")) {
+		fallbacks.push(DEFAULT_COVER);
+		return Array.from(new Set(fallbacks));
 	}
+	
+	// 如果是网易云 CDN 直接 URL（包含完整路径），保留它
+	// 添加默认封面作为最后的备选
+	fallbacks.push(DEFAULT_COVER);
 	
 	// 去重
 	return Array.from(new Set(fallbacks));
@@ -83,14 +60,24 @@ export async function loadImageWithRetry(
 		return url;
 	}
 	
+	// 如果是 Meting API 代理 URL，使用更短的超时时间
+	const isMettingProxy = url.includes("/meting/") && url.includes("type=pic");
+	const actualTimeout = isMettingProxy ? 2000 : timeout;
+	const actualMaxRetries = isMettingProxy ? 0 : maxRetries; // 代理URL不重试
+	
 	const fallbackUrls = getFallbackCovers(url);
 	let lastError: unknown = null;
 
 	for (const testUrl of fallbackUrls) {
-		for (let attempt = 0; attempt <= maxRetries; attempt++) {
+		// 如果已经是默认封面，直接返回
+		if (testUrl === DEFAULT_COVER) {
+			return DEFAULT_COVER;
+		}
+		
+		for (let attempt = 0; attempt <= actualMaxRetries; attempt++) {
 			try {
 				const controller = new AbortController();
-				const timeoutId = setTimeout(() => controller.abort(), timeout);
+				const timeoutId = setTimeout(() => controller.abort(), actualTimeout);
 				
 				// 使用 GET + no-cors，避免部分源拒绝 HEAD；发生 CORS 也不抛错
 				await fetch(testUrl, {
@@ -103,20 +90,20 @@ export async function loadImageWithRetry(
 				return testUrl;
 			} catch (error) {
 				lastError = error;
-				if (attempt < maxRetries) {
+				if (attempt < actualMaxRetries) {
 					await new Promise((resolve) =>
-						setTimeout(resolve, Math.min(1000 * Math.pow(2, attempt), 5000)),
+						setTimeout(resolve, Math.min(500 * Math.pow(2, attempt), 2000)),
 					);
 				} else {
-					console.debug(`Failed to load cover ${testUrl} after ${maxRetries + 1} attempts`);
+					console.debug(`Failed to load cover ${testUrl} after ${actualMaxRetries + 1} attempts`);
 				}
 			}
 		}
 	}
 
-	console.warn(`All cover URLs failed for: ${url}, fallback to original`, lastError);
-	// 返回原始 URL，让浏览器自行尝试加载；仅在空字符串时回退默认封面
-	return url || DEFAULT_COVER;
+	console.debug(`All cover URLs failed for: ${url}, using default cover`);
+	// 全部失败，返回默认封面
+	return DEFAULT_COVER;
 }
 
 /**
@@ -132,10 +119,15 @@ export function preloadImage(url: string): Promise<string> {
 		const img = new Image();
 		img.crossOrigin = "anonymous";
 		
+		// 如果是 Meting API 代理 URL，使用更短的超时
+		const isMettingProxy = url.includes("/meting/") && url.includes("type=pic");
+		const timeout = isMettingProxy ? 3000 : 8000;
+		
 		const timeoutId = setTimeout(() => {
 			img.src = ""; // 取消加载
-			resolve(url); // 超时也返回原URL，让浏览器在显示时加载
-		}, 8000);
+			// 超时直接返回默认封面
+			resolve(isMettingProxy ? DEFAULT_COVER : url);
+		}, timeout);
 		
 		img.onload = () => {
 			clearTimeout(timeoutId);
@@ -144,8 +136,12 @@ export function preloadImage(url: string): Promise<string> {
 		
 		img.onerror = () => {
 			clearTimeout(timeoutId);
-			// 错误时尝试备用源
-			loadImageWithRetry(url, 3000, 1).then(resolve);
+			// 错误时，Meting 代理URL直接用默认封面，其他尝试备用源
+			if (isMettingProxy) {
+				resolve(DEFAULT_COVER);
+			} else {
+				loadImageWithRetry(url, 3000, 1).then(resolve);
+			}
 		};
 		
 		img.src = url;
