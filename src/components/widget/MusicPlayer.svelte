@@ -644,6 +644,7 @@ function nextSong() {
 function playSong(index: number) {
 	if (index < 0 || index >= playlist.length) return;
 	const wasPlaying = isPlaying;
+	console.debug("playSong called:", { index, wasPlaying, shouldAutoplayContinuous, title: playlist[index]?.title });
 	currentIndex = index;
 	
 	// 检查是否可以直接使用预加载的音频
@@ -713,13 +714,15 @@ function playSong(index: number) {
 	}
 	
 	// 如果之前在播放，或者启用了自动连播（列表循环），则自动开始播放
-	if (wasPlaying || shouldAutoplayContinuous) {
+	const shouldAutoPlay = wasPlaying || shouldAutoplayContinuous;
+	console.debug("Should auto-play next track:", shouldAutoPlay, { wasPlaying, shouldAutoplayContinuous });
+	if (shouldAutoPlay) {
 		setTimeout(() => {
 			if (!audio) return;
 			
 			const attemptPlay = () => {
 				audio.play().catch((err) => {
-					console.warn("Play failed after song change:", err);
+					console.debug("Play failed after song change:", err);
 					// 如果播放失败，尝试再次加载
 					if (err.name === 'NotSupportedError' || err.name === 'AbortError') {
 						setTimeout(() => {
@@ -1298,7 +1301,9 @@ function handleAudioEvents() {
 		}
 	});
 	audio.addEventListener("ended", () => {
+		console.debug("Track ended. isRepeating:", isRepeating, "currentIndex:", currentIndex, "playlist.length:", playlist.length);
 		if (isRepeating === 1) {
+			// 单曲循环
 			audio.currentTime = 0;
 			audio.play().catch(() => {});
 		} else if (
@@ -1306,8 +1311,11 @@ function handleAudioEvents() {
 			currentIndex < playlist.length - 1 ||
 			isShuffled
 		) {
+			// 列表循环、还有下一首、或随机播放
+			console.debug("Calling nextSong() for continuous playback");
 			nextSong();
 		} else {
+			console.debug("Playback stopped at end of playlist");
 			isPlaying = false;
 		}
 	});
