@@ -375,7 +375,7 @@ export const commentConfig: CommentConfig = {
 
 export const announcementConfig: AnnouncementConfig = {
 	title: "公告", // 公告标题
-	content: "最近因为要准备期末考试可能会只能停一段时间的更新了。", // 公告内容
+	content: "最近因为要准备期末考试可能会停一段时间的更新了。", // 公告内容
 	closable: true, // 允许用户关闭公告
 	persistClose: false, // 关闭公告后是否持久化（false=刷新页面后恢复；true=永久关闭直到手动清除localStorage）
 	link: {
