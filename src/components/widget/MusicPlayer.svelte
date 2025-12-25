@@ -107,6 +107,10 @@ let isShuffled = false;
 let isRepeating = 0;
 // 根据配置决定是否启用自动连播（列表循环）
 const shouldAutoplayContinuous = Boolean(musicPlayerConfig.autoplayContinuous);
+// 如果配置要求自动连播，默认将循环模式设置为列表循环
+if (shouldAutoplayContinuous) {
+	isRepeating = 2;
+}
 // 错误信息，默认为空字符串
 let errorMessage = "";
 // 是否显示错误信息，默认为 false
@@ -631,7 +635,25 @@ function previousSong() {
 }
 
 function nextSong() {
-	if (playlist.length <= 1) return;
+	// 当歌单长度为1时，仍需根据循环模式处理：
+	// - 单曲循环 (isRepeating === 1): 重新从头播放当前曲目
+	// - 列表循环 (isRepeating === 2): 跳回索引0并播放
+	if (playlist.length <= 1) {
+		if (!audio) return;
+		if (isRepeating === 1) {
+			try {
+				audio.currentTime = 0;
+				audio.play().catch(() => {});
+			} catch (e) {}
+			return;
+		}
+		if (isRepeating === 2) {
+			// 列表循环且只有一首歌，直接重播索引0
+			playSong(0);
+			return;
+		}
+		return;
+	}
 	let newIndex: number;
 	if (isShuffled) {
 		do {
@@ -641,6 +663,19 @@ function nextSong() {
 		newIndex = currentIndex < playlist.length - 1 ? currentIndex + 1 : 0;
 	}
 	playSong(newIndex);
+
+	// 强制尝试播放，避免在某些浏览器/状态同步下切歌后未自动开始播放
+	setTimeout(() => {
+		try {
+			if (audio && !isPlaying) {
+				audio.play().catch((e) => {
+					console.debug('Auto-play after nextSong failed:', e);
+				});
+			}
+		} catch (e) {
+			console.debug('Auto-play attempt threw:', e);
+		}
+	}, 200);
 }
 
 function playSong(index: number) {
