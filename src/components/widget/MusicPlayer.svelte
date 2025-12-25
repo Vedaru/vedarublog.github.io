@@ -1178,6 +1178,29 @@ function stopProgressDrag() {
 	} catch (e) {
 		console.debug('Error applying final seek after drag:', e);
 	}
+	// 释放拖动时恢复自动连播：如果当前已接近末尾，则在释放后触发下一首或单曲循环
+	try {
+		const actualDuration2 = (audio?.duration && Number.isFinite(audio.duration)) ? audio.duration : (Number.isFinite(duration) ? duration : 0);
+		const nearEnd = actualDuration2 > 0 && currentTime >= actualDuration2 - 0.15;
+		if (nearEnd) {
+			// 与 ended 处理逻辑一致
+			if (isRepeating === 1) {
+				// 单曲循环：重置并播放
+				if (audio) {
+					audio.currentTime = 0;
+					audio.play().catch(() => {});
+				}
+			} else if (isRepeating === 2 || currentIndex < playlist.length - 1 || isShuffled) {
+				setTimeout(() => {
+					try { nextSong(); } catch (e) { console.debug('nextSong after drag failed', e); }
+				}, 150);
+			} else {
+				isPlaying = false;
+			}
+		}
+	} catch (e) {
+		console.debug('Error while handling near-end after drag:', e);
+	}
 	// 如果拖动前正在播放，尝试恢复播放（某些浏览器在设置 currentTime 后会自动暂停）
 	try {
 		if (wasPlayingDuringDrag && audio && !isPlaying) {
@@ -1424,7 +1447,12 @@ function handleAudioEvents() {
 		}
 	});
 	audio.addEventListener("ended", () => {
-		console.debug("Track ended. isRepeating:", isRepeating, "currentIndex:", currentIndex, "playlist.length:", playlist.length);
+		console.debug("Track ended. isRepeating:", isRepeating, "currentIndex:", currentIndex, "playlist.length:", playlist.length, "isProgressDragging:", isProgressDragging);
+		// 如果正在拖动进度条，则忽略 ended 事件，等用户释放后再处理
+		if (isProgressDragging) {
+			console.debug("Ended ignored because progress drag is active");
+			return;
+		}
 		if (isRepeating === 1) {
 			// 单曲循环
 			audio.currentTime = 0;
