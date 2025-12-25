@@ -58,6 +58,8 @@ let isHidden = false;
 let showPlaylist = false;
 // 自动播放是否已触发
 let autoplayAttempted = false;
+// 是否因自动播放而处于静音状态（等待用户交互后恢复）
+let mutedForAutoplay = false;
 // 当前播放时间，默认为 0
 let currentTime = 0;
 // 歌曲总时长，默认为 0
@@ -940,44 +942,78 @@ function requestAutoplay() {
 	if (!shouldAutoplay || autoplayAttempted) return;
 	if (!audio || !currentSong.url) return;
 
-	// 仅做一次程序化尝试，若被浏览器阻止则注册一次性用户交互监听以在首次交互时开始播放
-	const onUserInteraction = () => {
-		tryPlay().finally(() => {
-			window.removeEventListener("click", onUserInteraction, true);
-			window.removeEventListener("keydown", onUserInteraction, true);
-		});
-	};
-
-	const tryPlay = async () => {
-		// 确保取消静音并设置合适音量
-		audio.muted = false;
-		if (!Number.isFinite(audio.volume) || audio.volume === 0) {
-			audio.volume = Math.max(0.01, audioVolumeCurrent || 0.3);
-		}
+	// 使用静音模式进行首次自动播放，绕过浏览器限制
+	const tryPlayMuted = async () => {
 		try {
+			// 先静音
+			audio.muted = true;
+			mutedForAutoplay = true;
+			isMuted = true;
+			
+			// 设置音量
+			if (!Number.isFinite(audio.volume) || audio.volume === 0) {
+				audio.volume = Math.max(0.01, audioVolumeCurrent || 0.3);
+			}
+			
 			await audio.play();
 			autoplayAttempted = true;
+			
+			// 显示提示，引导用户交互以取消静音
+			showErrorMessage("🔇 点击页面任意位置以启用声音");
+			
+			// 注册用户交互监听，取消静音
+			const unmuteOnInteraction = () => {
+				if (mutedForAutoplay) {
+					audio.muted = false;
+					mutedForAutoplay = false;
+					isMuted = false;
+					console.debug("Unmuted after user interaction");
+					// 隐藏提示
+					hideError();
+				}
+				// 移除监听器
+				window.removeEventListener("click", unmuteOnInteraction, true);
+				window.removeEventListener("keydown", unmuteOnInteraction, true);
+				window.removeEventListener("touchstart", unmuteOnInteraction, true);
+			};
+			
+			window.addEventListener("click", unmuteOnInteraction, { once: true, capture: true });
+			window.addEventListener("keydown", unmuteOnInteraction, { once: true, capture: true });
+			window.addEventListener("touchstart", unmuteOnInteraction, { once: true, capture: true });
+			
 			return true;
 		} catch (err: any) {
-			// 浏览器策略阻止自动播放（NotAllowedError）为预期行为，仅向用户展示提示并注册一次交互监听。
-			if (err?.name === "NotAllowedError") {
-				showErrorMessage("自动播放被浏览器阻止，请先点击页面任意位置");
-				window.addEventListener("click", onUserInteraction, { once: true, capture: true });
-				window.addEventListener("keydown", onUserInteraction, { once: true, capture: true });
-			} else {
-				// 其它错误记录为调试信息
-				console.debug("Autoplay error:", err);
-			}
+			console.debug("Muted autoplay failed:", err);
+			// 即使静音播放失败，也标记为已尝试
 			autoplayAttempted = true;
+			
+			// 如果连静音播放都失败，注册用户交互后播放
+			if (err?.name === "NotAllowedError") {
+				showErrorMessage("点击页面任意位置以开始播放");
+				const playOnInteraction = () => {
+					if (audio && !isPlaying) {
+						audio.muted = false;
+						isMuted = false;
+						mutedForAutoplay = false;
+						audio.play().catch(() => {});
+					}
+					window.removeEventListener("click", playOnInteraction, true);
+					window.removeEventListener("keydown", playOnInteraction, true);
+					window.removeEventListener("touchstart", playOnInteraction, true);
+				};
+				window.addEventListener("click", playOnInteraction, { once: true, capture: true });
+				window.addEventListener("keydown", playOnInteraction, { once: true, capture: true });
+				window.addEventListener("touchstart", playOnInteraction, { once: true, capture: true });
+			}
 			return false;
 		}
 	};
 
 	if (audio.readyState >= 2) {
-		tryPlay();
+		tryPlayMuted();
 	} else {
 		audio.addEventListener("canplay", () => {
-			tryPlay();
+			tryPlayMuted();
 		}, { once: true });
 	}
 }
@@ -1252,6 +1288,10 @@ function startVolumeDrag(e: PointerEvent) {
 
 function toggleMute() {
 	if (!audio) return;
+	// 如果是因自动播放而静音，取消该标记
+	if (mutedForAutoplay) {
+		mutedForAutoplay = false;
+	}
 	isMuted = !isMuted;
 	audio.muted = isMuted;
 }
