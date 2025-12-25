@@ -937,26 +937,44 @@ function requestAutoplay() {
 	if (!shouldAutoplay || autoplayAttempted) return;
 	if (!audio || !currentSong.url) return;
 
-	const attempt = () => {
-		autoplayAttempted = true;
-		// 取消静音并确保有可听音量
+	// 仅做一次程序化尝试，若被浏览器阻止则注册一次性用户交互监听以在首次交互时开始播放
+	const onUserInteraction = () => {
+		tryPlay().finally(() => {
+			window.removeEventListener("click", onUserInteraction, true);
+			window.removeEventListener("keydown", onUserInteraction, true);
+		});
+	};
+
+	const tryPlay = async () => {
+		// 确保取消静音并设置合适音量
 		audio.muted = false;
 		if (!Number.isFinite(audio.volume) || audio.volume === 0) {
 			audio.volume = Math.max(0.01, audioVolumeCurrent || 0.3);
 		}
-
-		audio.play().catch((err) => {
+		try {
+			await audio.play();
+			autoplayAttempted = true;
+			return true;
+		} catch (err: any) {
 			console.warn("Autoplay failed", err);
-			if (err.name === "NotAllowedError") {
+			// 若被浏览器策略阻止，则提示用户并注册一次交互监听
+			if (err?.name === "NotAllowedError") {
 				showErrorMessage("自动播放被浏览器阻止，请先点击页面任意位置");
+				// 注册捕获阶段的监听以尽早响应交互
+				window.addEventListener("click", onUserInteraction, { once: true, capture: true });
+				window.addEventListener("keydown", onUserInteraction, { once: true, capture: true });
 			}
-		});
+			autoplayAttempted = true;
+			return false;
+		}
 	};
 
 	if (audio.readyState >= 2) {
-		attempt();
+		tryPlay();
 	} else {
-		audio.addEventListener("canplay", attempt, { once: true });
+		audio.addEventListener("canplay", () => {
+			tryPlay();
+		}, { once: true });
 	}
 }
 
