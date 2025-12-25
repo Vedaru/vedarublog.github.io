@@ -103,6 +103,8 @@ let isLoading = false;
 let isShuffled = false;
 // 循环模式，0: 不循环, 1: 单曲循环, 2: 列表循环，默认为 0
 let isRepeating = 0;
+// 根据配置决定是否启用自动连播（列表循环）
+const shouldAutoplayContinuous = Boolean(musicPlayerConfig.autoplayContinuous);
 // 错误信息，默认为空字符串
 let errorMessage = "";
 // 是否显示错误信息，默认为 false
@@ -351,6 +353,10 @@ async function fetchMetingPlaylist() {
 			playlist = list.map((song: SongData) =>
 				processSongData(song, getAssetPath, normalizeCoverUrl)
 			);
+			// 如果配置要求自动连播，设置为列表循环
+			if (shouldAutoplayContinuous) {
+				isRepeating = 2;
+			}
 			if (playlist.length > 0) {
 				loadSong(playlist[0]);
 				preloadCurrentAndNextCovers().catch((e) =>
@@ -373,6 +379,10 @@ async function fetchMetingPlaylist() {
 		playlist = localPlaylist.map((s) =>
 			processSongData(s as SongData, getAssetPath, normalizeCoverUrl),
 		);
+		// 如果配置要求自动连播，设置为列表循环
+		if (shouldAutoplayContinuous) {
+			isRepeating = 2;
+		}
 		if (playlist.length > 0) {
 			loadSong(playlist[0]);
 			preloadCurrentAndNextCovers().catch((e) =>
@@ -1383,6 +1393,10 @@ onMount(() => {
 				url: getAssetPath(s.url),
 			};
 		});
+		// 如果配置要求自动连播，设置为列表循环
+		if (shouldAutoplayContinuous) {
+			isRepeating = 2;
+		}
 		if (playlist.length > 0) {
 			loadSong(playlist[0]);
 			// 确保音频元素有正确的初始状态

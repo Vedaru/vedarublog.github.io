@@ -291,6 +291,7 @@ export type MusicPlayerConfig = {
 	// 可选性能/行为配置
 	preload?: "none" | "metadata" | "auto"; // 音频预加载策略
 	autoplay?: boolean; // 是否自动播放
+	autoplayContinuous?: boolean; // 是否在播放完一首后自动继续播放并循环列表
 	volume?: number; // 默认音量（0-1）
 	listMaxHeight?: string; // 播放列表最大高度（CSS 值，例如 "250px"）
 	order?: "list" | "random"; // 播放顺序
