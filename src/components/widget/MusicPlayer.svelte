@@ -1071,13 +1071,17 @@ function setProgress(event: MouseEvent) {
 	if (!audio || !progressBar) return;
 	const rect = progressBar.getBoundingClientRect();
 	const percent = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
- 	// 使用实际 audio.duration 优先，回退到组件维护的 duration
- 	const actualDuration = (audio.duration && Number.isFinite(audio.duration)) ? audio.duration : (Number.isFinite(duration) ? duration : 0);
- 	let newTime = percent * actualDuration;
- 	// 避免设置到音频末尾触发 ended 事件：如果接近末尾则降低少量时间
- 	if (actualDuration > 0 && newTime >= actualDuration) {
- 		newTime = Math.max(0, actualDuration - 0.05);
- 	}
+	// 使用实际 audio.duration 优先，回退到组件维护的 duration
+	const actualDuration = (audio.duration && Number.isFinite(audio.duration)) ? audio.duration : (Number.isFinite(duration) ? duration : 0);
+	// 同步组件的 duration，保证模板渲染时进度条基于最新时长
+	if (actualDuration > 0 && duration !== actualDuration) {
+		duration = actualDuration;
+	}
+	let newTime = percent * (actualDuration || duration || 0);
+	// 避免设置到音频末尾触发 ended 事件：如果接近末尾则降回一个更保守的阈值
+	if (actualDuration > 0 && newTime >= actualDuration) {
+		newTime = Math.max(0, actualDuration - 0.15);
+	}
 	// 避免不必要的重复设置
 	if (Math.abs(currentTime - newTime) > 0.01) {
 		audio.currentTime = newTime;
@@ -1099,9 +1103,13 @@ function scheduleProgressUpdate(clientX: number) {
 			);
 			// 使用实际 audio.duration 优先，回退到组件维护的 duration
 			const actualDuration = (audio.duration && Number.isFinite(audio.duration)) ? audio.duration : (Number.isFinite(duration) ? duration : 0);
-			let newTime = percent * actualDuration;
+			// 同步组件的 duration，保证模板使用的 duration 跟随实际值
+			if (actualDuration > 0 && duration !== actualDuration) {
+				duration = actualDuration;
+			}
+			let newTime = percent * (actualDuration || duration || 0);
 			if (actualDuration > 0 && newTime >= actualDuration) {
-				newTime = Math.max(0, actualDuration - 0.05);
+				newTime = Math.max(0, actualDuration - 0.15);
 			}
 			// 避免不必要的重复设置，特别是当拖动超出边界时
 			if (Math.abs(currentTime - newTime) > 0.01) { // 只有当时间变化超过10ms时才更新
@@ -1155,6 +1163,20 @@ function stopProgressDrag() {
 		cancelAnimationFrame(progRafId);
 		progRafId = null;
 		lastProgressClientX = null;
+	}
+	// 确保最终位置已应用到 audio.currentTime（再次截断防止触发 ended）
+	try {
+		if (audio) {
+			const actualDuration = (audio.duration && Number.isFinite(audio.duration)) ? audio.duration : (Number.isFinite(duration) ? duration : 0);
+			let finalTime = currentTime;
+			if (actualDuration > 0 && finalTime >= actualDuration) {
+				finalTime = Math.max(0, actualDuration - 0.15);
+			}
+			audio.currentTime = finalTime;
+			currentTime = finalTime;
+		}
+	} catch (e) {
+		console.debug('Error applying final seek after drag:', e);
 	}
 	// 如果拖动前正在播放，尝试恢复播放（某些浏览器在设置 currentTime 后会自动暂停）
 	try {
