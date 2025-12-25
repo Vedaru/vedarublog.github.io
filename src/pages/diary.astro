@@ -58,14 +58,12 @@ function formatTime(dateString: string): string {
 	if (isNaN(d.getTime())) return dateString;
 	const monthStr = String(d.getMonth() + 1).padStart(2, '0');
 	const dayStr = String(d.getDate()).padStart(2, '0');
-	const hourStr = String(d.getHours()).padStart(2, '0');
-	const minuteStr = String(d.getMinutes()).padStart(2, '0');
-	// 如果站点使用中文语言，显示中文格式的“MM月DD日 HH:MM”，否则使用 "MM-DD HH:MM"
+	// 仅显示月份和日（中文显示“MM月DD日”，其它语言显示 "MM-DD"）
 	const lang = (siteConfig && siteConfig.lang) ? String(siteConfig.lang).toLowerCase() : '';
 	if (lang.startsWith('zh')) {
-		return `${monthStr}月${dayStr}日 ${hourStr}:${minuteStr}`;
+		return `${monthStr}月${dayStr}日`;
 	}
-	return `${monthStr}-${dayStr} ${hourStr}:${minuteStr}`;
+	return `${monthStr}-${dayStr}`;
 }
 
 // 返回具体时:分（24 小时制），用于卡片右下角显示（使用本地时区）
