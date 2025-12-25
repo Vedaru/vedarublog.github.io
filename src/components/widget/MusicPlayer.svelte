@@ -712,8 +712,8 @@ function playSong(index: number) {
 		prefetchNext();
 	}
 	
-	// 如果之前在播放或用户期望播放，等待音频准备就绪后播放
-	if (wasPlaying || !isPlaying) {
+	// 如果之前在播放，或者启用了自动连播（列表循环），则自动开始播放
+	if (wasPlaying || shouldAutoplayContinuous) {
 		setTimeout(() => {
 			if (!audio) return;
 			
