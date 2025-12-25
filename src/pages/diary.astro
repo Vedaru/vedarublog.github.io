@@ -52,28 +52,20 @@ function formatTime(dateString: string): string {
 	// 如果日期字符串中没有时区信息，按 siteConfig.timeZone（UTC+8）解析
 	let dateToUse = dateString;
 	if (!dateString.includes('+') && !dateString.includes('Z')) {
-		// 没有时区信息，按 UTC+8 解析
 		dateToUse = dateString + '+08:00';
 	}
-	
-	const now = new Date();
-	const date = new Date(dateToUse);
-	const diffInMinutes = Math.floor(
-		(now.getTime() - date.getTime()) / (1000 * 60),
-	);
-
-	// 如果时间是负数（未来的日期），使用绝对值
-	const absDiffInMinutes = Math.abs(diffInMinutes);
-
-	if (absDiffInMinutes < 60) {
-		return `${absDiffInMinutes}${i18n(I18nKey.diaryMinutesAgo)}`;
+	const d = new Date(dateToUse);
+	if (isNaN(d.getTime())) return dateString;
+	const monthStr = String(d.getMonth() + 1).padStart(2, '0');
+	const dayStr = String(d.getDate()).padStart(2, '0');
+	const hourStr = String(d.getHours()).padStart(2, '0');
+	const minuteStr = String(d.getMinutes()).padStart(2, '0');
+	// 如果站点使用中文语言，显示中文格式的“MM月DD日 HH:MM”，否则使用 "MM-DD HH:MM"
+	const lang = (siteConfig && siteConfig.lang) ? String(siteConfig.lang).toLowerCase() : '';
+	if (lang.startsWith('zh')) {
+		return `${monthStr}月${dayStr}日 ${hourStr}:${minuteStr}`;
 	}
-	if (absDiffInMinutes < 1440) {
-		const hours = Math.floor(absDiffInMinutes / 60);
-		return `${hours}${i18n(I18nKey.diaryHoursAgo)}`;
-	}
-	const days = Math.floor(absDiffInMinutes / 1440);
-	return `${days}${i18n(I18nKey.diaryDaysAgo)}`;
+	return `${monthStr}-${dayStr} ${hourStr}:${minuteStr}`;
 }
 
 // 返回具体时:分（24 小时制），用于卡片右下角显示（使用本地时区）
