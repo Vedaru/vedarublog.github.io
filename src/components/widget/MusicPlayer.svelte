@@ -74,6 +74,7 @@ let lastClientX: number | null = null;
 let isProgressDragging = false;
 let progRafId: number | null = null;
 let lastProgressClientX: number | null = null;
+let wasPlayingDuringDrag = false;
 let showProgressTooltip = false;
 let progressTooltipPercent = 0; // 0-100，用于定位提示位置
 // 悬停提示支持
@@ -1070,7 +1071,13 @@ function setProgress(event: MouseEvent) {
 	if (!audio || !progressBar) return;
 	const rect = progressBar.getBoundingClientRect();
 	const percent = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
-	const newTime = percent * duration;
+ 	// 使用实际 audio.duration 优先，回退到组件维护的 duration
+ 	const actualDuration = (audio.duration && Number.isFinite(audio.duration)) ? audio.duration : (Number.isFinite(duration) ? duration : 0);
+ 	let newTime = percent * actualDuration;
+ 	// 避免设置到音频末尾触发 ended 事件：如果接近末尾则降低少量时间
+ 	if (actualDuration > 0 && newTime >= actualDuration) {
+ 		newTime = Math.max(0, actualDuration - 0.05);
+ 	}
 	// 避免不必要的重复设置
 	if (Math.abs(currentTime - newTime) > 0.01) {
 		audio.currentTime = newTime;
@@ -1090,7 +1097,12 @@ function scheduleProgressUpdate(clientX: number) {
 				0,
 				Math.min(1, (lastProgressClientX - rect.left) / rect.width),
 			);
-			const newTime = percent * duration;
+			// 使用实际 audio.duration 优先，回退到组件维护的 duration
+			const actualDuration = (audio.duration && Number.isFinite(audio.duration)) ? audio.duration : (Number.isFinite(duration) ? duration : 0);
+			let newTime = percent * actualDuration;
+			if (actualDuration > 0 && newTime >= actualDuration) {
+				newTime = Math.max(0, actualDuration - 0.05);
+			}
 			// 避免不必要的重复设置，特别是当拖动超出边界时
 			if (Math.abs(currentTime - newTime) > 0.01) { // 只有当时间变化超过10ms时才更新
 				currentTime = newTime;
@@ -1144,10 +1156,24 @@ function stopProgressDrag() {
 		progRafId = null;
 		lastProgressClientX = null;
 	}
+	// 如果拖动前正在播放，尝试恢复播放（某些浏览器在设置 currentTime 后会自动暂停）
+	try {
+		if (wasPlayingDuringDrag && audio && !isPlaying) {
+			audio.play().catch((e) => {
+				console.debug('Resuming playback after drag failed:', e);
+			});
+		}
+	} catch (e) {
+		console.debug('Error while trying to resume after drag:', e);
+	} finally {
+		wasPlayingDuringDrag = false;
+	}
 }
 
 function startProgressDrag(e: PointerEvent) {
 	if (!audio || !progressBar) return;
+	// 记录拖动开始前的播放状态，以便拖动结束后恢复
+	wasPlayingDuringDrag = Boolean(isPlaying);
 	isProgressDragging = true;
 	e.preventDefault();
 	showProgressTooltip = true;
