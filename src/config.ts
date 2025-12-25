@@ -405,7 +405,7 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 	
 	// === 性能优化配置 ===
 	preload: "auto", // 仅预加载元数据，不预加载完整音频，加快初始加载速度
-	autoplay: false, // 禁用自动播放，减少初始页面加载负担
+	autoplay: false, // 进入页面即尝试播放，可能会被浏览器策略阻止
 	volume: 0.7, // 默认音量（0-1之间）
 	listMaxHeight: "250px", // 限制播放列表最大高度，避免列表过长影响性能
 	order: "list", // 播放顺序：list=列表顺序, random=随机播放

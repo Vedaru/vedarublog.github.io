@@ -46,6 +46,8 @@ let meting_server = musicPlayerConfig.server ?? "netease";
 let meting_type = musicPlayerConfig.type ?? "playlist";
 // 播放状态，默认为 false (未播放)
 let isPlaying = false;
+// 自动播放开关
+const shouldAutoplay = Boolean(musicPlayerConfig.autoplay);
 // 环境标识（仅在浏览器中可用 window）
 const isBrowser = typeof window !== "undefined";
 // 播放器是否展开，默认为 false
@@ -54,6 +56,8 @@ let isExpanded = false;
 let isHidden = false;
 // 是否显示播放列表，默认为 false
 let showPlaylist = false;
+// 自动播放是否已触发
+let autoplayAttempted = false;
 // 当前播放时间，默认为 0
 let currentTime = 0;
 // 歌曲总时长，默认为 0
@@ -907,6 +911,9 @@ function handleLoadSuccess() {
 		if (playlist[currentIndex]) playlist[currentIndex].duration = duration;
 		currentSong.duration = duration;
 	}
+
+	// 尝试自动播放：仅在启用且未尝试过时触发
+	requestAutoplay();
 }
 
 function handleLoadError(_event: Event) {
@@ -914,6 +921,33 @@ function handleLoadError(_event: Event) {
 	showErrorMessage(`无法播放 "${currentSong.title}"，正在尝试下一首...`);
 	if (playlist.length > 1) setTimeout(() => nextSong(), 1000);
 	else showErrorMessage("播放列表中没有可用的歌曲");
+}
+
+function requestAutoplay() {
+	if (!shouldAutoplay || autoplayAttempted) return;
+	if (!audio || !currentSong.url) return;
+
+	const attempt = () => {
+		autoplayAttempted = true;
+		// 取消静音并确保有可听音量
+		audio.muted = false;
+		if (!Number.isFinite(audio.volume) || audio.volume === 0) {
+			audio.volume = Math.max(0.01, audioVolumeCurrent || 0.3);
+		}
+
+		audio.play().catch((err) => {
+			console.warn("Autoplay failed", err);
+			if (err.name === "NotAllowedError") {
+				showErrorMessage("自动播放被浏览器阻止，请先点击页面任意位置");
+			}
+		});
+	};
+
+	if (audio.readyState >= 2) {
+		attempt();
+	} else {
+		audio.addEventListener("canplay", attempt, { once: true });
+	}
 }
 
 function handleLoadStart() {}
