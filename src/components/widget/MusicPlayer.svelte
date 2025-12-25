@@ -956,13 +956,14 @@ function requestAutoplay() {
 			autoplayAttempted = true;
 			return true;
 		} catch (err: any) {
-			console.warn("Autoplay failed", err);
-			// 若被浏览器策略阻止，则提示用户并注册一次交互监听
+			// 浏览器策略阻止自动播放（NotAllowedError）为预期行为，仅向用户展示提示并注册一次交互监听。
 			if (err?.name === "NotAllowedError") {
 				showErrorMessage("自动播放被浏览器阻止，请先点击页面任意位置");
-				// 注册捕获阶段的监听以尽早响应交互
 				window.addEventListener("click", onUserInteraction, { once: true, capture: true });
 				window.addEventListener("keydown", onUserInteraction, { once: true, capture: true });
+			} else {
+				// 其它错误记录为调试信息
+				console.debug("Autoplay error:", err);
 			}
 			autoplayAttempted = true;
 			return false;
