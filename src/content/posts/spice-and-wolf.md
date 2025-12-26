@@ -8,7 +8,7 @@ category: 杂谈
 draft: false
 ---
 
-# Merchant Meets the Wise WOlf  
+# Merchant Meets the Wise Wolf  
 
 ## 田园牧歌的回响  
 

@@ -67,6 +67,10 @@ function renderComponent(
 		},
 	};
 }
+
+// 将必要的响应式配置序列化到客户端脚本中，避免在浏览器端直接导入 server-only 模块
+const breakpoints = widgetManager.getBreakpoints();
+const clientResponsiveLayout = widgetManager.getConfig().responsive.layout;
 ---
 
 <div id="sidebar" class:list={[className, "w-full"]}>
@@ -120,54 +124,49 @@ function renderComponent(
 </style>
 
 <script type="module" is:inline>
-	import { widgetManager } from "../../utils/widget-manager";
-	
-	// 响应式布局管理
+	// 服务端序列化的断点和响应式布局（由 widgetManager 提供）
+	const BREAKPOINTS = {JSON.stringify(breakpoints)};
+	const RESPONSIVE_LAYOUT = {JSON.stringify(clientResponsiveLayout)};
+
+	// 响应式布局管理（客户端）
 	class SidebarManager {
 		constructor() {
 			this.init();
 		}
-		
+
 		init() {
 			this.updateResponsiveDisplay();
 			window.addEventListener('resize', () => this.updateResponsiveDisplay());
-			
-			// 监听SWUP内容替换事件
+
 			if (typeof window !== 'undefined' && window.swup) {
 				window.swup.hooks.on('content:replace', () => {
-					// 延迟执行以确保DOM已更新
-					setTimeout(() => {
-						this.updateResponsiveDisplay();
-					}, 100);
+					setTimeout(() => this.updateResponsiveDisplay(), 100);
 				});
 			}
 		}
-		
+
 		updateResponsiveDisplay() {
-			const breakpoints = widgetManager.getBreakpoints();
 			const width = window.innerWidth;
-			
+
 			let deviceType;
-			if (width < breakpoints.mobile) {
+			if (width < BREAKPOINTS.mobile) {
 				deviceType = 'mobile';
-			} else if (width < breakpoints.tablet) {
+			} else if (width < BREAKPOINTS.tablet) {
 				deviceType = 'tablet';
 			} else {
 				deviceType = 'desktop';
 			}
-			
-			const shouldShow = widgetManager.shouldShowSidebar(deviceType);
+
+			const shouldShow = RESPONSIVE_LAYOUT[deviceType] === 'sidebar';
 			const sidebar = document.getElementById('sidebar');
-			
 			if (sidebar) {
 				sidebar.style.setProperty(
-					`--sidebar-${deviceType}-display`, 
+					`--sidebar-${deviceType}-display`,
 					shouldShow ? 'block' : 'none'
 				);
 			}
 		}
 	}
-	
-	// 初始化侧边栏管理器
+
 	new SidebarManager();
 </script>
