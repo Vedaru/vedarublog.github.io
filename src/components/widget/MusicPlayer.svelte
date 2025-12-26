@@ -1487,7 +1487,17 @@ onMount(() => {
 				cleanupIO();
 			}
 		}, { rootMargin: "200px" });
-		if (rootEl) io.observe(rootEl);
+		if (rootEl) {
+			io.observe(rootEl);
+			// 尝试将播放器根元素移动到 document.body，避免被祖先的 transform/overflow 剪裁
+			try {
+				if (rootEl.parentElement && rootEl.parentElement !== document.body) {
+					document.body.appendChild(rootEl);
+				}
+			} catch (e) {
+				console.debug('Failed to move music player root to body:', e);
+			}
+		}
 
 		// 任意一次用户交互也触发加载
 		const trigger = () => {
@@ -1587,6 +1597,13 @@ onDestroy(() => {
 				if (typeof val === 'string' && val.startsWith('blob:')) {
 					try { URL.revokeObjectURL(val); } catch (e) {}
 				}
+			}
+		} catch (e) {}
+
+		// 如果我们在挂载时将 rootEl 移动到了 body，销毁时尝试移除它
+		try {
+			if (rootEl && rootEl.parentElement === document.body) {
+				rootEl.remove();
 			}
 		} catch (e) {}
 		if (audioSource) {
