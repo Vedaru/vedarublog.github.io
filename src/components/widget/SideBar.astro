@@ -73,7 +73,9 @@ const breakpoints = widgetManager.getBreakpoints();
 const clientResponsiveLayout = widgetManager.getConfig().responsive.layout;
 ---
 
-<div id="sidebar" class:list={[className, "w-full"]}>
+<div id="sidebar" class:list={[className, "w-full"]}
+	data-breakpoints={JSON.stringify(breakpoints)}
+	data-responsive={JSON.stringify(clientResponsiveLayout)}>
 	<!-- 顶部固定组件区域 -->
 	{topComponents.length > 0 && (
 		<div class="flex flex-col w-full gap-4 mb-4">
@@ -124,11 +126,11 @@ const clientResponsiveLayout = widgetManager.getConfig().responsive.layout;
 </style>
 
 <script type="module" is:inline>
-	// 服务端序列化的断点和响应式布局（由 widgetManager 提供）
-	const BREAKPOINTS = {JSON.stringify(breakpoints)};
-	const RESPONSIVE_LAYOUT = {JSON.stringify(clientResponsiveLayout)};
+	// 从 DOM dataset 读取服务端序列化的配置
+	const sidebarEl = document.getElementById('sidebar');
+	const BREAKPOINTS = sidebarEl && sidebarEl.dataset.breakpoints ? JSON.parse(sidebarEl.dataset.breakpoints) : { mobile: 640, tablet: 1024 };
+	const RESPONSIVE_LAYOUT = sidebarEl && sidebarEl.dataset.responsive ? JSON.parse(sidebarEl.dataset.responsive) : { mobile: 'sidebar', tablet: 'sidebar', desktop: 'sidebar' };
 
-	// 响应式布局管理（客户端）
 	class SidebarManager {
 		constructor() {
 			this.init();
