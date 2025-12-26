@@ -134,6 +134,11 @@ async function loadButtonScript() {
         let pioBtn = document.getElementById("pio-show-switch");
         if (pioBtn) {
             pioBtn.onclick = function () {
+                try {
+                    localStorage.setItem('posterGirl', '1');
+                } catch (e) {
+                    // ignore
+                }
                 window.dispatchEvent(new CustomEvent('pio:show'));
             }
         }
@@ -163,6 +168,11 @@ async function loadButtonScript() {
         let pioBtn = document.getElementById("pio-show-switch");
         if (pioBtn) {
             pioBtn.onclick = function () {
+                try {
+                    localStorage.setItem('posterGirl', '1');
+                } catch (e) {
+                    // ignore
+                }
                 window.dispatchEvent(new CustomEvent('pio:show'));
             }
         }

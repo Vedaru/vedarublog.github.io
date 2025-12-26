@@ -53,7 +53,7 @@ const isBrowser = typeof window !== "undefined";
 // 播放器是否展开，默认为 false
 let isExpanded = false;
 // 播放器是否隐藏，默认为 true（打开页面时收起）
-let isHidden = false;
+let isHidden = true;
 // 是否显示播放列表，默认为 false
 let showPlaylist = false;
 // 自动播放是否已触发
