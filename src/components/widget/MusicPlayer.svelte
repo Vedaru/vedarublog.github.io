@@ -2201,26 +2201,20 @@ onDestroy(() => {
         /* 触摸设备优化 */
     }
 }
-/* 自定义旋转动画，停止时保持当前位置 */
-		padding-right: 6px; /* 预留空间避免内容被遮挡 */
+/* 自定义旋转动画：仅旋转，不修改宽高，停止时保持当前位置 */
 @keyframes spin-continuous {
-    from {
-		width: 0;
-		height: 0;
-		background: transparent;
-    }
-    to {
-        transform: rotate(360deg);
-    }
+	from { transform: rotate(0deg); }
+	to   { transform: rotate(360deg); }
 }
 
 .cover-container img {
-    animation: spin-continuous 3s linear infinite;
-    animation-play-state: paused;
+	transform-origin: 50% 50%;
+	animation: spin-continuous 6s linear infinite;
+	animation-play-state: paused;
 }
 
 .cover-container img.spinning {
-    animation-play-state: running;
+	animation-play-state: running;
 }
 
 /* 让主题色按钮更有视觉反馈 */
