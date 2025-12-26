@@ -1622,11 +1622,11 @@ onDestroy(() => {
 	class:expanded={isExpanded}
 	class:hidden-mode={isHidden}>
     <!-- 隐藏状态的小圆球 -->
-    <div class="orb-player w-12 h-12 bg-[var(--primary)] rounded-full shadow-lg cursor-pointer transition-all duration-500 ease-in-out flex items-center justify-center hover:scale-110 active:scale-95"
-         class:opacity-0={!isHidden}
-         class:scale-0={!isHidden}
-         class:pointer-events-none={!isHidden}
-         on:click={toggleHidden}
+	    <div class="orb-player w-12 h-12 bg-[var(--primary)] rounded-full shadow-lg cursor-pointer transition-all duration-500 ease-in-out flex items-center justify-center hover:scale-110 active:scale-95"
+		    class:opacity-0={!isHidden}
+		    class:scale-0={!isHidden}
+		    class:pointer-events-none={!isHidden}
+		    on:pointerdown={toggleHidden}
          on:keydown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
@@ -1655,8 +1655,8 @@ onDestroy(() => {
          class:pointer-events-none={isExpanded || isHidden}>
         <div class="flex items-center gap-3">
             <!-- 封面区域：点击控制播放/暂停 -->
-            <div class="cover-container relative w-12 h-12 rounded-full overflow-hidden cursor-pointer"
-                 on:click={togglePlay}
+			  <div class="cover-container relative w-12 h-12 rounded-full overflow-hidden cursor-pointer"
+				  on:pointerdown={togglePlay}
                  on:keydown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
@@ -1705,8 +1705,8 @@ onDestroy(() => {
                 </div>
             </div>
             <!-- 歌曲信息区域：点击展开播放器 -->
-            <div class="flex-1 min-w-0 cursor-pointer"
-                 on:click={toggleExpanded}
+			  <div class="flex-1 min-w-0 cursor-pointer"
+				  on:pointerdown={toggleExpanded}
                  on:keydown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
