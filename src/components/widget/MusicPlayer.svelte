@@ -58,6 +58,8 @@ let isHidden = true;
 let showPlaylist = false;
 // 自动播放是否已触发
 let autoplayAttempted = false;
+// 标记用户是否已与页面交互（仅在交互后允许程序性播放）
+let userInteracted = false;
 // 是否因自动播放而处于静音状态（等待用户交互后恢复）
 let mutedForAutoplay = false;
 // 当前播放时间，默认为 0
@@ -752,7 +754,8 @@ function playSong(index: number) {
 	}
 	
 	// 如果之前在播放，或者启用了自动连播（列表循环），则自动开始播放
-	const shouldAutoPlay = wasPlaying || shouldAutoplayContinuous;
+	// 仅在用户已交互后或配置允许自动播放时才启动自动播放
+	const shouldAutoPlay = (wasPlaying || shouldAutoplayContinuous) && (shouldAutoplay && userInteracted);
 	console.debug("Should auto-play next track:", shouldAutoPlay, { wasPlaying, shouldAutoplayContinuous });
 	if (shouldAutoPlay) {
 		setTimeout(() => {
@@ -819,20 +822,23 @@ async function prefetchNext() {
 		// 强制预加载缓冲
 		setTimeout(() => {
 			if (preloadAudio && preloadAudio.readyState < 2) {
-				const tempPlay = preloadAudio.play?.();
-				if (tempPlay && typeof tempPlay.then === "function") {
-					tempPlay.then(() => {
-						setTimeout(() => {
-							if (preloadAudio && preloadAudio !== audio) {
-								try {
-									preloadAudio.pause();
-									preloadAudio.currentTime = 0;
-								} catch (e) {}
-							}
-						}, 200);
-					}).catch(() => {
-						// 忽略预加载播放失败
-					});
+				// 仅在用户已交互或配置允许自动播放时尝试临时播放以触发缓冲
+				if (shouldAutoplay && userInteracted) {
+					const tempPlay = preloadAudio.play?.();
+					if (tempPlay && typeof tempPlay.then === "function") {
+						tempPlay.then(() => {
+							setTimeout(() => {
+								if (preloadAudio && preloadAudio !== audio) {
+									try {
+										preloadAudio.pause();
+										preloadAudio.currentTime = 0;
+									} catch (e) {}
+								}
+							}, 200);
+						}).catch(() => {
+							// 忽略预加载播放失败
+						});
+					}
 				}
 			}
 		}, 300);
@@ -925,7 +931,8 @@ function loadSong(song: typeof currentSong) {
 	
 	// 强制预加载：尝试播放一小段时间然后暂停，以触发浏览器缓冲
 	setTimeout(() => {
-		if (audio.readyState < 2) {
+		// 仅在用户已交互或配置允许自动播放时尝试临时播放以触发缓冲
+		if ((shouldAutoplay && userInteracted) && audio.readyState < 2) {
 			const tempPlay = audio.play();
 			if (tempPlay) {
 				tempPlay.then(() => {
@@ -1481,7 +1488,17 @@ onMount(() => {
 		};
 		window.addEventListener("click", trigger, { once: true, capture: true });
 		window.addEventListener("keydown", trigger, { once: true, capture: true });
-		
+
+		// 标记首次用户交互，允许之后的程序性播放（但仍受配置控制）
+		const markInteracted = () => {
+			userInteracted = true;
+			window.removeEventListener("click", markInteracted, true);
+			window.removeEventListener("keydown", markInteracted, true);
+			window.removeEventListener("touchstart", markInteracted, true);
+		};
+		window.addEventListener("click", markInteracted, { once: true, capture: true });
+		window.addEventListener("keydown", markInteracted, { once: true, capture: true });
+		window.addEventListener("touchstart", markInteracted, { once: true, capture: true });
 		// 刷新后立即尝试加载，不等待交互
 		setTimeout(() => {
 			ensureMetingLoaded();
