@@ -561,7 +561,7 @@ function _getStatusInfo(status: string) {
       updateAnimeListLayout(event.detail.layout);
     });
 
-    import('../utils/animeImagePreloader.ts').then(({ initAnimeImagePreloader }) => {
+    import('/src/utils/animeImagePreloader.ts').then(({ initAnimeImagePreloader }) => {
       const preloader = initAnimeImagePreloader();
 
       // 观察所有番剧卡片
@@ -598,7 +598,7 @@ function _getStatusInfo(status: string) {
       // 页面卸载时清理
       window.addEventListener('beforeunload', () => {
         observer.disconnect();
-        import('../utils/animeImagePreloader.ts').then(({ destroyAnimeImagePreloader }) => {
+        import('/src/utils/animeImagePreloader.ts').then(({ destroyAnimeImagePreloader }) => {
           destroyAnimeImagePreloader();
         });
       });

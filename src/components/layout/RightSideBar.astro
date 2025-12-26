@@ -9,7 +9,7 @@ import SiteStats from "@/components/widget/SiteStats.astro";
 import Tags from "@/components/widget/Tags.astro";
 import TOC from "@/components/widget/TOC.astro";
 import type { WidgetComponentConfig } from "@/types/config";
-import { widgetManager } from "@/utils/widget-manager";
+import { widgetManager } from "../../utils/widget-manager";
 
 interface Props {
 	class?: string;
@@ -123,7 +123,7 @@ function renderComponent(
   }
 </style>
 
-<script>
+  <script>
   import { widgetManager } from "../../utils/widget-manager";
   
   // 响应式布局管理

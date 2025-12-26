@@ -40,18 +40,31 @@ class AnimeImagePreloader {
 
 	// 预加载图片
 	private preloadImage(card: HTMLElement) {
-		const img = card.querySelector('img');
+		// 优化逻辑：仅当图片使用 data-src 时才在接近视口时设置真实 src
+		const img = card.querySelector('img[data-src]') as HTMLImageElement | null;
 		if (!img) return;
 
-		const src = img.src;
+		const src = img.dataset.src;
+		if (!src) return;
 		if (this.preloadedImages.has(src)) return;
 
-		// 创建预加载图片
-		const preloadImg = new Image();
-		preloadImg.src = src;
-
-		// 标记为已预加载
+		// 标记为已预加载，避免重复触发
 		this.preloadedImages.add(src);
+
+		// 提高加载优先级并设置真实源
+		try {
+			img.loading = 'eager';
+			img.setAttribute('fetchpriority', 'high');
+		} catch (e) {
+			// 某些环境可能不支持直接设置属性，忽略错误
+		}
+
+		img.src = src;
+
+		// 尝试使用 decode() 平滑渲染（不可用时忽略）
+		if (typeof img.decode === 'function') {
+			img.decode().catch(() => {});
+		}
 
 		// 添加预加载标记
 		card.setAttribute('data-preload', 'true');

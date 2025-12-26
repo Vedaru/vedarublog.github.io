@@ -975,83 +975,10 @@ function handleLoadError(_event: Event) {
 }
 
 function requestAutoplay() {
-	if (!shouldAutoplay || autoplayAttempted) return;
-	if (!audio || !currentSong.url) return;
-
-	// 使用静音模式进行首次自动播放，绕过浏览器限制
-	const tryPlayMuted = async () => {
-		try {
-			// 先静音
-			audio.muted = true;
-			mutedForAutoplay = true;
-			isMuted = true;
-			
-			// 设置音量
-			if (!Number.isFinite(audio.volume) || audio.volume === 0) {
-				audio.volume = Math.max(0.01, audioVolumeCurrent || 0.3);
-			}
-			
-			await audio.play();
-			autoplayAttempted = true;
-			
-			// 显示提示，引导用户交互以取消静音
-			showErrorMessage("🔇 点击页面任意位置以启用声音");
-			
-			// 注册用户交互监听，取消静音
-			const unmuteOnInteraction = () => {
-				if (mutedForAutoplay) {
-					audio.muted = false;
-					mutedForAutoplay = false;
-					isMuted = false;
-					console.debug("Unmuted after user interaction");
-					// 隐藏提示
-					hideError();
-				}
-				// 移除监听器
-				window.removeEventListener("click", unmuteOnInteraction, true);
-				window.removeEventListener("keydown", unmuteOnInteraction, true);
-				window.removeEventListener("touchstart", unmuteOnInteraction, true);
-			};
-			
-			window.addEventListener("click", unmuteOnInteraction, { once: true, capture: true });
-			window.addEventListener("keydown", unmuteOnInteraction, { once: true, capture: true });
-			window.addEventListener("touchstart", unmuteOnInteraction, { once: true, capture: true });
-			
-			return true;
-		} catch (err: any) {
-			console.debug("Muted autoplay failed:", err);
-			// 即使静音播放失败，也标记为已尝试
-			autoplayAttempted = true;
-			
-			// 如果连静音播放都失败，注册用户交互后播放
-			if (err?.name === "NotAllowedError") {
-				showErrorMessage("点击页面任意位置以开始播放");
-				const playOnInteraction = () => {
-					if (audio && !isPlaying) {
-						audio.muted = false;
-						isMuted = false;
-						mutedForAutoplay = false;
-						audio.play().catch(() => {});
-					}
-					window.removeEventListener("click", playOnInteraction, true);
-					window.removeEventListener("keydown", playOnInteraction, true);
-					window.removeEventListener("touchstart", playOnInteraction, true);
-				};
-				window.addEventListener("click", playOnInteraction, { once: true, capture: true });
-				window.addEventListener("keydown", playOnInteraction, { once: true, capture: true });
-				window.addEventListener("touchstart", playOnInteraction, { once: true, capture: true });
-			}
-			return false;
-		}
-	};
-
-	if (audio.readyState >= 2) {
-		tryPlayMuted();
-	} else {
-		audio.addEventListener("canplay", () => {
-			tryPlayMuted();
-		}, { once: true });
-	}
+	// 已禁用自动播放以避免页面加载时自动开始播放音乐。
+	// 若希望通过配置启用自动播放，请在 `musicPlayerConfig.autoplay` 中开启并移除此早期返回。
+	autoplayAttempted = true;
+	return;
 }
 
 function handleLoadStart() {}
@@ -1662,7 +1589,7 @@ onDestroy(() => {
 
 {#if musicPlayerConfig.enable}
 {#if showError}
-<div class="fixed bottom-20 right-4 z-[60] max-w-sm">
+<div class="fixed bottom-20 right-4 z-[9999] max-w-sm">
     <div class="bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-slide-up">
         <Icon icon="material-symbols:error" class="text-xl flex-shrink-0" />
         <span class="text-sm flex-1">{errorMessage}</span>
@@ -1673,7 +1600,7 @@ onDestroy(() => {
 </div>
 {/if}
 
-<div class="music-player fixed bottom-4 right-4 z-50 transition-all duration-300 ease-in-out"
+<div class="music-player fixed bottom-4 right-4 z-[9998] transition-all duration-300 ease-in-out"
 	bind:this={rootEl}
 	class:expanded={isExpanded}
 	class:hidden-mode={isHidden}>
