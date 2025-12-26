@@ -162,11 +162,12 @@ onMount(() => {
 		}
 	}
 
-	// 确保默认显示，不受本地存储隐藏状态影响
+	// 读取本地存储中用户的显示偏好；如果未设置则默认不自动显示（即收起）
+	let posterGirlPersist = '0';
 	try {
-		localStorage.setItem("posterGirl", "1");
+		posterGirlPersist = localStorage.getItem("posterGirl") || '0';
 	} catch (e) {
-		console.warn("Unable to set posterGirl localStorage", e);
+		console.warn("Unable to read posterGirl localStorage", e);
 	}
 
 	// 立即在后台开始加载并初始化 Pio（在加载屏幕期间保持隐藏），
@@ -190,25 +191,30 @@ onMount(() => {
         console.error("Failed to wait for Pio scripts:", err);
     });
 
-    // 在后台轮询加载屏幕状态，加载完成或超时后显示 Pio 容器
-    function revealWhenLoadingDone(timeoutMs = 5000) {
-        try {
-            const start = Date.now();
-            _revealInterval = setInterval(() => {
-                try {
-                    if (window.__loadingScreenDone || Date.now() - start > timeoutMs) {
-                        if (pioContainer) {
-                            pioContainer.style.display = '';
-                            pioContainer.style.opacity = '1';
-                            pioContainer.style.pointerEvents = 'auto';
-                        }
-                        clearInterval(_revealInterval);
-                        _revealInterval = null;
-                    }
-                } catch (e) {
-                    // ignore
-                }
-            }, 100);
+	// 在后台轮询加载屏幕状态，加载完成或超时后显示 Pio 容器
+	// 仅在本地存储已标记为 '1'（用户选择显示）时才自动 reveal
+	function revealWhenLoadingDone(timeoutMs = 5000) {
+		try {
+			if (posterGirlPersist !== '1') {
+				// 用户未标记为显示，保持收起状态
+				return;
+			}
+			const start = Date.now();
+			_revealInterval = setInterval(() => {
+				try {
+					if (window.__loadingScreenDone || Date.now() - start > timeoutMs) {
+						if (pioContainer) {
+							pioContainer.style.display = '';
+							pioContainer.style.opacity = '1';
+							pioContainer.style.pointerEvents = 'auto';
+						}
+						clearInterval(_revealInterval);
+						_revealInterval = null;
+					}
+				} catch (e) {
+					// ignore
+				}
+			}, 100);
 		} catch (e) {}
 	}
 
