@@ -90,6 +90,14 @@ function initPio() {
 				pioReady = true;
 				pioContainer?.classList.add('pio-ready');
 				console.log("Pio initialized successfully (Svelte)");
+				// remove any temporary placeholder when real Pio is ready
+				try {
+					const temp = document.querySelector('.pio-container[data-temp-pio]');
+					if (temp && temp.parentNode) {
+						console.log('[PIO] initPio removing temp placeholder');
+						temp.parentNode.removeChild(temp);
+					}
+				} catch (e) {}
 			} else if (!pioContainer || !pioCanvas) {
 				console.warn("Pio DOM elements not found, retrying...");
 				setTimeout(initPio, 100);
@@ -164,6 +172,15 @@ onMount(() => {
 			pioContainer.style.left = 'auto';
 		}
 	}
+
+	// 如果存在临时占位元素，移除它以便真实容器接管位置
+	try {
+		const temp = document.querySelector('.pio-container[data-temp-pio]');
+		if (temp && temp.parentNode) {
+			console.log('[PIO] removing temp placeholder');
+			temp.parentNode.removeChild(temp);
+		}
+	} catch (e) {}
 
 	// 读取本地存储中用户的显示偏好；如果未设置则默认不自动显示（即收起）
 	let posterGirlPersist = '0';
