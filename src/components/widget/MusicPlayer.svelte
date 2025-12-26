@@ -121,6 +121,7 @@ let showError = false;
 
 // 组件根节点与按需加载控制
 let rootEl: HTMLElement;
+let portalAppended = false;
 let metingLoaded = false; // 防止重复加载 Meting 播放列表
 let io: IntersectionObserver | null = null; // 视口可见触发
 
@@ -1472,6 +1473,17 @@ onMount(() => {
 	// 因此我们直接使用原生 Audio 元素，虽然无法使用增益节点提升音量，但至少能正常播放
 	useAudioContext = false;
 	console.debug("Audio context disabled to avoid CORS issues");
+
+	// 尝试将播放器根节点移至 document.body，以避免父容器的 overflow/transform 导致裁剪
+	try {
+		if (isBrowser && rootEl && rootEl.parentElement !== document.body) {
+			document.body.appendChild(rootEl);
+			portalAppended = true;
+			console.debug('MusicPlayer portal appended to document.body');
+		}
+	} catch (e) {
+		console.debug('Failed to append MusicPlayer to body', e);
+	}
 	
 	handleAudioEvents();
 	
@@ -1487,17 +1499,7 @@ onMount(() => {
 				cleanupIO();
 			}
 		}, { rootMargin: "200px" });
-		if (rootEl) {
-			io.observe(rootEl);
-			// 尝试将播放器根元素移动到 document.body，避免被祖先的 transform/overflow 剪裁
-			try {
-				if (rootEl.parentElement && rootEl.parentElement !== document.body) {
-					document.body.appendChild(rootEl);
-				}
-			} catch (e) {
-				console.debug('Failed to move music player root to body:', e);
-			}
-		}
+		if (rootEl) io.observe(rootEl);
 
 		// 任意一次用户交互也触发加载
 		const trigger = () => {
@@ -1576,6 +1578,15 @@ onDestroy(() => {
 			rafId = null;
 			lastClientX = null;
 		}
+
+		// 清理 portal（如果已移动到 body）
+		try {
+			if (isBrowser && portalAppended && rootEl && rootEl.parentElement === document.body) {
+				rootEl.remove();
+				portalAppended = false;
+				console.debug('MusicPlayer portal removed from document.body');
+			}
+		} catch (e) { /* ignore */ }
 		if (volHoverRafId != null) {
 			cancelAnimationFrame(volHoverRafId);
 			volHoverRafId = null;
@@ -1597,13 +1608,6 @@ onDestroy(() => {
 				if (typeof val === 'string' && val.startsWith('blob:')) {
 					try { URL.revokeObjectURL(val); } catch (e) {}
 				}
-			}
-		} catch (e) {}
-
-		// 如果我们在挂载时将 rootEl 移动到了 body，销毁时尝试移除它
-		try {
-			if (rootEl && rootEl.parentElement === document.body) {
-				rootEl.remove();
 			}
 		} catch (e) {}
 		if (audioSource) {
