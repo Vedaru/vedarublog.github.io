@@ -284,9 +284,11 @@ onMount(() => {
 			// 标记为手动可见，覆盖默认的 :not(.pio-ready) 隐藏样式
 			pioContainer.classList.add('visible-manual');
 			try {
-				pioContainer.style.display = '';
-				pioContainer.style.opacity = '1';
-				pioContainer.style.pointerEvents = 'auto';
+				pioContainer.style.display = 'block';
+				// force a small delay before setting opacity to ensure display takes effect
+				setTimeout(() => {
+					try { pioContainer.style.opacity = '1'; pioContainer.style.pointerEvents = 'auto'; } catch (e) {}
+				}, 20);
 			} catch (e) {}
 		}
 		if (typeof Paul_Pio !== "undefined") {
