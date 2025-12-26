@@ -389,13 +389,6 @@ export const announcementConfig: AnnouncementConfig = {
 export const musicPlayerConfig: MusicPlayerConfig = {
 	enable: true, // 启用音乐播放器功能
 	mode: "meting", // 音乐播放器模式，可选 "local" 或 "meting"
-	// 使用官方及第三方 Meting API 镜像源，自动轮询切换确保可用性
-	// 优先级（从高到低）:
-	//   1. https://api.i-meto.com/meting/api (官方演示，有时由于用的人多会慢)
-	//   2. https://api.wuenci.com/meting/api/ (第三方搭建)
-	//   3. https://meting.qjqq.cn (第三方搭建)
-	//   4. https://api.injahow.cn/meting/?server=:server&type=:type&id=:id&auth=:auth&r=:r (加速镜像)
-	//   5. 自建CDN: https://music-cdn.your-subdomain.workers.dev/
 	// 当前使用：官方 Meting API（仅使用单一 API，不轮询）
 	meting_api:
 		"https://api.i-meto.com/meting/api?server=:server&type=:type&id=:id",

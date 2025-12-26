@@ -227,6 +227,13 @@ onMount(() => {
 		}
 		if (pioContainer) {
 			pioContainer.classList.remove("hidden");
+			// 标记为手动可见，覆盖默认的 :not(.pio-ready) 隐藏样式
+			pioContainer.classList.add('visible-manual');
+			try {
+				pioContainer.style.display = '';
+				pioContainer.style.opacity = '1';
+				pioContainer.style.pointerEvents = 'auto';
+			} catch (e) {}
 		}
 		if (typeof Paul_Pio !== "undefined") {
 			try {

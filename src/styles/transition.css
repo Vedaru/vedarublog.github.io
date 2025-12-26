@@ -54,6 +54,22 @@ html.is-animating .transition-swup-fade {
     pointer-events: auto !important;
 }
 
+/* 默认将 Pio 在页面打开时保持隐藏，直到 JS 初始化并添加 `.pio-ready` */
+.pio-container:not(.pio-ready) {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    transition: opacity 240ms ease-in-out;
+}
+
+/* 当外部手动唤醒（导航栏按钮）时，添加此类以覆盖默认隐藏样式 */
+.pio-container.visible-manual {
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    transition: opacity 240ms ease-in-out;
+}
+
 /* 防止 Pio 组件在页面切换时错位 */
 html.is-changing .pio-container,
 html.is-animating .pio-container,
