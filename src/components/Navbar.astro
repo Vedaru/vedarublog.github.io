@@ -135,21 +135,32 @@ async function loadButtonScript() {
         if (pioBtn) {
             pioBtn.onclick = function () {
                 try {
-                    localStorage.setItem('posterGirl', '1');
-                } catch (e) {
-                    // ignore
-                }
-                // 首先触发事件，供 Pio 组件监听
-                window.dispatchEvent(new CustomEvent('pio:show'));
-                // 备用：如果 Pio 组件尚未挂载或未能响应事件，尝试直接显示容器
-                try {
                     const p = document.querySelector('.pio-container');
-                    if (p && p instanceof HTMLElement) {
-                        p.classList.remove('hidden');
-                        p.classList.add('visible-manual');
-                        p.style.display = '';
-                        p.style.opacity = '1';
-                        p.style.pointerEvents = 'auto';
+                    const isVisible = p && (p instanceof HTMLElement) && (p.classList.contains('visible-manual') || (p instanceof HTMLElement && p.style && p.style.display !== 'none' && getComputedStyle(p).opacity !== '0'));
+                    if (isVisible) {
+                        try { localStorage.setItem('posterGirl', '0'); } catch (e) {}
+                        window.dispatchEvent(new CustomEvent('pio:hide'));
+                        try {
+                            if (p && p instanceof HTMLElement) {
+                                p.classList.add('hidden');
+                                p.classList.remove('visible-manual');
+                                p.style.display = 'none';
+                                p.style.opacity = '0';
+                                p.style.pointerEvents = 'none';
+                            }
+                        } catch (e) {}
+                    } else {
+                        try { localStorage.setItem('posterGirl', '1'); } catch (e) {}
+                        window.dispatchEvent(new CustomEvent('pio:show'));
+                        try {
+                            if (p && p instanceof HTMLElement) {
+                                p.classList.remove('hidden');
+                                p.classList.add('visible-manual');
+                                p.style.display = '';
+                                p.style.opacity = '1';
+                                p.style.pointerEvents = 'auto';
+                            }
+                        } catch (e) {}
                     }
                 } catch (e) {
                     // ignore
@@ -183,21 +194,32 @@ async function loadButtonScript() {
         if (pioBtn) {
             pioBtn.onclick = function () {
                 try {
-                    localStorage.setItem('posterGirl', '1');
-                } catch (e) {
-                    // ignore
-                }
-                // 首先触发事件，供 Pio 组件监听
-                window.dispatchEvent(new CustomEvent('pio:show'));
-                // 备用：立即尝试显示 Pio 容器，防止事件在组件挂载前丢失
-                try {
                     const p = document.querySelector('.pio-container');
-                    if (p && p instanceof HTMLElement) {
-                        p.classList.remove('hidden');
-                        p.classList.add('visible-manual');
-                        p.style.display = '';
-                        p.style.opacity = '1';
-                        p.style.pointerEvents = 'auto';
+                    const isVisible = p && (p instanceof HTMLElement) && (p.classList.contains('visible-manual') || (p instanceof HTMLElement && p.style && p.style.display !== 'none' && getComputedStyle(p).opacity !== '0'));
+                    if (isVisible) {
+                        try { localStorage.setItem('posterGirl', '0'); } catch (e) {}
+                        window.dispatchEvent(new CustomEvent('pio:hide'));
+                        try {
+                            if (p && p instanceof HTMLElement) {
+                                p.classList.add('hidden');
+                                p.classList.remove('visible-manual');
+                                p.style.display = 'none';
+                                p.style.opacity = '0';
+                                p.style.pointerEvents = 'none';
+                            }
+                        } catch (e) {}
+                    } else {
+                        try { localStorage.setItem('posterGirl', '1'); } catch (e) {}
+                        window.dispatchEvent(new CustomEvent('pio:show'));
+                        try {
+                            if (p && p instanceof HTMLElement) {
+                                p.classList.remove('hidden');
+                                p.classList.add('visible-manual');
+                                p.style.display = '';
+                                p.style.opacity = '1';
+                                p.style.pointerEvents = 'auto';
+                            }
+                        } catch (e) {}
                     }
                 } catch (e) {
                     // ignore

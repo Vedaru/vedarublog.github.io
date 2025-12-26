@@ -282,8 +282,30 @@ onMount(() => {
 		}
 	};
 	window.addEventListener("pio:show", handleShow);
+	// 监听隐藏事件（导航栏切换时触发）
+	const handleHide = () => {
+		try {
+			try { localStorage.setItem("posterGirl", "0"); } catch (e) {}
+			if (pioContainer) {
+				pioContainer.classList.add('hidden');
+				pioContainer.classList.remove('visible-manual');
+				try {
+					pioContainer.style.display = 'none';
+					pioContainer.style.opacity = '0';
+					pioContainer.style.pointerEvents = 'none';
+				} catch (e) {}
+			}
+			if (pioInstance && typeof pioInstance.destroy === 'function') {
+				try { pioInstance.destroy(); } catch (e) {}
+			}
+		} catch (e) {
+			// ignore
+		}
+	};
+	window.addEventListener("pio:hide", handleHide);
 	removeShowListener = () => {
 		window.removeEventListener("pio:show", handleShow);
+		window.removeEventListener("pio:hide", handleHide);
 		window.removeEventListener('resize', handleResize);
 	};
 });
