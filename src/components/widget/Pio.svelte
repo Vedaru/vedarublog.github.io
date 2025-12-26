@@ -310,6 +310,15 @@ onMount(() => {
 		}
 	};
 	window.addEventListener("pio:hide", handleHide);
+
+	// 如果导航栏在 Pio 挂载之前就请求了显示，检查全局 pending 标志并立即触发
+	try {
+		if (typeof window !== 'undefined' && window.__pendingPioShow) {
+			try { delete window.__pendingPioShow; } catch (e) {}
+			// 直接调用 handleShow 以保证第一次点击有效
+			handleShow();
+		}
+	} catch (e) {}
 	removeShowListener = () => {
 		window.removeEventListener("pio:show", handleShow);
 		window.removeEventListener("pio:hide", handleHide);

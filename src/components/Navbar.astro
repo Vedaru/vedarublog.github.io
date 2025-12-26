@@ -135,6 +135,8 @@ async function loadButtonScript() {
                     const isVisible = p && (p instanceof HTMLElement) && (p.classList.contains('visible-manual') || (p instanceof HTMLElement && p.style && p.style.display !== 'none' && getComputedStyle(p).opacity !== '0'));
                     if (isVisible) {
                         try { localStorage.setItem('posterGirl', '0'); } catch (e) {}
+                        // clear pending show flag
+                        try { delete (window as any).__pendingPioShow; } catch (e) {}
                         window.dispatchEvent(new CustomEvent('pio:hide'));
                         try {
                             if (p && p instanceof HTMLElement) {
@@ -147,7 +149,11 @@ async function loadButtonScript() {
                         } catch (e) {}
                     } else {
                         try { localStorage.setItem('posterGirl', '1'); } catch (e) {}
+                        // mark a pending show so that Pio mounted later can react
+                        try { (window as any).__pendingPioShow = true; } catch (e) {}
                         window.dispatchEvent(new CustomEvent('pio:show'));
+                        // gentle retry in case event was dispatched before Pio mounted
+                        setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 200);
                         try {
                             if (p && p instanceof HTMLElement) {
                                 p.classList.remove('hidden');
