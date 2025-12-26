@@ -364,8 +364,10 @@ onMount(() => {
 			try { if (_overrideInterval) { clearInterval(_overrideInterval); _overrideInterval = null; } } catch (e) {}
 			try { if (_classObserver) { _classObserver.disconnect(); _classObserver = null; } } catch (e) {}
 			if (pioContainer) {
-				pioContainer.classList.add('hidden');
-				pioContainer.classList.remove('visible-manual');
+					// 标记处于 hiding 状态以避免在过渡期间显示 .pio-show
+					pioContainer.classList.add('hiding');
+					pioContainer.classList.add('hidden');
+					pioContainer.classList.remove('visible-manual');
 				pioContainer.classList.remove('visible-manual-strong');
 				try {
 					// 使用 opacity + visibility 隐藏以避免 layout 闪烁
@@ -375,6 +377,8 @@ onMount(() => {
 					try { if (_hideTimeout) clearTimeout(_hideTimeout); } catch (e) {}
 					_hideTimeout = setTimeout(() => {
 						try { pioContainer.style.visibility = 'hidden'; pioContainer.style.display = 'none'; } catch (e) {}
+						// 过渡结束后移除 hiding 标记
+						try { pioContainer.classList.remove('hiding'); } catch (e) {}
 						_hideTimeout = null;
 					}, 260);
 				} catch (e) {}
@@ -461,5 +465,10 @@ onDestroy(() => {
 	}
 	:global(.pio-container.visible-manual-strong #pio) {
 		display: block !important;
+	}
+
+	/* 在隐藏过渡期间避免显示小圆形触发（.pio-show） */
+	:global(.pio-container.hiding .pio-show) {
+		display: none !important;
 	}
 </style>
