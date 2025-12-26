@@ -77,7 +77,7 @@ let links: NavBarLink[] = navBarConfig.links.map(
             ]}>
                 <WallpaperSwitch client:only="svelte"></WallpaperSwitch>
             </div>
-            <button aria-label="Show Pio" class="btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90" id="pio-show-switch">
+            <button aria-label="Show Pio" class="hidden md:inline-flex btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90" id="pio-show-switch">
                 <Icon name="material-symbols:smart-toy-outline" class="text-[1.25rem]"></Icon>
             </button>
             <button aria-label="Show Announcement" class="btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90 hidden" id="announcement-show-switch" onclick="showAnnouncement()">
@@ -129,47 +129,83 @@ async function loadButtonScript() {
 
         let pioBtn = document.getElementById("pio-show-switch");
         if (pioBtn) {
-            pioBtn.onclick = function () {
-                try {
-                    const p = document.querySelector('.pio-container');
-                    const isVisible = p && (p instanceof HTMLElement) && (p.classList.contains('visible-manual') || (p instanceof HTMLElement && p.style && p.style.display !== 'none' && getComputedStyle(p).opacity !== '0'));
-                    console.log('[NAVBAR] Pio button clicked, isVisible=', !!isVisible);
-                    if (isVisible) {
-                        try { localStorage.setItem('posterGirl', '0'); } catch (e) {}
-                        // clear pending show flag
-                        try { delete (window as any).__pendingPioShow; } catch (e) {}
-                        window.dispatchEvent(new CustomEvent('pio:hide'));
+            // 在移动端跳过 Pio 绑定（与按钮隐藏保持一致）
+            try {
+                if (window.matchMedia && !window.matchMedia('(min-width: 768px)').matches) {
+                    pioBtn.style.display = 'none';
+                } else {
+                    pioBtn.onclick = function () {
                         try {
-                            if (p && p instanceof HTMLElement) {
-                                p.classList.add('hidden');
-                                p.classList.remove('visible-manual');
-                                p.style.display = 'none';
-                                p.style.opacity = '0';
-                                p.style.pointerEvents = 'none';
+                            const p = document.querySelector('.pio-container');
+                            const isVisible = p && (p instanceof HTMLElement) && (p.classList.contains('visible-manual') || (p instanceof HTMLElement && p.style && p.style.display !== 'none' && getComputedStyle(p).opacity !== '0'));
+                            console.log('[NAVBAR] Pio button clicked, isVisible=', !!isVisible);
+                            if (isVisible) {
+                                try { localStorage.setItem('posterGirl', '0'); } catch (e) {}
+                                try { delete (window as any).__pendingPioShow; } catch (e) {}
+                                window.dispatchEvent(new CustomEvent('pio:hide'));
+                                try {
+                                    if (p && p instanceof HTMLElement) {
+                                        p.classList.add('hidden');
+                                        p.classList.remove('visible-manual');
+                                        p.style.display = 'none';
+                                        p.style.opacity = '0';
+                                        p.style.pointerEvents = 'none';
+                                    }
+                                } catch (e) {}
+                            } else {
+                                try { localStorage.setItem('posterGirl', '1'); } catch (e) {}
+                                try { (window as any).__pendingPioShow = true; console.log('[NAVBAR] set __pendingPioShow = true'); } catch (e) {}
+                                window.dispatchEvent(new CustomEvent('pio:show'));
+                                setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 200);
+                                try {
+                                    if (p && p instanceof HTMLElement) {
+                                        p.classList.remove('hidden');
+                                        p.classList.add('visible-manual');
+                                        p.style.display = 'block';
+                                        p.style.opacity = '1';
+                                        p.style.pointerEvents = 'auto';
+                                    }
+                                } catch (e) {}
                             }
-                            // remove temporary placeholder if present
-                            // removed temporary placeholder behavior
-                        } catch (e) {}
-                    } else {
-                        try { localStorage.setItem('posterGirl', '1'); } catch (e) {}
-                        // mark a pending show so that Pio mounted later can react
-                        try { (window as any).__pendingPioShow = true; console.log('[NAVBAR] set __pendingPioShow = true'); } catch (e) {}
-                        window.dispatchEvent(new CustomEvent('pio:show'));
-                        // gentle retry in case event was dispatched before Pio mounted
-                        setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 200);
-                        try {
-                            if (p && p instanceof HTMLElement) {
+                        } catch (e) {
+                            // ignore
+                        }
+                    }
+                }
+            } catch (e) {
+                // ignore matchMedia errors and fallback to binding
+                pioBtn.onclick = function () {
+                    try {
+                        const p = document.querySelector('.pio-container');
+                        const isVisible = p && (p instanceof HTMLElement) && (p.classList.contains('visible-manual') || (p instanceof HTMLElement && p.style && p.style.display !== 'none' && getComputedStyle(p).opacity !== '0'));
+                        if (isVisible) {
+                            try { localStorage.setItem('posterGirl', '0'); } catch (e) {}
+                            window.dispatchEvent(new CustomEvent('pio:hide'));
+                            try {
+                                if (p && p instanceof HTMLElement) {
+                                    p.classList.add('hidden');
+                                    p.classList.remove('visible-manual');
+                                    p.style.display = 'none';
+                                    p.style.opacity = '0';
+                                    p.style.pointerEvents = 'none';
+                                }
+                            } catch (e) {}
+                        } else {
+                            try { localStorage.setItem('posterGirl', '1'); } catch (e) {}
+                            window.dispatchEvent(new CustomEvent('pio:show'));
+                            try {
+                                if (p && p instanceof HTMLElement) {
                                     p.classList.remove('hidden');
                                     p.classList.add('visible-manual');
-                                    // 强制立即显示容器，避免 class/inline style 的显示冲突
                                     p.style.display = 'block';
                                     p.style.opacity = '1';
                                     p.style.pointerEvents = 'auto';
                                 }
-                        } catch (e) {}
+                            } catch (e) {}
+                        }
+                    } catch (e) {
+                        // ignore
                     }
-                } catch (e) {
-                    // ignore
                 }
             }
         }
