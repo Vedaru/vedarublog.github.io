@@ -271,14 +271,18 @@ onMount(() => {
 		}
 		if (typeof Paul_Pio !== "undefined") {
 			try {
-				pioInstance = new Paul_Pio(pioOptions);
-				pioInitialized = true;
+				if (!pioInitialized) {
+					pioInstance = new Paul_Pio(pioOptions);
+					pioInitialized = true;
+				}
 			} catch (e) {
 				console.error("Pio re-init error:", e);
 			}
 		} else {
-			// 若脚本未加载完，等待后再初始化
-			waitForScripts().then(() => initPio()).catch((err) => console.error("Error re-init:", err));
+			// 若脚本未加载完，等待后再初始化（且避免重复 init）
+			waitForScripts().then(() => {
+				if (!pioInitialized) initPio();
+			}).catch((err) => console.error("Error re-init:", err));
 		}
 	};
 	window.addEventListener("pio:show", handleShow);
@@ -298,6 +302,9 @@ onMount(() => {
 			if (pioInstance && typeof pioInstance.destroy === 'function') {
 				try { pioInstance.destroy(); } catch (e) {}
 			}
+			// 清理本地引用，允许后续重新初始化
+			try { pioInstance = null; } catch (e) {}
+			pioInitialized = false;
 		} catch (e) {
 			// ignore
 		}
