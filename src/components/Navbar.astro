@@ -135,6 +135,13 @@ async function loadButtonScript() {
                     pioBtn.style.display = 'none';
                 } else {
                     pioBtn.onclick = function () {
+                        // 防抖：快速连续点击可能触发竞态，忽略 400ms 内重复点击
+                        try {
+                            const last = (window as any).__lastPioToggle || 0;
+                            const now = Date.now();
+                            if (now - last < 400) return;
+                            (window as any).__lastPioToggle = now;
+                        } catch (e) {}
                         try {
                             const p = document.querySelector('.pio-container');
                             const isVisible = isPioVisible(p);
@@ -160,6 +167,13 @@ async function loadButtonScript() {
             } catch (e) {
                 // ignore matchMedia errors and fallback to binding
                 pioBtn.onclick = function () {
+                    // 防抖：快速连续点击可能触发竞态，忽略 400ms 内重复点击
+                    try {
+                        const last = (window as any).__lastPioToggle || 0;
+                        const now = Date.now();
+                        if (now - last < 400) return;
+                        (window as any).__lastPioToggle = now;
+                    } catch (e) {}
                     try {
                         const p = document.querySelector('.pio-container');
                         const isVisible = isPioVisible(p);
@@ -199,6 +213,13 @@ async function loadButtonScript() {
         let pioBtn = document.getElementById("pio-show-switch");
         if (pioBtn) {
             pioBtn.onclick = function () {
+                // 防抖：快速连续点击可能触发竞态，忽略 400ms 内重复点击
+                try {
+                    const last = (window as any).__lastPioToggle || 0;
+                    const now = Date.now();
+                    if (now - last < 400) return;
+                    (window as any).__lastPioToggle = now;
+                } catch (e) {}
                 try {
                     const p = document.querySelector('.pio-container');
                     const isVisible = isPioVisible(p);

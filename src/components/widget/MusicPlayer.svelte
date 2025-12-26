@@ -195,6 +195,21 @@ function persistCoverCache() {
 
 async function sleep(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
 
+// 日志辅助：打印音频相关上下文，便于定位播放/加载失败原因
+function logAudioError(err: any, context = "") {
+	try {
+		console.error("[MusicPlayer]", context || "audio error", err, {
+			src: audio?.src,
+			currentSongUrl: currentSong?.url,
+			readyState: audio?.readyState,
+			networkState: audio?.networkState,
+			mediaError: audio?.error,
+			playlistLength: playlist?.length,
+		});
+	} catch (e) {
+		try { console.error('[MusicPlayer] failed to log audio error', e); } catch {}
+	}
+}
 // 增强版：带重试与指数回退的封面预加载（使用新的工具函数）
 async function preloadSingleCover(coverUrl: string, timeout = 5000, maxRetries = 2): Promise<void> {
 	if (!coverUrl || coverCache.has(coverUrl) || loadingCovers.has(coverUrl)) return;
@@ -487,7 +502,7 @@ function togglePlay() {
 					if (playlist.length > 0 && audio) {
 						loadSong(playlist[0]);
 						audio.play().catch((err) => {
-							console.error("Audio play failed:", err);
+							logAudioError(err, 'togglePlay -> meting load fallback play');
 							showErrorMessage("播放失败，请重试");
 						});
 					}
@@ -503,13 +518,13 @@ function togglePlay() {
 			const playWhenReady = () => {
 				if (audio.readyState >= 2) {
 					audio.play().catch((err) => {
-						console.error("Audio play failed after reload:", err);
+						logAudioError(err, 'togglePlay -> playWhenReady (readyState>=2)');
 						showErrorMessage("播放失败，请重试");
 					});
 				} else {
 					audio.addEventListener("canplay", () => {
 						audio.play().catch((err) => {
-							console.error("Audio play failed:", err);
+							logAudioError(err, 'togglePlay -> playWhenReady (canplay)');
 							showErrorMessage("播放失败，请重试");
 						});
 					}, { once: true });
@@ -520,12 +535,12 @@ function togglePlay() {
 			// 如果当前歌曲无URL但播放列表有歌曲，加载第一首
 			loadSong(playlist[0]);
 			setTimeout(() => {
-				if (audio && audio.readyState >= 2) {
-					audio.play().catch((err) => {
-						console.error("Audio play failed:", err);
-						showErrorMessage("播放失败，请重试");
-					});
-				}
+					if (audio && audio.readyState >= 2) {
+						audio.play().catch((err) => {
+							logAudioError(err, 'togglePlay -> playlist first load play');
+							showErrorMessage("播放失败，请重试");
+						});
+					}
 			}, 200);
 		} else {
 			showErrorMessage("播放列表为空，请稍候");
@@ -545,7 +560,7 @@ function togglePlay() {
 	
 	// 直接播放
 	audio.play().catch((err) => {
-		console.error("Audio play failed:", err);
+		logAudioError(err, 'togglePlay -> audio.play direct');
 		// 如果播放失败，尝试重新加载
 		if (err.name === 'NotAllowedError') {
 			showErrorMessage("播放被浏览器阻止，请先点击页面任意位置");
@@ -652,10 +667,10 @@ function nextSong() {
 	if (playlist.length <= 1) {
 		if (!audio) return;
 		if (isRepeating === 1) {
-			try {
-				audio.currentTime = 0;
-				audio.play().catch(() => {});
-			} catch (e) {}
+				try {
+					audio.currentTime = 0;
+					audio.play().catch((e) => { logAudioError(e, 'nextSong -> single-track replay'); });
+				} catch (e) {}
 			return;
 		}
 		if (isRepeating === 2) {
@@ -678,11 +693,11 @@ function nextSong() {
 	// 强制尝试播放，避免在某些浏览器/状态同步下切歌后未自动开始播放
 	setTimeout(() => {
 		try {
-			if (audio && !isPlaying) {
-				audio.play().catch((e) => {
-					console.debug('Auto-play after nextSong failed:', e);
-				});
-			}
+				if (audio && !isPlaying) {
+					audio.play().catch((e) => {
+						logAudioError(e, 'nextSong -> auto-play after nextSong');
+					});
+				}
 		} catch (e) {
 			console.debug('Auto-play attempt threw:', e);
 		}
@@ -716,11 +731,11 @@ function playSong(index: number) {
 		handleAudioEvents(); // 重新绑定事件监听器
 		
 		// 如果之前在播放，立即开始播放
-		if (wasPlaying) {
-			audio.play().catch((err) => {
-				console.warn("Play preloaded audio failed:", err);
-			});
-		}
+			if (wasPlaying) {
+				audio.play().catch((err) => {
+					logAudioError(err, 'playSong -> play preloaded audio');
+				});
+			}
 		
 		// 预加载下一首
 		const nextIdx = currentIndex + 1;
@@ -769,24 +784,24 @@ function playSong(index: number) {
 		setTimeout(() => {
 			if (!audio) return;
 			
-			const attemptPlay = () => {
-				audio.play().catch((err) => {
-					console.debug("Play failed after song change:", err);
-					// 如果播放失败，尝试再次加载
-					if (err.name === 'NotSupportedError' || err.name === 'AbortError') {
-						setTimeout(() => {
-							if (audio && audio.readyState < 2) {
-								console.debug("Reloading audio after play failure");
-								audio.load();
-								audio.addEventListener("canplay", () => {
-									audio.play().catch(() => {});
-								}, { once: true });
-							}
-						}, 200);
-					}
-				});
-			};
-			
+				const attemptPlay = () => {
+					audio.play().catch((err) => {
+						logAudioError(err, 'playSong -> attemptPlay after song change');
+						// 如果播放失败，尝试再次加载
+						if (err.name === 'NotSupportedError' || err.name === 'AbortError') {
+							setTimeout(() => {
+								if (audio && audio.readyState < 2) {
+									console.debug("Reloading audio after play failure");
+									audio.load();
+									audio.addEventListener("canplay", () => {
+										audio.play().catch((e) => { logAudioError(e, 'playSong -> reload canplay inner play'); });
+									}, { once: true });
+								}
+							}, 200);
+						}
+					});
+				};
+
 			if (audio.readyState >= 2) {
 				attemptPlay();
 			} else {
@@ -982,8 +997,10 @@ function handleLoadSuccess() {
 	requestAutoplay();
 }
 
-function handleLoadError(_event: Event) {
+function handleLoadError(event: Event | any) {
 	isLoading = false;
+	// 打印详尽的上下文以便排查（networkState/readyState/mediaError）
+	try { logAudioError(event?.error || event, 'handleLoadError'); } catch (e) {}
 	showErrorMessage(`无法播放 "${currentSong.title}"，正在尝试下一首...`);
 	if (playlist.length > 1) setTimeout(() => nextSong(), 1000);
 	else showErrorMessage("播放列表中没有可用的歌曲");
@@ -1130,7 +1147,7 @@ function stopProgressDrag() {
 				// 单曲循环：重置并播放
 				if (audio) {
 					audio.currentTime = 0;
-					audio.play().catch(() => {});
+					audio.play().catch((e) => { logAudioError(e, 'stopProgressDrag -> near-end single-loop replay'); });
 				}
 			} else if (isRepeating === 2 || currentIndex < playlist.length - 1 || isShuffled) {
 				setTimeout(() => {
@@ -1146,9 +1163,7 @@ function stopProgressDrag() {
 	// 如果拖动前正在播放，尝试恢复播放（某些浏览器在设置 currentTime 后会自动暂停）
 	try {
 		if (wasPlayingDuringDrag && audio && !isPlaying) {
-			audio.play().catch((e) => {
-				console.debug('Resuming playback after drag failed:', e);
-			});
+			audio.play().catch((e) => { logAudioError(e, 'stopProgressDrag -> resume after drag'); });
 		}
 	} catch (e) {
 		console.debug('Error while trying to resume after drag:', e);
@@ -1398,7 +1413,7 @@ function handleAudioEvents() {
 		if (isRepeating === 1) {
 			// 单曲循环
 			audio.currentTime = 0;
-			audio.play().catch(() => {});
+			audio.play().catch((e) => { logAudioError(e, 'audio ended -> single-loop replay'); });
 		} else if (
 			isRepeating === 2 ||
 			currentIndex < playlist.length - 1 ||
