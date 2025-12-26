@@ -33,6 +33,9 @@ let pioCanvas;
 let removeShowListener;
 let _revealInterval = null;
 let _menuObserver = null;
+let _overrideInterval = null;
+let _classObserver = null;
+let _hideTimeout = null;
 
 // 设备像素比上限与网络状况自适应，降低首帧渲染压力
 function getEffectivePixelRatio() {
@@ -90,6 +93,8 @@ function initPio() {
 				pioReady = true;
 				pioContainer?.classList.add('pio-ready');
 				console.log("Pio initialized successfully (Svelte)");
+				// 如果组件初次初始化时处于隐藏状态，仍然强制触发内部 init 以预加载模型
+				try { if (pioInstance && typeof pioInstance.init === 'function') { pioInstance.init(); console.log('[PIO] pioInstance.init() called during initPio'); } } catch (e) {}
 				// remove any temporary placeholder when real Pio is ready
 				try {
 					const temp = document.querySelector('.pio-container[data-temp-pio]');
@@ -196,12 +201,13 @@ onMount(() => {
 	// 在开始前先把容器保持不可见状态，防止渲染到加载画面上
 	try {
 		if (pioContainer) {
-            pioContainer.style.display = 'none';
-            pioContainer.style.opacity = '0';
-            pioContainer.style.pointerEvents = 'none';
-            pioContainer.style.transition = 'opacity 240ms ease';
-        }
-    } catch (e) {}
+			// Use visibility + opacity instead of display:none to avoid layout flashes
+			pioContainer.style.visibility = 'hidden';
+			pioContainer.style.opacity = '0';
+			pioContainer.style.pointerEvents = 'none';
+			pioContainer.style.transition = 'opacity 240ms ease';
+		}
+	} catch (e) {}
 
     waitForScripts().then(() => {
 	console.log("Pio scripts ready, initializing immediately...");
@@ -274,59 +280,90 @@ onMount(() => {
 	// 监听外部唤醒事件（如导航栏按钮）
 	const handleShow = () => {
 		console.log('[PIO] handleShow invoked');
+		try { localStorage.setItem("posterGirl", "1"); } catch (e) { console.warn("Unable to set posterGirl localStorage", e); }
+		if (!pioContainer) return;
+		// 清理可能残留的 hide timeout
+		try { if (_hideTimeout) { clearTimeout(_hideTimeout); _hideTimeout = null; } } catch (e) {}
+		// 先移除 hidden，添加可见类
+		pioContainer.classList.remove('hidden');
+		pioContainer.classList.add('visible-manual');
+		pioContainer.classList.add('visible-manual-strong');
+		console.log('[PIO] handleShow: scheduling visibility and opacity');
+		try { pioContainer.style.visibility = 'visible'; } catch (e) {}
+		requestAnimationFrame(() => {
+			try { pioContainer.style.display = 'block'; pioContainer.style.visibility = 'visible'; pioContainer.style.opacity = '1'; pioContainer.style.pointerEvents = 'auto'; } catch (e) {}
+		});
+
+		// 若外部脚本在随后重置了 display/hidden，为保证首点能见，短期内反复覆盖这些样式
+		try { if (_overrideInterval) clearInterval(_overrideInterval); } catch (e) {}
 		try {
-			localStorage.setItem("posterGirl", "1");
-		} catch (e) {
-			console.warn("Unable to set posterGirl localStorage", e);
-		}
-		if (pioContainer) {
-			pioContainer.classList.remove("hidden");
-			// 标记为手动可见，覆盖默认的 :not(.pio-ready) 隐藏样式
-			pioContainer.classList.add('visible-manual');
-			try {
-				pioContainer.style.display = 'block';
-				// force a small delay before setting opacity to ensure display takes effect
-				setTimeout(() => {
-					try { pioContainer.style.opacity = '1'; pioContainer.style.pointerEvents = 'auto'; } catch (e) {}
-				}, 20);
-			} catch (e) {}
-		}
-		if (typeof Paul_Pio !== "undefined") {
-			try {
-				if (!pioInitialized) {
-					pioInstance = new Paul_Pio(pioOptions);
-					pioInitialized = true;
-				}
-			} catch (e) {
-				console.error("Pio re-init error:", e);
+			let tries = 0;
+			_overrideInterval = setInterval(() => {
+				tries += 1;
+				try {
+					pioContainer.classList.remove('hidden');
+					pioContainer.classList.add('visible-manual-strong');
+					pioContainer.style.display = 'block';
+					pioContainer.style.opacity = '1';
+					pioContainer.style.pointerEvents = 'auto';
+				} catch (e) {}
+				if (tries > 8) { clearInterval(_overrideInterval); _overrideInterval = null; }
+			}, 100);
+		} catch (e) {}
+
+		// 观察 class 变化，若外部脚本再次添加 hidden，立即移除（短期内）
+		try { if (_classObserver) _classObserver.disconnect(); } catch (e) {}
+		try {
+			if (typeof MutationObserver !== 'undefined') {
+				_classObserver = new MutationObserver((muts) => {
+					for (const m of muts) {
+						if (m.attributeName === 'class' && pioContainer.classList.contains('hidden')) {
+							pioContainer.classList.remove('hidden');
+							pioContainer.classList.add('visible-manual-strong');
+							pioContainer.style.display = 'block';
+							pioContainer.style.opacity = '1';
+						}
+					}
+				});
+				_classObserver.observe(pioContainer, { attributes: true, attributeFilter: ['class'] });
 			}
+		} catch (e) {}
+
+		// ensure canvas is visible and sized
+		try { if (pioCanvas) { pioCanvas.style.display = 'block'; sizeCanvas(); } } catch (e) {}
+		if (typeof Paul_Pio !== 'undefined') {
+			try {
+				if (!pioInitialized) { pioInstance = new Paul_Pio(pioOptions); pioInitialized = true; }
+			} catch (e) { console.error('Pio re-init error:', e); }
 		} else {
-			// 若脚本未加载完，等待后再初始化（且避免重复 init）
-			waitForScripts().then(() => {
-				if (!pioInitialized) initPio();
-			}).catch((err) => console.error("Error re-init:", err));
+			waitForScripts().then(() => { if (!pioInitialized) initPio(); }).catch((err) => console.error('Error re-init:', err));
 		}
 	};
-	window.addEventListener("pio:show", handleShow);
+	window.addEventListener('pio:show', handleShow);
 	// 监听隐藏事件（导航栏切换时触发）
 	const handleHide = () => {
+		console.log('[PIO] handleHide invoked');
+		try { localStorage.setItem("posterGirl", "0"); } catch (e) {}
 		try {
-			try { localStorage.setItem("posterGirl", "0"); } catch (e) {}
+			// 清理在 show 时启动的覆盖定时器与观察器
+			try { if (_overrideInterval) { clearInterval(_overrideInterval); _overrideInterval = null; } } catch (e) {}
+			try { if (_classObserver) { _classObserver.disconnect(); _classObserver = null; } } catch (e) {}
 			if (pioContainer) {
 				pioContainer.classList.add('hidden');
 				pioContainer.classList.remove('visible-manual');
+				pioContainer.classList.remove('visible-manual-strong');
 				try {
-					pioContainer.style.display = 'none';
+					// 使用 opacity + visibility 隐藏以避免 layout 闪烁
 					pioContainer.style.opacity = '0';
 					pioContainer.style.pointerEvents = 'none';
+					// 在过渡结束后设置 visibility hidden（并保存计时器以便被 show 清理）
+					try { if (_hideTimeout) clearTimeout(_hideTimeout); } catch (e) {}
+					_hideTimeout = setTimeout(() => {
+						try { pioContainer.style.visibility = 'hidden'; pioContainer.style.display = 'none'; } catch (e) {}
+						_hideTimeout = null;
+					}, 260);
 				} catch (e) {}
 			}
-			if (pioInstance && typeof pioInstance.destroy === 'function') {
-				try { pioInstance.destroy(); } catch (e) {}
-			}
-			// 清理本地引用，允许后续重新初始化
-			try { pioInstance = null; } catch (e) {}
-			pioInitialized = false;
 		} catch (e) {
 			// ignore
 		}
@@ -365,6 +402,20 @@ onDestroy(() => {
 			_menuObserver = null;
 		}
 	} catch (e) {}
+
+	try {
+		if (_overrideInterval) {
+			clearInterval(_overrideInterval);
+			_overrideInterval = null;
+		}
+	} catch (e) {}
+
+	try {
+		if (_classObserver) {
+			_classObserver.disconnect();
+			_classObserver = null;
+		}
+	} catch (e) {}
 });
 </script>
 
@@ -372,7 +423,7 @@ onDestroy(() => {
 	<div
 		class={`pio-container hidden ${pioConfig.position || 'right'}`}
 		bind:this={pioContainer}
-		style={`position:fixed;bottom:0;z-index:9999;pointer-events:none;display:none;opacity:0;transition:opacity 240ms ease;${(pioConfig.position || 'right') === 'left' ? 'left:0;right:auto;' : 'right:0;left:auto;'}min-height:${(pioConfig.height||250)}px;min-width:${(pioConfig.width||280)}px;`}
+		style={`position:fixed;bottom:0;z-index:9999;pointer-events:none;display:block;visibility:hidden;opacity:0;transition:opacity 240ms ease;${(pioConfig.position || 'right') === 'left' ? 'left:0;right:auto;' : 'right:0;left:auto;'}min-height:${(pioConfig.height||250)}px;min-width:${(pioConfig.width||280)}px;`}
 	>
     <div class="pio-action"></div>
     <canvas 
@@ -385,5 +436,14 @@ onDestroy(() => {
 {/if}
 
 <style>
-  /* Pio 相关样式将通过外部CSS文件加载 */
+	/* Pio 相关样式将通过外部CSS文件加载 */
+	:global(.pio-container.visible-manual-strong) {
+		display: block !important;
+		opacity: 1 !important;
+		pointer-events: auto !important;
+		z-index: 9999 !important;
+	}
+	:global(.pio-container.visible-manual-strong #pio) {
+		display: block !important;
+	}
 </style>

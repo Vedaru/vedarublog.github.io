@@ -159,12 +159,13 @@ async function loadButtonScript() {
                         setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 200);
                         try {
                             if (p && p instanceof HTMLElement) {
-                                p.classList.remove('hidden');
-                                p.classList.add('visible-manual');
-                                p.style.display = '';
-                                p.style.opacity = '1';
-                                p.style.pointerEvents = 'auto';
-                            }
+                                    p.classList.remove('hidden');
+                                    p.classList.add('visible-manual');
+                                    // 强制立即显示容器，避免 class/inline style 的显示冲突
+                                    p.style.display = 'block';
+                                    p.style.opacity = '1';
+                                    p.style.pointerEvents = 'auto';
+                                }
                         } catch (e) {}
                     }
                 } catch (e) {
@@ -214,7 +215,7 @@ async function loadButtonScript() {
                             if (p && p instanceof HTMLElement) {
                                 p.classList.remove('hidden');
                                 p.classList.add('visible-manual');
-                                p.style.display = '';
+                                p.style.display = 'block';
                                 p.style.opacity = '1';
                                 p.style.pointerEvents = 'auto';
                             }
