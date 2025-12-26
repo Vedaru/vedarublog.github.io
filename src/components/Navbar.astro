@@ -137,7 +137,7 @@ async function loadButtonScript() {
                     pioBtn.onclick = function () {
                         try {
                             const p = document.querySelector('.pio-container');
-                            const isVisible = p && (p instanceof HTMLElement) && (p.classList.contains('visible-manual') || (p instanceof HTMLElement && p.style && p.style.display !== 'none' && getComputedStyle(p).opacity !== '0'));
+                            const isVisible = isPioVisible(p);
                             console.log('[NAVBAR] Pio button clicked, isVisible=', !!isVisible);
                             if (isVisible) {
                                 try { localStorage.setItem('posterGirl', '0'); } catch (e) {}
@@ -177,7 +177,7 @@ async function loadButtonScript() {
                 pioBtn.onclick = function () {
                     try {
                         const p = document.querySelector('.pio-container');
-                        const isVisible = p && (p instanceof HTMLElement) && (p.classList.contains('visible-manual') || (p instanceof HTMLElement && p.style && p.style.display !== 'none' && getComputedStyle(p).opacity !== '0'));
+                        const isVisible = isPioVisible(p);
                         if (isVisible) {
                             try { localStorage.setItem('posterGirl', '0'); } catch (e) {}
                             window.dispatchEvent(new CustomEvent('pio:hide'));
@@ -231,7 +231,7 @@ async function loadButtonScript() {
             pioBtn.onclick = function () {
                 try {
                     const p = document.querySelector('.pio-container');
-                    const isVisible = p && (p instanceof HTMLElement) && (p.classList.contains('visible-manual') || (p instanceof HTMLElement && p.style && p.style.display !== 'none' && getComputedStyle(p).opacity !== '0'));
+                    const isVisible = isPioVisible(p);
                     if (isVisible) {
                         try { localStorage.setItem('posterGirl', '0'); } catch (e) {}
                         window.dispatchEvent(new CustomEvent('pio:hide'));
@@ -262,6 +262,26 @@ async function loadButtonScript() {
                 }
             }
         }
+    }
+}
+
+// 更稳健的 Pio 可见性检测，避免依赖易变的行内 style/opacity
+function isPioVisible(el) {
+    try {
+        if (!el || !(el instanceof HTMLElement)) return false;
+        // 显式的可见类优先判定
+        if (el.classList.contains('visible-manual') || el.classList.contains('visible-manual-strong')) return true;
+        // 明确的 hidden 类表示不可见
+        if (el.classList.contains('hidden')) return false;
+        // 回退到计算样式，但更严格地同时检查 display/visibility/opacity
+        const s = getComputedStyle(el);
+        if (!s) return false;
+        if (s.display === 'none' || s.visibility === 'hidden') return false;
+        const op = parseFloat(s.opacity || '1');
+        if (isNaN(op) || op <= 0) return false;
+        return true;
+    } catch (e) {
+        return false;
     }
 }
 
