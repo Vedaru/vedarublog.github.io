@@ -32,6 +32,7 @@ let pioReady = false;
 let pioCanvas;
 let removeShowListener;
 let _revealInterval = null;
+let _menuObserver = null;
 
 // 设备像素比上限与网络状况自适应，降低首帧渲染压力
 function getEffectivePixelRatio() {
@@ -187,6 +188,33 @@ onMount(() => {
         console.log("Pio scripts ready, initializing immediately...");
         // 确保 DOM 已经渲染再初始化（微任务）
         Promise.resolve().then(() => initPio());
+		// 移除或隐藏看板娘自带的关闭按钮，交由导航栏控制显示/隐藏
+		try {
+			// 立即尝试移除已存在的 close 按钮
+			const menu = document.querySelector('.pio-container .pio-action');
+			if (menu) {
+				const closeEl = menu.querySelector('.pio-close');
+				if (closeEl && closeEl.parentNode) closeEl.parentNode.removeChild(closeEl);
+			}
+			// 观察 menu，如果后续脚本再次添加 close 按钮则自动移除
+			const menuEl = document.querySelector('.pio-container .pio-action');
+			if (menuEl && typeof MutationObserver !== 'undefined') {
+				_menuObserver = new MutationObserver((mutations) => {
+					for (const m of mutations) {
+						for (const n of m.addedNodes) {
+							try {
+								if (n instanceof HTMLElement && n.classList.contains('pio-close')) {
+									n.remove();
+								}
+							} catch (e) {}
+						}
+					}
+				});
+				_menuObserver.observe(menuEl, { childList: true });
+			}
+		} catch (e) {
+			// ignore
+		}
     }).catch((err) => {
         console.error("Failed to wait for Pio scripts:", err);
     });
@@ -269,6 +297,13 @@ onDestroy(() => {
 		clearInterval(_revealInterval);
 		_revealInterval = null;
 	}
+	// 清理 menu 观察器
+	try {
+		if (_menuObserver) {
+			_menuObserver.disconnect();
+			_menuObserver = null;
+		}
+	} catch (e) {}
 });
 </script>
 
