@@ -36,6 +36,8 @@ let _menuObserver = null;
 let _overrideInterval = null;
 let _classObserver = null;
 let _hideTimeout = null;
+// 内部可见性标记，避免重复处理导致状态抖动
+let pioVisible = false;
 
 // 设备像素比上限与网络状况自适应，降低首帧渲染压力
 function getEffectivePixelRatio() {
@@ -279,20 +281,28 @@ onMount(() => {
 
 	// 监听外部唤醒事件（如导航栏按钮）
 	const handleShow = () => {
+		try {
+			if (pioVisible) {
+				console.debug('[PIO] handleShow: already visible, skipping');
+				return;
+			}
+		} catch (e) {}
 		console.log('[PIO] handleShow invoked');
 		try { localStorage.setItem("posterGirl", "1"); } catch (e) { console.warn("Unable to set posterGirl localStorage", e); }
 		if (!pioContainer) return;
 		// 清理可能残留的 hide timeout
 		try { if (_hideTimeout) { clearTimeout(_hideTimeout); _hideTimeout = null; } } catch (e) {}
 		// 先移除 hidden，添加可见类
-		pioContainer.classList.remove('hidden');
-		pioContainer.classList.add('visible-manual');
-		pioContainer.classList.add('visible-manual-strong');
-		console.log('[PIO] handleShow: scheduling visibility and opacity');
-		try { pioContainer.style.visibility = 'visible'; } catch (e) {}
-		requestAnimationFrame(() => {
-			try { pioContainer.style.display = 'block'; pioContainer.style.visibility = 'visible'; pioContainer.style.opacity = '1'; pioContainer.style.pointerEvents = 'auto'; } catch (e) {}
-		});
+		try {
+			pioContainer.classList.remove('hidden');
+			pioContainer.classList.add('visible-manual');
+			pioContainer.classList.add('visible-manual-strong');
+			console.log('[PIO] handleShow: scheduling visibility and opacity');
+			pioContainer.style.visibility = 'visible';
+			requestAnimationFrame(() => {
+				try { pioContainer.style.display = 'block'; pioContainer.style.visibility = 'visible'; pioContainer.style.opacity = '1'; pioContainer.style.pointerEvents = 'auto'; } catch (e) {}
+			});
+		} catch (e) {}
 
 		// 若外部脚本在随后重置了 display/hidden，为保证首点能见，短期内反复覆盖这些样式
 		try { if (_overrideInterval) clearInterval(_overrideInterval); } catch (e) {}
@@ -318,10 +328,7 @@ onMount(() => {
 				_classObserver = new MutationObserver((muts) => {
 					for (const m of muts) {
 						if (m.attributeName === 'class' && pioContainer.classList.contains('hidden')) {
-							pioContainer.classList.remove('hidden');
-							pioContainer.classList.add('visible-manual-strong');
-							pioContainer.style.display = 'block';
-							pioContainer.style.opacity = '1';
+							try { pioContainer.classList.remove('hidden'); pioContainer.classList.add('visible-manual-strong'); pioContainer.style.display = 'block'; pioContainer.style.opacity = '1'; } catch (e) {}
 						}
 					}
 				});
@@ -338,10 +345,18 @@ onMount(() => {
 		} else {
 			waitForScripts().then(() => { if (!pioInitialized) initPio(); }).catch((err) => console.error('Error re-init:', err));
 		}
+		// 标记为已显示
+		try { pioVisible = true; } catch (e) {}
 	};
 	window.addEventListener('pio:show', handleShow);
 	// 监听隐藏事件（导航栏切换时触发）
 	const handleHide = () => {
+		try {
+			if (!pioVisible) {
+				console.debug('[PIO] handleHide: already hidden, skipping');
+				return;
+			}
+		} catch (e) {}
 		console.log('[PIO] handleHide invoked');
 		try { localStorage.setItem("posterGirl", "0"); } catch (e) {}
 		try {
@@ -367,6 +382,7 @@ onMount(() => {
 		} catch (e) {
 			// ignore
 		}
+		try { pioVisible = false; } catch (e) {}
 	};
 	window.addEventListener("pio:hide", handleHide);
 

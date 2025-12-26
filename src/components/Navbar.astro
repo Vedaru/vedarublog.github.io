@@ -131,6 +131,8 @@ async function loadButtonScript() {
                     pioBtn.style.display = 'none';
                 } else {
                     pioBtn.onclick = () => {
+                        try { if (pioBtn instanceof HTMLButtonElement) pioBtn.disabled = true; } catch (e) {}
+                        setTimeout(() => { try { if (pioBtn instanceof HTMLButtonElement) pioBtn.disabled = false; } catch (e) {} }, 700);
                         try {
                             const p = document.querySelector('.pio-container');
                             const isVisible = isPioVisible(p);
@@ -189,6 +191,8 @@ async function loadButtonScript() {
             } catch (e) {
                 // matchMedia 相关错误：回退到简单绑定
                 pioBtn.onclick = () => {
+                    try { if (pioBtn instanceof HTMLButtonElement) pioBtn.disabled = true; } catch (e) {}
+                    setTimeout(() => { try { if (pioBtn instanceof HTMLButtonElement) pioBtn.disabled = false; } catch (e) {} }, 700);
                     try {
                         const p = document.querySelector('.pio-container');
                         const isVisible = isPioVisible(p);
@@ -214,7 +218,7 @@ async function loadButtonScript() {
         const menuBtn = document.getElementById("nav-menu-switch");
         if (menuBtn) menuBtn.onclick = () => { const menuPanel = document.getElementById('nav-menu-panel'); if (menuPanel) menuPanel.classList.toggle('float-panel-closed'); };
         const pioBtn = document.getElementById('pio-show-switch');
-        if (pioBtn) pioBtn.onclick = () => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} };
+        if (pioBtn) pioBtn.onclick = () => { try { if (pioBtn instanceof HTMLButtonElement) pioBtn.disabled = true; } catch (e) {} try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} setTimeout(() => { try { if (pioBtn instanceof HTMLButtonElement) pioBtn.disabled = false; } catch (e) {} }, 700); };
     }
 }
 
