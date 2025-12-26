@@ -98,41 +98,43 @@ async function loadButtonScript() {
     try {
         const panelManager = (window as Record<string, any>).panelManager;
 
-        // 设置 Display Settings 按钮
-        const settingBtn = document.getElementById("display-settings-switch");
+        // 无论 panelManager 是否存在，都绑定按钮处理器：优先使用 panelManager，否则使用 DOM 回退。
+        let settingBtn = document.getElementById("display-settings-switch");
         if (settingBtn) {
             if (panelManager && typeof panelManager.togglePanel === 'function') {
-                settingBtn.onclick = async () => {
+                settingBtn.onclick = async function () {
                     await panelManager.togglePanel('display-setting');
                 };
             } else {
-                settingBtn.onclick = () => {
+                settingBtn.onclick = function () {
                     const settingPanel = document.getElementById('display-setting');
                     if (settingPanel) settingPanel.classList.toggle('float-panel-closed');
                 };
             }
         }
 
-        // 设置 Nav Menu 按钮
-        const menuBtn = document.getElementById("nav-menu-switch");
+        let menuBtn = document.getElementById("nav-menu-switch");
         if (menuBtn) {
             if (panelManager && typeof panelManager.togglePanel === 'function') {
-                menuBtn.onclick = async () => { await panelManager.togglePanel('nav-menu-panel'); };
+                menuBtn.onclick = async function () {
+                    await panelManager.togglePanel('nav-menu-panel');
+                };
             } else {
-                menuBtn.onclick = () => { const menuPanel = document.getElementById('nav-menu-panel'); if (menuPanel) menuPanel.classList.toggle('float-panel-closed'); };
+                menuBtn.onclick = function () {
+                    const menuPanel = document.getElementById('nav-menu-panel');
+                    if (menuPanel) menuPanel.classList.toggle('float-panel-closed');
+                };
             }
         }
 
-        // Pio 按钮：稳定的显示/隐藏逻辑，带重试与强制覆盖样式
-        const pioBtn = document.getElementById('pio-show-switch');
+        let pioBtn = document.getElementById("pio-show-switch");
         if (pioBtn) {
+            // 在移动端跳过 Pio 绑定（与按钮隐藏保持一致）
             try {
                 if (window.matchMedia && !window.matchMedia('(min-width: 768px)').matches) {
                     pioBtn.style.display = 'none';
                 } else {
-                    pioBtn.onclick = () => {
-                        try { if (pioBtn instanceof HTMLButtonElement) pioBtn.disabled = true; } catch (e) {}
-                        setTimeout(() => { try { if (pioBtn instanceof HTMLButtonElement) pioBtn.disabled = false; } catch (e) {} }, 700);
+                    pioBtn.onclick = function () {
                         try {
                             const p = document.querySelector('.pio-container');
                             const isVisible = isPioVisible(p);
@@ -140,85 +142,81 @@ async function loadButtonScript() {
                             if (isVisible) {
                                 try { localStorage.setItem('posterGirl', '0'); } catch (e) {}
                                 try { delete (window as any).__pendingPioShow; } catch (e) {}
+                                // rely on Pio's own hide handler
                                 window.dispatchEvent(new CustomEvent('pio:hide'));
-                                try {
-                                    if (p && p instanceof HTMLElement) {
-                                        p.classList.add('hidden');
-                                        p.classList.remove('visible-manual');
-                                        p.style.display = 'none';
-                                        p.style.opacity = '0';
-                                        p.style.pointerEvents = 'none';
-                                    }
-                                } catch (e) {}
                             } else {
                                 try { localStorage.setItem('posterGirl', '1'); } catch (e) {}
-                                try { (window as any).__pendingPioShow = true; } catch (e) {}
-                                const dispatchShow = () => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} };
-                                dispatchShow(); setTimeout(dispatchShow, 200); setTimeout(dispatchShow, 600);
-                                try {
-                                    if (p && p instanceof HTMLElement) {
-                                        p.classList.remove('hidden');
-                                        p.classList.add('visible-manual');
-                                        p.classList.add('visible-manual-strong');
-                                        p.style.display = 'block';
-                                        p.style.visibility = 'visible';
-                                        p.style.opacity = '1';
-                                        p.style.pointerEvents = 'auto';
-                                    }
-                                } catch (e) {}
-                                try {
-                                    let forceTries = 0;
-                                    const forceInterval = setInterval(() => {
-                                        forceTries++;
-                                        try {
-                                            const el = document.querySelector('.pio-container');
-                                            if (el && el instanceof HTMLElement) {
-                                                el.classList.remove('hidden');
-                                                el.classList.add('visible-manual-strong');
-                                                el.style.display = 'block';
-                                                el.style.visibility = 'visible';
-                                                el.style.opacity = '1';
-                                                el.style.pointerEvents = 'auto';
-                                            }
-                                        } catch (e) {}
-                                        if (forceTries > 10) clearInterval(forceInterval);
-                                    }, 100);
-                                } catch (e) {}
+                                try { (window as any).__pendingPioShow = true; console.log('[NAVBAR] set __pendingPioShow = true'); } catch (e) {}
+                                // dispatch multiple show events as a resilient retry mechanism
+                                window.dispatchEvent(new CustomEvent('pio:show'));
+                                setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 250);
+                                setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 600);
                             }
-                        } catch (e) { /* ignore */ }
-                    };
+                        } catch (e) {
+                            // ignore
+                        }
+                    }
                 }
             } catch (e) {
-                // matchMedia 相关错误：回退到简单绑定
-                pioBtn.onclick = () => {
-                    try { if (pioBtn instanceof HTMLButtonElement) pioBtn.disabled = true; } catch (e) {}
-                    setTimeout(() => { try { if (pioBtn instanceof HTMLButtonElement) pioBtn.disabled = false; } catch (e) {} }, 700);
+                // ignore matchMedia errors and fallback to binding
+                pioBtn.onclick = function () {
                     try {
                         const p = document.querySelector('.pio-container');
                         const isVisible = isPioVisible(p);
                         if (isVisible) {
                             try { localStorage.setItem('posterGirl', '0'); } catch (e) {}
                             window.dispatchEvent(new CustomEvent('pio:hide'));
-                            try { if (p && p instanceof HTMLElement) { p.classList.add('hidden'); p.classList.remove('visible-manual'); p.style.display='none'; p.style.opacity='0'; p.style.pointerEvents='none'; } } catch (e) {}
                         } else {
                             try { localStorage.setItem('posterGirl', '1'); } catch (e) {}
+                            try { (window as any).__pendingPioShow = true; } catch (e) {}
                             window.dispatchEvent(new CustomEvent('pio:show'));
-                            try { if (p && p instanceof HTMLElement) { p.classList.remove('hidden'); p.classList.add('visible-manual'); p.style.display='block'; p.style.opacity='1'; p.style.pointerEvents='auto'; } } catch (e) {}
+                            setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 250);
+                            setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 600);
                         }
-                    } catch (e) { /* ignore */ }
-                };
+                    } catch (e) {
+                        // ignore
+                    }
+                }
             }
         }
-
     } catch (error) {
         console.error('Failed to load panel manager:', error);
-        // 最小回退：只绑定必要的按钮行为
-        const settingBtn = document.getElementById("display-settings-switch");
-        if (settingBtn) settingBtn.onclick = () => { const settingPanel = document.getElementById('display-setting'); if (settingPanel) settingPanel.classList.toggle('float-panel-closed'); };
-        const menuBtn = document.getElementById("nav-menu-switch");
-        if (menuBtn) menuBtn.onclick = () => { const menuPanel = document.getElementById('nav-menu-panel'); if (menuPanel) menuPanel.classList.toggle('float-panel-closed'); };
-        const pioBtn = document.getElementById('pio-show-switch');
-        if (pioBtn) pioBtn.onclick = () => { try { if (pioBtn instanceof HTMLButtonElement) pioBtn.disabled = true; } catch (e) {} try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} setTimeout(() => { try { if (pioBtn instanceof HTMLButtonElement) pioBtn.disabled = false; } catch (e) {} }, 700); };
+        // 如果出错，尝试最小回退绑定（不会依赖 panelManager）
+        let settingBtn = document.getElementById("display-settings-switch");
+        if (settingBtn) {
+            settingBtn.onclick = function () {
+                const settingPanel = document.getElementById('display-setting');
+                if (settingPanel) settingPanel.classList.toggle('float-panel-closed');
+            };
+        }
+        let menuBtn = document.getElementById("nav-menu-switch");
+        if (menuBtn) {
+            menuBtn.onclick = function () {
+                const menuPanel = document.getElementById('nav-menu-panel');
+                if (menuPanel) menuPanel.classList.toggle('float-panel-closed');
+            };
+        }
+        let pioBtn = document.getElementById("pio-show-switch");
+        if (pioBtn) {
+            pioBtn.onclick = function () {
+                try {
+                    const p = document.querySelector('.pio-container');
+                    const isVisible = isPioVisible(p);
+                    if (isVisible) {
+                        try { localStorage.setItem('posterGirl', '0'); } catch (e) {}
+                        window.dispatchEvent(new CustomEvent('pio:hide'));
+                    } else {
+                        try { localStorage.setItem('posterGirl', '1'); } catch (e) {}
+                        try { (window as any).__pendingPioShow = true; } catch (e) {}
+                        window.dispatchEvent(new CustomEvent('pio:show'));
+                        setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 250);
+                        setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 600);
+                    }
+                } catch (e) {
+                    // ignore
+                }
+            }
+        }
     }
 }
 
