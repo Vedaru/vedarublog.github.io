@@ -132,6 +132,8 @@ function waitForScripts() {
 onMount(() => {
 	if (!pioConfig.enable) return;
 
+	console.log('[PIO] onMount enter');
+
 	// 运行时检测移动端
 	try {
 		isMobileClient = (typeof window !== 'undefined' && window.innerWidth <= MOBILE_BREAKPOINT) ||
@@ -185,7 +187,7 @@ onMount(() => {
     } catch (e) {}
 
     waitForScripts().then(() => {
-        console.log("Pio scripts ready, initializing immediately...");
+	console.log("Pio scripts ready, initializing immediately...");
         // 确保 DOM 已经渲染再初始化（微任务）
         Promise.resolve().then(() => initPio());
 		// 移除或隐藏看板娘自带的关闭按钮，交由导航栏控制显示/隐藏
@@ -254,6 +256,7 @@ onMount(() => {
 
 	// 监听外部唤醒事件（如导航栏按钮）
 	const handleShow = () => {
+		console.log('[PIO] handleShow invoked');
 		try {
 			localStorage.setItem("posterGirl", "1");
 		} catch (e) {
@@ -314,6 +317,7 @@ onMount(() => {
 	// 如果导航栏在 Pio 挂载之前就请求了显示，检查全局 pending 标志并立即触发
 	try {
 		if (typeof window !== 'undefined' && window.__pendingPioShow) {
+			console.log('[PIO] detected __pendingPioShow before mount, consuming and calling handleShow');
 			try { delete window.__pendingPioShow; } catch (e) {}
 			// 直接调用 handleShow 以保证第一次点击有效
 			handleShow();

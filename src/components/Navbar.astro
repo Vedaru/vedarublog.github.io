@@ -133,6 +133,7 @@ async function loadButtonScript() {
                 try {
                     const p = document.querySelector('.pio-container');
                     const isVisible = p && (p instanceof HTMLElement) && (p.classList.contains('visible-manual') || (p instanceof HTMLElement && p.style && p.style.display !== 'none' && getComputedStyle(p).opacity !== '0'));
+                    console.log('[NAVBAR] Pio button clicked, isVisible=', !!isVisible);
                     if (isVisible) {
                         try { localStorage.setItem('posterGirl', '0'); } catch (e) {}
                         // clear pending show flag
@@ -155,7 +156,7 @@ async function loadButtonScript() {
                     } else {
                         try { localStorage.setItem('posterGirl', '1'); } catch (e) {}
                         // mark a pending show so that Pio mounted later can react
-                        try { (window as any).__pendingPioShow = true; } catch (e) {}
+                        try { (window as any).__pendingPioShow = true; console.log('[NAVBAR] set __pendingPioShow = true'); } catch (e) {}
                         window.dispatchEvent(new CustomEvent('pio:show'));
                         // create a lightweight temporary placeholder so the user sees immediate feedback
                         try {
@@ -163,6 +164,7 @@ async function loadButtonScript() {
                             if (!existing) {
                                 const el = document.createElement('div');
                                 if (el instanceof HTMLElement) {
+                                    console.log('[NAVBAR] creating temp pio placeholder');
                                     el.className = 'pio-container pio-placeholder';
                                     el.setAttribute('data-temp-pio', '1');
                                     el.style.position = 'fixed';
