@@ -157,7 +157,6 @@ async function loadButtonScript() {
                         try { localStorage.setItem('posterGirl', '1'); } catch (e) {}
                         // mark a pending show so that Pio mounted later can react
                         try { (window as any).__pendingPioShow = true; console.log('[NAVBAR] set __pendingPioShow = true'); } catch (e) {}
-                        window.dispatchEvent(new CustomEvent('pio:show'));
                         // create a lightweight temporary placeholder so the user sees immediate feedback
                         try {
                             const existing = document.querySelector('.pio-container[data-temp-pio]');
@@ -173,14 +172,15 @@ async function loadButtonScript() {
                                     el.style.zIndex = '9999';
                                     el.style.width = (280) + 'px';
                                     el.style.height = (250) + 'px';
-                                    el.style.background = 'rgba(0,0,0,0.04)';
-                                    el.style.display = '';
+                                    el.style.background = 'rgba(0,0,0,0.06)';
+                                    el.style.display = 'block';
                                     el.style.opacity = '1';
                                     el.style.pointerEvents = 'none';
                                     document.body.appendChild(el);
                                 }
                             }
                         } catch (e) {}
+                        window.dispatchEvent(new CustomEvent('pio:show'));
                         // gentle retry in case event was dispatched before Pio mounted
                         setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 200);
                         try {
