@@ -338,9 +338,9 @@ onDestroy(() => {
 
 {#if pioConfig.enable}
 	<div
-		class={`pio-container ${pioConfig.position || 'right'}`}
+		class={`pio-container hidden ${pioConfig.position || 'right'}`}
 		bind:this={pioContainer}
-		style={`position:fixed;bottom:0;z-index:9999;pointer-events:auto;${(pioConfig.position || 'right') === 'left' ? 'left:0;right:auto;' : 'right:0;left:auto;'}min-height:${(pioConfig.height||250)}px;min-width:${(pioConfig.width||280)}px;`}
+		style={`position:fixed;bottom:0;z-index:9999;pointer-events:none;display:none;opacity:0;transition:opacity 240ms ease;${(pioConfig.position || 'right') === 'left' ? 'left:0;right:auto;' : 'right:0;left:auto;'}min-height:${(pioConfig.height||250)}px;min-width:${(pioConfig.width||280)}px;`}
 	>
     <div class="pio-action"></div>
     <canvas 
