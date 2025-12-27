@@ -774,8 +774,8 @@ function playSong(index: number) {
 	}
 	
 	// 如果之前在播放，或者启用了自动连播（列表循环），则自动开始播放
-	// 仅在用户已交互后或配置允许自动播放时才启动自动播放
-	const shouldAutoPlay = (wasPlaying || shouldAutoplayContinuous) && (shouldAutoplay && userInteracted);
+	// 仅在用户已交互或配置允许自动播放时才启动自动播放（放宽条件：只要用户已交互或配置允许，就可因“正在播放”而自动续播）
+	const shouldAutoPlay = (wasPlaying || shouldAutoplayContinuous) && (userInteracted || shouldAutoplay);
 	console.debug("Should auto-play next track:", shouldAutoPlay, { wasPlaying, shouldAutoplayContinuous });
 	if (shouldAutoPlay) {
 		setTimeout(() => {
