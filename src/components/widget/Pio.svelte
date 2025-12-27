@@ -353,59 +353,15 @@ onMount(() => {
 		try { if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('pio:shown')); } catch (e) {}
 	};
 	window.addEventListener('pio:show', handleShow);
-	// 监听隐藏事件（导航栏切换时触发）
-	const handleHide = () => {
-		try {
-			if (!pioVisible) {
-				console.debug('[PIO] handleHide: already hidden, skipping');
-				return;
-			}
-		} catch (e) {}
-		console.log('[PIO] handleHide invoked');
-		try { localStorage.setItem("posterGirl", "0"); } catch (e) {}
-		try {
-			// 清理在 show 时启动的覆盖定时器与观察器
-			try { if (_overrideInterval) { clearInterval(_overrideInterval); _overrideInterval = null; } } catch (e) {}
-			try { if (_classObserver) { _classObserver.disconnect(); _classObserver = null; } } catch (e) {}
-			if (pioContainer) {
-					// 标记处于 hiding 状态以避免在过渡期间显示 .pio-show
-					pioContainer.classList.add('hiding');
-					pioContainer.classList.add('hidden');
-					pioContainer.classList.remove('visible-manual');
-				pioContainer.classList.remove('visible-manual-strong');
-				try {
-					// 使用 opacity + visibility 隐藏以避免 layout 闪烁
-					pioContainer.style.opacity = '0';
-					pioContainer.style.pointerEvents = 'none';
-					// 在过渡结束后设置 visibility hidden（并保存计时器以便被 show 清理）
-					try { if (_hideTimeout) clearTimeout(_hideTimeout); } catch (e) {}
-					_hideTimeout = setTimeout(() => {
-						try { pioContainer.style.visibility = 'hidden'; pioContainer.style.display = 'none'; } catch (e) {}
-						// 过渡结束后移除 hiding 标记
-						try { pioContainer.classList.remove('hiding'); } catch (e) {}
-						_hideTimeout = null;
-					}, 260);
-				} catch (e) {}
-			}
-		} catch (e) {
-			// ignore
-		}
-		try { pioVisible = false; } catch (e) {}
-	};
-	window.addEventListener("pio:hide", handleHide);
+	// Hide handling removed: Pio is forced visible; external 'pio:hide' events are ignored.
 
-	// 如果导航栏在 Pio 挂载之前就请求了显示，检查全局 pending 标志并立即触发
-	try {
-		if (typeof window !== 'undefined' && window.__pendingPioShow) {
-			console.log('[PIO] detected __pendingPioShow before mount, consuming and calling handleShow');
-			try { delete window.__pendingPioShow; } catch (e) {}
-			// 直接调用 handleShow 以保证第一次点击有效
-			handleShow();
-		}
-	} catch (e) {}
+	// Force Pio visible unconditionally (ignore persisted hide state)
+	try { localStorage.setItem("posterGirl", "1"); } catch (e) {}
+	try { if (typeof window !== 'undefined' && window.__pendingPioShow) { try { delete window.__pendingPioShow; } catch (e) {} console.log('[PIO] consumed __pendingPioShow after show'); } } catch (e) {}
+	try { handleShow(); } catch (e) { console.error('[PIO] force show failed', e); }
+
 	removeShowListener = () => {
 		window.removeEventListener("pio:show", handleShow);
-		window.removeEventListener("pio:hide", handleHide);
 		window.removeEventListener('resize', handleResize);
 	};
 });

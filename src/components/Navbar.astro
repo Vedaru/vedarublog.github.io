@@ -44,7 +44,6 @@ let links: NavBarLink[] = navBarConfig.links.map(
             <div class="flex flex-row items-center text-md">
                 {siteConfig.navbarTitle ? (
                     <span class="flex items-center">
-                        <img src={url(siteConfig.navbarTitle.icon || "/assets/home/home.png")} alt={siteConfig.navbarTitle.text} width="28" height="28" class="h-[1.75rem] w-[1.75rem] mb-1 mr-2 object-contain rounded-lg" loading="lazy" />
                         <span class="dark:text-white text-black">{siteConfig.navbarTitle.text}</span>
                     </span>
                 ) : (
@@ -60,7 +59,7 @@ let links: NavBarLink[] = navBarConfig.links.map(
                 return <DropdownMenu link={l} />;
             })}
         </div>
-        <div class="flex">
+        
             <Search client:only="svelte"></Search>
             {siteConfig.toc.enable && <MobileTOC client:only="svelte"></MobileTOC>}
             {!siteConfig.themeColor.fixed && (
@@ -75,410 +74,263 @@ let links: NavBarLink[] = navBarConfig.links.map(
                 modeSwitchDisplay === "desktop" ? "hidden md:block" :
                 modeSwitchDisplay === "both" ? "block" : "hidden md:block"
             ]}>
-                <WallpaperSwitch client:only="svelte"></WallpaperSwitch>
-            </div>
-            <button aria-label="Show Pio" class="hidden md:inline-flex btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90" id="pio-show-switch">
-                <Icon name="material-symbols:smart-toy-outline" class="text-[1.25rem]"></Icon>
-            </button>
-            <button aria-label="Show Announcement" class="btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90 hidden" id="announcement-show-switch" onclick="showAnnouncement()">
-                <Icon name="material-symbols:notifications-outline" class="text-[1.25rem]"></Icon>
-            </button>
-            <LightDarkSwitch client:only="svelte"></LightDarkSwitch>
-            <button aria-label="Menu" name="Nav Menu" class="btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90 md:!hidden" id="nav-menu-switch">
-                <Icon name="material-symbols:menu-rounded" class="text-[1.25rem]"></Icon>
-            </button>
-        </div>
-        <NavMenuPanel links={links}></NavMenuPanel>
-        <DisplaySettings client:only="svelte"></DisplaySettings>
-    </div>
-</div>
+                                                <WallpaperSwitch client:only="svelte"></WallpaperSwitch>
+                                            </div>
+                                            <button aria-label="Show Pio" class="hidden btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90" id="pio-show-switch" style="display:none;">
+                                                <Icon name="material-symbols:smart-toy-outline" class="text-[1.25rem]"></Icon>
+                                            </button>
+                                            <button aria-label="Show Announcement" class="btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90 hidden" id="announcement-show-switch" onclick="showAnnouncement()">
+                                                <Icon name="material-symbols:notifications-outline" class="text-[1.25rem]"></Icon>
+                                            </button>
+                                            <LightDarkSwitch client:only="svelte"></LightDarkSwitch>
+                                            <button aria-label="Menu" name="Nav Menu" class="btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90 md:!hidden" id="nav-menu-switch">
+                                                <Icon name="material-symbols:menu-rounded" class="text-[1.25rem]"></Icon>
+                                            </button>
+                                        </div>
+                                        <NavMenuPanel links={links}></NavMenuPanel>
+                                    </div>
+                                </div>
 
-<script>
-async function loadButtonScript() {
-    try {
-        const panelManager = (window as Record<string, any>).panelManager;
+                                <script>
+                                async function loadButtonScript() {
+                                    const panelManager = (window as Record<string, any>).panelManager;
 
-        // 无论 panelManager 是否存在，都绑定按钮处理器：优先使用 panelManager，否则使用 DOM 回退。
-        let settingBtn = document.getElementById("display-settings-switch");
-        if (settingBtn) {
-            if (panelManager && typeof panelManager.togglePanel === 'function') {
-                settingBtn.onclick = async function () {
-                    await panelManager.togglePanel('display-setting');
-                };
-            } else {
-                settingBtn.onclick = function () {
-                    const settingPanel = document.getElementById('display-setting');
-                    if (settingPanel) settingPanel.classList.toggle('float-panel-closed');
-                };
-            }
-        }
-
-        let menuBtn = document.getElementById("nav-menu-switch");
-        if (menuBtn) {
-            if (panelManager && typeof panelManager.togglePanel === 'function') {
-                menuBtn.onclick = async function () {
-                    await panelManager.togglePanel('nav-menu-panel');
-                };
-            } else {
-                menuBtn.onclick = function () {
-                    const menuPanel = document.getElementById('nav-menu-panel');
-                    if (menuPanel) menuPanel.classList.toggle('float-panel-closed');
-                };
-            }
-        }
-
-        let pioBtn = document.getElementById("pio-show-switch");
-        if (pioBtn) {
-            try {
-                if (window.matchMedia && !window.matchMedia('(min-width: 768px)').matches) {
-                    pioBtn.style.display = 'none';
-                } else {
-                    pioBtn.onclick = function () {
-                        try {
-                            const last = (window as any).__lastPioToggle || 0;
-                            const now = Date.now();
-                            if (now - last < 200) return; // 更短的防抖
-                            (window as any).__lastPioToggle = now;
-                            const showLock = (window as any).__pioShowLock || 0;
-                            if (now - showLock < 400) return; // 缩短锁定时间
-                            try { if ((window as any).__pendingPioShow) { console.log('[NAVBAR] click ignored due to __pendingPioShow'); return; } } catch (e) {}
-                        } catch (e) {}
-                        try {
-                            const p = document.querySelector('.pio-container');
-                            const isVisible = isPioVisible(p);
-                            console.log('[NAVBAR] Pio button clicked, isVisible=', !!isVisible);
-                            if (isVisible) {
-                                try { localStorage.setItem('posterGirl', '0'); } catch (e) {}
-                                try { delete (window as any).__pendingPioShow; } catch (e) {}
-                                try {
-                                    const canvas = document.getElementById('pio');
-                                    if (canvas instanceof HTMLElement) {
-                                        canvas.style.opacity = '0';
-                                        canvas.style.visibility = 'hidden';
-                                        canvas.style.display = 'none';
+                                    // Display settings button
+                                    try {
+                                        const settingBtn = document.getElementById('display-settings-switch');
+                                        if (settingBtn) {
+                                            if (panelManager && typeof panelManager.togglePanel === 'function') {
+                                                settingBtn.onclick = async () => { await panelManager.togglePanel('display-setting'); };
+                                            } else {
+                                                settingBtn.onclick = () => {
+                                                    const settingPanel = document.getElementById('display-setting');
+                                                    if (settingPanel) settingPanel.classList.toggle('float-panel-closed');
+                                                };
+                                            }
+                                        }
+                                    } catch (e) {
+                                        // ignore
                                     }
-                                } catch (e) {}
-                                window.dispatchEvent(new CustomEvent('pio:hide'));
-                            } else {
-                                try { localStorage.setItem('posterGirl', '1'); } catch (e) {}
-                                try { (window as any).__pendingPioShow = true; console.log('[NAVBAR] set __pendingPioShow = true'); } catch (e) {}
-                                try { (window as any).__pioShowLock = Date.now(); } catch (e) {}
-                                try {
-                                    if (!document.querySelector('.pio-container')) {
-                                        const tmp = document.createElement('div');
-                                        tmp.setAttribute('data-temp-pio', '1');
-                                        tmp.className = 'pio-container right';
-                                        tmp.style.position = 'fixed';
-                                        tmp.style.bottom = '0';
-                                        tmp.style.right = '0';
-                                        tmp.style.zIndex = '9999';
-                                        tmp.style.pointerEvents = 'auto';
-                                        tmp.style.minHeight = '280px';
-                                        tmp.style.minWidth = '250px';
-                                        tmp.innerHTML = '<div class="pio-action"></div><canvas style="width:280px;height:250px;display:block;background:transparent;border-radius:6px;"></canvas>';
-                                        document.body.appendChild(tmp);
+
+                                    // Menu button
+                                    try {
+                                        const menuBtn = document.getElementById('nav-menu-switch');
+                                        if (menuBtn) {
+                                            if (panelManager && typeof panelManager.togglePanel === 'function') {
+                                                menuBtn.onclick = async () => { await panelManager.togglePanel('nav-menu-panel'); };
+                                            } else {
+                                                menuBtn.onclick = () => {
+                                                    const menuPanel = document.getElementById('nav-menu-panel');
+                                                    if (menuPanel) menuPanel.classList.toggle('float-panel-closed');
+                                                };
+                                            }
+                                        }
+                                    } catch (e) {
+                                        // ignore
                                     }
-                                } catch (e) {}
-                                try {
-                                    const canvas = document.getElementById('pio');
-                                    if (canvas instanceof HTMLElement) {
-                                        canvas.style.display = 'block';
-                                        canvas.style.visibility = 'visible';
-                                        canvas.style.opacity = '1';
+
+                                    // Pio button: force-show behavior (no hide)
+                                    try {
+                                        const pioBtn = document.getElementById('pio-show-switch');
+                                        if (!pioBtn) return;
+
+                                        // hide on small screens
+                                        try {
+                                            if (window.matchMedia && !window.matchMedia('(min-width: 768px)').matches) {
+                                                pioBtn.style.display = 'none';
+                                            }
+                                        } catch (e) {}
+
+                                        const bindPioClick = () => {
+                                            pioBtn.onclick = () => {
+                                                try {
+                                                    const last = (window as any).__lastPioToggle || 0;
+                                                    const now = Date.now();
+                                                    if (now - last < 200) return;
+                                                    (window as any).__lastPioToggle = now;
+                                                    const showLock = (window as any).__pioShowLock || 0;
+                                                    if (now - showLock < 400) return;
+                                                    if ((window as any).__pendingPioShow) { console.log('[NAVBAR] click ignored due to __pendingPioShow'); return; }
+                                                } catch (e) {}
+
+                                                try {
+                                                    try { localStorage.setItem('posterGirl', '1'); } catch (e) {}
+                                                    try { (window as any).__pendingPioShow = true; } catch (e) {}
+                                                    try { (window as any).__pioShowLock = Date.now(); } catch (e) {}
+
+                                                    if (!document.querySelector('.pio-container')) {
+                                                        const tmp = document.createElement('div');
+                                                        tmp.setAttribute('data-temp-pio', '1');
+                                                        tmp.className = 'pio-container right';
+                                                        tmp.style.position = 'fixed';
+                                                        tmp.style.bottom = '0';
+                                                        tmp.style.right = '0';
+                                                        tmp.style.zIndex = '9999';
+                                                        tmp.style.pointerEvents = 'auto';
+                                                        tmp.style.minHeight = '280px';
+                                                        tmp.style.minWidth = '250px';
+                                                        tmp.innerHTML = '<div class="pio-action"></div><canvas style="width:280px;height:250px;display:block;background:transparent;border-radius:6px;"></canvas>';
+                                                        document.body.appendChild(tmp);
+                                                    }
+
+                                                    const canvas = document.getElementById('pio');
+                                                    if (canvas instanceof HTMLElement) {
+                                                        canvas.style.display = 'block';
+                                                        canvas.style.visibility = 'visible';
+                                                        canvas.style.opacity = '1';
+                                                    }
+
+                                                    window.dispatchEvent(new CustomEvent('pio:show'));
+                                                    setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 250);
+                                                    setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 600);
+                                                } catch (e) {}
+                                            };
+                                        };
+
+                                        bindPioClick();
+                                    } catch (e) {
+                                        // ignore
                                     }
-                                } catch (e) {}
-                                window.dispatchEvent(new CustomEvent('pio:show'));
-                                setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 250);
-                                setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 600);
-                            }
-                        } catch (e) {
-                            // ignore
-                        }
-                    }
-                }
-            } catch (e) {
-                // ignore matchMedia errors and fallback to binding
-                pioBtn.onclick = function () {
-                    try {
-                        const last = (window as any).__lastPioToggle || 0;
-                        const now = Date.now();
-                        if (now - last < 200) return;
-                        (window as any).__lastPioToggle = now;
-                        const showLock = (window as any).__pioShowLock || 0;
-                        if (now - showLock < 400) return;
-                        try { if ((window as any).__pendingPioShow) { console.log('[NAVBAR] click ignored due to __pendingPioShow'); return; } } catch (e) {}
-                    } catch (e) {}
-                    try {
-                        const p = document.querySelector('.pio-container');
-                        const isVisible = isPioVisible(p);
-                        if (isVisible) {
-                            try { localStorage.setItem('posterGirl', '0'); } catch (e) {}
-                            try {
-                                const canvas = document.getElementById('pio');
-                                if (canvas instanceof HTMLElement) {
-                                    canvas.style.opacity = '0';
-                                    canvas.style.visibility = 'hidden';
-                                    canvas.style.display = 'none';
                                 }
-                            } catch (e) {}
-                            window.dispatchEvent(new CustomEvent('pio:hide'));
-                        } else {
-                            try { localStorage.setItem('posterGirl', '1'); } catch (e) {}
-                            try { (window as any).__pendingPioShow = true; } catch (e) {}
-                            try {
-                                if (!document.querySelector('.pio-container')) {
-                                    const tmp = document.createElement('div');
-                                    tmp.setAttribute('data-temp-pio', '1');
-                                    tmp.className = 'pio-container right';
-                                    tmp.style.position = 'fixed';
-                                    tmp.style.bottom = '0';
-                                    tmp.style.right = '0';
-                                    tmp.style.zIndex = '9999';
-                                    tmp.style.pointerEvents = 'auto';
-                                    tmp.style.minHeight = '280px';
-                                    tmp.style.minWidth = '250px';
-                                    tmp.innerHTML = '<div class="pio-action"></div><canvas style="width:280px;height:250px;display:block;background:transparent;border-radius:6px;"></canvas>';
-                                    document.body.appendChild(tmp);
+
+                                if (document.readyState === 'loading') {
+                                    document.addEventListener('DOMContentLoaded', loadButtonScript);
+                                } else {
+                                    loadButtonScript();
                                 }
-                            } catch (e) {}
-                            try {
-                                const canvas = document.getElementById('pio');
-                                if (canvas instanceof HTMLElement) {
-                                    canvas.style.display = 'block';
-                                    canvas.style.visibility = 'visible';
-                                    canvas.style.opacity = '1';
+
+                                // 更稳健的 Pio 可见性检测，避免依赖易变的行内 style/opacity
+                                function isPioVisible(el) {
+                                    try {
+                                        if (!el || !(el instanceof HTMLElement)) return false;
+                                        // 显式的可见类优先判定
+                                        if (el.classList.contains('visible-manual') || el.classList.contains('visible-manual-strong')) return true;
+                                        // 明确的 hidden 类表示不可见
+                                        if (el.classList.contains('hidden')) return false;
+                                        // 回退到计算样式，但更严格地同时检查 display/visibility/opacity
+                                        const s = getComputedStyle(el);
+                                        if (!s) return false;
+                                        if (s.display === 'none' || s.visibility === 'hidden') return false;
+                                        const op = parseFloat(s.opacity || '1');
+                                        if (isNaN(op) || op <= 0) return false;
+                                        return true;
+                                    } catch (e) {
+                                        return false;
+                                    }
                                 }
-                            } catch (e) {}
-                            window.dispatchEvent(new CustomEvent('pio:show'));
-                            setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 250);
-                            setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 600);
-                        }
-                    } catch (e) {
-                        // ignore
-                    }
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Failed to load panel manager:', error);
-        // 如果出错，尝试最小回退绑定（不会依赖 panelManager）
-        let settingBtn = document.getElementById("display-settings-switch");
-        if (settingBtn) {
-            settingBtn.onclick = function () {
-                const settingPanel = document.getElementById('display-setting');
-                if (settingPanel) settingPanel.classList.toggle('float-panel-closed');
-            };
-        }
-        let menuBtn = document.getElementById("nav-menu-switch");
-        if (menuBtn) {
-            menuBtn.onclick = function () {
-                const menuPanel = document.getElementById('nav-menu-panel');
-                if (menuPanel) menuPanel.classList.toggle('float-panel-closed');
-            };
-        }
-        let pioBtn = document.getElementById("pio-show-switch");
-        if (pioBtn) {
-            pioBtn.onclick = function () {
-                try {
-                    const last = (window as any).__lastPioToggle || 0;
-                    const now = Date.now();
-                    if (now - last < 200) return;
-                    (window as any).__lastPioToggle = now;
-                    const showLock = (window as any).__pioShowLock || 0;
-                    if (now - showLock < 400) return;
-                    try { if ((window as any).__pendingPioShow) { console.log('[NAVBAR] click ignored due to __pendingPioShow'); return; } } catch (e) {}
-                } catch (e) {}
-                try {
-                    const p = document.querySelector('.pio-container');
-                    const isVisible = isPioVisible(p);
-                    if (isVisible) {
-                        try { localStorage.setItem('posterGirl', '0'); } catch (e) {}
-                        try {
-                            const canvas = document.getElementById('pio');
-                            if (canvas instanceof HTMLElement) {
-                                canvas.style.opacity = '0';
-                                canvas.style.visibility = 'hidden';
-                                canvas.style.display = 'none';
-                            }
-                        } catch (e) {}
-                        window.dispatchEvent(new CustomEvent('pio:hide'));
-                    } else {
-                        try { localStorage.setItem('posterGirl', '1'); } catch (e) {}
-                        try { (window as any).__pendingPioShow = true; } catch (e) {}
-                        try {
-                            if (!document.querySelector('.pio-container')) {
-                                const tmp = document.createElement('div');
-                                tmp.setAttribute('data-temp-pio', '1');
-                                tmp.className = 'pio-container right';
-                                tmp.style.position = 'fixed';
-                                tmp.style.bottom = '0';
-                                tmp.style.right = '0';
-                                tmp.style.zIndex = '9999';
-                                tmp.style.pointerEvents = 'auto';
-                                tmp.style.minHeight = '280px';
-                                tmp.style.minWidth = '250px';
-                                tmp.innerHTML = '<div class="pio-action"></div><canvas style="width:280px;height:250px;display:block;background:transparent;border-radius:6px;"></canvas>';
-                                document.body.appendChild(tmp);
-                            }
-                        } catch (e) {}
-                        try {
-                            const canvas = document.getElementById('pio');
-                            if (canvas instanceof HTMLElement) {
-                                canvas.style.display = 'block';
-                                canvas.style.visibility = 'visible';
-                                canvas.style.opacity = '1';
-                            }
-                        } catch (e) {}
-                        window.dispatchEvent(new CustomEvent('pio:show'));
-                        setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 250);
-                        setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 600);
-                    }
-                } catch (e) {
-                    // ignore
-                }
-            }
-        }
-    }
-}
 
-// 更稳健的 Pio 可见性检测，避免依赖易变的行内 style/opacity
-function isPioVisible(el) {
-    try {
-        if (!el || !(el instanceof HTMLElement)) return false;
-        // 显式的可见类优先判定
-        if (el.classList.contains('visible-manual') || el.classList.contains('visible-manual-strong')) return true;
-        // 明确的 hidden 类表示不可见
-        if (el.classList.contains('hidden')) return false;
-        // 回退到计算样式，但更严格地同时检查 display/visibility/opacity
-        const s = getComputedStyle(el);
-        if (!s) return false;
-        if (s.display === 'none' || s.visibility === 'hidden') return false;
-        const op = parseFloat(s.opacity || '1');
-        if (isNaN(op) || op <= 0) return false;
-        return true;
-    } catch (e) {
-        return false;
-    }
-}
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadButtonScript);
-} else {
-    loadButtonScript();
-}
-
-// 为semifull模式添加滚动检测逻辑
-function initSemifullScrollDetection() {
-    const navbar = document.getElementById('navbar');
-    if (!navbar) return;
+                                // 为semifull模式添加滚动检测逻辑
+                                function initSemifullScrollDetection() {
+                                    const navbar = document.getElementById('navbar');
+                                    if (!navbar) return;
     
-    const transparentMode = navbar.getAttribute('data-transparent-mode');
-    if (transparentMode !== 'semifull') return;
+                                    const transparentMode = navbar.getAttribute('data-transparent-mode');
+                                    if (transparentMode !== 'semifull') return;
     
-    const isHomePage = navbar.getAttribute('data-is-home') === 'true';
+                                    const isHomePage = navbar.getAttribute('data-is-home') === 'true';
     
-    // 如果不是首页，移除滚动事件监听器并设置为半透明状态
-    if (!isHomePage) {
-        // 移除之前的滚动事件监听器（如果存在）
-        // @ts-ignore
-        if (window.semifullScrollHandler) {
-            // @ts-ignore
-            window.removeEventListener('scroll', window.semifullScrollHandler);
-            // @ts-ignore
-            window.semifullScrollHandler = null;
-        }
-        // 设置为半透明状态
-        navbar.classList.add('scrolled');
-        return;
-    }
+                                    // 如果不是首页，移除滚动事件监听器并设置为半透明状态
+                                    if (!isHomePage) {
+                                        // 移除之前的滚动事件监听器（如果存在）
+                                        // @ts-ignore
+                                        if (window.semifullScrollHandler) {
+                                            // @ts-ignore
+                                            window.removeEventListener('scroll', window.semifullScrollHandler);
+                                            // @ts-ignore
+                                            window.semifullScrollHandler = null;
+                                        }
+                                        // 设置为半透明状态
+                                        navbar.classList.add('scrolled');
+                                        return;
+                                    }
     
-    // 移除现有的scrolled类，重置状态
-    navbar.classList.remove('scrolled');
+                                    // 移除现有的scrolled类，重置状态
+                                    navbar.classList.remove('scrolled');
     
-    let ticking = false;
+                                    let ticking = false;
     
-    function updateNavbarState() {
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        const threshold = 50; // 滚动阈值，可以根据需要调整
+                                    function updateNavbarState() {
+                                        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                                        const threshold = 50; // 滚动阈值，可以根据需要调整
         
-        if (navbar && scrollTop > threshold) {
-            navbar.classList.add('scrolled');
-        } else if (navbar) {
-            navbar.classList.remove('scrolled');
-        }
+                                        if (navbar && scrollTop > threshold) {
+                                            navbar.classList.add('scrolled');
+                                        } else if (navbar) {
+                                            navbar.classList.remove('scrolled');
+                                        }
         
-        ticking = false;
-    }
+                                        ticking = false;
+                                    }
     
-    function requestTick() {
-        if (!ticking) {
-            requestAnimationFrame(updateNavbarState);
-            ticking = true;
-        }
-    }
+                                    function requestTick() {
+                                        if (!ticking) {
+                                            requestAnimationFrame(updateNavbarState);
+                                            ticking = true;
+                                        }
+                                    }
     
-    // 移除之前的滚动事件监听器（如果存在）
-    // @ts-ignore
-    if (window.semifullScrollHandler) {
-        // @ts-ignore
-        window.removeEventListener('scroll', window.semifullScrollHandler);
-    }
+                                    // 移除之前的滚动事件监听器（如果存在）
+                                    // @ts-ignore
+                                    if (window.semifullScrollHandler) {
+                                        // @ts-ignore
+                                        window.removeEventListener('scroll', window.semifullScrollHandler);
+                                    }
     
-    // 保存新的事件处理器引用
-    // @ts-ignore
-    window.semifullScrollHandler = requestTick;
+                                    // 保存新的事件处理器引用
+                                    // @ts-ignore
+                                    window.semifullScrollHandler = requestTick;
     
-    // 监听滚动事件
-    window.addEventListener('scroll', requestTick, { passive: true });
+                                    // 监听滚动事件
+                                    window.addEventListener('scroll', requestTick, { passive: true });
     
-    // 初始化状态
-    updateNavbarState();
-}
+                                    // 初始化状态
+                                    updateNavbarState();
+                                }
 
-// 将函数暴露到全局对象，供页面切换时调用
-// @ts-ignore
-window.initSemifullScrollDetection = initSemifullScrollDetection;
+                                // 将函数暴露到全局对象，供页面切换时调用
+                                // @ts-ignore
+                                window.initSemifullScrollDetection = initSemifullScrollDetection;
 
-// 页面加载完成后初始化滚动检测
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initSemifullScrollDetection);
-} else {
-    initSemifullScrollDetection();
-}
-</script>
+                                // 页面加载完成后初始化滚动检测
+                                if (document.readyState === 'loading') {
+                                    document.addEventListener('DOMContentLoaded', initSemifullScrollDetection);
+                                } else {
+                                    initSemifullScrollDetection();
+                                }
+                                </script>
 
-{import.meta.env.PROD && <script is:inline define:vars={{scriptUrl: url('/pagefind/pagefind.js')}}>
-async function loadPagefind() {
-    try {
-        const response = await fetch(scriptUrl, { method: 'HEAD' });
-        if (!response.ok) {
-            throw new Error(`Pagefind script not found: ${response.status}`);
-        }
+                                {import.meta.env.PROD && <script is:inline define:vars={{scriptUrl: url('/pagefind/pagefind.js')}}>
+                                async function loadPagefind() {
+                                    try {
+                                        const response = await fetch(scriptUrl, { method: 'HEAD' });
+                                        if (!response.ok) {
+                                            throw new Error(`Pagefind script not found: ${response.status}`);
+                                        }
 
-        const pagefind = await import(scriptUrl);
+                                        const pagefind = await import(scriptUrl);
 
-        await pagefind.options({
-            excerptLength: 20
-        });
+                                        await pagefind.options({
+                                            excerptLength: 20
+                                        });
 
-        window.pagefind = pagefind;
+                                        window.pagefind = pagefind;
 
-        document.dispatchEvent(new CustomEvent('pagefindready'));
-        console.log('Pagefind loaded and initialized successfully, event dispatched.');
-    } catch (error) {
-        console.error('Failed to load Pagefind:', error);
-        window.pagefind = {
-            search: () => Promise.resolve({ results: [] }),
-            options: () => Promise.resolve(),
-        };
-        document.dispatchEvent(new CustomEvent('pagefindloaderror'));
-        console.log('Pagefind load error, event dispatched.');
-    }
-}
+                                        document.dispatchEvent(new CustomEvent('pagefindready'));
+                                        console.log('Pagefind loaded and initialized successfully, event dispatched.');
+                                    } catch (error) {
+                                        console.error('Failed to load Pagefind:', error);
+                                        window.pagefind = {
+                                            search: () => Promise.resolve({ results: [] }),
+                                            options: () => Promise.resolve(),
+                                        };
+                                        document.dispatchEvent(new CustomEvent('pagefindloaderror'));
+                                        console.log('Pagefind load error, event dispatched.');
+                                    }
+                                }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadPagefind);
-} else {
-    loadPagefind();
-}
-</script>}
+                                if (document.readyState === 'loading') {
+                                    document.addEventListener('DOMContentLoaded', loadPagefind);
+                                } else {
+                                    loadPagefind();
+                                }
+                                </script>}
