@@ -132,9 +132,9 @@ export const siteConfig: SiteConfig = {
 
 		homeText: {
 			enable: true, // 在主页显示自定义文本
-			title: "花と水飴、最終電車", // 主页横幅主标题
+			title: "", // 主页横幅主标题
 
-			subtitle: ["大切な人といつかまた巡り会えますように"],
+			subtitle: [""],
 			typewriter: {
 				enable: true, // 启用副标题打字机效果
 
