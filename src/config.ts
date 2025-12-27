@@ -391,7 +391,7 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 	mode: "meting", // 音乐播放器模式，可选 "local" 或 "meting"
 	// 当前使用：官方 Meting API（仅使用单一 API，不轮询）
 	meting_api:
-		"https://meting.injahow.cn/?server=:server&type=:type&id=:id",
+		"https://meting.injahow.cn/?server=netease&type=playlist&id=17514570572",
 	id: "17514570572", // 歌单ID
 	server: "netease", // 音乐源服务器。有的meting的api源支持更多平台,一般来说,netease=网易云音乐, tencent=QQ音乐, kugou=酷狗音乐, xiami=虾米音乐, baidu=百度音乐
 	type: "playlist", // 播单类型
