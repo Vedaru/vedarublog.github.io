@@ -582,7 +582,7 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 
 export const sakuraConfig: SakuraConfig = {
 	enable: false, // 默认关闭樱花特效
-	sakuraNum: 40, // 樱花数量
+	sakuraNum: 400, // 樱花数量
 	limitTimes: -1, // 樱花越界限制次数，-1为无限循环
 	size: {
 		min: 0.2, // 樱花最小尺寸倍数
