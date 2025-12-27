@@ -347,6 +347,10 @@ onMount(() => {
 		}
 		// 标记为已显示
 		try { pioVisible = true; } catch (e) {}
+		// 如果导航栏设置了全局 pending 标志，说明这是响应首次点击，消费它以允许后续点击
+		try { if (typeof window !== 'undefined' && (window).__pendingPioShow) { try { delete (window).__pendingPioShow; } catch (e) {} console.log('[PIO] consumed __pendingPioShow after show'); } } catch (e) {}
+		// 派发一个显示完成事件，供外部（如 Navbar）监听以同步状态
+		try { if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('pio:shown')); } catch (e) {}
 	};
 	window.addEventListener('pio:show', handleShow);
 	// 监听隐藏事件（导航栏切换时触发）
