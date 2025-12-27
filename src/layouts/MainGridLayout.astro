@@ -232,9 +232,25 @@ const transparentClass = shouldEnableTransparency
 
 <script is:inline define:vars={{navbarTransparentMode: siteConfig.banner?.navbar?.transparentMode || "semi", defaultWallpaperMode: siteConfig.wallpaperMode.defaultMode, defaultPostListLayout: siteConfig.postListLayout?.defaultMode || "list"}}>
 	// 立即执行，在页面渲染前应用壁纸模式和布局模式，避免闪烁
-	(function() {
-		const wallpaperMode = localStorage.getItem('wallpaperMode') || defaultWallpaperMode;
-		const body = document.body;
+    (function() {
+        function getEffectiveWallpaperMode() {
+            var saved = null;
+            try {
+                saved = localStorage.getItem('wallpaperMode');
+            } catch (e) {
+                saved = null;
+            }
+            if (saved) return saved;
+            try {
+                if (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) {
+                    return 'none';
+                }
+            } catch (e) {}
+            return defaultWallpaperMode;
+        }
+
+        const wallpaperMode = getEffectiveWallpaperMode();
+        const body = document.body;
 		
 		// 定义 banner 高度常量（与 constants.ts 保持一致）
 		// const BANNER_HEIGHT = 35;
@@ -319,7 +335,14 @@ const transparentClass = shouldEnableTransparency
 	}
 	
 	function applyWallpaperMode() {
-		var wallpaperMode = localStorage.getItem('wallpaperMode') || defaultWallpaperMode;
+        var wallpaperMode;
+        try { wallpaperMode = localStorage.getItem('wallpaperMode'); } catch (e) { wallpaperMode = null; }
+        try {
+            if (!wallpaperMode && window.matchMedia && window.matchMedia('(max-width: 767px)').matches) {
+                wallpaperMode = 'none';
+            }
+        } catch (e) {}
+        wallpaperMode = wallpaperMode || defaultWallpaperMode;
 		var bannerWrapper = document.getElementById('banner-wrapper');
 		var fullscreenWallpaper = document.querySelector('[data-fullscreen-wallpaper]');
 		var navbar = document.getElementById('navbar');
