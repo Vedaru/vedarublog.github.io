@@ -141,6 +141,9 @@ async function loadButtonScript() {
                             const now = Date.now();
                             if (now - last < 400) return;
                             (window as any).__lastPioToggle = now;
+                            // 如果刚刚发起了 show 请求，短期内阻止再次切换以避免立即 hide
+                            const showLock = (window as any).__pioShowLock || 0;
+                            if (now - showLock < 800) return;
                         } catch (e) {}
                         try {
                             const p = document.querySelector('.pio-container');
@@ -154,6 +157,8 @@ async function loadButtonScript() {
                             } else {
                                 try { localStorage.setItem('posterGirl', '1'); } catch (e) {}
                                 try { (window as any).__pendingPioShow = true; console.log('[NAVBAR] set __pendingPioShow = true'); } catch (e) {}
+                                // set a short lock to avoid immediate subsequent toggles
+                                try { (window as any).__pioShowLock = Date.now(); } catch (e) {}
                                 // dispatch multiple show events as a resilient retry mechanism
                                 window.dispatchEvent(new CustomEvent('pio:show'));
                                 setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 250);
@@ -173,6 +178,8 @@ async function loadButtonScript() {
                         const now = Date.now();
                         if (now - last < 400) return;
                         (window as any).__lastPioToggle = now;
+                        const showLock = (window as any).__pioShowLock || 0;
+                        if (now - showLock < 800) return;
                     } catch (e) {}
                     try {
                         const p = document.querySelector('.pio-container');
@@ -219,6 +226,8 @@ async function loadButtonScript() {
                     const now = Date.now();
                     if (now - last < 400) return;
                     (window as any).__lastPioToggle = now;
+                    const showLock = (window as any).__pioShowLock || 0;
+                    if (now - showLock < 800) return;
                 } catch (e) {}
                 try {
                     const p = document.querySelector('.pio-container');
