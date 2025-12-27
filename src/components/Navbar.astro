@@ -129,22 +129,18 @@ async function loadButtonScript() {
 
         let pioBtn = document.getElementById("pio-show-switch");
         if (pioBtn) {
-            // 在移动端跳过 Pio 绑定（与按钮隐藏保持一致）
             try {
                 if (window.matchMedia && !window.matchMedia('(min-width: 768px)').matches) {
                     pioBtn.style.display = 'none';
                 } else {
                     pioBtn.onclick = function () {
-                        // 防抖：快速连续点击可能触发竞态，忽略 400ms 内重复点击
                         try {
                             const last = (window as any).__lastPioToggle || 0;
                             const now = Date.now();
-                            if (now - last < 400) return;
+                            if (now - last < 200) return; // 更短的防抖
                             (window as any).__lastPioToggle = now;
-                            // 如果刚刚发起了 show 请求，短期内阻止再次切换以避免立即 hide
                             const showLock = (window as any).__pioShowLock || 0;
-                            if (now - showLock < 800) return;
-                            // 如果已经存在 pending 显示请求，则忽略本次点击，避免与 Pio 生命周期竞态
+                            if (now - showLock < 400) return; // 缩短锁定时间
                             try { if ((window as any).__pendingPioShow) { console.log('[NAVBAR] click ignored due to __pendingPioShow'); return; } } catch (e) {}
                         } catch (e) {}
                         try {
@@ -154,7 +150,6 @@ async function loadButtonScript() {
                             if (isVisible) {
                                 try { localStorage.setItem('posterGirl', '0'); } catch (e) {}
                                 try { delete (window as any).__pendingPioShow; } catch (e) {}
-                                // 立即切换 canvas 可见性以获得即时反馈
                                 try {
                                     const canvas = document.getElementById('pio');
                                     if (canvas instanceof HTMLElement) {
@@ -163,14 +158,27 @@ async function loadButtonScript() {
                                         canvas.style.display = 'none';
                                     }
                                 } catch (e) {}
-                                // rely on Pio's own hide handler to cleanup state
                                 window.dispatchEvent(new CustomEvent('pio:hide'));
                             } else {
                                 try { localStorage.setItem('posterGirl', '1'); } catch (e) {}
                                 try { (window as any).__pendingPioShow = true; console.log('[NAVBAR] set __pendingPioShow = true'); } catch (e) {}
-                                // set a short lock to avoid immediate subsequent toggles
                                 try { (window as any).__pioShowLock = Date.now(); } catch (e) {}
-                                // 立即尝试显示 canvas 以获得即时反馈
+                                try {
+                                    if (!document.querySelector('.pio-container')) {
+                                        const tmp = document.createElement('div');
+                                        tmp.setAttribute('data-temp-pio', '1');
+                                        tmp.className = 'pio-container right';
+                                        tmp.style.position = 'fixed';
+                                        tmp.style.bottom = '0';
+                                        tmp.style.right = '0';
+                                        tmp.style.zIndex = '9999';
+                                        tmp.style.pointerEvents = 'auto';
+                                        tmp.style.minHeight = '280px';
+                                        tmp.style.minWidth = '250px';
+                                        tmp.innerHTML = '<div class="pio-action"></div><canvas style="width:280px;height:250px;display:block;background:transparent;border-radius:6px;"></canvas>';
+                                        document.body.appendChild(tmp);
+                                    }
+                                } catch (e) {}
                                 try {
                                     const canvas = document.getElementById('pio');
                                     if (canvas instanceof HTMLElement) {
@@ -179,7 +187,6 @@ async function loadButtonScript() {
                                         canvas.style.opacity = '1';
                                     }
                                 } catch (e) {}
-                                // dispatch multiple show events as a resilient retry mechanism
                                 window.dispatchEvent(new CustomEvent('pio:show'));
                                 setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 250);
                                 setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 600);
@@ -192,14 +199,13 @@ async function loadButtonScript() {
             } catch (e) {
                 // ignore matchMedia errors and fallback to binding
                 pioBtn.onclick = function () {
-                    // 防抖：快速连续点击可能触发竞态，忽略 400ms 内重复点击
                     try {
                         const last = (window as any).__lastPioToggle || 0;
                         const now = Date.now();
-                        if (now - last < 400) return;
+                        if (now - last < 200) return;
                         (window as any).__lastPioToggle = now;
                         const showLock = (window as any).__pioShowLock || 0;
-                        if (now - showLock < 800) return;
+                        if (now - showLock < 400) return;
                         try { if ((window as any).__pendingPioShow) { console.log('[NAVBAR] click ignored due to __pendingPioShow'); return; } } catch (e) {}
                     } catch (e) {}
                     try {
@@ -219,6 +225,22 @@ async function loadButtonScript() {
                         } else {
                             try { localStorage.setItem('posterGirl', '1'); } catch (e) {}
                             try { (window as any).__pendingPioShow = true; } catch (e) {}
+                            try {
+                                if (!document.querySelector('.pio-container')) {
+                                    const tmp = document.createElement('div');
+                                    tmp.setAttribute('data-temp-pio', '1');
+                                    tmp.className = 'pio-container right';
+                                    tmp.style.position = 'fixed';
+                                    tmp.style.bottom = '0';
+                                    tmp.style.right = '0';
+                                    tmp.style.zIndex = '9999';
+                                    tmp.style.pointerEvents = 'auto';
+                                    tmp.style.minHeight = '280px';
+                                    tmp.style.minWidth = '250px';
+                                    tmp.innerHTML = '<div class="pio-action"></div><canvas style="width:280px;height:250px;display:block;background:transparent;border-radius:6px;"></canvas>';
+                                    document.body.appendChild(tmp);
+                                }
+                            } catch (e) {}
                             try {
                                 const canvas = document.getElementById('pio');
                                 if (canvas instanceof HTMLElement) {
@@ -257,14 +279,13 @@ async function loadButtonScript() {
         let pioBtn = document.getElementById("pio-show-switch");
         if (pioBtn) {
             pioBtn.onclick = function () {
-                // 防抖：快速连续点击可能触发竞态，忽略 400ms 内重复点击
                 try {
                     const last = (window as any).__lastPioToggle || 0;
                     const now = Date.now();
-                    if (now - last < 400) return;
+                    if (now - last < 200) return;
                     (window as any).__lastPioToggle = now;
                     const showLock = (window as any).__pioShowLock || 0;
-                    if (now - showLock < 800) return;
+                    if (now - showLock < 400) return;
                     try { if ((window as any).__pendingPioShow) { console.log('[NAVBAR] click ignored due to __pendingPioShow'); return; } } catch (e) {}
                 } catch (e) {}
                 try {
@@ -284,6 +305,22 @@ async function loadButtonScript() {
                     } else {
                         try { localStorage.setItem('posterGirl', '1'); } catch (e) {}
                         try { (window as any).__pendingPioShow = true; } catch (e) {}
+                        try {
+                            if (!document.querySelector('.pio-container')) {
+                                const tmp = document.createElement('div');
+                                tmp.setAttribute('data-temp-pio', '1');
+                                tmp.className = 'pio-container right';
+                                tmp.style.position = 'fixed';
+                                tmp.style.bottom = '0';
+                                tmp.style.right = '0';
+                                tmp.style.zIndex = '9999';
+                                tmp.style.pointerEvents = 'auto';
+                                tmp.style.minHeight = '280px';
+                                tmp.style.minWidth = '250px';
+                                tmp.innerHTML = '<div class="pio-action"></div><canvas style="width:280px;height:250px;display:block;background:transparent;border-radius:6px;"></canvas>';
+                                document.body.appendChild(tmp);
+                            }
+                        } catch (e) {}
                         try {
                             const canvas = document.getElementById('pio');
                             if (canvas instanceof HTMLElement) {
