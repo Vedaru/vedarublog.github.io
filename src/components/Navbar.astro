@@ -154,13 +154,31 @@ async function loadButtonScript() {
                             if (isVisible) {
                                 try { localStorage.setItem('posterGirl', '0'); } catch (e) {}
                                 try { delete (window as any).__pendingPioShow; } catch (e) {}
-                                // rely on Pio's own hide handler
+                                // 立即切换 canvas 可见性以获得即时反馈
+                                try {
+                                    const canvas = document.getElementById('pio');
+                                    if (canvas instanceof HTMLElement) {
+                                        canvas.style.opacity = '0';
+                                        canvas.style.visibility = 'hidden';
+                                        canvas.style.display = 'none';
+                                    }
+                                } catch (e) {}
+                                // rely on Pio's own hide handler to cleanup state
                                 window.dispatchEvent(new CustomEvent('pio:hide'));
                             } else {
                                 try { localStorage.setItem('posterGirl', '1'); } catch (e) {}
                                 try { (window as any).__pendingPioShow = true; console.log('[NAVBAR] set __pendingPioShow = true'); } catch (e) {}
                                 // set a short lock to avoid immediate subsequent toggles
                                 try { (window as any).__pioShowLock = Date.now(); } catch (e) {}
+                                // 立即尝试显示 canvas 以获得即时反馈
+                                try {
+                                    const canvas = document.getElementById('pio');
+                                    if (canvas instanceof HTMLElement) {
+                                        canvas.style.display = 'block';
+                                        canvas.style.visibility = 'visible';
+                                        canvas.style.opacity = '1';
+                                    }
+                                } catch (e) {}
                                 // dispatch multiple show events as a resilient retry mechanism
                                 window.dispatchEvent(new CustomEvent('pio:show'));
                                 setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 250);
@@ -189,10 +207,26 @@ async function loadButtonScript() {
                         const isVisible = isPioVisible(p);
                         if (isVisible) {
                             try { localStorage.setItem('posterGirl', '0'); } catch (e) {}
+                            try {
+                                const canvas = document.getElementById('pio');
+                                if (canvas instanceof HTMLElement) {
+                                    canvas.style.opacity = '0';
+                                    canvas.style.visibility = 'hidden';
+                                    canvas.style.display = 'none';
+                                }
+                            } catch (e) {}
                             window.dispatchEvent(new CustomEvent('pio:hide'));
                         } else {
                             try { localStorage.setItem('posterGirl', '1'); } catch (e) {}
                             try { (window as any).__pendingPioShow = true; } catch (e) {}
+                            try {
+                                const canvas = document.getElementById('pio');
+                                if (canvas instanceof HTMLElement) {
+                                    canvas.style.display = 'block';
+                                    canvas.style.visibility = 'visible';
+                                    canvas.style.opacity = '1';
+                                }
+                            } catch (e) {}
                             window.dispatchEvent(new CustomEvent('pio:show'));
                             setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 250);
                             setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 600);
@@ -238,10 +272,26 @@ async function loadButtonScript() {
                     const isVisible = isPioVisible(p);
                     if (isVisible) {
                         try { localStorage.setItem('posterGirl', '0'); } catch (e) {}
+                        try {
+                            const canvas = document.getElementById('pio');
+                            if (canvas instanceof HTMLElement) {
+                                canvas.style.opacity = '0';
+                                canvas.style.visibility = 'hidden';
+                                canvas.style.display = 'none';
+                            }
+                        } catch (e) {}
                         window.dispatchEvent(new CustomEvent('pio:hide'));
                     } else {
                         try { localStorage.setItem('posterGirl', '1'); } catch (e) {}
                         try { (window as any).__pendingPioShow = true; } catch (e) {}
+                        try {
+                            const canvas = document.getElementById('pio');
+                            if (canvas instanceof HTMLElement) {
+                                canvas.style.display = 'block';
+                                canvas.style.visibility = 'visible';
+                                canvas.style.opacity = '1';
+                            }
+                        } catch (e) {}
                         window.dispatchEvent(new CustomEvent('pio:show'));
                         setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 250);
                         setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 600);
