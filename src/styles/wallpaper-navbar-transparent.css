@@ -220,6 +220,15 @@ body.wallpaper-transparent #navbar[data-transparent-mode].scrolled > div {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18) !important;
 }
 
+/* 修复：在全屏壁纸模式下，允许 navbar 空白区域的点击透传到下方内容，
+   但保留 navbar 内可交互子元素（按钮、菜单等）的事件响应。 */
+body.wallpaper-transparent #navbar {
+    pointer-events: none !important;
+}
+body.wallpaper-transparent #navbar * {
+    pointer-events: auto !important;
+}
+
 /* 手机端导航菜单不透明纯色 */
 #navbar[data-dynamic-transparent="none"] #nav-menu-panel {
     backdrop-filter: none !important;
