@@ -59,25 +59,22 @@ n-buna的两张术专和Orangestar的哨戒班给我的冲击并不只限于听�
 
 拿不拿两张术专虽然歌手并不是真人，但是歌曲中包含的情感、歌曲和专辑本身的完成度，都不输于拿不拿在夜鹿时期创作的歌曲。这不禁让我开始思考：决定歌曲所传达的情感的，究竟是何种因素？  
 
-![巴勃罗·毕加索的画作《梦》（Le Rêve）](./images/abstract.jpg "巴勃罗·毕加索的画作《梦》（Le Rêve）")
+<div style="display:flex; align-items:flex-start; gap:1rem; flex-wrap:wrap;">
+	<div style="flex:1; padding-right:20px;">
+		<h2>关于《梦》</h2>
+		<p>《梦》（Le Rêve）是西班牙艺术家巴勃罗·毕加索于1932年创作的油画。这幅画是毕加索的代表作之一，以其独特的立体主义风格和鲜艳的色彩而闻名。画中描绘了毕加索的情人玛丽·泰蕾兹·沃尔特（Marie-Thérèse Walter）在椅子上小憩的情景。</p>
 
-如果一张画像被解构，仅保留最基本的线条与色彩，画师依然可以通过这些简练的线条传递画中人物的形、神、甚至是作画的意图。在我看来vocaloid象征着音乐家对于人的歌声的解构，就像画家将光影形态转化为简练的线条色块，p主将原本复杂多变的歌声具象化为参数，将模糊的感情符号化。这样的创作过程是及其深邃的，唯有创作者本人的情感强烈到一定程度才能完成这样繁琐细腻的工作。
+		<p>作品展现了她柔和的侧脸和丰满的身体线条，毕加索通过几何图形和抽象化的处理，将她的形象分解并重构，同时保留了其特征。这幅画不仅是毕加索对情人深情的表达，也是他对女性形体和内在精神探索的体现。</p>
+	</div>
+	<div style="flex:1; min-width:280px;">
+		<img src="./images/abstract.jpg" alt="巴勃罗·毕加索的画作《梦》（Le Rêve）" title="巴勃罗·毕加索的画作《梦》（Le Rêve）" style="width:100%; height:auto; border-radius:6px; display:block;">
+	</div>
+</div>
 
 <style>
-img[src$="abstract.jpg"] {
-  float: left !important;
-  width: 280px !important;
-  height: auto !important;
-  margin: 0 1rem 0.75rem 0 !important;
-  border-radius: 6px !important;
-  display: block !important;
-}
-@media (max-width: 720px) {
-  img[src$="abstract.jpg"] {
-    float: none !important;
-    width: 100% !important;
-    margin: 0 0 0.75rem 0 !important;
-  }
+@media (max-width:720px){
+	div[style*="display:flex"]{display:block!important}
+	div[style*="display:flex"] img{width:100%!important; margin-bottom:0.5rem}
 }
 </style>
 
