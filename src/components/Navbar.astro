@@ -144,6 +144,8 @@ async function loadButtonScript() {
                             // 如果刚刚发起了 show 请求，短期内阻止再次切换以避免立即 hide
                             const showLock = (window as any).__pioShowLock || 0;
                             if (now - showLock < 800) return;
+                            // 如果已经存在 pending 显示请求，则忽略本次点击，避免与 Pio 生命周期竞态
+                            try { if ((window as any).__pendingPioShow) { console.log('[NAVBAR] click ignored due to __pendingPioShow'); return; } } catch (e) {}
                         } catch (e) {}
                         try {
                             const p = document.querySelector('.pio-container');
@@ -180,6 +182,7 @@ async function loadButtonScript() {
                         (window as any).__lastPioToggle = now;
                         const showLock = (window as any).__pioShowLock || 0;
                         if (now - showLock < 800) return;
+                        try { if ((window as any).__pendingPioShow) { console.log('[NAVBAR] click ignored due to __pendingPioShow'); return; } } catch (e) {}
                     } catch (e) {}
                     try {
                         const p = document.querySelector('.pio-container');
@@ -228,6 +231,7 @@ async function loadButtonScript() {
                     (window as any).__lastPioToggle = now;
                     const showLock = (window as any).__pioShowLock || 0;
                     if (now - showLock < 800) return;
+                    try { if ((window as any).__pendingPioShow) { console.log('[NAVBAR] click ignored due to __pendingPioShow'); return; } } catch (e) {}
                 } catch (e) {}
                 try {
                     const p = document.querySelector('.pio-container');

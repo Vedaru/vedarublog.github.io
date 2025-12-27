@@ -30,14 +30,11 @@ let meting_api =
 	musicPlayerConfig.meting_api ??
 	"https://www.bilibili.uno/api?server=:server&type=:type&id=:id&auth=:auth&r=:r";
 
-// Meting API 候选列表，按优先级排列，当前源失败时自动切换到下一个
-const metingApiCandidates = [
-	meting_api, // 当前配置源（官方演示 api.i-meto.com）
-	"https://api.wuenci.com/meting/api/?server=:server&type=:type&id=:id", // 第三方搭建
-	"https://meting.qjqq.cn/api?server=:server&type=:type&id=:id", // 第三方搭建
-	"https://api.injahow.cn/meting/?server=:server&type=:type&id=:id&auth=:auth&r=:r", // 加速镜像
-	"https://netease-cloud-music-api-gules-mu.vercel.app/api?server=:server&type=:type&id=:id", // Vercel 备份
-].filter(Boolean);
+// Meting API 候选列表：优先使用 `musicPlayerConfig.meting_api_candidates`（在 `src/config.ts` 中配置），
+// 若未配置则回退到单一的 `meting_api`。
+const metingApiCandidates = (musicPlayerConfig.meting_api_candidates && musicPlayerConfig.meting_api_candidates.length > 0)
+	? musicPlayerConfig.meting_api_candidates.map(s => s.replace(/:server|:type|:id|:auth|:r/g, (m) => m)) // template placeholders kept; replaced when building URL
+	: [meting_api].filter(Boolean);
 // Meting API 的 ID，从配置中获取或使用默认值
 let meting_id = musicPlayerConfig.id ?? "17514570572";
 // Meting API 的服务器，从配置中获取或使用默认值,有的meting的api源支持更多平台,一般来说,netease=网易云音乐, tencent=QQ音乐, kugou=酷狗音乐, xiami=虾米音乐, baidu=百度音乐

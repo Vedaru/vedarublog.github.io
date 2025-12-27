@@ -283,6 +283,7 @@ export type MusicPlayerConfig = {
 	enable: boolean; // 是否启用音乐播放器功能
 	mode: "meting" | "local"; // 音乐播放器模式
 	meting_api: string; // Meting API 地址
+	meting_api_candidates?: string[]; // 可选：多个 Meting API 候选列表，按优先级排列
 	id: string; // 歌单ID
 	server: string; // 音乐源服务器
 	type: string; // 音乐类型
