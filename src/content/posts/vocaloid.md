@@ -59,9 +59,30 @@ n-buna的两张术专和Orangestar的哨戒班给我的冲击并不只限于听�
 
 拿不拿两张术专虽然歌手并不是真人，但是歌曲中包含的情感、歌曲和专辑本身的完成度，都不输于拿不拿在夜鹿时期创作的歌曲。这不禁让我开始思考：决定歌曲所传达的情感的，究竟是何种因素？  
 
-| &nbsp; | &nbsp; |
-|---|---|
-| ![巴勃罗·毕加索的画作《梦》（Le Rêve）](./images/abstract.jpg "巴勃罗·毕加索的画作《梦》（Le Rêve）") | 如果一张画像被解构，仅保留最基本的线条与色彩，画师依然可以通过这些简练的线条传递画中人物的形、神、甚至是作画的意图。在我看来vocaloid象征着音乐家对于人的歌声的解构，就像画家将光影形态转化为简练的线条色块，p主将原本复杂多变的歌声具象化为参数，将模糊的感情符号化。这样的创作过程是及其深邃的，唯有创作者本人的情感强烈到一定程度才能完成这样繁琐细腻的工作。 |
+<table style="width:100%; border-collapse:collapse;">
+	<tr>
+		<td style="width:280px; vertical-align:top; padding-right:1rem;">
+			<img src="./images/abstract.jpg" alt="巴勃罗·毕加索的画作《梦》（Le Rêve）" title="巴勃罗·毕加索的画作《梦》（Le Rêve）" style="width:100%; height:auto; border-radius:6px; display:block;">
+		</td>
+		<td style="vertical-align:top;">
+			如果一张画像被解构，仅保留最基本的线条与色彩，画师依然可以通过这些简练的线条传递画中人物的形、神、甚至是作画的意图。在我看来vocaloid象征着音乐家对于人的歌声的解构，就像画家将光影形态转化为简练的线条色块，p主将原本复杂多变的歌声具象化为参数，将模糊的感情符号化。这样的创作过程是及其深邃的，唯有创作者本人的情感强烈到一定程度才能完成这样繁琐细腻的工作。
+		</td>
+	</tr>
+</table>
+
+<style>
+@media (max-width: 720px) {
+	table[style] { /* targets this inline-styled table */
+		display: block;
+	}
+	table[style] td {
+		display: block;
+		width: 100% !important;
+		padding-right: 0 !important;
+		margin-bottom: 0.75rem;
+	}
+}
+</style>
 
 
 “烹饪美味的菜肴往往只需要使用简单的食材。”  
