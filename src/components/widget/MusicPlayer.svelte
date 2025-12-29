@@ -2062,6 +2062,19 @@ onDestroy(() => {
 	bottom: 4px;
 	right: 4px;
 	z-index: 9999;
+	/* Use transform/opacity for smooth GPU-accelerated transitions */
+	transform: translateY(6px) scale(1);
+	opacity: 1;
+	transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1), opacity 260ms ease;
+	will-change: transform, opacity;
+	-webkit-backface-visibility: hidden;
+	backface-visibility: hidden;
+}
+.mini-player.opacity-0,
+.mini-player.scale-95 {
+	transform: translateY(14px) scale(0.95);
+	opacity: 0;
+	pointer-events: none;
 }
 .expanded-player {
 	width: 320px;
@@ -2069,6 +2082,17 @@ onDestroy(() => {
 	bottom: 4px;
 	right: 4px;
 	z-index: 9999;
+	transform: translateY(8px) scale(0.98);
+	opacity: 0;
+	transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1), opacity 260ms ease;
+	will-change: transform, opacity;
+	-webkit-backface-visibility: hidden;
+	backface-visibility: hidden;
+}
+.expanded-player:not(.opacity-0) {
+	transform: translateY(0) scale(1);
+	opacity: 1;
+	pointer-events: auto;
 }
 
 .animate-pulse {
