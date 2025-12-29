@@ -129,6 +129,13 @@
   .bubble { padding: 0.5rem 0.75rem; border-radius: 0.5rem; }
   .bubble.user { background: rgba(59,130,246,0.12); align-self: flex-end; }
   .bubble.assistant { background: rgba(156,163,175,0.12); align-self: flex-start; }
+
+  /* Ensure chat input and bubbles adapt to theme via CSS variables */
+  .chat-input {
+    background: var(--card-bg);
+    color: var(--text-foreground, inherit);
+    border: 1px solid var(--line-divider);
+  }
 </style>
 
 <div class="chat-container mx-auto flex flex-col gap-4">
@@ -147,7 +154,7 @@
 
   <div class="flex items-center gap-3">
     <textarea
-      class="flex-1 p-2 border rounded-md resize-none"
+      class="flex-1 p-2 rounded-md resize-none chat-input"
       rows="2"
       bind:value={input}
       on:keydown={onKey}
