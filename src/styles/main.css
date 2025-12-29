@@ -28,6 +28,15 @@
     font-display: swap;
 }
 
+/* 导入 微软雅黑 本地字体（供 Layout 预加载使用） */
+@font-face {
+    font-family: '微软雅黑';
+    src: url('/assets/font/微软雅黑.ttf') format('truetype');
+    font-weight: 400 700;
+    font-style: normal;
+    font-display: swap;
+}
+
 /* 基础主题变量，确保切换时可见差异并避免无定义导致颜色不变 */
 :root {
     --hue: 250;
