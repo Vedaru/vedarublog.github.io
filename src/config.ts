@@ -238,7 +238,7 @@ export const navBarConfig: NavBarConfig = {
 		{
 			name: "AI Chat",
 			url: "/chat/",
-			icon: "material-symbols:smart_toy",
+			icon: "material-symbols:chat",
 		},
 		// 支持自定义导航栏链接,并且支持多级菜单,3.1版本新加
 		{
