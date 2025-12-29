@@ -329,6 +329,13 @@ html {
     .is-theme-transitioning .btn-plain {
         transition: color 75ms ease-out !important;
     }
+    /* 在主题切换期间临时禁用文本与背景颜色的过渡，减少闪烁 */
+    .is-theme-transitioning,
+    .is-theme-transitioning * {
+        transition-property: none !important;
+        transition-duration: 0ms !important;
+        transition-timing-function: linear !important;
+    }
     .link {
         @apply transition-colors duration-150 rounded-md p-1 -m-1 expand-animation;
     }
