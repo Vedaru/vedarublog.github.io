@@ -139,7 +139,7 @@
 
   .chat-send-btn {
     background: var(--primary);
-    color: var(--btn-content);
+    color: #000; /* light theme: black text */
     border: none;
     cursor: pointer;
   }
@@ -150,6 +150,12 @@
 
   .chat-send-btn:active {
     filter: brightness(0.9);
+  }
+
+  /* Dark theme: ensure send button text is white */
+  :global(.dark) .chat-send-btn,
+  :global([data-theme="dark"]) .chat-send-btn {
+    color: #fff;
   }
 </style>
 
