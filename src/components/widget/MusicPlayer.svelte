@@ -726,6 +726,27 @@ function playSong(index: number) {
 		currentSong = { ...playlist[currentIndex] };
 		audio.volume = audioVolumeCurrent;
 		handleAudioEvents(); // 重新绑定事件监听器
+
+		// 同步时长与当前时间：若预加载音频已准备好则立即更新，否则在 loadeddata 时更新
+		try {
+			if (audio && audio.duration && Number.isFinite(audio.duration) && audio.duration > 0) {
+				duration = Math.floor(audio.duration);
+				if (playlist[currentIndex]) playlist[currentIndex].duration = duration;
+				currentSong.duration = duration;
+				currentTime = audio.currentTime || 0;
+			} else if (audio) {
+				audio.addEventListener("loadeddata", () => {
+					if (audio && audio.duration && Number.isFinite(audio.duration) && audio.duration > 0) {
+						duration = Math.floor(audio.duration);
+						if (playlist[currentIndex]) playlist[currentIndex].duration = duration;
+						currentSong.duration = duration;
+					}
+					currentTime = audio.currentTime || 0;
+				}, { once: true });
+			}
+		} catch (e) {
+			console.debug('Failed to sync duration from preloaded audio:', e);
+		}
 		
 		// 如果之前在播放，立即开始播放
 			if (wasPlaying) {
