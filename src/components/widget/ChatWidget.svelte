@@ -59,7 +59,7 @@
 </style>
 
 <div class="chat-container mx-auto flex flex-col gap-4">
-  <div class="flex flex-col gap-3 min-h-[200px] p-4 border border-gray-200 rounded-md bg-white/60 dark:bg-[#0b1220]/60">
+  <div class="flex flex-col gap-3 min-h-[200px] p-4 card-base">
     {#each messages as m}
       <div class="flex">
         <div class="max-w-[80%]">
