@@ -12,27 +12,100 @@
     messages = [...messages, { id: idCounter++, role, text }];
   }
 
+  // session id persisted in localStorage to carry conversation context
+  const SESSION_KEY = "chat:sessionId";
+  let sessionId: string | null = null;
+  onMount(() => {
+    sessionId = localStorage.getItem(SESSION_KEY);
+  });
+
   async function send() {
     const text = input.trim();
     if (!text) return;
     pushMessage("user", text);
     input = "";
     loading = true;
+    // create assistant placeholder message and keep its index
+    const assistantId = idCounter;
+    pushMessage("assistant", "");
     try {
+      const wantStream = true; // enable streaming for better UX
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, sessionId, stream: wantStream }),
       });
+
       if (!res.ok) {
-        const err = await res.text();
-        pushMessage("assistant", `出错：${err}`);
-      } else {
-        const data = await res.text();
-        pushMessage("assistant", data || "(空响应)");
+        // try parse JSON error
+        let errText = await res.text();
+        try {
+          const j: any = JSON.parse(errText);
+          errText = j?.error ?? JSON.stringify(j);
+        } catch {}
+        // replace assistant placeholder
+        messages = messages.map(m => (m.id === assistantId ? { ...m, text: `出错：${errText}` } : m));
+        return;
+      }
+
+      const contentType = res.headers.get("content-type") || "";
+      // If server returned JSON (non-stream)
+      if (contentType.includes("application/json")) {
+        const j: any = await res.json();
+        // update sessionId if returned
+        if (j?.sessionId) {
+          sessionId = String(j.sessionId);
+          localStorage.setItem(SESSION_KEY, sessionId);
+        }
+        const textReply = j?.text ?? "(空响应)";
+        messages = messages.map(m => (m.id === assistantId ? { ...m, text: textReply } : m));
+        return;
+      }
+
+      // Otherwise treat as a stream (text chunks). Use reader to progressively append
+      const reader = res.body?.getReader();
+      if (!reader) {
+        const full = await res.text();
+        messages = messages.map(m => (m.id === assistantId ? { ...m, text: full } : m));
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let accumulated = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        // server may send initial JSON meta (sessionId) in the first line
+        if (!sessionId) {
+          // if accumulated starts with { and contains }, try parse
+          accumulated += chunk;
+          const newlineIndex = accumulated.indexOf('\n');
+          if (newlineIndex !== -1) {
+            const firstLine = accumulated.slice(0, newlineIndex).trim();
+            if (firstLine.startsWith('{') && firstLine.endsWith('}')) {
+              try {
+                const meta: any = JSON.parse(firstLine);
+                if (meta?.sessionId) {
+                  sessionId = String(meta.sessionId);
+                  localStorage.setItem(SESSION_KEY, sessionId);
+                }
+                // remove meta from accumulated
+                accumulated = accumulated.slice(newlineIndex + 1);
+              } catch {}
+            }
+          }
+          // set partial text
+          messages = messages.map(m => (m.id === assistantId ? { ...m, text: accumulated } : m));
+          continue;
+        }
+
+        // append normally
+        accumulated += chunk;
+        messages = messages.map(m => (m.id === assistantId ? { ...m, text: accumulated } : m));
       }
     } catch (e) {
-      pushMessage("assistant", `请求失败：${e}`);
+      messages = messages.map(m => (m.id === assistantId ? { ...m, text: `请求失败：${e}` } : m));
     } finally {
       loading = false;
     }
