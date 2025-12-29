@@ -37,6 +37,7 @@ draft: false
 
 我对于电吉他品牌和各种型号了解的并不多，我想到的就只有拿不拿早期术曲中的telecaster solo，于是我将选琴的范围缩小到tele。后来在网上我又了解了芬达、吉普森、依班纳等品牌，最后选择的是芬达旗下的Squier Sonic Tele，奶油黄的颜色。
 
+
 <p><img src="/images/squier-sonic.webp" alt="Squier Sonic 奶油黄" title="Squier Sonic 奶油黄"></p>
 
 这种奶油黄的颜色真的十分美妙，仿佛能感觉到那一种厚重温暖的丝滑触感。  
@@ -50,6 +51,7 @@ draft: false
 ### 音箱
 
 我参考了一下学习电吉他很多年的同学，TA推荐的是jambuddy音箱。
+
 
 <p><img src="/images/jambuddy.webp" alt="jambuddy音箱" title="jambuddy音箱"></p>
 
@@ -66,6 +68,7 @@ draft: false
 买完吉他博主的钱包已经基本瘪了，留给声卡的钱所剩无几，于是我一开始将声卡的预算定在一个不可思议的400价位（我知道这很扯，但是贫穷的确使人大胆）。不过调查了一下市场我发现真有一款jogg吉他专用usb声卡才300出头，当时差点就买了，可是仔细看了产品的参数发现它的底噪控制并没有准确的数据支撑，抱着谨慎的态度我还是淘汰了jogg。  
 
 但是这个价位也确实没有其他像样的声卡了，于是我又转换策略，先买一个吉他耳放保证能听到吉他响能练琴，等攒够了钱再买个声卡。不过如果要攒钱就要再次压缩预算，后来我选择的是Valeton Rushhead Max。
+
 
 <p><img src="/images/valeton-rushhead-max.webp" alt="Valeton Rushhead Max" title="Valeton Rushhead Max"></p>
 
