@@ -1,7 +1,6 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import ChatWidget from "../components/widget/ChatWidget.svelte";
-const SvelteChatWidget: any = ChatWidget;
 ---
 
 <Layout>
@@ -12,6 +11,6 @@ const SvelteChatWidget: any = ChatWidget;
     </div>
 
     <!-- 使用 Svelte 组件并在客户端加载 -->
-    <SvelteChatWidget client:load />
+    <ChatWidget client:load />
   </div>
 </Layout>
