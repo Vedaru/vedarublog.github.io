@@ -1,0 +1,17 @@
+---
+import Layout from "../layouts/Layout.astro";
+import ChatWidget from "../components/widget/ChatWidget.svelte";
+const SvelteChatWidget: any = ChatWidget;
+---
+
+<Layout>
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-4">AI 聊天</h1>
+    <div class="prose mb-6">
+      <p>在这里与 AI 聊天（后端代理尚需实现以调用具体模型）。</p>
+    </div>
+
+    <!-- 使用 Svelte 组件并在客户端加载 -->
+    <SvelteChatWidget client:load />
+  </div>
+</Layout>
