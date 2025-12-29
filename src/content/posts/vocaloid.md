@@ -16,11 +16,11 @@ draft: false
 
 <div class="post-side-by-side">
 
-![花と水飴、最終電車](/images/花と水飴、最終電車.webp "花と水飴、最終電車")
+<p><img src="/images/花と水飴、最終電車.webp" alt="花と水飴、最終電車" title="花と水飴、最終電車"></p>
 
-![月を歩いている](/images/月を歩いている.webp "月を歩いている")
+<p><img src="/images/月を歩いている.webp" alt="月を歩いている" title="月を歩いている"></p>
 
-![アスノヨゾラ哨戒班](/images/アスノヨゾラ哨戒班.webp "アスノヨゾラ哨戒班")
+<p><img src="/images/アスノヨゾラ哨戒班.webp" alt="アスノヨゾラ哨戒班" title="アスノヨゾラ哨戒班"></p>
 
 </div>
 

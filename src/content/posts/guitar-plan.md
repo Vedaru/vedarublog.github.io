@@ -37,7 +37,7 @@ draft: false
 
 我对于电吉他品牌和各种型号了解的并不多，我想到的就只有拿不拿早期术曲中的telecaster solo，于是我将选琴的范围缩小到tele。后来在网上我又了解了芬达、吉普森、依班纳等品牌，最后选择的是芬达旗下的Squier Sonic Tele，奶油黄的颜色。
 
-![图片](/images/squier-sonic.webp "Squier Sonic 奶油黄")
+<p><img src="/images/squier-sonic.webp" alt="Squier Sonic 奶油黄" title="Squier Sonic 奶油黄"></p>
 
 这种奶油黄的颜色真的十分美妙，仿佛能感觉到那一种厚重温暖的丝滑触感。  
 
@@ -51,7 +51,7 @@ draft: false
 
 我参考了一下学习电吉他很多年的同学，TA推荐的是jambuddy音箱。
 
-![图片](/images/jambuddy.webp "jambuddy音箱")
+<p><img src="/images/jambuddy.webp" alt="jambuddy音箱" title="jambuddy音箱"></p>
 
 说实话，音箱的质量真的很好，但是在宿舍开着音箱练习容易被室友大四（，音箱插耳机又失去了买音箱的意义。而且博主太穷了买不起效果器单块，如果未来要拓展的话对钱包不是很友好。  
 
@@ -67,15 +67,15 @@ draft: false
 
 但是这个价位也确实没有其他像样的声卡了，于是我又转换策略，先买一个吉他耳放保证能听到吉他响能练琴，等攒够了钱再买个声卡。不过如果要攒钱就要再次压缩预算，后来我选择的是Valeton Rushhead Max。
 
-![图片](/images/valeton-rushhead-max.webp "Valeton Rushhead Max")
+<p><img src="/images/valeton-rushhead-max.webp" alt="Valeton Rushhead Max" title="Valeton Rushhead Max"></p>
 
 快递到了之后插上耳放试着弹了一下，给我的直接感受是底噪真的很大，而且底噪还会随着电吉他音量旋钮的调大而变大，清音切换成失真底噪直接爆炸了。练了几天实在受不了了，直接开始选正经声卡。首先就是在各大社交媒体上寻找各种声卡推荐，我找到最多的就是Focusrite 2i2 四代和Steinberg UR22，但是这些价格有那么一点点高而且有点老，然后我在youtube上看中了Arturia minifuse2和Steinberg UR22MK3。  
 
-![图片](/images/UR22MK3.webp "UR22MK3")
+<p><img src="/images/UR22MK3.webp" alt="UR22MK3" title="UR22MK3"></p>
 
 我一开始其实还看中了另一款声卡，叫Steinberg ixo22，它的硬件和Steinberg UR22MK3一摸一样而且价格更便宜，后来我才发现Steinberg UR22MK3是Steinberg ixo22并入YAMAHA产品链之后的型号名。可是我最后还是选择了更贵的Steinberg UR22MK3，因为YAMAHA作为Steinberg的母公司必然对产品有更针对性的优化（个人观点），所以UR22MK3的驱动应该会更好（不然也说不通它为什么更贵）。
 
-![图片](/images/ixo22.webp "ixo22")
+<p><img src="/images/ixo22.webp" alt="ixo22" title="ixo22"></p>
 
 ---
 
