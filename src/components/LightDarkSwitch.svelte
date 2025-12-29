@@ -102,10 +102,10 @@ if (typeof window !== "undefined") {
 		data-mode={mode}
 	>
         <div class="absolute transition-all duration-300 ease-in-out" class:opacity-0={mode !== LIGHT_MODE} class:rotate-180={mode !== LIGHT_MODE}>
-            <Icon icon="material-symbols:wb-sunny-outline-rounded" class="text-[1.25rem]"></Icon>
+            <Icon icon="material-symbols:wb-sunny-outline-rounded" class="text-[1.25rem] text-black/75 dark:text-white/75"></Icon>
         </div>
         <div class="absolute transition-all duration-300 ease-in-out" class:opacity-0={mode !== DARK_MODE} class:rotate-180={mode !== DARK_MODE}>
-            <Icon icon="material-symbols:dark-mode-outline-rounded" class="text-[1.25rem]"></Icon>
+            <Icon icon="material-symbols:dark-mode-outline-rounded" class="text-[1.25rem] text-black/75 dark:text-white/75"></Icon>
         </div>
     </button>
 </div>
