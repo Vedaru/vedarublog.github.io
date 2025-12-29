@@ -61,7 +61,7 @@ n-buna的两张术专和Orangestar的哨戒班给我的冲击并不只限于听�
 
 <div class="post-side-by-side-two">
 	<div class="post-image">
-		<img src="./images/abstract.webp" alt="巴勃罗·毕加索的画作《梦》（Le Rêve）" title="巴勃罗·毕加索的画作《梦》（Le Rêve）">
+		<img src="/images/abstract.webp" alt="巴勃罗·毕加索的画作《梦》（Le Rêve）" title="巴勃罗·毕加索的画作《梦》（Le Rêve）">
 	</div>
 	<div class="post-text">
 		<p>如果一张画像被解构，仅保留最基本的线条与色彩，画师依然可以通过这些简练的线条传递画中人物的形、神、甚至是作画的意图。在我看来vocaloid象征着音乐家对于人的歌声的解构，就像画家将光影形态转化为简练的线条色块，p主将原本复杂多变的歌声具象化为参数，将模糊的感情符号化。这样的创作过程是及其深邃的，唯有创作者本人的情感强烈到一定程度才能完成这样繁琐细腻的工作。</p>
