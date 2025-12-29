@@ -46,6 +46,7 @@
     --content-meta: rgba(255, 255, 255, 0.6);
     --stat-color: rgba(255, 255, 255, 0.95);
     --stat-label-color: rgba(255, 255, 255, 0.65);
+    --text-foreground: rgba(0, 0, 0, 0.85);
 }
 
 /* 在启用全屏壁纸（wallpaper-transparent）时，移除 body 背景以避免覆盖壁纸 */
@@ -54,6 +55,7 @@ body.wallpaper-transparent,
     background: transparent !important;
 }
 
+    --text-foreground: rgba(255, 255, 255, 0.85);
 body {
     background: var(--page-bg);
     color: rgba(0, 0, 0, 0.85);
@@ -67,6 +69,12 @@ body {
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Make prose paragraphs inherit the theme text color (match chat input) */
+.prose.mb-6 p,
+.prose p {
+    color: var(--text-foreground) !important;
+}
 
 /* 确保平滑滚动 */
 html {
