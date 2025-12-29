@@ -2057,17 +2057,18 @@ onDestroy(() => {
     user-select: none;
 }
 .mini-player {
-    width: 280px;
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    /*left: 0;*/
+	width: 280px;
+	position: fixed;
+	bottom: 4px;
+	right: 4px;
+	z-index: 9999;
 }
 .expanded-player {
-    width: 320px;
-    position: absolute;
-    bottom: 0;
-    right: 0;
+	width: 320px;
+	position: fixed;
+	bottom: 4px;
+	right: 4px;
+	z-index: 9999;
 }
 
 .animate-pulse {
@@ -2131,6 +2132,12 @@ onDestroy(() => {
         width: 44px;
         height: 44px;
     }
+	/* Adjust fixed mini/expanded player offsets on small screens */
+	.mini-player,
+	.expanded-player {
+		bottom: 8px;
+		right: 8px;
+	}
 }
 @media (max-width: 480px) {
     .music-player {
