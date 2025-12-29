@@ -16,11 +16,11 @@ draft: false
 
 <div class="post-side-by-side">
 
-<p><img src="/images/花と水飴、最終電車.webp" alt="花と水飴、最終電車" title="花と水飴、最終電車"></p>
+![花と水飴、最終電車](./images/花と水飴、最終電車.webp "花と水飴、最終電車")
 
-<p><img src="/images/月を歩いている.webp" alt="月を歩いている" title="月を歩いている"></p>
+![月を歩いている](./images/月を歩いている.webp "月を歩いている")
 
-<p><img src="/images/アスノヨゾラ哨戒班.webp" alt="アスノヨゾラ哨戒班" title="アスノヨゾラ哨戒班"></p>
+![アスノヨゾラ哨戒班](./images/アスノヨゾラ哨戒班.webp "アスノヨゾラ哨戒班")
 
 </div>
 
@@ -59,43 +59,9 @@ n-buna的两张术专和Orangestar的哨戒班给我的冲击并不只限于听�
 
 拿不拿两张术专虽然歌手并不是真人，但是歌曲中包含的情感、歌曲和专辑本身的完成度，都不输于拿不拿在夜鹿时期创作的歌曲。这不禁让我开始思考：决定歌曲所传达的情感的，究竟是何种因素？  
 
-<div class="post-side-by-side-two">
-	<div class="post-image">
-		<img src="/images/abstract.webp" alt="巴勃罗·毕加索的画作《梦》（Le Rêve）" title="巴勃罗·毕加索的画作《梦》（Le Rêve）">
-	</div>
-	<div class="post-text">
-		<p>如果一张画像被解构，仅保留最基本的线条与色彩，画师依然可以通过这些简练的线条传递画中人物的形、神、甚至是作画的意图。在我看来vocaloid象征着音乐家对于人的歌声的解构，就像画家将光影形态转化为简练的线条色块，p主将原本复杂多变的歌声具象化为参数，将模糊的感情符号化。这样的创作过程是及其深邃的，唯有创作者本人的情感强烈到一定程度才能完成这样繁琐细腻的工作。</p>
-	</div>
-</div>
+![图片](./images/abstract.jpg "巴勃罗·毕加索的画作《梦》（Le Rêve）")  
 
-<style>
-.post-side-by-side-two {
-	display: grid;
-	grid-template-columns: 280px 1fr;
-	gap: 1rem;
-	align-items: start;
-	margin: 1rem 0;
-}
-.post-side-by-side-two img {
-	width: 100%;
-	height: auto;
-	object-fit: cover;
-	border-radius: 6px;
-	display: block;
-}
-.post-side-by-side-two .post-text {
-	line-height: 1.7;
-}
-@media (max-width: 720px) {
-	.post-side-by-side-two {
-		grid-template-columns: 1fr;
-	}
-	.post-side-by-side-two .post-image {
-		margin-bottom: 0.75rem;
-	}
-}
-</style>
-
+如果一张画像被解构，仅保留最基本的线条与色彩，画师依然可以通过这些简练的线条传递画中人物的形、神、甚至是作画的意图。在我看来vocaloid象征着音乐家对于人的歌声的解构，就像画家将光影形态转化为简练的线条色块，p主将原本复杂多变的歌声具象化为参数，将模糊的感情符号化。这样的创作过程是及其深邃的，唯有创作者本人的情感强烈到一定程度才能完成这样繁琐细腻的工作。  
 
 “烹饪美味的菜肴往往只需要使用简单的食材。”  
 简单的十几种参数、有限数量的采样，使用这些看似有限的创作条件往往更能促使创作者贯彻“大道至简”的哲学，创作出真正的天籁之音。
