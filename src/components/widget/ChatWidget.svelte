@@ -136,6 +136,21 @@
     color: var(--text-foreground, inherit);
     border: 1px solid var(--line-divider);
   }
+
+  .chat-send-btn {
+    background: var(--primary);
+    color: var(--btn-content);
+    border: none;
+    cursor: pointer;
+  }
+
+  .chat-send-btn:hover {
+    filter: brightness(0.95);
+  }
+
+  .chat-send-btn:active {
+    filter: brightness(0.9);
+  }
 </style>
 
 <div class="chat-container mx-auto flex flex-col gap-4">
@@ -159,7 +174,7 @@
       bind:value={input}
       on:keydown={onKey}
       placeholder="输入消息，按 Enter 发送（Shift+Enter 换行）"></textarea>
-    <button class="px-4 py-2 bg-blue-600 text-white rounded-md" on:click={send} disabled={loading}>
+    <button class="px-4 py-2 rounded-md chat-send-btn" on:click={send} disabled={loading}>
       {#if loading}
         发送中...
       {:else}
