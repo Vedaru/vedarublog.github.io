@@ -2045,9 +2045,17 @@ onDestroy(() => {
 
 <style>
 .orb-player {
-	position: relative;
+	/* 固定在视口右下角，避免随父容器（.music-player）宽度变化而错位 */
+	position: fixed;
+	right: 16px;
+	bottom: 16px;
+	z-index: 10001;
 	backdrop-filter: blur(10px);
 	-webkit-backdrop-filter: blur(10px);
+	/* 平滑缩放与淡入，启用 GPU 加速 */
+	transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1), opacity 260ms ease;
+	will-change: transform, opacity;
+	transform: translateZ(0);
 }
 .orb-player::before {
 	content: '';
@@ -2091,7 +2099,7 @@ onDestroy(() => {
 	/* Use transform/opacity for smooth GPU-accelerated transitions */
 	transform: translateY(6px) scale(1);
 	opacity: 1;
-	transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1), opacity 260ms ease;
+	transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1), opacity 300ms cubic-bezier(0.22, 1, 0.36, 1);
 	will-change: transform, opacity;
 	-webkit-backface-visibility: hidden;
 	backface-visibility: hidden;
@@ -2110,7 +2118,7 @@ onDestroy(() => {
 	z-index: 9999;
 	transform: translateY(8px) scale(0.98);
 	opacity: 0;
-	transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1), opacity 260ms ease;
+	transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1), opacity 300ms cubic-bezier(0.22, 1, 0.36, 1);
 	will-change: transform, opacity;
 	-webkit-backface-visibility: hidden;
 	backface-visibility: hidden;
@@ -2187,6 +2195,13 @@ onDestroy(() => {
 	.expanded-player {
 		bottom: 8px;
 		right: 8px;
+	}
+
+	/* Mobile: 确保 orb-player 在小屏幕上对齐边距一致，平滑过渡 */
+	.orb-player {
+		right: 8px;
+		bottom: 8px;
+		transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1), opacity 260ms ease;
 	}
 }
 @media (max-width: 480px) {
