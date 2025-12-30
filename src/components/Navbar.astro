@@ -352,4 +352,11 @@ let links: NavBarLink[] = navBarConfig.links.map(
     margin-left: 0 !important;
     margin-right: 0 !important;
 }
+/* 确保主题切换按钮在移动端无壁纸时依然可点击（避免被覆盖层阻挡） */
+#scheme-switch,
+.theme-switch-btn {
+    z-index: 99999 !important;
+    pointer-events: auto !important;
+    position: relative !important;
+}
 </style>
