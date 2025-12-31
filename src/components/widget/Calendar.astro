@@ -47,22 +47,7 @@ const yearSuffix = isChinese ? "年" : " ";
 	style={style}
 >
 	<div class="flex justify-between items-center mb-2 mt-2">
-		<div
-			class="font-bold transition text-lg text-neutral-900 dark:text-neutral-100 relative ml-4 flex items-center
-					before:w-1 before:h-4 before:rounded-md before:bg-[var(--primary)]
-					before:absolute before:left-[-16px] before:top-[13.5px]"
-		>
-			<div
-				id="calendar-title-container"
-				class="flex justify-center items-center cursor-pointer hover:bg-[var(--btn-plain-bg-hover)] px-2 py-2 -ml-2 rounded-lg transition-colors"
-			>
-				<span
-					id="calendar-title"
-					class="text-lg font-bold text-neutral-900 dark:text-neutral-100 select-none"
-				></span>
-			</div>
-		</div>
-
+		<!-- 标题元素已移除 → 不在页面上显示 -->
 		<div class="flex items-center gap-1 shrink-0 ml-2">
 			<button
 				id="back-to-today-btn"
@@ -90,7 +75,7 @@ const yearSuffix = isChinese ? "年" : " ";
 			</button>
 		</div>
 	</div>
-	<div class="relative w-full overflow-hidden" style="min-height: 250px;">
+	<div class="relative w-full overflow-hidden">
 		<div id="calendar-view" class="w-full opacity-100">
 			<div class="grid grid-cols-7 gap-1 mb-2">
 				{
@@ -237,12 +222,14 @@ const yearSuffix = isChinese ? "年" : " ";
 	}
 
 	function setupEventListeners() {
-		dom.titleContainer.addEventListener("click", (e) => {
-			e.stopPropagation();
-			if (currentView === "day") showMonthPicker();
-			else if (currentView === "month") showYearPicker();
-			else closeSelectionPanel();
-		});
+		if (dom.titleContainer) {
+			dom.titleContainer.addEventListener("click", (e) => {
+				e.stopPropagation();
+				if (currentView === "day") showMonthPicker();
+				else if (currentView === "month") showYearPicker();
+				else closeSelectionPanel();
+			});
+		}
 
 		dom.prevBtn.addEventListener("click", () => {
 			currentMonth--;
@@ -311,7 +298,7 @@ const yearSuffix = isChinese ? "年" : " ";
 	}
 
 	function updateHeader() {
-		dom.title.textContent = `${currentYear}${yearSuffix} ${monthNames[currentMonth]}`;
+		if (dom.title) dom.title.textContent = `${currentYear}${yearSuffix} ${monthNames[currentMonth]}`;
 		const isCurrentRealMonth =
 			currentYear === todayYear && currentMonth === todayMonth;
 		const shouldShowReset = !isCurrentRealMonth || selectedDateKey !== null;
