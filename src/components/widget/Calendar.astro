@@ -67,28 +67,52 @@ const isChinese = siteConfig.lang.startsWith("zh");
 const yearSuffix = isChinese ? "年" : " ";
 ---
 
-<WidgetLayout id="calendar-widget" class={"hidden md:block " + (className || "")} style={style}>
-  <span slot="title-icon" id="calendar-widget-title" class="flex-1 text-left"></span>
-  <div class="calendar-container">
-    <!-- 星期标题 -->
-    <div class="weekdays grid grid-cols-7 gap-1 mb-2">
-      {weekDays.map(day => (
-        <div class="text-center text-xs text-neutral-500 dark:text-neutral-400 font-medium">
-          {day}
+<WidgetLayout id="calendar-widget" class={"hidden md:block " + (className || "") } style={style}>
+  <div id="calendar-widget" class="collapse-wrapper px-4 overflow-hidden" data-astro-cid-ucso7hve="" style="">
+    <div class="flex justify-between items-center mb-2 mt-2">
+      <div class="font-bold transition text-lg text-neutral-900 dark:text-neutral-100 relative ml-4 flex items-center
+          before:w-1 before:h-4 before:rounded-md before:bg-[var(--primary)]
+          before:absolute before:left-[-16px] before:top-[13.5px]">
+        <div id="calendar-title-container" class="flex justify-center items-center cursor-pointer hover:bg-[var(--btn-plain-bg-hover)] px-2 py-2 -ml-2 rounded-lg transition-colors">
+          <span id="calendar-title" class="text-lg font-bold text-neutral-900 dark:text-neutral-100 select-none">{new Date().getFullYear()}  {monthNames[new Date().getMonth()]}</span>
         </div>
-      ))}
+      </div>
+      <div class="flex items-center gap-1 shrink-0 ml-2">
+        <button id="back-to-today-btn" class="p-1.5 rounded-md hover:bg-[var(--btn-plain-bg-hover)] text-[var(--primary)] transition-all" aria-label="Back to today">
+          <svg width="1em" height="1em" class="text-xl" data-icon="material-symbols:restart-alt-rounded">
+            <symbol id="ai:material-symbols:restart-alt-rounded" viewBox="0 0 24 24"><path fill="currentColor" d="M9.825 20.7q-2.575-.725-4.2-2.837T4 13q0-1.425.475-2.713t1.35-2.362q.275-.3.675-.313t.725.313q.275.275.288.675t-.263.75q-.6.775-.925 1.7T6 13q0 2.025 1.188 3.613t3.062 2.162q.325.1.538.375t.212.6q0 .5-.35.788t-.825.162m4.35 0q-.475.125-.825-.175t-.35-.8q0-.3.213-.575t.537-.375q1.875-.6 3.063-2.175T18 13q0-2.5-1.75-4.25T12 7h-.075l.4.4q.275.275.275.7t-.275.7t-.7.275t-.7-.275l-2.1-2.1q-.15-.15-.212-.325T8.55 6t.063-.375t.212-.325l2.1-2.1q.275-.275.7-.275t.7.275t.275.7t-.275.7l-.4.4H12q3.35 0 5.675 2.325T20 13q0 2.725-1.625 4.85t-4.2 2.85"></path></symbol>
+            <use href="#ai:material-symbols:restart-alt-rounded"></use>
+          </svg>
+        </button>
+        <button id="prev-month-btn" class="p-1.5 rounded-md hover:bg-[var(--btn-plain-bg-hover)] text-neutral-600 dark:text-neutral-400 hover:text-[var(--primary)] transition-colors text-xl font-extrabold" aria-label="Previous month" style="visibility: visible;">＜</button>
+        <button id="next-month-btn" class="p-1.5 rounded-md hover:bg-[var(--btn-plain-bg-hover)] text-neutral-600 dark:text-neutral-400 hover:text-[var(--primary)] transition-colors text-xl font-extrabold" aria-label="Next month" style="visibility: visible;">＞</button>
+      </div>
     </div>
-    
-    <!-- 日历格子（由客户端动态生成） -->
-    <div class="calendar-grid grid grid-cols-7 gap-1" id="calendar-grid">
-      <!-- 将由 JavaScript 填充 -->
-    </div>
-    
-    <!-- 文章列表 -->
-    <div id="calendar-posts" class="mt-3">
-      <div class="border-t border-neutral-200 dark:border-neutral-700 mb-2" id="calendar-posts-divider" style="display: none;"></div>
-      <div class="flex flex-col gap-1" id="calendar-posts-list">
-        <!-- 将由 JavaScript 填充 -->
+
+    <div class="relative w-full overflow-hidden" style="min-height: 250px;">
+      <div id="calendar-view" class="w-full opacity-100">
+        <div class="grid grid-cols-7 gap-1 mb-2">
+          <div class="text-center text-xs text-neutral-500 dark:text-neutral-400 font-medium py-1"> Mon </div>
+          <div class="text-center text-xs text-neutral-500 dark:text-neutral-400 font-medium py-1"> Tue </div>
+          <div class="text-center text-xs text-neutral-500 dark:text-neutral-400 font-medium py-1"> Wed </div>
+          <div class="text-center text-xs text-neutral-500 dark:text-neutral-400 font-medium py-1"> Thu </div>
+          <div class="text-center text-xs text-neutral-500 dark:text-neutral-400 font-medium py-1"> Fri </div>
+          <div class="text-center text-xs text-neutral-500 dark:text-neutral-400 font-medium py-1"> Sat </div>
+          <div class="text-center text-xs text-neutral-500 dark:text-neutral-400 font-medium py-1"> Sun </div>
+        </div>
+
+        <div id="calendar-grid" class="grid grid-cols-7 gap-1"></div>
+
+        <div id="calendar-posts" class="mt-4">
+          <div class="h-[1px] w-full bg-neutral-200 dark:bg-neutral-700 mb-2 hidden" id="calendar-posts-divider"></div>
+          <div class="flex flex-col gap-1 max-h-[150px] overflow-y-auto custom-scrollbar" id="calendar-posts-list"></div>
+        </div>
+      </div>
+
+      <div id="selection-panel" class="absolute inset-0 bg-[var(--card-bg)] z-10 flex flex-col transition-opacity duration-200 opacity-0 hidden">
+        <div id="selection-content" class="w-full h-full p-2 grid grid-cols-4 gap-2 content-start overflow-y-auto">
+          <!-- 年份项将由客户端填充（保留默认若无） -->
+        </div>
       </div>
     </div>
   </div>
@@ -102,8 +126,8 @@ const yearSuffix = isChinese ? "年" : " ";
     const currentMonth = now.getMonth();
     const currentDate = now.getDate();
     
-    // 更新 Widget 标题
-    const titleElement = document.getElementById('calendar-widget-title');
+    // 更新 Widget 标题（优先使用新的 `calendar-title`）
+    const titleElement = document.getElementById('calendar-title') || document.getElementById('calendar-widget-title');
     if (titleElement) {
       titleElement.textContent = `${currentYear}${yearSuffix}${monthNames[currentMonth]}`;
     }
