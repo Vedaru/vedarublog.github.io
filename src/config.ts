@@ -224,7 +224,7 @@ export const fullscreenWallpaperConfig: FullscreenWallpaperConfig = {
 	}, // 使用本地横幅图片
 	position: "center", // 壁纸位置，等同于 object-position
 	carousel: {
-		enable: false, // 启用轮播
+		enable: true, // 启用轮播
 		interval: 5, // 轮播间隔时间（秒）
 	},
 	zIndex: 0, // 层级，0 使壁纸可见（可调整为负值以置于内容后面）
