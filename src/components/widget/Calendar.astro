@@ -48,8 +48,8 @@ const yearSuffix = isChinese ? "年" : " ";
 >
 	<div class="flex justify-between items-center mb-2 mt-2">
 		<div id="calendar-title-container" class="flex items-center gap-2 ml-2 shrink-0">
-			<div id="calendar-title" class="font-bold text-lg text-neutral-900 dark:text-neutral-100 relative
-				before:w-1 before:h-4 before:rounded-md before:bg-[var(--primary)] before:absolute before:-left-3 before:top-[0.33rem]"></div>
+			<button id="calendar-title" type="button" class="font-bold text-lg text-neutral-900 dark:text-neutral-100 cursor-pointer px-2 py-1 rounded-md"
+				aria-label="Select year and month"></button>
 		</div>
 		<div class="flex items-center gap-1 shrink-0 ml-2">
 			<button
@@ -277,16 +277,18 @@ const yearSuffix = isChinese ? "年" : " ";
 		});
 
 		dom.selectionContent.addEventListener("click", (e) => {
-			const monthItem = e.target.closest(".month-item");
-			const yearItem = e.target.closest(".year-item");
+			const monthItem = e.target.closest('.month-item');
+			const yearItem = e.target.closest('.year-item');
 
 			if (monthItem) {
 				e.stopPropagation();
-				currentMonth = parseInt(monthItem.getAttribute("data-month"));
+				currentMonth = parseInt(monthItem.getAttribute('data-month'));
+				// 选择月份后直接关闭并渲染日历
 				closeSelectionPanel();
 			} else if (yearItem) {
 				e.stopPropagation();
-				currentYear = parseInt(yearItem.getAttribute("data-year"));
+				currentYear = parseInt(yearItem.getAttribute('data-year'));
+				// 保持选择面板打开，但刷新以高亮当前年份
 				showMonthPicker();
 			}
 		});
@@ -432,28 +434,58 @@ const yearSuffix = isChinese ? "年" : " ";
 			dom.selectionPanel.classList.remove("opacity-0");
 		});
 
+		// 两列布局：左侧年份可滚动，右侧月份可滚动（点击月份即选择并关闭）
 		dom.selectionContent.className =
-			"w-full h-full p-4 grid grid-cols-3 gap-3 content-center";
+			"w-full h-full p-2 flex gap-3 content-start";
 
-		let html = "";
-		monthNames.forEach((name, index) => {
-			const isCurrentMonth = index === currentMonth;
-			const hasPost = stats.hasPostInMonth[`${currentYear}-${index + 1}`];
+		// 年份列
+		let yearsHtml = "";
+		for (let y = stats.minYear; y <= stats.maxYear; y++) {
+			const isCurrent = y === currentYear;
+			const hasPost = stats.hasPostInYear[y];
 			let cls =
-				"month-item cursor-pointer rounded-lg flex flex-col items-center justify-center p-2 transition-all hover:bg-[var(--btn-plain-bg-hover)] relative border border-transparent";
-			if (isCurrentMonth)
+				"year-item cursor-pointer rounded-lg flex items-center justify-center py-3 px-2 transition-all hover:bg-[var(--btn-plain-bg-hover)] relative border border-transparent w-full";
+			if (isCurrent)
 				cls +=
 					" border-[var(--primary)] text-[var(--primary)] bg-[var(--primary)]/5";
 			else cls += " text-neutral-700 dark:text-neutral-300";
 
-			html += `
-                <div class="${cls}" data-month="${index}">
-                    <span class="text-sm font-bold">${name}</span>
-                    ${hasPost ? `<span class="w-1 h-1 rounded-full bg-[var(--primary)] mt-1"></span>` : `<span class="w-1 h-1 mt-1"></span>`}
-                </div>
-             `;
+			yearsHtml += `
+				<div class="${cls}" data-year="${y}" id="year-${y}">
+					<span class="text-sm font-medium">${y}</span>
+					${hasPost ? `<span class="w-1.5 h-1.5 rounded-full bg-[var(--primary)] ml-2"></span>` : `<span class="w-1.5 h-1.5 ml-2"></span>`}
+				</div>
+			`;
+		}
+
+		// 月份列
+		let monthsHtml = "";
+		monthNames.forEach((name, index) => {
+			const isCurrentMonth = index === currentMonth && currentYear === todayYear;
+			const hasPost = stats.hasPostInMonth[`${currentYear}-${index + 1}`];
+			let mcls =
+				"month-item cursor-pointer rounded-lg flex items-center justify-center py-3 px-2 transition-all hover:bg-[var(--btn-plain-bg-hover)] relative border border-transparent w-full";
+			if (index === currentMonth) mcls += " border-[var(--primary)] text-[var(--primary)] bg-[var(--primary)]/5";
+			else mcls += " text-neutral-700 dark:text-neutral-300";
+
+			monthsHtml += `
+				<div class="${mcls}" data-month="${index}">
+					<span class="text-sm font-medium">${name}</span>
+					${hasPost ? `<span class="w-1 h-1 rounded-full bg-[var(--primary)] ml-2"></span>` : `<span class="w-1 h-1 ml-2"></span>`}
+				</div>
+			`;
 		});
-		dom.selectionContent.innerHTML = html;
+
+		dom.selectionContent.innerHTML = `
+			<div class="w-1/2 h-full overflow-y-auto custom-scrollbar">${yearsHtml}</div>
+			<div class="w-1/2 h-full overflow-y-auto custom-scrollbar">${monthsHtml}</div>
+		`;
+
+		// 滚动到当前年份位置
+		setTimeout(() => {
+			const el = document.getElementById(`year-${currentYear}`);
+			if (el) el.scrollIntoView({ block: "center", behavior: "smooth" });
+		}, 50);
 	}
 
 	function showYearPicker() {
