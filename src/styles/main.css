@@ -332,6 +332,17 @@ html {
     .link {
         @apply transition-colors duration-150 rounded-md p-1 -m-1 expand-animation;
     }
+    /* Disable expand-animation hover pseudo-element for the sakura trigger link */
+    #sakura-trigger::before,
+    #sakura-trigger::after {
+        display: none !important;
+        box-shadow: none !important;
+    }
+    #sakura-trigger:hover::before,
+    #sakura-trigger:hover::after {
+        display: none !important;
+        box-shadow: none !important;
+    }
     .link-lg {
         @apply transition-colors duration-150 rounded-md p-1.5 -m-1.5 expand-animation;
     }
