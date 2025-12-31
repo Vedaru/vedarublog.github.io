@@ -1972,8 +1972,8 @@ onDestroy(() => {
             </button>
         </div>
     </div>
-    {#if showPlaylist}
-        <div class="playlist-panel float-panel fixed bottom-20 right-4 w-80 max-h-96 overflow-hidden z-50"
+	{#if showPlaylist}
+		<div class="playlist-panel float-panel fixed bottom-20 right-12 w-80 max-h-96 overflow-hidden z-50"
              transition:slide={{ duration: 300, axis: 'y' }}>
             <div class="playlist-header flex items-center justify-between p-4 border-b border-[var(--line-divider)]">
                 <h3 class="text-lg font-semibold text-90">{i18n(Key.playlist)}</h3>
@@ -2113,8 +2113,9 @@ onDestroy(() => {
 .expanded-player {
 	width: 320px;
 	position: fixed;
-	bottom: 4px;
-	right: 4px;
+	/* 增加底部和右侧内边距，使展开播放器与歌单面板对齐并离边缘更远 */
+	bottom: 20px;
+	right: 12px;
 	z-index: 9999;
 	transform: translateY(8px) scale(0.98);
 	opacity: 0;
