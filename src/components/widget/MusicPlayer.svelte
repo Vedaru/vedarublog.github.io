@@ -2298,5 +2298,19 @@ button.bg-\[var\(--primary\)\] {
 	width: 0 !important;
 	height: 0 !important;
 }
+
+/* 禁用播放列表项目的文本选中和触控高亮，避免主题色高亮时出现黑色横条 */
+.playlist-item,
+.playlist-item * {
+	-webkit-tap-highlight-color: transparent; /* 移动/触控设备 */
+	-webkit-user-select: none; /* Safari */
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+.playlist-item ::selection,
+.playlist-item *::selection {
+	background: transparent !important;
+}
 </style>
 {/if}
