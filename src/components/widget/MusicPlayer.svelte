@@ -1972,8 +1972,8 @@ onDestroy(() => {
             </button>
         </div>
     </div>
-	{#if showPlaylist}
-		<div class="playlist-panel float-panel fixed bottom-20 right-12 w-80 max-h-96 overflow-hidden z-50"
+    {#if showPlaylist}
+        <div class="playlist-panel float-panel fixed bottom-20 right-4 w-80 max-h-96 overflow-hidden z-50"
              transition:slide={{ duration: 300, axis: 'y' }}>
             <div class="playlist-header flex items-center justify-between p-4 border-b border-[var(--line-divider)]">
                 <h3 class="text-lg font-semibold text-90">{i18n(Key.playlist)}</h3>
@@ -2048,7 +2048,7 @@ onDestroy(() => {
 	/* 固定在视口右下角，避免随父容器（.music-player）宽度变化而错位 */
 	position: fixed;
 	right: 16px;
-	bottom: 16px;
+	bottom: 24px;
 	z-index: 10001;
 	backdrop-filter: blur(10px);
 	-webkit-backdrop-filter: blur(10px);
@@ -2093,8 +2093,8 @@ onDestroy(() => {
 .mini-player {
 	width: 280px;
 	position: fixed;
-	bottom: 4px;
-	right: 4px;
+	bottom: 24px;
+	right: 16px;
 	z-index: 9999;
 	/* Use transform/opacity for smooth GPU-accelerated transitions */
 	transform: translateY(6px) scale(1);
@@ -2113,9 +2113,8 @@ onDestroy(() => {
 .expanded-player {
 	width: 320px;
 	position: fixed;
-	/* 增加底部和右侧内边距，使展开播放器与歌单面板对齐并离边缘更远 */
-	bottom: 20px;
-	right: 12px;
+	bottom: 24px;
+	right: 16px;
 	z-index: 9999;
 	transform: translateY(8px) scale(0.98);
 	opacity: 0;
@@ -2194,14 +2193,14 @@ onDestroy(() => {
 	/* Adjust fixed mini/expanded player offsets on small screens */
 	.mini-player,
 	.expanded-player {
-		bottom: 8px;
+		bottom: 24px;
 		right: 8px;
 	}
 
 	/* Mobile: 确保 orb-player 在小屏幕上对齐边距一致，平滑过渡 */
 	.orb-player {
 		right: 8px;
-		bottom: 8px;
+		bottom: 24px;
 		transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1), opacity 260ms ease;
 	}
 }
