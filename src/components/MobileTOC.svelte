@@ -611,6 +611,13 @@ if (typeof window !== "undefined") {
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+		/* 减少悬停时的渲染伪影 */
+		backface-visibility: hidden;
+		-webkit-backface-visibility: hidden;
+		transform: translateZ(0);
+		-webkit-transform: translateZ(0);
+		will-change: transform, opacity;
+		-webkit-font-smoothing: antialiased;
 	}
 
 	:global(.dark) .post-title {

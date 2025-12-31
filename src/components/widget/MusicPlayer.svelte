@@ -1983,7 +1983,7 @@ onDestroy(() => {
             </div>
             <div class="playlist-content overflow-y-auto max-h-80" style="scrollbar-width: none; -ms-overflow-style: none;">
                 {#each playlist as song, index}
-                    <div class="playlist-item flex items-center gap-3 p-3 cursor-pointer transition-colors"
+                    <div class="playlist-item flex items-center gap-3 p-3 hover:bg-[var(--btn-plain-bg-hover)] cursor-pointer transition-colors"
                          class:bg-[var(--btn-plain-bg)]={index === currentIndex}
                          class:text-[var(--primary)]={index === currentIndex}
                          on:click={() => playSong(index)}
