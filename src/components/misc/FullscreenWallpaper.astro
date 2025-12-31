@@ -95,7 +95,8 @@ const renderGroups = [
 	<script is:inline>
 	// 立即执行脚本：防止闪烁
 	(function() {
-		const mode = localStorage.getItem('wallpaperMode') || 'banner';
+		// 默认行为改为全屏模式，避免首次渲染被隐藏
+		const mode = localStorage.getItem('wallpaperMode') || 'fullscreen';
 		if (mode !== 'fullscreen') {
 			document.currentScript.parentElement.style.display = 'none';
 		}
