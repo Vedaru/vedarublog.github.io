@@ -416,8 +416,16 @@ function formatClock(dateString: string): string {
 			}
 		});
 
-		window.__diaryState.expanded = false;
-		if (collapseBtn) collapseBtn.classList.add('hidden');
+		// 只要有展开内容就显示折叠按钮
+		const anyVisible = Array.from(yearGroups).some(g => g.classList.contains('visible') && g.style.display !== 'none');
+		window.__diaryState.expanded = anyVisible;
+		if (collapseBtn) {
+			if (anyVisible) {
+				collapseBtn.classList.remove('hidden');
+			} else {
+				collapseBtn.classList.add('hidden');
+			}
+		}
 	}
 
 	// 禁用details元素的点击折叠展开
