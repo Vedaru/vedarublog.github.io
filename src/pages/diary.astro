@@ -212,15 +212,10 @@ function formatClock(dateString: string): string {
 		const allYears = Array.from(yearList.querySelectorAll('.year-item'));
 		if (allYears.length === 0) return;
 
-		// 初始化：选择第一个年份
-		const firstYear = allYears[0];
-		const initialYear = parseInt(firstYear.getAttribute('data-year'), 10);
-		window.__diaryState.selectedYear = initialYear;
-		firstYear.classList.add('active');
-		updateMonthList(initialYear);
-
-		// 初始显示第一个年份的日记
-		filterDiariesByYearMonth(initialYear, null);
+		// 初始不选中任何年份，等待用户点击后再展示日记
+		window.__diaryState.selectedYear = null;
+		window.__diaryState.selectedMonth = null;
+		monthList.innerHTML = '';
 
 		// 年份选择事件
 		allYears.forEach(yearItem => {
