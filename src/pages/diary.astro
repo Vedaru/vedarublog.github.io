@@ -112,7 +112,7 @@ function formatClock(dateString: string): string {
 							<label class="selector-label">年份</label>
 							<div class="selector-list year-list" id="year-list">
 								{groupedMoments.map(([year, months]) => {
-									const count = months.reduce((acc, [, items]) => acc + items.length, 0);
+								const count = months.reduce((acc: number, [, items]) => acc + items.length, 0);
 									return (
 										<div class="selector-item year-item" data-year={year}>
 											<span class="item-label">{year}</span>
@@ -415,8 +415,18 @@ function formatClock(dateString: string): string {
 				return;
 			}
 
-		// 展开时隐藏选择器，收起时显示选择器
-		toggleSelector(!shouldOpen);
+			// 展开时隐藏选择器，收起时显示选择器
+			toggleSelector(!shouldOpen);
+
+			// 禁用过渡动画以提高性能
+			var style = document.createElement('style');
+			style.textContent = '.moment-group, .moment-subgroup { transition: none !important; }';
+			document.head.appendChild(style);
+
+			var i = 0;
+			var processNext = function() {
+				if (i >= yearGroups.length) {
+					// 恢复过渡动画
 					style.remove();
 					
 					state.expanded = shouldOpen;
