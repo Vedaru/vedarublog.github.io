@@ -710,6 +710,29 @@ function formatClock(dateString: string): string {
 		background: var(--bg);
 	}
 
+	/* 确保动态添加的月份项也有正确的样式 */
+	.month-list .selector-item,
+	.year-list .selector-item {
+		padding: 0.625rem 1rem;
+		background: var(--card-bg);
+		border: 1px solid var(--line-divider);
+		border-radius: 6px;
+		cursor: pointer;
+		user-select: none;
+		transition: all 0.2s ease;
+		font-size: 0.875rem;
+		text-align: center;
+		min-width: 100px;
+		white-space: nowrap;
+		color: var(--text);
+		font-weight: 500;
+		flex-shrink: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.25rem;
+	}
+
 	/* 自定义滚动条 */
 	.selector-list::-webkit-scrollbar {
 		width: 6px;
