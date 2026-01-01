@@ -77,8 +77,8 @@ function formatClock(dateString: string): string {
 
 <MainGridLayout title={i18n(I18nKey.diary)} description="即刻短文">
 	<div class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative min-h-32">
-		<div class="card-base z-10 px-4 py-4 md:px-6 md:py-5 relative w-full">
-		<div class="relative max-w-4xl w-full px-2 md:px-0">
+		<div class="card-base z-10 px-3 py-4 md:px-5 md:py-5 relative w-full">
+		<div class="relative max-w-6xl w-full px-1 md:px-2">
 				<!-- 页面头部 -->
 				<div class="moments-header mb-6">
 					<div class="header-content">
@@ -93,15 +93,6 @@ function formatClock(dateString: string): string {
 							</div>
 						</div>
 					</div>
-					<!-- 展开/折叠按钮 -->
-					<button
-						id="expand-all-diaries"
-						class="moments-tips text-center mt-4 text-75 text-xs lg:text-base italic underline transition hover:text-[var(--primary)]"
-						type="button"
-						data-collapse-text="折叠全部日记"
-					>
-						{i18n(I18nKey.diaryTips)}
-					</button>
 				</div>
 
 				<!-- 年月选择器 -->
@@ -111,6 +102,10 @@ function formatClock(dateString: string): string {
 						<div class="selector-column">
 							<label class="selector-label">年份</label>
 							<div class="selector-list year-list" id="year-list">
+								<div class="selector-item year-item" data-year="all">
+									<span class="item-label">全部</span>
+									<span class="item-count">({diaryStats.total})</span>
+								</div>
 								{groupedMoments.map(([year, months]) => {
 								const count = months.reduce((acc: number, [, items]) => acc + items.length, 0);
 									return (
@@ -130,6 +125,9 @@ function formatClock(dateString: string): string {
 								<!-- 月份会根据选择的年份动态加载 -->
 							</div>
 						</div>
+					</div>
+					<div class="selector-actions">
+						<button id="collapse-all-diaries" class="collapse-btn hidden" type="button">折叠所有日记</button>
 					</div>
 				</div>
 
@@ -205,6 +203,7 @@ function formatClock(dateString: string): string {
 	window.initDiarySelector = function() {
 		const yearList = document.getElementById('year-list');
 		const monthList = document.getElementById('month-list');
+		const collapseBtn = document.getElementById('collapse-all-diaries');
 		
 		if (!yearList || !monthList) return;
 
@@ -216,11 +215,37 @@ function formatClock(dateString: string): string {
 		window.__diaryState.selectedYear = null;
 		window.__diaryState.selectedMonth = null;
 		monthList.innerHTML = '';
+		if (collapseBtn) collapseBtn.classList.add('hidden');
+
+		function resetAllDiaries() {
+			const groups = document.querySelectorAll('.moment-group');
+			groups.forEach(g => {
+				g.classList.remove('visible');
+				g.style.display = 'none';
+				g.removeAttribute('open');
+				g.querySelectorAll('.moment-subgroup').forEach(sg => {
+					sg.style.display = 'none';
+					sg.removeAttribute('open');
+				});
+			});
+			monthList.innerHTML = '';
+			allYears.forEach(y => y.classList.remove('active'));
+			window.__diaryState.selectedYear = null;
+			window.__diaryState.selectedMonth = null;
+			if (collapseBtn) collapseBtn.classList.add('hidden');
+		}
+
+		if (collapseBtn) {
+			collapseBtn.addEventListener('click', function() {
+				resetAllDiaries();
+			});
+		}
 
 		// 年份选择事件
 		allYears.forEach(yearItem => {
 			yearItem.addEventListener('click', function() {
-				const year = parseInt(this.getAttribute('data-year'), 10);
+				const yearAttr = this.getAttribute('data-year');
+				const year = yearAttr === 'all' ? 'all' : parseInt(yearAttr || '0', 10);
 				
 				// 移除所有年份的active类
 				allYears.forEach(y => y.classList.remove('active'));
@@ -234,6 +259,13 @@ function formatClock(dateString: string): string {
 				
 				// 更新显示的日记
 				filterDiariesByYearMonth(year, null);
+				if (collapseBtn) {
+					if (year === 'all') {
+						collapseBtn.classList.remove('hidden');
+					} else {
+						collapseBtn.classList.add('hidden');
+					}
+				}
 			});
 		});
 	};
@@ -244,6 +276,9 @@ function formatClock(dateString: string): string {
 
 		// 清空月份列表
 		monthList.innerHTML = '';
+
+		// 选择全部年份时不展示月份筛选
+		if (year === 'all') return;
 
 		// 从DOM中查找该年份对应的所有月份
 		const yearGroup = document.querySelector(`#year-${year}`);
@@ -326,8 +361,26 @@ function formatClock(dateString: string): string {
 	}
 
 	function filterDiariesByYearMonth(year, month) {
-		// 隐藏所有年份组
+		const collapseBtn = document.getElementById('collapse-all-diaries');
 		const yearGroups = document.querySelectorAll('.moment-group');
+
+		if (year === 'all') {
+			// 展示全部年份与月份
+			yearGroups.forEach(group => {
+				group.classList.add('visible');
+				group.style.display = 'block';
+				group.setAttribute('open', '');
+				group.querySelectorAll('.moment-subgroup').forEach(subgroup => {
+					subgroup.style.display = 'block';
+					subgroup.setAttribute('open', '');
+				});
+			});
+			window.__diaryState.expanded = true;
+			if (collapseBtn) collapseBtn.classList.remove('hidden');
+			return;
+		}
+
+		// 隐藏所有年份组
 		yearGroups.forEach(group => {
 			group.removeAttribute('open');
 			const groupYear = parseInt(group.id.replace('year-', ''), 10);
@@ -362,111 +415,10 @@ function formatClock(dateString: string): string {
 				group.style.display = 'none';
 			}
 		});
+
+		window.__diaryState.expanded = false;
+		if (collapseBtn) collapseBtn.classList.add('hidden');
 	}
-
-	window.updateButtonState = function() {
-		var btn = document.getElementById('expand-all-diaries');
-		if (!btn) return;
-
-		var yearGroups = document.querySelectorAll('.moment-group');
-		var subgroups = document.querySelectorAll('.moment-subgroup');
-
-		// 检查所有年份是否都展开
-		var allYearsOpen = Array.from(yearGroups).every(function(group) {
-			return group.hasAttribute('open');
-		});
-
-		// 检查所有月份是否都展开
-		var allSubgroupsOpen = Array.from(subgroups).every(function(subgroup) {
-			return subgroup.hasAttribute('open');
-		});
-
-		var originalText = btn.getAttribute('data-original-text') || '显示全部日记';
-		var collapseText = btn.getAttribute('data-collapse-text') || '折叠全部日记';
-
-		// 只有当所有年份和月份都展开时，才显示折叠按钮
-		var allExpanded = allYearsOpen && allSubgroupsOpen && subgroups.length > 0;
-		window.__diaryState.expanded = allExpanded;
-		btn.textContent = allExpanded ? collapseText : originalText;
-	};
-
-	window.setupDiaryExpand = function() {
-		var btn = document.getElementById('expand-all-diaries');
-		if (!btn) return;
-
-		var originalText = btn.textContent.trim();
-		btn.setAttribute('data-original-text', originalText);
-		var collapseText = btn.getAttribute('data-collapse-text') || '折叠全部日记';
-
-		btn.onclick = function(e) {
-			e.preventDefault();
-			e.stopPropagation();
-			
-			var state = window.__diaryState;
-			if (state.processing) return;
-
-			state.processing = true;
-			btn.disabled = true;
-			btn.style.opacity = '0.6';
-			btn.style.cursor = 'wait';
-			
-			var shouldOpen = !state.expanded;
-			var yearGroups = document.querySelectorAll('.moment-group');
-			
-			if (!yearGroups.length) {
-				state.processing = false;
-				btn.disabled = false;
-				btn.style.opacity = '1';
-				btn.style.cursor = 'pointer';
-				return;
-			}
-
-			// 展开时隐藏选择器，收起时显示选择器
-			toggleSelector(!shouldOpen);
-
-			// 禁用过渡动画以提高性能
-			var style = document.createElement('style');
-			style.textContent = '.moment-group, .moment-subgroup { transition: none !important; }';
-			document.head.appendChild(style);
-
-			var i = 0;
-			var processNext = function() {
-				if (i >= yearGroups.length) {
-					// 恢复过渡动画
-					style.remove();
-					
-					state.expanded = shouldOpen;
-					state.processing = false;
-					btn.disabled = false;
-					btn.style.opacity = '1';
-					btn.style.cursor = 'pointer';
-					btn.textContent = shouldOpen ? collapseText : originalText;
-					return;
-				}
-
-				var group = yearGroups[i];
-				if (shouldOpen) {
-					group.setAttribute('open', '');
-				} else {
-					group.removeAttribute('open');
-				}
-
-				var subgroups = group.querySelectorAll('.moment-subgroup');
-				for (var j = 0; j < subgroups.length; j++) {
-					var sg = subgroups[j];
-					if (shouldOpen) {
-						sg.setAttribute('open', '');
-					} else {
-						sg.removeAttribute('open');
-					}
-				}
-
-				i++;
-				requestAnimationFrame(processNext);
-			};
-
-			processNext();
-		};
 
 // 禁用details元素的点击折叠展开
 	var allDetails = document.querySelectorAll('.moment-group, .moment-subgroup');
@@ -486,12 +438,10 @@ function formatClock(dateString: string): string {
 
 	if (document.readyState === 'loading') {
 		document.addEventListener('DOMContentLoaded', function() {
-			window.setupDiaryExpand();
 			window.initDiarySelector();
 		});
 	} else {
 		setTimeout(function() {
-			window.setupDiaryExpand();
 			window.initDiarySelector();
 		}, 0);
 	}
@@ -502,7 +452,6 @@ function formatClock(dateString: string): string {
 		window.__diaryState.selectedYear = null;
 		window.__diaryState.selectedMonth = null;
 		setTimeout(function() {
-			window.setupDiaryExpand();
 			window.initDiarySelector();
 		}, 100);
 	});
@@ -615,15 +564,6 @@ function formatClock(dateString: string): string {
 		transition: transform 0.2s ease;
 	}
 
-	#expand-all-diaries {
-		color: white;
-	}
-
-	#expand-all-diaries:hover {
-		color: rgba(255, 255, 255, 0.7);
-		text-decoration: underline;
-	}
-
 	.moment-group[open] > summary .group-toggle,
 	.moment-subgroup[open] > summary .group-toggle {
 		transform: rotate(90deg);
@@ -667,17 +607,45 @@ function formatClock(dateString: string): string {
 	}
 
 	.selector-container {
-		display: flex;
-		gap: 2rem;
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+		gap: 1.25rem;
 		max-width: 100%;
+		align-items: start;
 	}
 
 	.selector-column {
-		flex: 0 0 auto;
-		min-width: 120px;
+		min-width: 180px;
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
+	}
+
+	.selector-actions {
+		display: flex;
+		justify-content: flex-end;
+		margin-top: 0.5rem;
+	}
+
+	.collapse-btn {
+		border: 1px solid var(--line-divider);
+		border-radius: 6px;
+		padding: 0.45rem 0.9rem;
+		background: color-mix(in srgb, var(--primary) 12%, var(--card-bg));
+		color: var(--primary);
+		font-weight: 600;
+		transition: all 0.2s ease;
+		cursor: pointer;
+	}
+
+	.collapse-btn:hover {
+		background: var(--primary);
+		color: #fff;
+		box-shadow: 0 2px 8px color-mix(in srgb, var(--primary) 30%, transparent);
+	}
+
+	.hidden {
+		display: none !important;
 	}
 
 	.selector-label {
