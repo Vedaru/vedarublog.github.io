@@ -259,12 +259,7 @@ function formatClock(dateString: string): string {
 		// 月份缩写映射
 		const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 		
-		// 创建"全部"选项
-		const allOption = document.createElement('div');
-		allOption.className = 'selector-item year-item active';
-		allOption.setAttribute('data-month', 'all');
-		
-		// 先计算所有月份的总数，然后再创建"全部"选项
+		// 先计算所有月份的总数
 		const monthsMap = new Map();
 		monthSubgroups.forEach(subgroup => {
 			const monthId = subgroup.id; // format: month-YYYY-MM
@@ -279,8 +274,11 @@ function formatClock(dateString: string): string {
 			}
 		});
 		
-		// 计算该年份的总日记数
+		// 创建"全部"选项
 		const totalCount = Array.from(monthsMap.values()).reduce((sum, count) => sum + count, 0);
+		const allOption = document.createElement('div');
+		allOption.className = 'selector-item year-item';
+		allOption.setAttribute('data-month', 'all');
 		allOption.innerHTML = `<span class="item-label">全部</span><span class="item-count">(${totalCount})</span>`;
 		monthList.appendChild(allOption);
 
@@ -297,8 +295,8 @@ function formatClock(dateString: string): string {
 				monthList.appendChild(monthItem);
 			});
 
-		// 为月份项添加点击事件并初始化
-		const monthItems = monthList.querySelectorAll('.year-item');
+		// 为所有月份项添加点击事件
+		const monthItems = monthList.querySelectorAll('.selector-item');
 		monthItems.forEach((item, index) => {
 			item.addEventListener('click', function(e) {
 				e.stopPropagation();
@@ -704,6 +702,7 @@ function formatClock(dateString: string): string {
 		min-height: 200px;
 		overflow-y: auto;
 		overflow-x: hidden;
+		padding-right: 0.5rem;
 		scroll-behavior: smooth;
 		border: 1px solid var(--line-divider);
 		border-radius: 4px;
@@ -742,8 +741,11 @@ function formatClock(dateString: string): string {
 		transition: all 0.2s ease;
 		font-size: 0.875rem;
 		text-align: center;
+		min-width: 100px;
+		white-space: nowrap;
 		color: var(--text);
 		font-weight: 500;
+		flex-shrink: 0;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
