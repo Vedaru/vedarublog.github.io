@@ -244,14 +244,14 @@ function formatClock(dateString: string): string {
 
 		// 月份列表点击事件（动态处理）
 		monthList.addEventListener('click', function(e) {
-			const monthItem = e.target.closest('.month-item');
+			const monthItem = e.target.closest('.year-item');
 			if (!monthItem) return;
 
 			const month = monthItem.getAttribute('data-month');
 			const year = window.__diaryState.selectedYear;
 
 			// 移除所有月份的active类
-			monthList.querySelectorAll('.month-item').forEach(m => m.classList.remove('active'));
+			monthList.querySelectorAll('.year-item').forEach(m => m.classList.remove('active'));
 			monthItem.classList.add('active');
 
 			window.__diaryState.selectedMonth = month;
@@ -274,7 +274,7 @@ function formatClock(dateString: string): string {
 		
 		// 创建"全部"选项
 		const allOption = document.createElement('div');
-		allOption.className = 'month-item selector-item';
+		allOption.className = 'selector-item year-item active';
 		allOption.setAttribute('data-month', 'all');
 		
 		// 先计算所有月份的总数，然后再创建"全部"选项
@@ -304,14 +304,14 @@ function formatClock(dateString: string): string {
 			.sort(([a], [b]) => b.localeCompare(a))
 			.forEach(([month, count]) => {
 				const monthItem = document.createElement('div');
-				monthItem.className = 'month-item selector-item';
+				monthItem.className = 'selector-item year-item';
 				monthItem.setAttribute('data-month', month);
 				monthItem.innerHTML = `<span class="item-label">${month}月</span><span class="item-count">(${count})</span>`;
 				monthList.appendChild(monthItem);
 			});
 
 		// 自动选择"全部"
-		const allItems = monthList.querySelectorAll('.month-item');
+		const allItems = monthList.querySelectorAll('.year-item');
 		if (allItems.length > 0) {
 			allItems[0].classList.add('active');
 			window.__diaryState.selectedMonth = null;
