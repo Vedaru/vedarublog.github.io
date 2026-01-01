@@ -25,7 +25,8 @@ $: if (hue || hue === 0) {
             {i18n(I18nKey.themeColor)}
             <button aria-label="Reset to Default" class="btn-regular w-7 h-7 rounded-md active:scale-90"
                 on:click={resetHue}
-                style="opacity: {hue === defaultHue ? 0 : 1}; pointer-events: {hue === defaultHue ? 'none' : 'auto'}; transition: opacity 0.15s;">
+                disabled={hue === defaultHue}
+                style="opacity: {hue === defaultHue ? 0.5 : 1}; transition: opacity 0.15s;">
               <div class="text-[var(--btn-content)]">
                 <Icon icon="fa6-solid:arrow-rotate-left" class="text-[0.875rem]"></Icon>
               </div>
