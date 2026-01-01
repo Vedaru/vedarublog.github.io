@@ -111,11 +111,15 @@ function formatClock(dateString: string): string {
 						<div class="selector-column">
 							<label class="selector-label">年份</label>
 							<div class="selector-list year-list" id="year-list">
-								{groupedMoments.map(([year]) => (
-									<div class="selector-item year-item" data-year={year}>
-										{year}
-									</div>
-								))}
+								{groupedMoments.map(([year, months]) => {
+									const count = months.reduce((acc, [, items]) => acc + items.length, 0);
+									return (
+										<div class="selector-item year-item" data-year={year}>
+											<span class="item-label">{year}</span>
+											<span class="item-count">({count})</span>
+										</div>
+									);
+								})}
 							</div>
 						</div>
 
@@ -273,25 +277,47 @@ function formatClock(dateString: string): string {
 		monthList.appendChild(allOption);
 
 		// 添加月份 (从subgroup的ID中提取月份信息)
-		const monthsSet = new Set();
+		const monthsMap = new Map();
 		monthSubgroups.forEach(subgroup => {
 			const monthId = subgroup.id; // format: month-YYYY-MM
 			const monthPart = monthId.split('-').pop(); // 获取MM
-			if (monthPart && !monthsSet.has(monthPart)) {
-				monthsSet.add(monthPart);
-				const monthItem = document.createElement('div');
-				monthItem.className = 'month-item';
-				monthItem.setAttribute('data-month', monthPart);
-				monthItem.textContent = monthPart + '月';
-				monthList.appendChild(monthItem);
+			if (monthPart) {
+				if (!monthsMap.has(monthPart)) {
+					monthsMap.set(monthPart, 0);
+				}
+				// 计算该月的日记数
+				const itemCount = subgroup.querySelectorAll('.moment-item').length;
+				monthsMap.set(monthPart, monthsMap.get(monthPart) + itemCount);
 			}
 		});
+		
+		// 按月份排序并添加到列表
+		Array.from(monthsMap.entries())
+			.sort(([a], [b]) => b.localeCompare(a))
+			.forEach(([month, count]) => {
+				const monthItem = document.createElement('div');
+				monthItem.className = 'month-item';
+				monthItem.setAttribute('data-month', month);
+				monthItem.innerHTML = `<span class="item-label">${month}月</span><span class="item-count">(${count})</span>`;
+				monthList.appendChild(monthItem);
+			});
 
 		// 自动选择"全部"
 		const allItems = monthList.querySelectorAll('.month-item');
 		if (allItems.length > 0) {
 			allItems[0].classList.add('active');
 			window.__diaryState.selectedMonth = null;
+		}
+	}
+
+	function toggleSelector(show) {
+		const selector = document.querySelector('.diary-selector');
+		if (!selector) return;
+		
+		if (show) {
+			selector.classList.remove('collapsed');
+		} else {
+			selector.classList.add('collapsed');
 		}
 	}
 
@@ -389,15 +415,8 @@ function formatClock(dateString: string): string {
 				return;
 			}
 
-			// 禁用过渡动画以提高性能
-			var style = document.createElement('style');
-			style.textContent = '.moment-group, .moment-subgroup { transition: none !important; }';
-			document.head.appendChild(style);
-
-			var i = 0;
-			var processNext = function() {
-				if (i >= yearGroups.length) {
-					// 恢复过渡动画
+		// 展开时隐藏选择器，收起时显示选择器
+		toggleSelector(!shouldOpen);
 					style.remove();
 					
 					state.expanded = shouldOpen;
@@ -600,6 +619,19 @@ function formatClock(dateString: string): string {
 		border-radius: 8px;
 		padding: 1.25rem;
 		overflow: hidden;
+		max-height: 500px;
+		transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+		opacity: 1;
+		visibility: visible;
+	}
+
+	.diary-selector.collapsed {
+		max-height: 0;
+		padding: 0;
+		border: none;
+		opacity: 0;
+		visibility: hidden;
+		transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 	}
 
 	.selector-container {
@@ -677,6 +709,20 @@ function formatClock(dateString: string): string {
 		color: var(--text);
 		font-weight: 500;
 		flex-shrink: 0;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.25rem;
+	}
+
+	.selector-item .item-label {
+		font-weight: 600;
+	}
+
+	.selector-item .item-count {
+		font-size: 0.75rem;
+		opacity: 0.7;
+		font-weight: 400;
 	}
 
 	.selector-item:hover {
@@ -692,6 +738,10 @@ function formatClock(dateString: string): string {
 		color: white;
 		font-weight: 600;
 		box-shadow: 0 2px 8px color-mix(in srgb, var(--primary) 30%, transparent);
+	}
+
+	.selector-item.active .item-count {
+		opacity: 0.9;
 	}
 
 	.selector-item.active:hover {
