@@ -241,22 +241,6 @@ function formatClock(dateString: string): string {
 				filterDiariesByYearMonth(year, null);
 			});
 		});
-
-		// 月份列表点击事件（动态处理）
-		monthList.addEventListener('click', function(e) {
-			const monthItem = e.target.closest('.year-item');
-			if (!monthItem) return;
-
-			const month = monthItem.getAttribute('data-month');
-			const year = window.__diaryState.selectedYear;
-
-			// 移除所有月份的active类
-			monthList.querySelectorAll('.year-item').forEach(m => m.classList.remove('active'));
-			monthItem.classList.add('active');
-
-			window.__diaryState.selectedMonth = month;
-			filterDiariesByYearMonth(year, month);
-		});
 	};
 
 	function updateMonthList(year) {
@@ -271,6 +255,9 @@ function formatClock(dateString: string): string {
 		if (!yearGroup) return;
 
 		const monthSubgroups = yearGroup.querySelectorAll('.moment-subgroup');
+		
+		// 月份缩写映射
+		const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 		
 		// 创建"全部"选项
 		const allOption = document.createElement('div');
@@ -297,25 +284,41 @@ function formatClock(dateString: string): string {
 		allOption.innerHTML = `<span class="item-label">全部</span><span class="item-count">(${totalCount})</span>`;
 		monthList.appendChild(allOption);
 
-		// 添加月份 (从subgroup的ID中提取月份信息)
-		
 		// 按月份排序并添加到列表
 		Array.from(monthsMap.entries())
-			.sort(([a], [b]) => b.localeCompare(a))
+			.sort(([a], [b]) => a.localeCompare(b))
 			.forEach(([month, count]) => {
 				const monthItem = document.createElement('div');
 				monthItem.className = 'selector-item year-item';
 				monthItem.setAttribute('data-month', month);
-				monthItem.innerHTML = `<span class="item-label">${month}月</span><span class="item-count">(${count})</span>`;
+				const monthIndex = parseInt(month, 10) - 1;
+				const monthLabel = monthNames[monthIndex] || month;
+				monthItem.innerHTML = `<span class="item-label">${monthLabel}</span><span class="item-count">(${count})</span>`;
 				monthList.appendChild(monthItem);
 			});
 
-		// 自动选择"全部"
-		const allItems = monthList.querySelectorAll('.year-item');
-		if (allItems.length > 0) {
-			allItems[0].classList.add('active');
-			window.__diaryState.selectedMonth = null;
-		}
+		// 为月份项添加点击事件并初始化
+		const monthItems = monthList.querySelectorAll('.year-item');
+		monthItems.forEach((item, index) => {
+			item.addEventListener('click', function(e) {
+				e.stopPropagation();
+				const month = this.getAttribute('data-month');
+				const year = window.__diaryState.selectedYear;
+				
+				// 移除所有月份的active类
+				monthItems.forEach(m => m.classList.remove('active'));
+				this.classList.add('active');
+				
+				window.__diaryState.selectedMonth = month === 'all' ? null : month;
+				filterDiariesByYearMonth(year, window.__diaryState.selectedMonth);
+			});
+			
+			// 默认选中第一个（全部）
+			if (index === 0) {
+				item.classList.add('active');
+				window.__diaryState.selectedMonth = null;
+			}
+		});
 	}
 
 	function toggleSelector(show) {
@@ -472,14 +475,15 @@ function formatClock(dateString: string): string {
 			processNext();
 		};
 
-		// 为所有details元素添加toggle事件监听
-		var allDetails = document.querySelectorAll('.moment-group, .moment-subgroup');
-		allDetails.forEach(function(detail) {
-			detail.addEventListener('toggle', function() {
-				// 延迟调用，避免频繁更新
-				clearTimeout(detail._updateTimeout);
-				detail._updateTimeout = setTimeout(window.updateButtonState, 100);
+// 禁用details元素的点击折叠展开
+	var allDetails = document.querySelectorAll('.moment-group, .moment-subgroup');
+	allDetails.forEach(function(detail) {
+		var summary = detail.querySelector('summary');
+		if (summary) {
+			summary.addEventListener('click', function(e) {
+				e.preventDefault();
 			});
+		}
 		});
 
 		btn.textContent = originalText;
