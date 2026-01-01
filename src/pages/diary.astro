@@ -49,16 +49,14 @@ const diaryStats = getDiaryStats();
 
 // 时间格式化函数（相对时间，基于 siteConfig.timeZone）
 function formatTime(dateString: string): string {
-	// 如果日期字符串中没有时区信息，按 siteConfig.timeZone（UTC+8）解析
-	let dateToUse = dateString;
-	if (!dateString.includes('+') && !dateString.includes('Z')) {
-		dateToUse = dateString + '+08:00';
-	}
-	const d = new Date(dateToUse);
-	if (isNaN(d.getTime())) return dateString;
-	const monthStr = String(d.getMonth() + 1).padStart(2, '0');
-	const dayStr = String(d.getDate()).padStart(2, '0');
-	// 仅显示月份和日（中文显示“MM月DD日”，其它语言显示 "MM-DD"）
+	// 直接使用 date 字符串中的日期部分（忽略时区/本地时间），保证展示与数据中的日期一致
+	if (!dateString) return '';
+	// dateString 可能形如 "YYYY-MM-DDTHH:MM:SS" 或带时区后缀，先按 "T" 分割取日期部分
+	const datePart = dateString.split('T')[0];
+	const parts = datePart.split('-');
+	if (parts.length < 3) return dateString;
+	const monthStr = String(parts[1]).padStart(2, '0');
+	const dayStr = String(parts[2]).padStart(2, '0');
 	const lang = (siteConfig && siteConfig.lang) ? String(siteConfig.lang).toLowerCase() : '';
 	if (lang.startsWith('zh')) {
 		return `${monthStr}月${dayStr}日`;
