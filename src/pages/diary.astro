@@ -420,7 +420,7 @@ function formatClock(dateString: string): string {
 		if (collapseBtn) collapseBtn.classList.add('hidden');
 	}
 
-// 禁用details元素的点击折叠展开
+	// 禁用details元素的点击折叠展开
 	var allDetails = document.querySelectorAll('.moment-group, .moment-subgroup');
 	allDetails.forEach(function(detail) {
 		var summary = detail.querySelector('summary');
@@ -429,12 +429,7 @@ function formatClock(dateString: string): string {
 				e.preventDefault();
 			});
 		}
-		});
-
-		btn.textContent = originalText;
-		btn.style.cursor = 'pointer';
-		window.updateButtonState();
-	};
+	});
 
 	if (document.readyState === 'loading') {
 		document.addEventListener('DOMContentLoaded', function() {
