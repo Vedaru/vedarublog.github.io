@@ -17,9 +17,11 @@ const moments = getDiaryList(Number.MAX_SAFE_INTEGER);
 const groupByYearMonth = (list: any[]) => {
 	const yearMap = new Map();
 	list.forEach((m: any) => {
-		const d = new Date(m.date);
-		const y = d.getFullYear();
-		const mth = String(d.getMonth() + 1).padStart(2, "0");
+		// 直接从日期字符串 YYYY-MM-DDTHH:MM:SS 中提取年月，避免时区偏移
+		const datePart = m.date.split('T')[0];
+		const [yStr, mStr] = datePart.split('-');
+		const y = parseInt(yStr, 10);
+		const mth = String(parseInt(mStr, 10)).padStart(2, "0");
 		if (!yearMap.has(y)) yearMap.set(y, new Map());
 		const monthMap = yearMap.get(y);
 		if (!monthMap.has(mth)) monthMap.set(mth, []);
@@ -102,6 +104,31 @@ function formatClock(dateString: string): string {
 					</button>
 				</div>
 
+				<!-- 年月选择器 -->
+				<div class="diary-selector mb-6">
+					<div class="selector-container">
+						<!-- 年份列表 -->
+						<div class="selector-column">
+							<label class="selector-label">年份</label>
+							<div class="selector-list year-list" id="year-list">
+								{groupedMoments.map(([year]) => (
+									<div class="selector-item year-item" data-year={year}>
+										{year}
+									</div>
+								))}
+							</div>
+						</div>
+
+						<!-- 月份列表 -->
+						<div class="selector-column">
+							<label class="selector-label">月份</label>
+							<div class="selector-list month-list" id="month-list">
+								<!-- 月份会根据选择的年份动态加载 -->
+							</div>
+						</div>
+					</div>
+				</div>
+
 				<!-- 短文列表 -->
 				<div class="moments-timeline">
 					<div class="timeline-list space-y-4">
@@ -164,10 +191,147 @@ function formatClock(dateString: string): string {
 				</div>
 
 <script is:inline>
+	// 日记数据结构 (从服务器端传入)
+	window.__diaryGroupedData = {
+		groupedMoments: {groupedMoments}
+	};
+
 	window.__diaryState = {
 		expanded: false,
-		processing: false
+		processing: false,
+		selectedYear: null,
+		selectedMonth: null
 	};
+
+	window.initDiarySelector = function() {
+		const yearList = document.getElementById('year-list');
+		const monthList = document.getElementById('month-list');
+		
+		if (!yearList || !monthList) return;
+
+		// 获取所有年份
+		const allYears = Array.from(yearList.querySelectorAll('.year-item'));
+		if (allYears.length === 0) return;
+
+		// 初始化：选择第一个年份
+		const firstYear = allYears[0];
+		const initialYear = parseInt(firstYear.getAttribute('data-year'), 10);
+		window.__diaryState.selectedYear = initialYear;
+		firstYear.classList.add('active');
+		updateMonthList(initialYear);
+
+		// 年份选择事件
+		allYears.forEach(yearItem => {
+			yearItem.addEventListener('click', function() {
+				const year = parseInt(this.getAttribute('data-year'), 10);
+				
+				// 移除所有年份的active类
+				allYears.forEach(y => y.classList.remove('active'));
+				this.classList.add('active');
+				
+				window.__diaryState.selectedYear = year;
+				window.__diaryState.selectedMonth = null;
+				
+				// 更新月份列表
+				updateMonthList(year);
+				
+				// 更新显示的日记
+				filterDiariesByYearMonth(year, null);
+			});
+		});
+
+		// 月份列表点击事件（动态处理）
+		monthList.addEventListener('click', function(e) {
+			const monthItem = e.target.closest('.month-item');
+			if (!monthItem) return;
+
+			const month = monthItem.getAttribute('data-month');
+			const year = window.__diaryState.selectedYear;
+
+			// 移除所有月份的active类
+			monthList.querySelectorAll('.month-item').forEach(m => m.classList.remove('active'));
+			monthItem.classList.add('active');
+
+			window.__diaryState.selectedMonth = month;
+			filterDiariesByYearMonth(year, month);
+		});
+	};
+
+	function updateMonthList(year) {
+		// 找到对应年份的月份数据
+		const grouped = window.__diaryGroupedData.groupedMoments || [];
+		const monthList = document.getElementById('month-list');
+		if (!monthList) return;
+
+		// 清空月份列表
+		monthList.innerHTML = '';
+
+		// 查找该年份的所有月份
+		const yearData = grouped.find(([y]) => y === year);
+		if (!yearData) return;
+
+		const months = yearData[1] || [];
+		
+		// 创建"全部"选项
+		const allOption = document.createElement('div');
+		allOption.className = 'month-item';
+		allOption.setAttribute('data-month', 'all');
+		allOption.textContent = '全部';
+		monthList.appendChild(allOption);
+
+		// 添加月份
+		months.forEach(([month]) => {
+			const monthItem = document.createElement('div');
+			monthItem.className = 'month-item';
+			monthItem.setAttribute('data-month', month);
+			monthItem.textContent = month + '月';
+			monthList.appendChild(monthItem);
+		});
+
+		// 自动选择"全部"
+		const allItems = monthList.querySelectorAll('.month-item');
+		if (allItems.length > 0) {
+			allItems[0].classList.add('active');
+			window.__diaryState.selectedMonth = null;
+		}
+	}
+
+	function filterDiariesByYearMonth(year, month) {
+		// 隐藏所有年份组
+		const yearGroups = document.querySelectorAll('.moment-group');
+		yearGroups.forEach(group => {
+			group.removeAttribute('open');
+			const groupYear = parseInt(group.id.replace('year-', ''), 10);
+			if (groupYear === year) {
+				group.style.display = 'block';
+				group.setAttribute('open', '');
+				
+				// 处理月份
+				const monthSubgroups = group.querySelectorAll('.moment-subgroup');
+				monthSubgroups.forEach(subgroup => {
+					subgroup.removeAttribute('open');
+					
+					if (month === null || month === 'all') {
+						// 显示该年份的所有月份
+						subgroup.style.display = 'block';
+						subgroup.setAttribute('open', '');
+					} else {
+						// 只显示选中的月份
+						const monthId = subgroup.id; // format: month-YYYY-MM
+						const monthPart = monthId.split('-').pop();
+						if (monthPart === month) {
+							subgroup.style.display = 'block';
+							subgroup.setAttribute('open', '');
+						} else {
+							subgroup.style.display = 'none';
+						}
+					}
+				});
+			} else {
+				group.style.display = 'none';
+			}
+		});
+	}
 
 	window.updateButtonState = function() {
 		var btn = document.getElementById('expand-all-diaries');
@@ -286,15 +450,26 @@ function formatClock(dateString: string): string {
 	};
 
 	if (document.readyState === 'loading') {
-		document.addEventListener('DOMContentLoaded', window.setupDiaryExpand);
+		document.addEventListener('DOMContentLoaded', function() {
+			window.setupDiaryExpand();
+			window.initDiarySelector();
+		});
 	} else {
-		setTimeout(window.setupDiaryExpand, 0);
+		setTimeout(function() {
+			window.setupDiaryExpand();
+			window.initDiarySelector();
+		}, 0);
 	}
 
 	document.addEventListener('swup:content:replace', function() {
 		window.__diaryState.expanded = false;
 		window.__diaryState.processing = false;
-		setTimeout(window.setupDiaryExpand, 100);
+		window.__diaryState.selectedYear = null;
+		window.__diaryState.selectedMonth = null;
+		setTimeout(function() {
+			window.setupDiaryExpand();
+			window.initDiarySelector();
+		}, 100);
 	});
 </script>
 
@@ -419,7 +594,99 @@ function formatClock(dateString: string): string {
 		transform: rotate(90deg);
 	}
 
-	
+	/* 年月选择器样式 */
+	.diary-selector {
+		background: var(--card-bg);
+		border: 1px solid var(--line-divider);
+		border-radius: 8px;
+		padding: 1.25rem;
+		overflow: hidden;
+	}
+
+	.selector-container {
+		display: flex;
+		gap: 2rem;
+		max-width: 100%;
+	}
+
+	.selector-column {
+		flex: 0 0 auto;
+		min-width: 120px;
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.selector-label {
+		font-weight: 600;
+		font-size: 0.875rem;
+		color: var(--text);
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.selector-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		max-height: 300px;
+		overflow-y: auto;
+		padding-right: 0.5rem;
+		scroll-behavior: smooth;
+	}
+
+	/* 自定义滚动条 */
+	.selector-list::-webkit-scrollbar {
+		width: 6px;
+	}
+
+	.selector-list::-webkit-scrollbar-track {
+		background: var(--line-divider);
+		border-radius: 3px;
+	}
+
+	.selector-list::-webkit-scrollbar-thumb {
+		background: var(--primary);
+		border-radius: 3px;
+		opacity: 0.6;
+	}
+
+	.selector-list::-webkit-scrollbar-thumb:hover {
+		opacity: 1;
+	}
+
+	.selector-item {
+		padding: 0.625rem 1rem;
+		background: var(--bg);
+		border: 1px solid var(--line-divider);
+		border-radius: 6px;
+		cursor: pointer;
+		user-select: none;
+		transition: all 0.2s ease;
+		font-size: 0.875rem;
+		text-align: center;
+		min-width: 100px;
+		white-space: nowrap;
+		color: var(--text);
+	}
+
+	.selector-item:hover {
+		border-color: var(--primary);
+		background: color-mix(in srgb, var(--primary) 10%, var(--bg));
+		color: var(--primary);
+	}
+
+	.selector-item.active {
+		background: var(--primary);
+		border-color: var(--primary);
+		color: white;
+		font-weight: 600;
+	}
+
+	.selector-item.active:hover {
+		opacity: 0.9;
+	}
+
 	/* 响应式设计 */
 	/* 手机端 (小于640px) */
 	@media (max-width: 640px) {
@@ -441,6 +708,26 @@ function formatClock(dateString: string): string {
 			flex-direction: column;
 			align-items: flex-start;
 			gap: 0.5rem;
+		}
+
+		.diary-selector {
+			padding: 1rem;
+		}
+
+		.selector-container {
+			gap: 1rem;
+			overflow-x: auto;
+			padding-bottom: 0.5rem;
+		}
+
+		.selector-column {
+			min-width: 110px;
+		}
+
+		.selector-item {
+			min-width: 90px;
+			padding: 0.5rem 0.75rem;
+			font-size: 0.8rem;
 		}
 	}
 	
@@ -473,6 +760,10 @@ function formatClock(dateString: string): string {
 		
 		.moment-footer {
 			margin-top: 1rem;
+		}
+
+		.selector-container {
+			gap: 1.5rem;
 		}
 	}
 	

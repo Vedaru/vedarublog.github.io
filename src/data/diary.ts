@@ -162,15 +162,22 @@ export const getDiaryByTag = (tag: string) => {
 // 按年份获取日记（按时间倒序）
 export const getDiaryByYear = (year: number) => {
 	return getDiaryList(Number.MAX_SAFE_INTEGER).filter(
-		(item) => new Date(item.date).getFullYear() === year,
+		(item) => {
+			const datePart = item.date.split('T')[0];
+			const y = parseInt(datePart.split('-')[0], 10);
+			return y === year;
+		},
 	);
 };
 
 // 按年份和月份获取日记（按时间倒序）；month 取值 1-12
 export const getDiaryByYearMonth = (year: number, month: number) => {
 	return getDiaryList(Number.MAX_SAFE_INTEGER).filter((item) => {
-		const d = new Date(item.date);
-		return d.getFullYear() === year && d.getMonth() + 1 === month;
+		const datePart = item.date.split('T')[0];
+		const parts = datePart.split('-');
+		const y = parseInt(parts[0], 10);
+		const m = parseInt(parts[1], 10);
+		return y === year && m === month;
 	});
 };
 
