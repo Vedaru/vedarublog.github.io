@@ -219,6 +219,9 @@ function formatClock(dateString: string): string {
 		firstYear.classList.add('active');
 		updateMonthList(initialYear);
 
+		// 初始显示第一个年份的日记
+		filterDiariesByYearMonth(initialYear, null);
+
 		// 年份选择事件
 		allYears.forEach(yearItem => {
 			yearItem.addEventListener('click', function() {
@@ -271,12 +274,10 @@ function formatClock(dateString: string): string {
 		
 		// 创建"全部"选项
 		const allOption = document.createElement('div');
-		allOption.className = 'month-item';
+		allOption.className = 'month-item selector-item';
 		allOption.setAttribute('data-month', 'all');
-		allOption.textContent = '全部';
-		monthList.appendChild(allOption);
-
-		// 添加月份 (从subgroup的ID中提取月份信息)
+		
+		// 先计算所有月份的总数，然后再创建"全部"选项
 		const monthsMap = new Map();
 		monthSubgroups.forEach(subgroup => {
 			const monthId = subgroup.id; // format: month-YYYY-MM
@@ -291,12 +292,19 @@ function formatClock(dateString: string): string {
 			}
 		});
 		
+		// 计算该年份的总日记数
+		const totalCount = Array.from(monthsMap.values()).reduce((sum, count) => sum + count, 0);
+		allOption.innerHTML = `<span class="item-label">全部</span><span class="item-count">(${totalCount})</span>`;
+		monthList.appendChild(allOption);
+
+		// 添加月份 (从subgroup的ID中提取月份信息)
+		
 		// 按月份排序并添加到列表
 		Array.from(monthsMap.entries())
 			.sort(([a], [b]) => b.localeCompare(a))
 			.forEach(([month, count]) => {
 				const monthItem = document.createElement('div');
-				monthItem.className = 'month-item';
+				monthItem.className = 'month-item selector-item';
 				monthItem.setAttribute('data-month', month);
 				monthItem.innerHTML = `<span class="item-label">${month}月</span><span class="item-count">(${count})</span>`;
 				monthList.appendChild(monthItem);
@@ -328,6 +336,7 @@ function formatClock(dateString: string): string {
 			group.removeAttribute('open');
 			const groupYear = parseInt(group.id.replace('year-', ''), 10);
 			if (groupYear === year) {
+				group.classList.add('visible');
 				group.style.display = 'block';
 				group.setAttribute('open', '');
 				
@@ -353,6 +362,7 @@ function formatClock(dateString: string): string {
 					}
 				});
 			} else {
+				group.classList.remove('visible');
 				group.style.display = 'none';
 			}
 		});
@@ -620,6 +630,21 @@ function formatClock(dateString: string): string {
 	.moment-group[open] > summary .group-toggle,
 	.moment-subgroup[open] > summary .group-toggle {
 		transform: rotate(90deg);
+	}
+
+	/* 日记列表初始隐藏，通过JavaScript控制显示 */
+	.timeline-list {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.moment-group {
+		display: none;
+	}
+
+	.moment-group.visible {
+		display: block;
 	}
 
 	/* 年月选择器样式 */
