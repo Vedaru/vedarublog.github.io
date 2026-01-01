@@ -710,29 +710,6 @@ function formatClock(dateString: string): string {
 		background: var(--bg);
 	}
 
-	/* 确保动态添加的月份项也有正确的样式 */
-	.month-list .selector-item,
-	.year-list .selector-item {
-		padding: 0.625rem 1rem;
-		background: var(--card-bg);
-		border: 1px solid var(--line-divider);
-		border-radius: 6px;
-		cursor: pointer;
-		user-select: none;
-		transition: all 0.2s ease;
-		font-size: 0.875rem;
-		text-align: center;
-		min-width: 100px;
-		white-space: nowrap;
-		color: var(--text);
-		font-weight: 500;
-		flex-shrink: 0;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 0.25rem;
-	}
-
 	/* 自定义滚动条 */
 	.selector-list::-webkit-scrollbar {
 		width: 6px;
@@ -754,7 +731,7 @@ function formatClock(dateString: string): string {
 		opacity: 1;
 	}
 
-	.selector-item {
+	:global(.selector-item) {
 		padding: 0.625rem 1rem;
 		background: var(--card-bg);
 		border: 1px solid var(--line-divider);
@@ -775,24 +752,24 @@ function formatClock(dateString: string): string {
 		gap: 0.25rem;
 	}
 
-	.selector-item .item-label {
+	:global(.selector-item .item-label) {
 		font-weight: 600;
 	}
 
-	.selector-item .item-count {
+	:global(.selector-item .item-count) {
 		font-size: 0.75rem;
 		opacity: 0.7;
 		font-weight: 400;
 	}
 
-	.selector-item:hover {
+	:global(.selector-item:hover) {
 		border-color: var(--primary);
 		background: color-mix(in srgb, var(--primary) 10%, var(--card-bg));
 		color: var(--primary);
 		transform: translateY(-1px);
 	}
 
-	.selector-item.active {
+	:global(.selector-item.active) {
 		background: var(--primary);
 		border-color: var(--primary);
 		color: white;
@@ -800,11 +777,11 @@ function formatClock(dateString: string): string {
 		box-shadow: 0 2px 8px color-mix(in srgb, var(--primary) 30%, transparent);
 	}
 
-	.selector-item.active .item-count {
+	:global(.selector-item.active .item-count) {
 		opacity: 0.9;
 	}
 
-	.selector-item.active:hover {
+	:global(.selector-item.active:hover) {
 		opacity: 0.95;
 	}
 
