@@ -191,11 +191,6 @@ function formatClock(dateString: string): string {
 				</div>
 
 <script is:inline>
-	// 日记数据结构 (从服务器端传入)
-	window.__diaryGroupedData = {
-		groupedMoments: {groupedMoments}
-	};
-
 	window.__diaryState = {
 		expanded: false,
 		processing: false,
@@ -258,19 +253,17 @@ function formatClock(dateString: string): string {
 	};
 
 	function updateMonthList(year) {
-		// 找到对应年份的月份数据
-		const grouped = window.__diaryGroupedData.groupedMoments || [];
 		const monthList = document.getElementById('month-list');
 		if (!monthList) return;
 
 		// 清空月份列表
 		monthList.innerHTML = '';
 
-		// 查找该年份的所有月份
-		const yearData = grouped.find(([y]) => y === year);
-		if (!yearData) return;
+		// 从DOM中查找该年份对应的所有月份
+		const yearGroup = document.querySelector(`#year-${year}`);
+		if (!yearGroup) return;
 
-		const months = yearData[1] || [];
+		const monthSubgroups = yearGroup.querySelectorAll('.moment-subgroup');
 		
 		// 创建"全部"选项
 		const allOption = document.createElement('div');
@@ -279,13 +272,19 @@ function formatClock(dateString: string): string {
 		allOption.textContent = '全部';
 		monthList.appendChild(allOption);
 
-		// 添加月份
-		months.forEach(([month]) => {
-			const monthItem = document.createElement('div');
-			monthItem.className = 'month-item';
-			monthItem.setAttribute('data-month', month);
-			monthItem.textContent = month + '月';
-			monthList.appendChild(monthItem);
+		// 添加月份 (从subgroup的ID中提取月份信息)
+		const monthsSet = new Set();
+		monthSubgroups.forEach(subgroup => {
+			const monthId = subgroup.id; // format: month-YYYY-MM
+			const monthPart = monthId.split('-').pop(); // 获取MM
+			if (monthPart && !monthsSet.has(monthPart)) {
+				monthsSet.add(monthPart);
+				const monthItem = document.createElement('div');
+				monthItem.className = 'month-item';
+				monthItem.setAttribute('data-month', monthPart);
+				monthItem.textContent = monthPart + '月';
+				monthList.appendChild(monthItem);
+			}
 		});
 
 		// 自动选择"全部"
@@ -623,16 +622,23 @@ function formatClock(dateString: string): string {
 		color: var(--text);
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
+		opacity: 0.8;
 	}
 
 	.selector-list {
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
-		max-height: 300px;
+		max-height: 320px;
+		min-height: 200px;
 		overflow-y: auto;
+		overflow-x: hidden;
 		padding-right: 0.5rem;
 		scroll-behavior: smooth;
+		border: 1px solid var(--line-divider);
+		border-radius: 4px;
+		padding: 0.5rem;
+		background: var(--bg);
 	}
 
 	/* 自定义滚动条 */
@@ -649,6 +655,7 @@ function formatClock(dateString: string): string {
 		background: var(--primary);
 		border-radius: 3px;
 		opacity: 0.6;
+		transition: opacity 0.2s ease;
 	}
 
 	.selector-list::-webkit-scrollbar-thumb:hover {
@@ -657,7 +664,7 @@ function formatClock(dateString: string): string {
 
 	.selector-item {
 		padding: 0.625rem 1rem;
-		background: var(--bg);
+		background: var(--card-bg);
 		border: 1px solid var(--line-divider);
 		border-radius: 6px;
 		cursor: pointer;
@@ -668,12 +675,15 @@ function formatClock(dateString: string): string {
 		min-width: 100px;
 		white-space: nowrap;
 		color: var(--text);
+		font-weight: 500;
+		flex-shrink: 0;
 	}
 
 	.selector-item:hover {
 		border-color: var(--primary);
-		background: color-mix(in srgb, var(--primary) 10%, var(--bg));
+		background: color-mix(in srgb, var(--primary) 10%, var(--card-bg));
 		color: var(--primary);
+		transform: translateY(-1px);
 	}
 
 	.selector-item.active {
@@ -681,10 +691,11 @@ function formatClock(dateString: string): string {
 		border-color: var(--primary);
 		color: white;
 		font-weight: 600;
+		box-shadow: 0 2px 8px color-mix(in srgb, var(--primary) 30%, transparent);
 	}
 
 	.selector-item.active:hover {
-		opacity: 0.9;
+		opacity: 0.95;
 	}
 
 	/* 响应式设计 */
@@ -715,19 +726,30 @@ function formatClock(dateString: string): string {
 		}
 
 		.selector-container {
-			gap: 1rem;
+			gap: 1.5rem;
 			overflow-x: auto;
 			padding-bottom: 0.5rem;
+			-webkit-overflow-scrolling: touch;
 		}
 
 		.selector-column {
 			min-width: 110px;
+			flex-shrink: 0;
 		}
 
 		.selector-item {
-			min-width: 90px;
+			min-width: 100px;
 			padding: 0.5rem 0.75rem;
 			font-size: 0.8rem;
+		}
+
+		.selector-label {
+			font-size: 0.75rem;
+		}
+
+		.selector-list {
+			max-height: 280px;
+			min-height: 180px;
 		}
 	}
 	
@@ -765,6 +787,11 @@ function formatClock(dateString: string): string {
 		.selector-container {
 			gap: 1.5rem;
 		}
+
+		.selector-list {
+			max-height: 300px;
+			min-height: 200px;
+		}
 	}
 	
 	/* 平板横屏和桌面端 (大于900px) */
@@ -787,6 +814,15 @@ function formatClock(dateString: string): string {
 			font-size: 1.1rem;
 			line-height: 1.8;
 		}
+
+		.selector-container {
+			gap: 2rem;
+		}
+
+		.selector-list {
+			max-height: 350px;
+			min-height: 220px;
+		}
 	}
 	
 	/* 优化小屏幕显示 */
@@ -797,6 +833,21 @@ function formatClock(dateString: string): string {
 		
 		.moments-header {
 			border-radius: 6px;
+		}
+
+		.selector-container {
+			gap: 1rem;
+		}
+
+		.selector-item {
+			min-width: 95px;
+			padding: 0.5rem 0.6rem;
+			font-size: 0.75rem;
+		}
+
+		.selector-list {
+			max-height: 270px;
+			min-height: 170px;
 		}
 	}
 </style>
