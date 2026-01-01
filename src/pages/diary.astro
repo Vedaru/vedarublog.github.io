@@ -259,13 +259,6 @@ function formatClock(dateString: string): string {
 				
 				// 更新显示的日记
 				filterDiariesByYearMonth(year, null);
-				if (collapseBtn) {
-					if (year === 'all') {
-						collapseBtn.classList.remove('hidden');
-					} else {
-						collapseBtn.classList.add('hidden');
-					}
-				}
 			});
 		});
 	};
