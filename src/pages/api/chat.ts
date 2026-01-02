@@ -12,7 +12,7 @@ const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const RATE_LIMIT_MAX = 120; // max requests per IP per window
 const CACHE_TTL_MS = 30 * 1000; // cache identical prompt for 30s
 
-async function callGroq(prompt: string, apiKey: string, model: string, timeout: number): Promise<string> {
+async function callGroq(prompt: string, apiKey: string, model: string, timeout: number, systemPrompt?: string): Promise<string> {
   // Groq uses OpenAI-compatible API
   const url = "https://api.groq.com/openai/v1/chat/completions";
   
@@ -20,6 +20,13 @@ async function callGroq(prompt: string, apiKey: string, model: string, timeout: 
   
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
+  
+  // Build messages array with optional system prompt
+  const messages: Array<{role: string, content: string}> = [];
+  if (systemPrompt) {
+    messages.push({ role: "system", content: systemPrompt });
+  }
+  messages.push({ role: "user", content: prompt });
   
   try {
     const res = await fetch(url, {
@@ -30,7 +37,7 @@ async function callGroq(prompt: string, apiKey: string, model: string, timeout: 
       },
       body: JSON.stringify({ 
         model: model,
-        messages: [{ role: "user", content: prompt }],
+        messages: messages,
         temperature: 0.7,
         max_tokens: 1024
       }),
@@ -71,9 +78,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const GROQ_API_KEY = env.GROQ_API_KEY || import.meta.env.GROQ_API_KEY;
   const GROQ_MODEL = env.GROQ_MODEL || import.meta.env.GROQ_MODEL || "llama3-8b-8192";
   const API_TIMEOUT = parseInt(env.API_TIMEOUT || import.meta.env.API_TIMEOUT || "30000");
+  const SYSTEM_PROMPT = env.SYSTEM_PROMPT || import.meta.env.SYSTEM_PROMPT || "";
   
   console.log("[API] GROQ_API_KEY available:", !!GROQ_API_KEY);
   console.log("[API] GROQ_MODEL:", GROQ_MODEL);
+  console.log("[API] SYSTEM_PROMPT:", SYSTEM_PROMPT ? "已设置" : "未设置");
   
   // More lenient content-type check for development
   const ct = request.headers.get("content-type") || "";
@@ -152,7 +161,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   try {
-    const reply = await callGroq(prompt, GROQ_API_KEY, GROQ_MODEL, API_TIMEOUT);
+    const reply = await callGroq(prompt, GROQ_API_KEY, GROQ_MODEL, API_TIMEOUT, SYSTEM_PROMPT);
     // cache short-lived
     cache.set(key, { text: reply, expiresAt: Date.now() + CACHE_TTL_MS });
 
