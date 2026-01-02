@@ -80,12 +80,17 @@ export const POST: APIRoute = async ({ request }) => {
 
   let body: any;
   try {
-    const rawBody = await request.text();
-    console.log("[API] Raw body received:", rawBody);
-    body = JSON.parse(rawBody);
-    console.log("[API] Parsed body:", body);
+    // Clone request before reading to allow debugging
+    const clonedRequest = request.clone();
+    body = await request.json();
+    console.log("[API] Parsed body:", JSON.stringify(body));
   } catch (e: any) {
     console.error("[API] JSON parse error:", e.message);
+    // Try to read raw body for debugging
+    try {
+      const rawBody = await request.text();
+      console.error("[API] Raw body was:", rawBody || "(empty)");
+    } catch {}
     return new Response(JSON.stringify({ 
       error: "Invalid JSON", 
       detail: e.message 
