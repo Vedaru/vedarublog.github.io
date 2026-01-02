@@ -157,68 +157,15 @@ function formatClock(dateString: string): string {
 			</div>
 		</div>
 	</div>
+	
+	<!-- 将日记数据存储在隐藏元素中，供全局脚本读取 -->
+	<div 
+		id="diary-page-data" 
+		data-grouped-moments={JSON.stringify(groupedMoments)} 
+		data-page-type="diary"
+		style="display:none;"
+	></div>
 </MainGridLayout>
-
-<script define:vars={{ groupedMoments }}>
-	// 在页面加载时将日记数据注入到全局布局的目录容器中
-	function injectDiaryTOC() {
-		console.log('[Diary Page] injectDiaryTOC called');
-		const diaryTocWrapper = document.getElementById('diary-toc-wrapper');
-		const diaryTocContainer = document.getElementById('diary-toc');
-		
-		console.log('[Diary Page] diaryTocWrapper:', diaryTocWrapper ? 'found' : 'NOT FOUND');
-		console.log('[Diary Page] diaryTocContainer:', diaryTocContainer ? 'found' : 'NOT FOUND');
-		
-		if (!diaryTocContainer || !diaryTocWrapper) return;
-		
-		// 显示日记目录容器
-		diaryTocWrapper.classList.remove('hidden');
-		diaryTocWrapper.classList.add('lg:block');
-		console.log('[Diary Page] Diary TOC wrapper shown');
-		
-		// 创建或更新 diary-table-of-contents 元素
-		let diaryToc = diaryTocContainer.querySelector('diary-table-of-contents');
-		console.log('[Diary Page] Existing diary-table-of-contents:', diaryToc ? 'found' : 'not found');
-		
-		if (!diaryToc) {
-			diaryToc = document.createElement('diary-table-of-contents');
-			diaryToc.className = 'group';
-			diaryTocContainer.appendChild(diaryToc);
-			console.log('[Diary Page] Created new diary-table-of-contents element');
-		}
-		
-		// 设置数据属性
-		diaryToc.setAttribute('data-grouped-moments', JSON.stringify(groupedMoments));
-		console.log('[Diary Page] Set data-grouped-moments, data length:', JSON.stringify(groupedMoments).length);
-		
-		// 触发 custom element 的重新初始化
-		if (diaryToc && typeof diaryToc.connectedCallback === 'function') {
-			console.log('[Diary Page] Triggering reconnection...');
-			// 强制重新连接以触发初始化
-			const parent = diaryToc.parentElement;
-			if (parent) {
-				const clone = diaryToc.cloneNode(true);
-				parent.replaceChild(clone, diaryToc);
-				console.log('[Diary Page] Element replaced to trigger connectedCallback');
-			}
-		} else {
-			console.log('[Diary Page] connectedCallback not available, element may not be registered yet');
-		}
-	}
-	
-	// 页面加载时注入 - 使用多个时机确保执行
-	console.log('[Diary Page] Script loaded, readyState:', document.readyState);
-	if (document.readyState === 'loading') {
-		document.addEventListener('DOMContentLoaded', injectDiaryTOC);
-	} else {
-		// 立即执行
-		injectDiaryTOC();
-	}
-	
-	// 延迟再次尝试，确保容器已经渲染
-	setTimeout(injectDiaryTOC, 100);
-	setTimeout(injectDiaryTOC, 500);
-</script>
 
 <style>
 	.card-base {
