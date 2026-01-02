@@ -680,7 +680,7 @@ const transparentClass = shouldEnableTransparency
 {(!siteConfig.toc.enable || isFloatTOC) && <div id="toc" class="hidden"></div>}
 
 <!-- 侧边栏日记目录 - 始终存在但默认隐藏 -->
-<div class="absolute w-full z-10 pointer-events-none hidden 2xl:block">
+<div class="absolute w-full z-10 pointer-events-none">
 	<div class="relative max-w-[var(--page-width)] mx-auto">
 		<div id="diary-toc-wrapper" class:list={["hidden transition absolute top-0 w-[var(--toc-width)] pointer-events-auto",
 			"-right-[var(--toc-width)]",
