@@ -361,3 +361,39 @@ class DiaryTableOfContents extends HTMLElement {
 if (!customElements.get("diary-table-of-contents")) {
 	customElements.define("diary-table-of-contents", DiaryTableOfContents);
 }
+// 页面切换时控制日记目录的显示和隐藏
+function handleDiaryTocVisibility() {
+const diaryTocWrapper = document.getElementById('diary-toc-wrapper');
+if (!diaryTocWrapper) return;
+
+const isDiaryPage = window.location.pathname.includes('/diary');
+
+if (isDiaryPage) {
+// 显示日记目录
+diaryTocWrapper.classList.remove('hidden');
+diaryTocWrapper.classList.add('lg:block');
+} else {
+// 隐藏日记目录
+diaryTocWrapper.classList.add('hidden');
+diaryTocWrapper.classList.remove('lg:block');
+}
+}
+
+// 初始加载时检查
+if (document.readyState === 'loading') {
+document.addEventListener('DOMContentLoaded', handleDiaryTocVisibility);
+} else {
+handleDiaryTocVisibility();
+}
+
+// 监听 Swup 页面切换事件
+document.addEventListener('swup:page:view', handleDiaryTocVisibility);
+document.addEventListener('swup:content:replace', () => {
+// 延迟执行以确保 DOM 更新完成
+requestAnimationFrame(() => {
+requestAnimationFrame(() => {
+handleDiaryTocVisibility();
+});
+});
+});
+</script>
