@@ -219,10 +219,11 @@ const { groupedMoments } = Astro.props;
 		}
 
 		init() {
-			this.tocEl = document.querySelector('.diary-toc-container');
-			if (!this.tocEl) return;
+			const container = document.querySelector('.diary-toc-container');
+			this.tocEl = document.querySelector('.diary-toc');
+			if (!this.tocEl || !container) return;
 
-			this.tocEl.addEventListener("click", this.handleAnchorClick, { capture: true });
+			container.addEventListener("click", this.handleAnchorClick, { capture: true });
 
 			this.activeIndicator = document.getElementById("diary-active-indicator");
 
@@ -253,7 +254,8 @@ const { groupedMoments } = Astro.props;
 		destroy() {
 			this.sections.forEach((section) => this.observer.unobserve(section));
 			this.observer.disconnect();
-			this.tocEl?.removeEventListener("click", this.handleAnchorClick);
+			const container = document.querySelector('.diary-toc-container');
+			container?.removeEventListener("click", this.handleAnchorClick);
 		}
 	}
 
