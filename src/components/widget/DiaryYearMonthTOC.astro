@@ -12,12 +12,11 @@ const { groupedMoments } = Astro.props;
 ---
 
 <div class="diary-toc-container">
-	<h2 class="text-base font-bold mb-3 text-90 px-2">日记目录</h2>
 	<nav class="diary-toc group">
 		{groupedMoments.map(([year, months]) => {
 			const totalCount = months.reduce((acc, [, arr]) => acc + arr.length, 0);
 			return (
-				<div class="toc-year-group mb-2">
+				<div class="toc-year-group mb-2" data-year={year}>
 					<a 
 						href={`#year-${year}`}
 						class="toc-year-link px-2 flex gap-2 relative transition w-full min-h-9 rounded-xl hover:bg-[var(--toc-btn-hover)] active:bg-[var(--toc-btn-active)] py-2"
@@ -64,9 +63,15 @@ const { groupedMoments } = Astro.props;
 		background-color: var(--toc-btn-hover);
 	}
 
-	/* 悬停阴影效果 - 与文章TOC保持一致 */
+	/* 悬停阴影效果 - 月份悬停时包含年份 */
 	.toc-year-link:hover,
 	.toc-month-link:hover {
+		box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+	}
+
+	/* 月份悬停时，年份也显示背景 */
+	.toc-year-group:has(.toc-month-link:hover) .toc-year-link {
+		background-color: var(--toc-btn-hover);
 		box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
 	}
 </style>
