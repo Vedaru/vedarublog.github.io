@@ -30,7 +30,7 @@
     pushMessage("assistant", "");
     try {
       const wantStream = true; // enable streaming for better UX
-      const res = await fetch("/api/chat", {
+      const res = await fetch("/api/chat/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: text, sessionId, stream: wantStream }),
