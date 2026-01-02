@@ -10,40 +10,63 @@ const RATE_LIMIT_MAX = 120; // max requests per IP per window
 const CACHE_TTL_MS = 30 * 1000; // cache identical prompt for 30s
 
 const HF_API_KEY = process.env.HF_API_KEY || process.env.HF_TOKEN; // support two common names
-const HF_MODEL = process.env.HF_MODEL || "mistralai/Mistral-7B-Instruct-v0.2"; // override in env
+const HF_MODEL = process.env.HF_MODEL || "google/flan-t5-base"; // override in env
+const HF_TIMEOUT = parseInt(process.env.HF_TIMEOUT || "30000"); // 30s default timeout
 
 async function callHuggingFace(prompt: string): Promise<string> {
   const url = `https://api-inference.huggingface.co/models/${HF_MODEL}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${HF_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ inputs: prompt, options: { wait_for_model: true } }),
-  });
+  
+  // Create abort controller for timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), HF_TIMEOUT);
+  
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${HF_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ 
+        inputs: prompt, 
+        options: { wait_for_model: true },
+        parameters: { max_length: 512, temperature: 0.7 }
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
 
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`HF API error ${res.status}: ${txt}`);
+    if (!res.ok) {
+      const txt = await res.text();
+      throw new Error(`HF API error ${res.status}: ${txt}`);
+    }
+
+    const json: any = await res.json();
+    // HF inference may return { error } or array or object with generated_text
+    if (json.error) throw new Error(String(json.error));
+
+    if (Array.isArray(json) && json.length > 0) {
+      // text-generation models often return [{generated_text: '...'}]
+      const item = json[0] as any;
+      return String(item.generated_text ?? item[0] ?? JSON.stringify(item));
+    }
+
+    if (typeof json === "object" && json !== null) {
+      if (typeof (json as any).generated_text === "string") return (json as any).generated_text;
+      return JSON.stringify(json);
+    }
+
+    return String(json);
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error(`请求超时（${HF_TIMEOUT}ms）。可能需要配置代理或尝试其他模型。`);
+    }
+    if (error.cause?.code === 'UND_ERR_CONNECT_TIMEOUT') {
+      throw new Error('网络连接超时。请检查网络连接或配置 HTTP 代理（设置 HTTP_PROXY 环境变量）。');
+    }
+    throw error;
   }
-
-  const json: any = await res.json();
-  // HF inference may return { error } or array or object with generated_text
-  if (json.error) throw new Error(String(json.error));
-
-  if (Array.isArray(json) && json.length > 0) {
-    // text-generation models often return [{generated_text: '...'}]
-    const item = json[0] as any;
-    return String(item.generated_text ?? item[0] ?? JSON.stringify(item));
-  }
-
-  if (typeof json === "object" && json !== null) {
-    if (typeof (json as any).generated_text === "string") return (json as any).generated_text;
-    return JSON.stringify(json);
-  }
-
-  return String(json);
 }
 
 export const post: APIRoute = async ({ request }) => {
