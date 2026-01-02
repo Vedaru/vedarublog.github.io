@@ -69,8 +69,10 @@ const { groupedMoments } = Astro.props;
 		box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
 	}
 
-	/* 月份悬停时，年份也显示背景 */
-	.toc-year-group:has(.toc-month-link:hover) .toc-year-link {
+	/* 月份悬停时，年份也显示背景和阴影 */
+	.toc-months:hover + .toc-year-link,
+	.toc-months:hover ~ .toc-year-link,
+	.toc-year-group:has(.toc-months:hover) > .toc-year-link {
 		background-color: var(--toc-btn-hover);
 		box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
 	}
@@ -203,19 +205,31 @@ const { groupedMoments } = Astro.props;
 
 	// Swup页面切换时处理
 	document.addEventListener('swup:content:replace', () => {
-		// 检查新页面是否是日记页
+		// 等待DOM更新
+		setTimeout(() => {
+			const isDiaryPage = window.location.pathname.includes('/diary');
+			const diaryTocWrapper = document.getElementById('diary-toc-wrapper');
+			
+			if (diaryTocWrapper) {
+				if (isDiaryPage) {
+					diaryTocWrapper.style.display = '';
+					setTimeout(initDiaryTOC, 50);
+				} else {
+					diaryTocWrapper.style.display = 'none';
+				}
+			}
+		}, 0);
+	});
+
+	// 页面初始化时检查
+	const checkInitialPage = () => {
 		const isDiaryPage = window.location.pathname.includes('/diary');
 		const diaryTocWrapper = document.getElementById('diary-toc-wrapper');
 		
-		if (diaryTocWrapper) {
-			if (isDiaryPage) {
-				diaryTocWrapper.classList.remove('hidden');
-				diaryTocWrapper.classList.add('lg:block');
-				setTimeout(initDiaryTOC, 100);
-			} else {
-				diaryTocWrapper.classList.add('hidden');
-				diaryTocWrapper.classList.remove('lg:block');
-			}
+		if (diaryTocWrapper && !isDiaryPage) {
+			diaryTocWrapper.style.display = 'none';
 		}
-	});
+	};
+	
+	checkInitialPage();
 </script>
