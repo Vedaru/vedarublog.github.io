@@ -73,6 +73,8 @@ function formatClock(dateString: string): string {
 	const mm = String(d.getMinutes()).padStart(2, "0");
 	return `${hh}:${mm}`;
 }
+
+const monthNamesShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 ---
 
 <MainGridLayout title={i18n(I18nKey.diary)} description="即刻短文">
@@ -95,99 +97,130 @@ function formatClock(dateString: string): string {
 					</div>
 				</div>
 
-				<!-- 年月选择器 -->
-				<div class="diary-selector mb-6">
-					<div class="selector-container">
-						<!-- 年份列表 -->
-						<div class="selector-column">
-							<label class="selector-label">年份</label>
-							<div class="selector-list year-list" id="year-list">
-								<div class="selector-item year-item" data-year="all">
-									<span class="item-label">全部</span>
-									<span class="item-count">({diaryStats.total})</span>
-								</div>
-								{groupedMoments.map(([year, months]) => {
-								const count = months.reduce((acc: number, [, items]) => acc + items.length, 0);
-									return (
-										<div class="selector-item year-item" data-year={year}>
-											<span class="item-label">{year}</span>
-											<span class="item-count">({count})</span>
+				<div class="page-body">
+					<div class="main-column">
+						<!-- 年月选择器 -->
+						<div class="diary-selector mb-6">
+							<div class="selector-container">
+								<!-- 年份列表 -->
+								<div class="selector-column">
+									<label class="selector-label">年份</label>
+									<div class="selector-list year-list" id="year-list">
+										<div class="selector-item year-item" data-year="all">
+											<span class="item-label">全部</span>
+											<span class="item-count">({diaryStats.total})</span>
 										</div>
-									);
-								})}
+										{groupedMoments.map(([year, months]) => {
+										const count = months.reduce((acc: number, [, items]) => acc + items.length, 0);
+											return (
+												<div class="selector-item year-item" data-year={year}>
+													<span class="item-label">{year}</span>
+													<span class="item-count">({count})</span>
+												</div>
+											);
+										})}
+									</div>
+								</div>
+
+							<!-- 月份列表 -->
+							<div class="selector-column">
+								<label class="selector-label">月份</label>
+								<div class="selector-list month-list" id="month-list">
+									<!-- 月份会根据选择的年份动态加载 -->
+								</div>
 							</div>
 						</div>
-
-						<!-- 月份列表 -->
-						<div class="selector-column">
-							<label class="selector-label">月份</label>
-							<div class="selector-list month-list" id="month-list">
-								<!-- 月份会根据选择的年份动态加载 -->
-							</div>
+						<div class="selector-actions">
+							<button id="collapse-all-diaries" class="collapse-btn hidden" type="button">折叠所有日记</button>
 						</div>
 					</div>
-					<div class="selector-actions">
-						<button id="collapse-all-diaries" class="collapse-btn hidden" type="button">折叠所有日记</button>
+
+					<!-- 短文列表 -->
+					<div class="moments-timeline">
+						<div class="timeline-list space-y-4">
+						{groupedMoments.map(([year, months]) => (
+							<details class="moment-group" id={`year-${year}`}>
+								<summary class="moment-group-header flex items-center gap-2 text-sm md:text-base font-semibold text-90">
+									<span class="group-toggle">▸</span>
+									<span class="group-label">{year}</span>
+									<span class="group-count text-50 text-xs md:text-sm">({months.reduce((acc: number, [, arr]: any) => acc + arr.length, 0)})</span>
+								</summary>
+								<div class="space-y-3">
+									{months.map(([month, items]) => (
+										<details class="moment-subgroup" id={`month-${year}-${month}`}>
+											<summary class="moment-subgroup-header flex items-center gap-2 text-sm md:text-base font-semibold text-90">
+												<span class="group-toggle">▸</span>
+												<span class="group-label">{year}-{month}</span>
+												<span class="group-count text-50 text-xs md:text-sm">({items.length})</span>
+											</summary>
+											<div class="space-y-4">
+												{items.map((moment: any) => (
+													<div class="moment-item card-base p-4 lg:p-8 hover:shadow-lg transition-all">
+														<div class="moment-content">
+															<p class="moment-text text-sm lg:text-lg leading-relaxed mb-3 text-90">{moment.content}</p>
+															{moment.images && moment.images.length > 0 && (
+										<div class="moment-images grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-4 mb-3">
+											{moment.images.map((image: any, _index: number) => (
+											<div class="image-item relative rounded-md overflow-hidden aspect-square cursor-pointer hover:scale-105 transition-transform">
+												<img 
+													src={image} 
+													alt="diary moment image"
+													class="w-full h-full object-cover"
+													loading="lazy"
+												/>
+											</div>
+											))}
+										</div>
+										)}
+													</div>
+													<hr class="moment-divider border-t border-[var(--line-divider)] my-3 md:my-4" />
+													<div class="moment-footer flex justify-between items-center">
+														<div class="moment-time flex items-center gap-1.5 text-75 text-xs lg:text-base">
+															<i class="time-icon text-xs md:text-sm">🕐</i>
+															<time datetime={moment.date}>
+																{formatTime(moment.date)}
+															</time>
+														</div>
+														<div class="moment-clock text-75 text-xs lg:text-base" aria-hidden>
+															<time datetime={moment.date}>{formatClock(moment.date)}</time>
+														</div>
+													</div>
+												</div>
+											))}
+										</div>
+									</details>
+								))}
+							</div>
+						</details>
+						))}
+						</div>
 					</div>
 				</div>
 
-				<!-- 短文列表 -->
-				<div class="moments-timeline">
-					<div class="timeline-list space-y-4">
-					{groupedMoments.map(([year, months]) => (
-						<details class="moment-group" id={`year-${year}`}>
-							<summary class="moment-group-header flex items-center gap-2 text-sm md:text-base font-semibold text-90">
-								<span class="group-toggle">▸</span>
-								<span class="group-label">{year}</span>
-								<span class="group-count text-50 text-xs md:text-sm">({months.reduce((acc: number, [, arr]: any) => acc + arr.length, 0)})</span>
-							</summary>
-							<div class="space-y-3">
-							{months.map(([month, items]) => (
-								<details class="moment-subgroup" id={`month-${year}-${month}`}>
-									<summary class="moment-subgroup-header flex items-center gap-2 text-sm md:text-base font-semibold text-90">
-										<span class="group-toggle">▸</span>
-										<span class="group-label">{year}-{month}</span>
-										<span class="group-count text-50 text-xs md:text-sm">({items.length})</span>
-									</summary>
-									<div class="space-y-4">
-									{items.map((moment: any) => (
-										<div class="moment-item card-base p-4 lg:p-8 hover:shadow-lg transition-all">
-											<div class="moment-content">
-												<p class="moment-text text-sm lg:text-lg leading-relaxed mb-3 text-90">{moment.content}</p>
-												{moment.images && moment.images.length > 0 && (
-					<div class="moment-images grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-4 mb-3">
-						{moment.images.map((image: any, _index: number) => (
-						<div class="image-item relative rounded-md overflow-hidden aspect-square cursor-pointer hover:scale-105 transition-transform">
-							<img 
-								src={image} 
-									alt="diary moment image"
-								class="w-full h-full object-cover"
-								loading="lazy"
-							/>
-						</div>
-						))}
-					</div>
-				)}
-										</div>
-										<hr class="moment-divider border-t border-[var(--line-divider)] my-3 md:my-4" />
-										<div class="moment-footer flex justify-between items-center">
-											<div class="moment-time flex items-center gap-1.5 text-75 text-xs lg:text-base">
-												<i class="time-icon text-xs md:text-sm">🕐</i>
-												<time datetime={moment.date}>
-													{formatTime(moment.date)}
-												</time>
-											</div>
-												<div class="moment-clock text-75 text-xs lg:text-base" aria-hidden>
-													<time datetime={moment.date}>{formatClock(moment.date)}</time>
-												</div>
+				<aside class="toc-panel">
+					<div class="toc-card">
+						<div class="toc-title">目录</div>
+						<div class="toc-scroll">
+							{groupedMoments.map(([year, months]) => {
+								return (
+									<div class="toc-year-group">
+										<a class="toc-year" href={`#year-${year}`}>{year}</a>
+										<div class="toc-month-list">
+											{months.map(([month]) => {
+												const idx = Number(month) - 1;
+												const label = monthNamesShort[idx] ?? month;
+												return (
+													<a class="toc-month" href={`#month-${year}-${month}`}>{label}</a>
+												);
+											})}
 										</div>
 									</div>
-								))}
-								</div>
-							</details>
-							))}
-							</div>
-						</details>
+								);
+							})}
+						</div>
+					</div>
+				</aside>
+			</div>
 					))}
 					</div>
 				</div>
@@ -602,10 +635,17 @@ function formatClock(dateString: string): string {
 		transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 	}
 
+	.page-body {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) 280px;
+		gap: 1.5rem;
+		align-items: start;
+	}
+
 	.selector-container {
 		display: grid;
 		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-		gap: 1.25rem;
+		gap: 1rem;
 		max-width: 100%;
 		align-items: start;
 	}
@@ -642,6 +682,85 @@ function formatClock(dateString: string): string {
 
 	.hidden {
 		display: none !important;
+	}
+
+	.toc-panel {
+		position: sticky;
+		top: 1rem;
+		align-self: start;
+	}
+
+	.toc-card {
+		background: var(--card-bg);
+		border: 1px solid var(--line-divider);
+		border-radius: 10px;
+		padding: 1rem;
+		box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+	}
+
+	.toc-title {
+		font-weight: 700;
+		margin-bottom: 0.75rem;
+		color: var(--text);
+	}
+
+	.toc-scroll {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		max-height: 70vh;
+		overflow-y: auto;
+		padding-right: 0.25rem;
+	}
+
+	.toc-year-group {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+
+	.toc-year {
+		font-weight: 700;
+		color: var(--text);
+		text-decoration: none;
+		transition: color 0.2s ease;
+	}
+
+	.toc-year:hover {
+		color: var(--primary);
+	}
+
+	.toc-month-list {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem 0.6rem;
+	}
+
+	.toc-month {
+		font-size: 0.85rem;
+		color: var(--text-70, var(--text));
+		padding: 0.2rem 0.5rem;
+		border-radius: 999px;
+		border: 1px solid var(--line-divider);
+		text-decoration: none;
+		transition: all 0.2s ease;
+	}
+
+	.toc-month:hover {
+		color: var(--primary);
+		border-color: var(--primary);
+		background: color-mix(in srgb, var(--primary) 12%, transparent);
+	}
+
+	@media (max-width: 960px) {
+		.page-body {
+			grid-template-columns: 1fr;
+		}
+
+		.toc-panel {
+			position: relative;
+			top: auto;
+		}
 	}
 
 	.selector-label {
