@@ -13,9 +13,8 @@ const RATE_LIMIT_MAX = 120; // max requests per IP per window
 const CACHE_TTL_MS = 30 * 1000; // cache identical prompt for 30s
 
 async function callHuggingFace(prompt: string, apiKey: string, model: string, timeout: number): Promise<string> {
-  // Use the new Hugging Face Router API endpoint
-  // The new format doesn't include /models/ prefix
-  const url = `https://router.huggingface.co/${model}`;
+  // Use Hugging Face Serverless Inference API v2
+  const url = `https://api-inference.huggingface.co/models/${model}`;
   
   // Create abort controller for timeout
   const controller = new AbortController();
@@ -27,13 +26,18 @@ async function callHuggingFace(prompt: string, apiKey: string, model: string, ti
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
+        "x-use-cache": "false", // Bypass cache for fresh responses
       },
       body: JSON.stringify({ 
         inputs: prompt,
         parameters: { 
           max_new_tokens: 250,
           temperature: 0.7,
-          return_full_text: false
+          do_sample: true,
+        },
+        options: {
+          use_cache: false,
+          wait_for_model: true
         }
       }),
       signal: controller.signal,
