@@ -13,7 +13,7 @@ const RATE_LIMIT_MAX = 120; // max requests per IP per window
 const CACHE_TTL_MS = 30 * 1000; // cache identical prompt for 30s
 
 async function callHuggingFace(prompt: string, apiKey: string, model: string, timeout: number): Promise<string> {
-  const url = `https://api-inference.huggingface.co/models/${model}`;
+  const url = `https://router.huggingface.co/models/${model}`;
   
   // Create abort controller for timeout
   const controller = new AbortController();
