@@ -96,48 +96,6 @@ function formatClock(dateString: string): string {
 					</div>
 				</div>
 
-				<!-- 日记目录 -->
-				<div class="diary-toc-card card-base mb-6 p-4 md:p-6">
-					<h2 class="text-lg font-bold mb-4 text-90 flex items-center gap-2">
-						<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[var(--primary)]">
-							<rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect>
-							<line x1="16" x2="16" y1="2" y2="6"></line>
-							<line x1="8" x2="8" y1="2" y2="6"></line>
-							<line x1="3" x2="21" y1="10" y2="10"></line>
-						</svg>
-						📅 日记目录
-					</h2>
-					<div class="diary-toc-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-						{groupedMoments.map(([year, months]) => {
-							const totalCount = months.reduce((acc: number, [, arr]: any) => acc + arr.length, 0);
-							return (
-								<div class="toc-year-card">
-									<a 
-										href={`#year-${year}`}
-										class="toc-year-link block p-3 rounded-lg bg-[var(--btn-plain-bg)] hover:bg-[var(--btn-plain-bg-hover)] transition-all group"
-									>
-										<div class="flex items-center justify-between mb-2">
-											<span class="text-base font-bold text-90 group-hover:text-[var(--primary)] transition">{year}</span>
-											<span class="text-xs text-50 group-hover:text-[var(--primary)] transition">({totalCount}篇)</span>
-										</div>
-										<div class="flex flex-wrap gap-2">
-											{months.map(([month, items]) => (
-												<a
-													href={`#month-${year}-${month}`}
-													class="toc-month-badge px-2 py-1 rounded text-xs bg-[var(--card-bg)] hover:bg-[var(--primary)] hover:text-white transition-all"
-													onclick="event.stopPropagation();"
-												>
-													{month}月({items.length})
-												</a>
-											))}
-										</div>
-									</a>
-								</div>
-							);
-						})}
-					</div>
-				</div>
-
 				<!-- 短文列表 -->
 				<div class="moments-timeline">
 					<div class="timeline-list space-y-4">
