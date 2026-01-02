@@ -291,17 +291,12 @@ const { groupedMoments } = Astro.props;
 			if (isDiaryPage) {
 				diaryTocWrapper.classList.remove('hidden');
 				diaryTocWrapper.classList.add('lg:block');
-				// 增加延迟并添加重试机制，确保DOM完全加载
-				setTimeout(() => {
-					initDiaryTOC();
-					// 如果初始化失败（没有找到元素），再次尝试
-					setTimeout(() => {
-						const tocNav = document.getElementById('diary-toc-nav');
-						if (tocNav && tocNav.querySelectorAll('.toc-year-link').length === 0) {
-							initDiaryTOC();
-						}
-					}, 200);
-				}, 150);
+				// 使用 requestAnimationFrame 确保 DOM 渲染完成后再初始化
+				requestAnimationFrame(() => {
+					requestAnimationFrame(() => {
+						initDiaryTOC();
+					});
+				});
 			} else {
 				diaryTocWrapper.classList.add('hidden');
 				diaryTocWrapper.classList.remove('lg:block');
@@ -310,6 +305,18 @@ const { groupedMoments } = Astro.props;
 					diaryTOCInstance.destroy();
 					diaryTOCInstance = null;
 				}
+			}
+		}
+	});
+
+	// 监听 swup:page:view 事件（页面内容完全加载后）
+	document.addEventListener('swup:page:view', () => {
+		const isDiaryPage = window.location.pathname.includes('/diary');
+		if (isDiaryPage) {
+			// 确保 TOC 被初始化
+			const tocNav = document.getElementById('diary-toc-nav');
+			if (tocNav && (!diaryTOCInstance || diaryTOCInstance.tocLinks.length === 0)) {
+				initDiaryTOC();
 			}
 		}
 	});
