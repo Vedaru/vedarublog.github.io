@@ -685,9 +685,11 @@ const monthNamesShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug',
 	}
 
 	.toc-panel {
-		position: sticky;
-		top: 1rem;
-		align-self: start;
+		position: fixed;
+		top: 5rem;
+		right: 1.5rem;
+		z-index: 20;
+		width: 260px;
 	}
 
 	.toc-card {
@@ -766,14 +768,13 @@ const monthNamesShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug',
 		background: color-mix(in srgb, var(--primary) 12%, transparent);
 	}
 
-	@media (max-width: 960px) {
+	@media (max-width: 1100px) {
 		.page-body {
 			grid-template-columns: 1fr;
 		}
 
 		.toc-panel {
-			position: relative;
-			top: auto;
+			display: none;
 		}
 	}
 
