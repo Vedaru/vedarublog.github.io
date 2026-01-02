@@ -11,29 +11,33 @@ interface Props {
 const { groupedMoments } = Astro.props;
 ---
 
-<div class="diary-toc-container card-base p-4">
-	<h2 class="text-lg font-bold mb-4 text-90">📅 日记目录</h2>
-	<nav class="diary-toc">
+<div class="diary-toc-container">
+	<h2 class="text-base font-bold mb-3 text-90 px-2">📅 日记目录</h2>
+	<nav class="diary-toc group">
 		{groupedMoments.map(([year, months]) => {
 			const totalCount = months.reduce((acc, [, arr]) => acc + arr.length, 0);
 			return (
-				<div class="toc-year-group mb-3">
-					<div class="toc-year">
-						<a 
-							href={`#year-${year}`}
-							class="toc-year-link flex items-center justify-between py-2 px-3 rounded-lg hover:bg-[var(--card-bg)] transition-all text-90 font-semibold"
-						>
-							<span class="text-base">{year}</span>
-							<span class="text-xs text-50">({totalCount})</span>
-						</a>
-					</div>
-					<div class="toc-months ml-4 mt-1 space-y-1">
+				<div class="toc-year-group mb-2">
+					<a 
+						href={`#year-${year}`}
+						class="toc-year-link px-2 flex gap-2 relative transition w-full min-h-9 rounded-xl hover:bg-[var(--toc-btn-hover)] active:bg-[var(--toc-btn-active)] py-2"
+					>
+						<div class="transition w-5 h-5 shrink-0 rounded-lg text-xs flex items-center justify-center font-bold bg-[var(--toc-badge-bg)] text-[var(--btn-content)]">
+							{year.toString().slice(-2)}
+						</div>
+						<div class="transition text-sm text-90 flex-1">{year}</div>
+						<span class="text-xs text-50">({totalCount})</span>
+					</a>
+					<div class="toc-months space-y-1">
 						{months.map(([month, items]) => (
 							<a
 								href={`#month-${year}-${month}`}
-								class="toc-month-link flex items-center justify-between py-1.5 px-3 rounded-md hover:bg-[var(--card-bg)] transition-all text-75 text-sm"
+								class="toc-month-link px-2 flex gap-2 relative transition w-full min-h-9 rounded-xl hover:bg-[var(--toc-btn-hover)] active:bg-[var(--toc-btn-active)] py-2"
 							>
-								<span>{month}月</span>
+								<div class="transition w-5 h-5 shrink-0 rounded-lg text-xs flex items-center justify-center font-bold ml-4">
+									<div class="transition w-2 h-2 rounded-[0.1875rem] bg-[var(--toc-badge-bg)]"></div>
+								</div>
+								<div class="transition text-sm text-75 flex-1">{month}月</div>
 								<span class="text-xs text-50">({items.length})</span>
 							</a>
 						))}
@@ -41,67 +45,23 @@ const { groupedMoments } = Astro.props;
 				</div>
 			);
 		})}
+		<div id="diary-active-indicator" class="-z-10 absolute bg-[var(--toc-btn-hover)] left-0 right-0 rounded-xl transition-all group-hover:bg-transparent border-2 border-[var(--toc-btn-hover)] group-hover:border-[var(--toc-btn-active)] border-dashed" style="display: none;"></div>
 	</nav>
 </div>
 
 <style>
 	.diary-toc-container {
-		position: sticky;
-		top: 1rem;
-		max-height: calc(100vh - 2rem);
-		overflow-y: auto;
-		/* 美化滚动条 */
-		scrollbar-width: thin;
-		scrollbar-color: var(--primary) transparent;
+		/* 移除之前的样式，使用TOC的样式体系 */
 	}
 
-	.diary-toc-container::-webkit-scrollbar {
-		width: 4px;
-	}
-
-	.diary-toc-container::-webkit-scrollbar-thumb {
-		background-color: var(--primary);
-		border-radius: 2px;
-	}
-
-	.diary-toc-container::-webkit-scrollbar-track {
-		background: transparent;
-	}
-
-	.toc-year-link {
-		border-left: 3px solid transparent;
-	}
-
-	.toc-year-link:hover {
-		border-left-color: var(--primary);
-	}
-
-	.toc-month-link {
-		border-left: 2px solid transparent;
-	}
-
-	.toc-month-link:hover {
-		border-left-color: var(--primary);
+	.diary-toc {
+		position: relative;
 	}
 
 	/* 活动状态样式 */
-	.toc-year-link.active {
-		background-color: var(--card-bg);
-		border-left-color: var(--primary);
-		color: var(--primary);
-	}
-
+	.toc-year-link.active,
 	.toc-month-link.active {
-		background-color: var(--card-bg);
-		border-left-color: var(--primary);
-		color: var(--primary);
-	}
-
-	/* 移动端适配 */
-	@media (max-width: 768px) {
-		.diary-toc-container {
-			display: none;
-		}
+		background-color: var(--toc-btn-hover);
 	}
 </style>
 
@@ -112,15 +72,17 @@ const { groupedMoments } = Astro.props;
 		const monthGroups = document.querySelectorAll('.moment-subgroup');
 		const tocYearLinks = document.querySelectorAll('.toc-year-link');
 		const tocMonthLinks = document.querySelectorAll('.toc-month-link');
+		const activeIndicator = document.getElementById('diary-active-indicator');
 
 		if (!yearGroups.length || !tocYearLinks.length) return;
 
 		function updateActiveTOC() {
-			const scrollPosition = window.scrollY + 100;
+			const scrollPosition = window.scrollY + 200;
 
 			// 找到当前可见的月份
 			let activeMonthId = '';
 			let activeYearId = '';
+			let activeLink: Element | null = null;
 
 			monthGroups.forEach((group) => {
 				const rect = group.getBoundingClientRect();
@@ -140,19 +102,33 @@ const { groupedMoments } = Astro.props;
 			tocYearLinks.forEach(link => link.classList.remove('active'));
 			tocMonthLinks.forEach(link => link.classList.remove('active'));
 
-			// 添加活动状态
-			if (activeYearId) {
-				const activeYearLink = document.querySelector(`.toc-year-link[href="#${activeYearId}"]`);
-				if (activeYearLink) {
-					activeYearLink.classList.add('active');
-				}
-			}
-
+			// 添加活动状态并更新指示器
 			if (activeMonthId) {
 				const activeMonthLink = document.querySelector(`.toc-month-link[href="#${activeMonthId}"]`);
 				if (activeMonthLink) {
 					activeMonthLink.classList.add('active');
+					activeLink = activeMonthLink;
 				}
+			} else if (activeYearId) {
+				const activeYearLink = document.querySelector(`.toc-year-link[href="#${activeYearId}"]`);
+				if (activeYearLink) {
+					activeYearLink.classList.add('active');
+					activeLink = activeYearLink;
+				}
+			}
+
+			// 更新活动指示器位置
+			if (activeIndicator && activeLink) {
+				const linkRect = activeLink.getBoundingClientRect();
+				const containerRect = activeLink.closest('.diary-toc')?.getBoundingClientRect();
+				if (containerRect) {
+					const top = linkRect.top - containerRect.top;
+					activeIndicator.style.top = `${top}px`;
+					activeIndicator.style.height = `${linkRect.height}px`;
+					activeIndicator.style.display = 'block';
+				}
+			} else if (activeIndicator) {
+				activeIndicator.style.display = 'none';
 			}
 		}
 
@@ -213,4 +189,9 @@ const { groupedMoments } = Astro.props;
 	} else {
 		initDiaryTOC();
 	}
+
+	// Swup页面切换时重新初始化
+	document.addEventListener('swup:content:replace', () => {
+		setTimeout(initDiaryTOC, 100);
+	});
 </script>
