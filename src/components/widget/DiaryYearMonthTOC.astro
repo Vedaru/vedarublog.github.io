@@ -69,20 +69,21 @@ const { groupedMoments } = Astro.props;
 	.toc-year-block {
 		padding: 0.25rem 0.35rem;
 		border-radius: 0.9rem;
-		transition: background-color 0.2s ease, box-shadow 0.2s ease;
+		transition: background-color 0.2s ease, box-shadow 0.2s ease, border 0.2s ease;
+		box-shadow: 0 4px 12px rgb(0 0 0 / 0.12), 0 2px 6px rgb(0 0 0 / 0.08);
 	}
 
 	.toc-year-block:hover,
 	.toc-year-block:has(.toc-month-link:hover),
 	.toc-year-block:has(.toc-year-link:hover) {
 		background-color: var(--toc-btn-hover);
-		box-shadow: 0 4px 12px rgb(0 0 0 / 0.12), 0 2px 6px rgb(0 0 0 / 0.08);
+		box-shadow: none;
+		border: 2px dashed rgb(0 0 0 / 0.35);
 	}
 
-	/* 链接本身不额外叠加阴影，阴影由父块提供 */
-	.toc-year-link:hover,
+	/* 悬停的单个月份额外高亮 */
 	.toc-month-link:hover {
-		box-shadow: none;
+		box-shadow: 0 4px 10px rgb(0 0 0 / 0.16), 0 2px 4px rgb(0 0 0 / 0.12);
 	}
 </style>
 
