@@ -12,23 +12,18 @@ const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const RATE_LIMIT_MAX = 120; // max requests per IP per window
 const CACHE_TTL_MS = 30 * 1000; // cache identical prompt for 30s
 
-// Use import.meta.env for Astro environment variables
-const HF_API_KEY = import.meta.env.HF_API_KEY || import.meta.env.HF_TOKEN;
-const HF_MODEL = import.meta.env.HF_MODEL || "google/flan-t5-base";
-const HF_TIMEOUT = parseInt(import.meta.env.HF_TIMEOUT || "30000");
-
-async function callHuggingFace(prompt: string): Promise<string> {
-  const url = `https://api-inference.huggingface.co/models/${HF_MODEL}`;
+async function callHuggingFace(prompt: string, apiKey: string, model: string, timeout: number): Promise<string> {
+  const url = `https://api-inference.huggingface.co/models/${model}`;
   
   // Create abort controller for timeout
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), HF_TIMEOUT);
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
   
   try {
     const res = await fetch(url, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${HF_API_KEY}`,
+        Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ 
@@ -64,7 +59,7 @@ async function callHuggingFace(prompt: string): Promise<string> {
   } catch (error: any) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
-      throw new Error(`请求超时（${HF_TIMEOUT}ms）。可能需要配置代理或尝试其他模型。`);
+      throw new Error(`请求超时（${timeout}ms）。可能需要配置代理或尝试其他模型。`);
     }
     if (error.cause?.code === 'UND_ERR_CONNECT_TIMEOUT') {
       throw new Error('网络连接超时。请检查网络连接或配置 HTTP 代理（设置 HTTP_PROXY 环境变量）。');
@@ -73,7 +68,18 @@ async function callHuggingFace(prompt: string): Promise<string> {
   }
 }
 
-export const POST: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request, locals }) => {
+  // Get environment variables from Cloudflare runtime or Astro env
+  const runtime = (locals as any)?.runtime;
+  const env = runtime?.env || import.meta.env;
+  
+  const HF_API_KEY = env.HF_API_KEY || env.HF_TOKEN || import.meta.env.HF_API_KEY || import.meta.env.HF_TOKEN;
+  const HF_MODEL = env.HF_MODEL || import.meta.env.HF_MODEL || "google/flan-t5-base";
+  const HF_TIMEOUT = parseInt(env.HF_TIMEOUT || import.meta.env.HF_TIMEOUT || "30000");
+  
+  console.log("[API] HF_API_KEY available:", !!HF_API_KEY);
+  console.log("[API] HF_MODEL:", HF_MODEL);
+  
   // More lenient content-type check for development
   const ct = request.headers.get("content-type") || "";
   console.log("[API] Received Content-Type:", ct);
@@ -152,7 +158,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   try {
-    const reply = await callHuggingFace(prompt);
+    const reply = await callHuggingFace(prompt, HF_API_KEY, HF_MODEL, HF_TIMEOUT);
     // cache short-lived
     cache.set(key, { text: reply, expiresAt: Date.now() + CACHE_TTL_MS });
 
