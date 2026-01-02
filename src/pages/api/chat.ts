@@ -12,9 +12,10 @@ const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const RATE_LIMIT_MAX = 120; // max requests per IP per window
 const CACHE_TTL_MS = 30 * 1000; // cache identical prompt for 30s
 
-const HF_API_KEY = process.env.HF_API_KEY || process.env.HF_TOKEN; // support two common names
-const HF_MODEL = process.env.HF_MODEL || "google/flan-t5-base"; // override in env
-const HF_TIMEOUT = parseInt(process.env.HF_TIMEOUT || "30000"); // 30s default timeout
+// Use import.meta.env for Astro environment variables
+const HF_API_KEY = import.meta.env.HF_API_KEY || import.meta.env.HF_TOKEN;
+const HF_MODEL = import.meta.env.HF_MODEL || "google/flan-t5-base";
+const HF_TIMEOUT = parseInt(import.meta.env.HF_TIMEOUT || "30000");
 
 async function callHuggingFace(prompt: string): Promise<string> {
   const url = `https://api-inference.huggingface.co/models/${HF_MODEL}`;
@@ -138,7 +139,16 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   if (!HF_API_KEY) {
-    return new Response(JSON.stringify({ error: "HF_API_KEY not configured on server" }), { status: 500 });
+    console.error("[API] HF_API_KEY is undefined!");
+    console.error("[API] import.meta.env.HF_API_KEY:", import.meta.env.HF_API_KEY);
+    console.error("[API] import.meta.env.HF_TOKEN:", import.meta.env.HF_TOKEN);
+    return new Response(JSON.stringify({ 
+      error: "HF_API_KEY not configured on server",
+      hint: "请检查 .env 文件是否存在且包含 HF_API_KEY，并重启开发服务器"
+    }), { 
+      status: 500,
+      headers: { "Content-Type": "application/json" }
+    });
   }
 
   try {
