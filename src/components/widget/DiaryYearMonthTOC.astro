@@ -90,7 +90,7 @@ const { groupedMoments } = Astro.props;
 		constructor() {
 			this.observer = new IntersectionObserver(
 				this.markVisibleSection,
-				{ threshold: 0, rootMargin: "0px 0px -80% 0px" }
+				{ threshold: 0 }
 			);
 		}
 
