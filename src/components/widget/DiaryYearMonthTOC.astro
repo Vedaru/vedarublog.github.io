@@ -190,12 +190,14 @@ class DiaryTableOfContents extends HTMLElement {
 	}
 
 	connectedCallback() {
+		console.log('[DiaryTOC] connectedCallback called');
 		// 优先监听动画结束，兜底定时初始化，确保二次刷新也能正常显示目录
 		const element = document.querySelector('.moments-timeline') || document.querySelector('.timeline-list');
 		let initialized = false;
 		const tryInit = () => {
 			if (!initialized) {
 				initialized = true;
+				console.log('[DiaryTOC] Initializing...');
 				this.init();
 			}
 		};
@@ -206,12 +208,14 @@ class DiaryTableOfContents extends HTMLElement {
 			setTimeout(tryInit, 300);
 		} else {
 			// 没有动画元素，直接初始化，兜底再延迟一次
+			console.log('[DiaryTOC] No animation element found, initializing immediately');
 			tryInit();
 			setTimeout(tryInit, 300);
 		}
 	}
 
 	init() {
+		console.log('[DiaryTOC] init() called');
 		// 重新生成TOC内容
 		this.regenerateTOC();
 
@@ -226,6 +230,8 @@ class DiaryTableOfContents extends HTMLElement {
 		this.tocLinks = Array.from(
 			this.querySelectorAll<HTMLAnchorElement>("a[href^='#']")
 		);
+
+		console.log('[DiaryTOC] Found', this.tocLinks.length, 'TOC links');
 
 		if (this.tocLinks.length === 0) return;
 
@@ -248,8 +254,10 @@ class DiaryTableOfContents extends HTMLElement {
 	}
 
 	regenerateTOC(retryCount = 0) {
+		console.log('[DiaryTOC] regenerateTOC called, retry:', retryCount);
 		// 检查是否为日记页面
 		const isDiaryPage = window.location.pathname.includes('/diary');
+		console.log('[DiaryTOC] isDiaryPage:', isDiaryPage);
 		if (!isDiaryPage) {
 			this.innerHTML = '';
 			return;
@@ -259,11 +267,14 @@ class DiaryTableOfContents extends HTMLElement {
 		const dataAttr = this.dataset.groupedMoments;
 		let groupedMoments: any[] = [];
 		
+		console.log('[DiaryTOC] dataAttr:', dataAttr ? 'exists' : 'null');
+		
 		if (dataAttr) {
 			try {
 				groupedMoments = JSON.parse(dataAttr);
+				console.log('[DiaryTOC] Parsed groupedMoments:', groupedMoments.length, 'years');
 			} catch (e) {
-				console.error('Failed to parse groupedMoments:', e);
+				console.error('[DiaryTOC] Failed to parse groupedMoments:', e);
 			}
 		}
 
