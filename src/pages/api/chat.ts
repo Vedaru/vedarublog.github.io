@@ -14,7 +14,7 @@ const CACHE_TTL_MS = 30 * 1000; // cache identical prompt for 30s
 
 async function callHuggingFace(prompt: string, apiKey: string, model: string, timeout: number): Promise<string> {
   // Try the new Inference API v2 format
-  const url = `https://api-inference.huggingface.co/v2/models/${model}`;
+  const url = `https://router.huggingface.co/models/${model}`;
   
   console.log("[HF] Calling model:", model);
   console.log("[HF] URL:", url);
