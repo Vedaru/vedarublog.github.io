@@ -17,7 +17,7 @@ const { groupedMoments } = Astro.props;
 			const totalCount = months.reduce((acc, [, arr]) => acc + arr.length, 0);
 			return (
 				<div class="toc-year-group mb-2" data-year={year}>
-					<div class="toc-year-block">
+					<div class="toc-year-block relative">
 						<a 
 							href={`#year-${year}`}
 							class="toc-year-link px-2 flex gap-2 relative transition w-full min-h-9 rounded-xl hover:bg-[var(--toc-btn-hover)] active:bg-[var(--toc-btn-active)] py-2"
@@ -41,8 +41,7 @@ const { groupedMoments } = Astro.props;
 									<span class="text-xs text-50">({items.length})</span>
 								</a>
 							))}
-						</div>
-					</div>
+						</div>						<div class="year-indicator -z-10 absolute left-0 right-0 top-0 bottom-0 rounded-xl transition-all"></div>					</div>
 				</div>
 			);
 		})}
@@ -65,25 +64,31 @@ const { groupedMoments } = Astro.props;
 		background-color: var(--toc-btn-hover);
 	}
 
-	/* 悬停阴影效果 - 包含年份与月份的整体块 */
+	/* 年份块：包含年份和月份 */
 	.toc-year-block {
 		padding: 0.25rem 0.35rem;
 		border-radius: 0.9rem;
-		transition: background-color 0.2s ease, box-shadow 0.2s ease, border 0.2s ease;
-		box-shadow: 0 4px 12px rgb(0 0 0 / 0.12), 0 2px 6px rgb(0 0 0 / 0.08);
 	}
 
-	.toc-year-block:hover,
-	.toc-year-block:has(.toc-month-link:hover),
-	.toc-year-block:has(.toc-year-link:hover) {
-		background-color: var(--toc-btn-hover);
+	/* 默认显示阴影 */
+	.year-indicator {
+		box-shadow: 0 4px 12px rgb(0 0 0 / 0.12), 0 2px 6px rgb(0 0 0 / 0.08);
+		pointer-events: none;
+	}
+
+	/* hover时：虚线边框+移除阴影 */
+	.toc-year-block:hover .year-indicator,
+	.toc-year-block:has(.toc-month-link:hover) .year-indicator,
+	.toc-year-block:has(.toc-year-link:hover) .year-indicator {
 		box-shadow: none;
 		border: 2px dashed rgb(0 0 0 / 0.35);
 	}
 
-	/* 悬停的单个月份额外高亮 */
+	/* 月份hover时：月份显示阴影 */
 	.toc-month-link:hover {
 		box-shadow: 0 4px 10px rgb(0 0 0 / 0.16), 0 2px 4px rgb(0 0 0 / 0.12);
+		z-index: 1;
+		position: relative;
 	}
 </style>
 
