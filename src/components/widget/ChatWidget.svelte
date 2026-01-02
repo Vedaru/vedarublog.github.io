@@ -62,6 +62,13 @@
         return;
       }
 
+      // Read sessionId from response header
+      const headerSessionId = res.headers.get("X-Session-Id");
+      if (headerSessionId) {
+        sessionId = headerSessionId;
+        localStorage.setItem(SESSION_KEY, sessionId);
+      }
+
       // Otherwise treat as a stream (text chunks). Use reader to progressively append
       const reader = res.body?.getReader();
       if (!reader) {
@@ -76,31 +83,6 @@
         const { done, value } = await reader.read();
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
-        // server may send initial JSON meta (sessionId) in the first line
-        if (!sessionId) {
-          // if accumulated starts with { and contains }, try parse
-          accumulated += chunk;
-          const newlineIndex = accumulated.indexOf('\n');
-          if (newlineIndex !== -1) {
-            const firstLine = accumulated.slice(0, newlineIndex).trim();
-            if (firstLine.startsWith('{') && firstLine.endsWith('}')) {
-              try {
-                const meta: any = JSON.parse(firstLine);
-                if (meta?.sessionId) {
-                  sessionId = String(meta.sessionId);
-                  localStorage.setItem(SESSION_KEY, sessionId);
-                }
-                // remove meta from accumulated
-                accumulated = accumulated.slice(newlineIndex + 1);
-              } catch {}
-            }
-          }
-          // set partial text
-          messages = messages.map(m => (m.id === assistantId ? { ...m, text: accumulated } : m));
-          continue;
-        }
-
-        // append normally
         accumulated += chunk;
         messages = messages.map(m => (m.id === assistantId ? { ...m, text: accumulated } : m));
       }

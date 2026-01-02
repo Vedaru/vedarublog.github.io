@@ -165,8 +165,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
       const chunkSize = 64;
       const stream = new ReadableStream({
         async start(controller) {
-          // send an initial small JSON meta event with sessionId
-          controller.enqueue(encoder.encode(JSON.stringify({ sessionId }) + "\n"));
           // stream the text in chunks with small delay to simulate incremental streaming
           for (let i = 0; i < reply.length; i += chunkSize) {
             const part = reply.slice(i, i + chunkSize);
@@ -178,7 +176,14 @@ export const POST: APIRoute = async ({ request, locals }) => {
         },
       });
 
-      return new Response(stream, { status: 200, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" } });
+      return new Response(stream, { 
+        status: 200, 
+        headers: { 
+          "Content-Type": "text/plain; charset=utf-8", 
+          "Cache-Control": "no-store",
+          "X-Session-Id": sessionId
+        } 
+      });
     }
 
     // default: return JSON
