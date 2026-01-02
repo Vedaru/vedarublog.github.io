@@ -6,10 +6,6 @@ import { i18n } from "../i18n/translation";
 import MainGridLayout from "../layouts/MainGridLayout.astro";
 import DiaryYearMonthTOC from "../components/widget/DiaryYearMonthTOC.astro";
 
-// TOC模式配置
-const tocMode = siteConfig.toc.mode || "float";
-const isSidebarTOC = tocMode === "sidebar";
-
 // 检查日记页面是否启用
 if (!siteConfig.featurePages.diary) {
 	return Astro.redirect("/404/");
@@ -173,23 +169,21 @@ function formatClock(dateString: string): string {
 		</div>
 	</div>
 
-<!-- 侧边栏日记目录模式 - 和TOC在同样位置 -->
-{isSidebarTOC && (
-    <div class="absolute w-full z-0 hidden 2xl:block">
-        <div class="relative max-w-[var(--page-width)] mx-auto">
-            <div id="diary-toc-wrapper" class:list={["hidden lg:block transition absolute top-0 w-[var(--toc-width)] items-center",
-                "-right-[var(--toc-width)]",
-                {"toc-hide": siteConfig.wallpaperMode.defaultMode === "banner"}]}
-            >
-                <div id="diary-toc-inner-wrapper" class="fixed top-14 w-[var(--toc-width)] h-[calc(100vh_-_20rem)] overflow-y-scroll overflow-x-hidden hide-scrollbar">
-                    <div id="diary-toc" class="w-full h-full transition-swup-fade">
-                        <DiaryYearMonthTOC groupedMoments={groupedMoments} />
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-)}
+<!-- 侧边栏日记目录 - 和TOC在同样位置，始终显示 -->
+<div class="absolute w-full z-0 hidden lg:block">
+	<div class="relative max-w-[var(--page-width)] mx-auto">
+		<div id="diary-toc-wrapper" class:list={["hidden lg:block transition absolute top-0 w-[var(--toc-width)] items-center",
+			"-right-[var(--toc-width)]",
+			{"toc-hide": siteConfig.wallpaperMode.defaultMode === "banner"}]}
+		>
+			<div id="diary-toc-inner-wrapper" class="fixed top-14 w-[var(--toc-width)] h-[calc(100vh_-_20rem)] overflow-y-scroll overflow-x-hidden hide-scrollbar">
+				<div id="diary-toc" class="w-full h-full transition-swup-fade">
+					<DiaryYearMonthTOC groupedMoments={groupedMoments} />
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
 </MainGridLayout>
 
 <script is:inline>
