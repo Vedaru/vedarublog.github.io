@@ -9,9 +9,11 @@ interface Props {
 }
 
 const { groupedMoments } = Astro.props;
+
+console.log("DiaryYearMonthTOC - Received data:", groupedMoments?.length, "years");
 ---
 
-<div class="diary-toc-container">
+<div class="diary-toc-container" style="background: rgba(255,0,0,0.1); border: 2px solid red;">
 	<h2 class="text-base font-bold mb-3 text-90 px-2">📅 日记目录</h2>
 	<nav class="diary-toc group">
 		{groupedMoments.map(([year, months]) => {
