@@ -198,7 +198,7 @@ const monthNamesShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug',
 				</div>
 
 				<aside class="toc-panel">
-					<table-of-contents id="toc" data-static="true" class="group diary-toc">
+					<table-of-contents id="diary-toc" data-static="true" class="group diary-toc">
 						{groupedMoments.map(([year, months], yearIndex) => {
 							return (
 								<div class="toc-entry-group" data-year={year}>
@@ -223,7 +223,7 @@ const monthNamesShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug',
 								</div>
 							);
 						})}
-						<div id="active-indicator" style="opacity: 0" class="-z-10 absolute bg-[var(--toc-btn-hover)] left-0 right-0 rounded-xl transition-all group-hover:bg-transparent border-2 border-[var(--toc-btn-hover)] group-hover:border-[var(--toc-btn-active)] border-dashed"></div>
+						<div id="diary-active-indicator" style="opacity: 0" class="-z-10 absolute bg-[var(--toc-btn-hover)] left-0 right-0 rounded-xl transition-all group-hover:bg-transparent border-2 border-[var(--toc-btn-hover)] group-hover:border-[var(--toc-btn-active)] border-dashed"></div>
 					</table-of-contents>
 				</aside>
 			</div>
@@ -728,8 +728,13 @@ const monthNamesShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug',
 		text-decoration: none;
 	}
 
-	#active-indicator {
+	#diary-active-indicator {
 		pointer-events: none;
+	}
+
+	:global(#toc-wrapper),
+	:global(#toc-inner-wrapper) {
+		display: none !important;
 	}
 
 	@media (max-width: 1100px) {
