@@ -10,7 +10,7 @@ const RATE_LIMIT_MAX = 120; // max requests per IP per window
 const CACHE_TTL_MS = 30 * 1000; // cache identical prompt for 30s
 
 const HF_API_KEY = process.env.HF_API_KEY || process.env.HF_TOKEN; // support two common names
-const HF_MODEL = process.env.HF_MODEL || "google/flan-t5-small"; // override in env
+const HF_MODEL = process.env.HF_MODEL || "mistralai/Mistral-7B-Instruct-v0.2"; // override in env
 
 async function callHuggingFace(prompt: string): Promise<string> {
   const url = `https://api-inference.huggingface.co/models/${HF_MODEL}`;
