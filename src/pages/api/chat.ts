@@ -12,14 +12,12 @@ const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const RATE_LIMIT_MAX = 120; // max requests per IP per window
 const CACHE_TTL_MS = 30 * 1000; // cache identical prompt for 30s
 
-async function callHuggingFace(prompt: string, apiKey: string, model: string, timeout: number): Promise<string> {
-  // Try the new Inference API v2 format
-  const url = `https://router.huggingface.co/models/${model}`;
+async function callGroq(prompt: string, apiKey: string, model: string, timeout: number): Promise<string> {
+  // Groq uses OpenAI-compatible API
+  const url = "https://api.groq.com/openai/v1/chat/completions";
   
-  console.log("[HF] Calling model:", model);
-  console.log("[HF] URL:", url);
+  console.log("[Groq] Calling model:", model);
   
-  // Create abort controller for timeout
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
   
@@ -29,15 +27,12 @@ async function callHuggingFace(prompt: string, apiKey: string, model: string, ti
       headers: {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
-        "x-wait-for-model": "true",
       },
       body: JSON.stringify({ 
-        inputs: prompt,
-        parameters: { 
-          max_new_tokens: 250,
-          temperature: 0.7,
-          return_full_text: false
-        }
+        model: model,
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 1024
       }),
       signal: controller.signal,
     });
@@ -45,32 +40,24 @@ async function callHuggingFace(prompt: string, apiKey: string, model: string, ti
 
     if (!res.ok) {
       const txt = await res.text();
-      throw new Error(`HF API error ${res.status}: ${txt}`);
+      throw new Error(`Groq API error ${res.status}: ${txt}`);
     }
 
     const json: any = await res.json();
-    // HF inference may return { error } or array or object with generated_text
-    if (json.error) throw new Error(String(json.error));
-
-    if (Array.isArray(json) && json.length > 0) {
-      // text-generation models often return [{generated_text: '...'}]
-      const item = json[0] as any;
-      return String(item.generated_text ?? item[0] ?? JSON.stringify(item));
+    
+    if (json.error) {
+      throw new Error(String(json.error.message || json.error));
     }
 
-    if (typeof json === "object" && json !== null) {
-      if (typeof (json as any).generated_text === "string") return (json as any).generated_text;
-      return JSON.stringify(json);
+    if (json.choices && json.choices.length > 0) {
+      return json.choices[0].message.content || "(空响应)";
     }
 
-    return String(json);
+    return JSON.stringify(json);
   } catch (error: any) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
-      throw new Error(`请求超时（${timeout}ms）。可能需要配置代理或尝试其他模型。`);
-    }
-    if (error.cause?.code === 'UND_ERR_CONNECT_TIMEOUT') {
-      throw new Error('网络连接超时。请检查网络连接或配置 HTTP 代理（设置 HTTP_PROXY 环境变量）。');
+      throw new Error(`请求超时（${timeout}ms）。`);
     }
     throw error;
   }
@@ -81,12 +68,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const runtime = (locals as any)?.runtime;
   const env = runtime?.env || import.meta.env;
   
-  const HF_API_KEY = env.HF_API_KEY || env.HF_TOKEN || import.meta.env.HF_API_KEY || import.meta.env.HF_TOKEN;
-  const HF_MODEL = env.HF_MODEL || import.meta.env.HF_MODEL || "google/flan-t5-base";
-  const HF_TIMEOUT = parseInt(env.HF_TIMEOUT || import.meta.env.HF_TIMEOUT || "30000");
+  const GROQ_API_KEY = env.GROQ_API_KEY || import.meta.env.GROQ_API_KEY;
+  const GROQ_MODEL = env.GROQ_MODEL || import.meta.env.GROQ_MODEL || "llama3-8b-8192";
+  const API_TIMEOUT = parseInt(env.API_TIMEOUT || import.meta.env.API_TIMEOUT || "30000");
   
-  console.log("[API] HF_API_KEY available:", !!HF_API_KEY);
-  console.log("[API] HF_MODEL:", HF_MODEL);
+  console.log("[API] GROQ_API_KEY available:", !!GROQ_API_KEY);
+  console.log("[API] GROQ_MODEL:", GROQ_MODEL);
   
   // More lenient content-type check for development
   const ct = request.headers.get("content-type") || "";
@@ -144,7 +131,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   // Cache lookup
-  const key = `hf:${HF_MODEL}:` + prompt;
+  const key = `groq:${GROQ_MODEL}:` + prompt;
   const cached = cache.get(key);
   if (cached && cached.expiresAt > now) {
     // return JSON wrapper for cached result
@@ -152,13 +139,12 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return new Response(JSON.stringify({ ok: true, text: cached.text, sessionId: sess }), { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } });
   }
 
-  if (!HF_API_KEY) {
-    console.error("[API] HF_API_KEY is undefined!");
-    console.error("[API] import.meta.env.HF_API_KEY:", import.meta.env.HF_API_KEY);
-    console.error("[API] import.meta.env.HF_TOKEN:", import.meta.env.HF_TOKEN);
+  if (!GROQ_API_KEY) {
+    console.error("[API] GROQ_API_KEY is undefined!");
+    console.error("[API] import.meta.env.GROQ_API_KEY:", import.meta.env.GROQ_API_KEY);
     return new Response(JSON.stringify({ 
-      error: "HF_API_KEY not configured on server",
-      hint: "请检查 .env 文件是否存在且包含 HF_API_KEY，并重启开发服务器"
+      error: "GROQ_API_KEY not configured on server",
+      hint: "请检查 .env 文件是否存在且包含 GROQ_API_KEY，并重启开发服务器"
     }), { 
       status: 500,
       headers: { "Content-Type": "application/json" }
@@ -166,7 +152,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   try {
-    const reply = await callHuggingFace(prompt, HF_API_KEY, HF_MODEL, HF_TIMEOUT);
+    const reply = await callGroq(prompt, GROQ_API_KEY, GROQ_MODEL, API_TIMEOUT);
     // cache short-lived
     cache.set(key, { text: reply, expiresAt: Date.now() + CACHE_TTL_MS });
 
