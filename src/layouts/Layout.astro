@@ -888,6 +888,29 @@ const setup = () => {
 			}
 		}
 		
+		// 检查当前页面是否为日记页面
+		const isDiaryPage = window.location.pathname.includes('/diary');
+		const diaryTocWrapper = document.getElementById('diary-toc-wrapper');
+		
+		if (diaryTocWrapper) {
+			if (isDiaryPage) {
+				// 显示日记目录
+				diaryTocWrapper.classList.remove('hidden');
+				diaryTocWrapper.classList.add('lg:block');
+				
+				// 重新初始化日记目录组件
+				const diaryTocElement = document.querySelector('diary-table-of-contents');
+				if (diaryTocElement && typeof (diaryTocElement as any).init === 'function') {
+					setTimeout(() => {
+						(diaryTocElement as any).init();
+					}, 100);
+				}
+			} else {
+				// 隐藏日记目录
+				diaryTocWrapper.classList.add('hidden');
+				diaryTocWrapper.classList.remove('lg:block');
+			}
+		}
 		
 		
 		// 重新初始化semifull模式的滚动检测

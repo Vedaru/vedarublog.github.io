@@ -678,6 +678,22 @@ const transparentClass = shouldEnableTransparency
 
 <!-- 保留此元素以确保Swup正常工作 -->
 {(!siteConfig.toc.enable || isFloatTOC) && <div id="toc" class="hidden"></div>}
+
+<!-- 侧边栏日记目录 - 始终存在但默认隐藏 -->
+<div class="absolute w-full z-10 pointer-events-none hidden 2xl:block">
+	<div class="relative max-w-[var(--page-width)] mx-auto">
+		<div id="diary-toc-wrapper" class:list={["hidden transition absolute top-0 w-[var(--toc-width)] pointer-events-auto",
+			"-right-[var(--toc-width)]",
+			{"toc-hide": siteConfig.wallpaperMode.defaultMode === "banner"}]}
+		>
+			<div id="diary-toc-inner-wrapper" class="fixed top-14 w-[var(--toc-width)] h-[calc(100vh_-_20rem)] overflow-y-scroll overflow-x-hidden hide-scrollbar">
+				<div id="diary-toc" class="w-full h-full transition-swup-fade">
+					<!-- 日记目录内容将由 custom element 动态生成 -->
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
 </Layout>
 
 <style>

@@ -159,21 +159,41 @@ function formatClock(dateString: string): string {
 	</div>
 </MainGridLayout>
 
-<!-- 侧边栏日记目录 - 和TOC在同样位置，始终显示 -->
-<div class="absolute w-full z-10 pointer-events-none">
-	<div class="relative max-w-[var(--page-width)] mx-auto">
-		<div id="diary-toc-wrapper" class:list={["hidden lg:block transition absolute top-0 w-[var(--toc-width)] pointer-events-auto",
-			"-right-[var(--toc-width)]",
-			{"toc-hide": siteConfig.wallpaperMode.defaultMode === "banner"}]}
-		>
-			<div id="diary-toc-inner-wrapper" class="fixed top-14 w-[var(--toc-width)] h-[calc(100vh_-_20rem)] overflow-y-scroll overflow-x-hidden hide-scrollbar">
-				<div id="diary-toc" class="w-full h-full transition-swup-fade">
-					<DiaryYearMonthTOC groupedMoments={groupedMoments} />
-				</div>
-			</div>
-		</div>
-	</div>
-</div>
+<script define:vars={{ groupedMoments }}>
+	// 在页面加载时将日记数据注入到全局布局的目录容器中
+	function injectDiaryTOC() {
+		const diaryTocContainer = document.getElementById('diary-toc');
+		if (!diaryTocContainer) return;
+		
+		// 创建或更新 diary-table-of-contents 元素
+		let diaryToc = diaryTocContainer.querySelector('diary-table-of-contents');
+		if (!diaryToc) {
+			diaryToc = document.createElement('diary-table-of-contents');
+			diaryToc.className = 'group';
+			diaryTocContainer.appendChild(diaryToc);
+		}
+		
+		// 设置数据属性
+		diaryToc.setAttribute('data-grouped-moments', JSON.stringify(groupedMoments));
+		
+		// 触发 custom element 的重新初始化
+		if (diaryToc && typeof diaryToc.connectedCallback === 'function') {
+			// 强制重新连接以触发初始化
+			const parent = diaryToc.parentElement;
+			if (parent) {
+				const clone = diaryToc.cloneNode(true);
+				parent.replaceChild(clone, diaryToc);
+			}
+		}
+	}
+	
+	// 页面加载时注入
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', injectDiaryTOC);
+	} else {
+		injectDiaryTOC();
+	}
+</script>
 
 <style>
 	.card-base {
