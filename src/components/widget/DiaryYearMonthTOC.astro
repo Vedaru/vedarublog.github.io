@@ -12,57 +12,21 @@ interface Props {
 const { groupedMoments } = Astro.props;
 ---
 
-<div class="diary-toc-container">
-	<nav class="diary-toc group" id="diary-toc-nav">
-		{groupedMoments.map(([year, months]) => {
-			const totalCount = months.reduce((acc, [, arr]) => acc + arr.length, 0);
-			return (
-				<div class="toc-year-group">
-					<a 
-						href={`#year-${year}`}
-						class="toc-year-link px-2 flex gap-2 relative transition w-full min-h-9 rounded-xl hover:bg-[var(--toc-btn-hover)] active:bg-[var(--toc-btn-active)] py-2"
-					>
-						<div class="transition w-5 h-5 shrink-0 rounded-lg text-xs flex items-center justify-center font-bold bg-[var(--toc-badge-bg)] text-[var(--btn-content)]">
-							{year.toString().slice(-2)}
-						</div>
-						<div class="transition text-sm text-50 flex-1">{year}</div>
-						<span class="text-xs text-30">({totalCount})</span>
-					</a>
-					<div class="toc-months">
-						{months.map(([month, items]) => (
-							<a
-								href={`#month-${year}-${month}`}
-								class="toc-month-link px-2 flex gap-2 relative transition w-full min-h-9 rounded-xl hover:bg-[var(--toc-btn-hover)] active:bg-[var(--toc-btn-active)] py-2"
-							>
-								<div class="transition w-5 h-5 shrink-0 rounded-lg text-xs flex items-center justify-center font-bold ml-4">
-									<div class="transition w-2 h-2 rounded-[0.1875rem] bg-[var(--toc-badge-bg)]"></div>
-								</div>
-								<div class="transition text-sm text-50 flex-1">{month}月</div>
-								<span class="text-xs text-30">({items.length})</span>
-							</a>
-						))}
-					</div>
-				</div>
-			);
-		})}
-		<div id="diary-active-indicator" class="-z-10 absolute bg-[var(--toc-btn-hover)] left-0 right-0 rounded-xl transition-all group-hover:bg-transparent border-2 border-[var(--toc-btn-hover)] group-hover:border-[var(--toc-btn-active)] border-dashed" style="opacity: 0;"></div>
-	</nav>
-</div>
+<diary-table-of-contents class="group" data-grouped-moments={JSON.stringify(groupedMoments)}>
+	<!-- 目录内容将由 JavaScript 动态生成 -->
+</diary-table-of-contents>
 
 <style>
-	.diary-toc-container {
+	diary-table-of-contents {
 		max-height: 100%;
 		overflow: auto;
 		scroll-behavior: smooth;
-	}
-
-	.diary-toc-container::-webkit-scrollbar {
-		display: none;
-	}
-
-	.diary-toc {
 		position: relative;
 		display: block;
+	}
+
+	diary-table-of-contents::-webkit-scrollbar {
+		display: none;
 	}
 
 	.toc-year-group {
@@ -77,247 +41,323 @@ const { groupedMoments } = Astro.props;
 </style>
 
 <script>
-	class DiaryTOC {
-		tocEl: HTMLElement | null = null;
-		visibleClass = "visible";
-		observer: IntersectionObserver;
-		activeIndicator: HTMLElement | null = null;
-		linkIdxMap = new Map<string, number>();
-		sections: HTMLElement[] = [];
-		tocLinks: HTMLAnchorElement[] = [];
-		active: boolean[] = [];
+class DiaryTableOfContents extends HTMLElement {
+	tocEl: HTMLElement | null = null;
+	visibleClass = "visible";
+	observer: IntersectionObserver;
+	anchorNavTarget: HTMLElement | null = null;
+	linkIdxMap = new Map<string, number>();
+	sections: HTMLElement[] = [];
+	tocLinks: HTMLAnchorElement[] = [];
+	active: boolean[] = [];
+	activeIndicator: HTMLElement | null = null;
 
-		constructor() {
-			this.observer = new IntersectionObserver(
-				this.markVisibleSection,
-				{ threshold: 0 }
-			);
-		}
+	constructor() {
+		super();
+		this.observer = new IntersectionObserver(
+			this.markVisibleSection, { threshold: 0 }
+		);
+	}
 
-		markVisibleSection = (entries: IntersectionObserverEntry[]) => {
-			entries.forEach((entry) => {
-				const id = entry.target.id;
-				const idx = id ? this.linkIdxMap.get(id) : undefined;
-				if (idx !== undefined) {
-					this.active[idx] = entry.isIntersecting;
-				}
-			});
-
-			if (!this.active.includes(true)) {
-				this.fallback();
-			}
-			this.update();
-		};
-
-		toggleActiveHeading = () => {
-			let i = this.active.length - 1;
-			let min = this.active.length - 1, max = -1;
-			
-			// 从后向前遍历，移除不活跃的
-			while (i >= 0 && !this.active[i]) {
-				this.tocLinks[i]?.classList.remove(this.visibleClass);
-				i--;
-			}
-			
-			// 添加活跃的
-			while (i >= 0 && this.active[i]) {
-				this.tocLinks[i]?.classList.add(this.visibleClass);
-				min = Math.min(min, i);
-				max = Math.max(max, i);
-				i--;
-			}
-			
-			// 移除前面的
-			while (i >= 0) {
-				this.tocLinks[i]?.classList.remove(this.visibleClass);
-				i--;
+	markVisibleSection = (entries: IntersectionObserverEntry[]) => {
+		entries.forEach((entry) => {
+			const id = entry.target.id;
+			const idx = id ? this.linkIdxMap.get(id) : undefined;
+			if (idx !== undefined) {
+				this.active[idx] = entry.isIntersecting;
 			}
 
-			// 更新活动指示器
-			if (min > max || !this.activeIndicator) {
-				this.activeIndicator?.setAttribute("style", "opacity: 0");
-			} else {
-				const parentOffset = this.tocEl?.getBoundingClientRect().top || 0;
-				const scrollOffset = this.tocEl?.scrollTop || 0;
-				const top = this.tocLinks[min].getBoundingClientRect().top - parentOffset + scrollOffset;
-				const bottom = this.tocLinks[max].getBoundingClientRect().bottom - parentOffset + scrollOffset;
-				this.activeIndicator?.setAttribute("style", `top: ${top}px; height: ${bottom - top}px; opacity: 1;`);
+			if (entry.isIntersecting && this.anchorNavTarget === entry.target) {
+				this.anchorNavTarget = null;
 			}
-		};
+		});
 
-		scrollToActiveHeading = () => {
-			if (!this.tocEl) return;
-			const activeHeading = this.tocEl.querySelectorAll<HTMLElement>(`.${this.visibleClass}`);
-			if (!activeHeading.length) return;
-
-			const topmost = activeHeading[0];
-			const bottommost = activeHeading[activeHeading.length - 1];
-			const tocHeight = this.tocEl.clientHeight;
-
-			let top: number;
-			if (bottommost.getBoundingClientRect().bottom - topmost.getBoundingClientRect().top < 0.9 * tocHeight) {
-				top = topmost.offsetTop - 32;
-			} else {
-				top = bottommost.offsetTop - tocHeight * 0.8;
-			}
-
-			this.tocEl.scrollTo({
-				top,
-				left: 0,
-				behavior: "smooth",
-			});
-		};
-
-		update = () => {
-			requestAnimationFrame(() => {
-				this.toggleActiveHeading();
-				this.scrollToActiveHeading();
-			});
-		};
-
-		fallback = () => {
-			if (!this.sections.length) return;
-
-			for (let i = 0; i < this.sections.length; i++) {
-				const offsetTop = this.sections[i].getBoundingClientRect().top;
-				const offsetBottom = this.sections[i].getBoundingClientRect().bottom;
-
-				if (this.isInRange(offsetTop, 0, window.innerHeight) ||
-					this.isInRange(offsetBottom, 0, window.innerHeight) ||
-					(offsetTop < 0 && offsetBottom > window.innerHeight)) {
-					this.active[i] = true;
-				} else if (offsetTop > window.innerHeight) {
-					break;
-				}
-			}
-		};
-
-		handleAnchorClick = (event: Event) => {
-			const anchor = event.composedPath().find((element) => element instanceof HTMLAnchorElement) as HTMLAnchorElement;
-
-			if (anchor) {
-				event.preventDefault();
-				
-				const id = decodeURIComponent(anchor.hash?.substring(1));
-				const targetElement = document.getElementById(id);
-				
-				if (targetElement) {
-					const navbarHeight = 80;
-					const targetTop = targetElement.getBoundingClientRect().top + window.pageYOffset - navbarHeight;
-					
-					window.scrollTo({
-						top: targetTop,
-						behavior: "smooth"
-					});
-				}
-			}
-		};
-
-		isInRange(value: number, min: number, max: number) {
-			return min < value && value < max;
-		}
-
-		init() {
-			const container = document.querySelector('.diary-toc-container');
-			this.tocEl = document.querySelector('.diary-toc');
-			if (!this.tocEl || !container) return;
-
-			container.addEventListener("click", this.handleAnchorClick, { capture: true });
-
-			this.activeIndicator = document.getElementById("diary-active-indicator");
-
-			this.tocLinks = Array.from(
-				document.querySelectorAll<HTMLAnchorElement>(".toc-year-link, .toc-month-link")
-			);
-
-			if (this.tocLinks.length === 0) return;
-
-			this.sections = [];
-			this.tocLinks.forEach((link, i) => {
-				const id = decodeURIComponent(link.hash?.substring(1));
-				const section = document.getElementById(id);
-				if (section instanceof HTMLElement) {
-					this.sections.push(section);
-					this.linkIdxMap.set(id, i);
-				}
-			});
-
-			this.active = new Array(this.tocLinks.length).fill(false);
-
-			this.sections.forEach((section) => this.observer.observe(section));
-
+		if (!this.active.includes(true)) {
 			this.fallback();
-			this.update();
 		}
+		this.update();
+	};
 
-		destroy() {
-			this.sections.forEach((section) => this.observer.unobserve(section));
-			this.observer.disconnect();
-			const container = document.querySelector('.diary-toc-container');
-			container?.removeEventListener("click", this.handleAnchorClick);
-		}
-	}
-
-	let diaryTOCInstance: DiaryTOC | null = null;
-
-	function initDiaryTOC() {
-		// 检查是否在日记页面
-		const isDiaryPage = window.location.pathname.includes('/diary');
-		if (!isDiaryPage) return;
-
-		// 清理旧实例
-		if (diaryTOCInstance) {
-			diaryTOCInstance.destroy();
-		}
-
-		// 创建新实例
-		diaryTOCInstance = new DiaryTOC();
-		diaryTOCInstance.init();
-	}
-
-	// 页面加载完成后初始化
-	if (document.readyState === 'loading') {
-		document.addEventListener('DOMContentLoaded', initDiaryTOC);
-	} else {
-		setTimeout(initDiaryTOC, 100);
-	}
-
-	// Swup页面切换时处理
-	document.addEventListener('swup:content:replace', () => {
-		const isDiaryPage = window.location.pathname.includes('/diary');
-		const diaryTocWrapper = document.getElementById('diary-toc-wrapper');
+	toggleActiveHeading = () => {
+		let i = this.active.length - 1;
+		let min = this.active.length - 1, max = -1;
 		
-		if (diaryTocWrapper) {
-			if (isDiaryPage) {
-				diaryTocWrapper.classList.remove('hidden');
-				diaryTocWrapper.classList.add('lg:block');
-				// 使用 requestAnimationFrame 确保 DOM 渲染完成后再初始化
-				requestAnimationFrame(() => {
-					requestAnimationFrame(() => {
-						initDiaryTOC();
-					});
-				});
-			} else {
-				diaryTocWrapper.classList.add('hidden');
-				diaryTocWrapper.classList.remove('lg:block');
-				// 清理实例
-				if (diaryTOCInstance) {
-					diaryTOCInstance.destroy();
-					diaryTOCInstance = null;
-				}
-			}
+		while (i >= 0 && !this.active[i]) {
+			this.tocLinks[i]?.classList.remove(this.visibleClass);
+			i--;
 		}
-	});
+		
+		while (i >= 0 && this.active[i]) {
+			this.tocLinks[i]?.classList.add(this.visibleClass);
+			min = Math.min(min, i);
+			max = Math.max(max, i);
+			i--;
+		}
+		
+		while (i >= 0) {
+			this.tocLinks[i]?.classList.remove(this.visibleClass);
+			i--;
+		}
 
-	// 监听 swup:page:view 事件（页面内容完全加载后）
-	document.addEventListener('swup:page:view', () => {
-		const isDiaryPage = window.location.pathname.includes('/diary');
-		if (isDiaryPage) {
-			// 确保 TOC 被初始化
-			const tocNav = document.getElementById('diary-toc-nav');
-			if (tocNav && (!diaryTOCInstance || diaryTOCInstance.tocLinks.length === 0)) {
-				initDiaryTOC();
+		if (min > max || !this.activeIndicator) {
+			this.activeIndicator?.setAttribute("style", "opacity: 0");
+		} else {
+			const parentOffset = this.tocEl?.getBoundingClientRect().top || 0;
+			const scrollOffset = this.tocEl?.scrollTop || 0;
+			const top = this.tocLinks[min].getBoundingClientRect().top - parentOffset + scrollOffset;
+			const bottom = this.tocLinks[max].getBoundingClientRect().bottom - parentOffset + scrollOffset;
+			this.activeIndicator?.setAttribute("style", `top: ${top}px; height: ${bottom - top}px; opacity: 1;`);
+		}
+	};
+
+	scrollToActiveHeading = () => {
+		if (this.anchorNavTarget || !this.tocEl) return;
+		const activeHeading = this.querySelectorAll<HTMLElement>(`.${this.visibleClass}`);
+		if (!activeHeading.length) return;
+
+		const topmost = activeHeading[0];
+		const bottommost = activeHeading[activeHeading.length - 1];
+		const tocHeight = this.tocEl.clientHeight;
+
+		let top: number;
+		if (bottommost.getBoundingClientRect().bottom - topmost.getBoundingClientRect().top < 0.9 * tocHeight) {
+			top = topmost.offsetTop - 32;
+		} else {
+			top = bottommost.offsetTop - tocHeight * 0.8;
+		}
+
+		this.tocEl.scrollTo({
+			top,
+			left: 0,
+			behavior: "smooth",
+		});
+	};
+
+	update = () => {
+		requestAnimationFrame(() => {
+			this.toggleActiveHeading();
+			this.scrollToActiveHeading();
+		});
+	};
+
+	fallback = () => {
+		if (!this.sections.length) return;
+
+		for (let i = 0; i < this.sections.length; i++) {
+			const offsetTop = this.sections[i].getBoundingClientRect().top;
+			const offsetBottom = this.sections[i].getBoundingClientRect().bottom;
+
+			if (this.isInRange(offsetTop, 0, window.innerHeight) ||
+				this.isInRange(offsetBottom, 0, window.innerHeight) ||
+				(offsetTop < 0 && offsetBottom > window.innerHeight)) {
+				this.active[i] = true;
+			} else if (offsetTop > window.innerHeight) {
+				break;
 			}
 		}
-	});
-</script>
+	};
+
+	handleAnchorClick = (event: Event) => {
+		const anchor = event.composedPath().find((element) => element instanceof HTMLAnchorElement) as HTMLAnchorElement;
+
+		if (anchor) {
+			event.preventDefault();
+			
+			const id = decodeURIComponent(anchor.hash?.substring(1));
+			const targetElement = document.getElementById(id);
+			
+			if (targetElement) {
+				const navbarHeight = 80;
+				const targetTop = targetElement.getBoundingClientRect().top + window.pageYOffset - navbarHeight;
+				
+				window.scrollTo({
+					top: targetTop,
+					behavior: "smooth"
+				});
+			}
+
+			const idx = this.linkIdxMap.get(id);
+			if (idx !== undefined) {
+				this.anchorNavTarget = this.sections[idx];
+			} else {
+				this.anchorNavTarget = null;
+			}
+		}
+	};
+
+	isInRange(value: number, min: number, max: number) {
+		return min < value && value < max;
+	}
+
+	connectedCallback() {
+		// 优先监听动画结束，兜底定时初始化，确保二次刷新也能正常显示目录
+		const element = document.querySelector('.moments-timeline') || document.querySelector('.timeline-list');
+		let initialized = false;
+		const tryInit = () => {
+			if (!initialized) {
+				initialized = true;
+				this.init();
+			}
+		};
+		
+		if (element) {
+			element.addEventListener('animationend', tryInit, { once: true });
+			// 兜底：无论动画是否触发，300ms 后强制初始化一次
+			setTimeout(tryInit, 300);
+		} else {
+			// 没有动画元素，直接初始化，兜底再延迟一次
+			tryInit();
+			setTimeout(tryInit, 300);
+		}
+	}
+
+	init() {
+		// 重新生成TOC内容
+		this.regenerateTOC();
+
+		this.tocEl = this;
+
+		this.addEventListener("click", this.handleAnchorClick, {
+			capture: true,
+		});
+
+		this.activeIndicator = this.querySelector("#diary-active-indicator");
+
+		this.tocLinks = Array.from(
+			this.querySelectorAll<HTMLAnchorElement>("a[href^='#']")
+		);
+
+		if (this.tocLinks.length === 0) return;
+
+		this.sections = [];
+		this.tocLinks.forEach((link, i) => {
+			const id = decodeURIComponent(link.hash?.substring(1));
+			const section = document.getElementById(id);
+			if (section instanceof HTMLElement) {
+				this.sections.push(section);
+				this.linkIdxMap.set(id, i);
+			}
+		});
+
+		this.active = new Array(this.tocLinks.length).fill(false);
+
+		this.sections.forEach((section) => this.observer.observe(section));
+
+		this.fallback();
+		this.update();
+	}
+
+	regenerateTOC(retryCount = 0) {
+		// 检查是否为日记页面
+		const isDiaryPage = window.location.pathname.includes('/diary');
+		if (!isDiaryPage) {
+			this.innerHTML = '';
+			return;
+		}
+
+		// 从 data 属性获取分组数据
+		const dataAttr = this.dataset.groupedMoments;
+		let groupedMoments: any[] = [];
+		
+		if (dataAttr) {
+			try {
+				groupedMoments = JSON.parse(dataAttr);
+			} catch (e) {
+				console.error('Failed to parse groupedMoments:', e);
+			}
+		}
+
+		// 如果没有数据，尝试从页面重新获取
+		if (groupedMoments.length === 0) {
+			const yearGroups = document.querySelectorAll('.moment-group');
+			if (yearGroups.length === 0 && retryCount < 3) {
+				setTimeout(() => this.regenerateTOC(retryCount + 1), 120);
+				return;
+			}
+
+			// 从页面元素重新构建数据
+			const tempMap = new Map<number, Map<string, number>>();
+			yearGroups.forEach(group => {
+				const id = group.id;
+				const yearMatch = id.match(/year-(\d+)/);
+				if (yearMatch) {
+					const year = parseInt(yearMatch[1]);
+					if (!tempMap.has(year)) {
+						tempMap.set(year, new Map());
+					}
+				}
+			});
+
+			const monthGroups = document.querySelectorAll('.moment-subgroup');
+			monthGroups.forEach(group => {
+				const id = group.id;
+				const monthMatch = id.match(/month-(\d+)-(\d+)/);
+				if (monthMatch) {
+					const year = parseInt(monthMatch[1]);
+					const month = monthMatch[2];
+					const items = group.querySelectorAll('.moment-item');
+					const monthMap = tempMap.get(year);
+					if (monthMap) {
+						monthMap.set(month, items.length);
+					}
+				}
+			});
+
+			// 转换为需要的格式
+			groupedMoments = Array.from(tempMap.entries()).map(([year, monthMap]) => [
+				year,
+				Array.from(monthMap.entries()).map(([month, count]) => [month, { length: count }])
+			]);
+		}
+
+		if (groupedMoments.length === 0) {
+			this.innerHTML = '';
+			return;
+		}
+
+		// 生成 TOC HTML
+		const tocHTML = groupedMoments.map(([year, months]: [number, any[]]) => {
+			const totalCount = months.reduce((acc, [, items]: [string, any]) => 
+				acc + (items.length || 0), 0);
+			
+			const monthsHTML = months.map(([month, items]: [string, any]) => `
+				<a href="#month-${year}-${month}" 
+				   class="toc-month-link px-2 flex gap-2 relative transition w-full min-h-9 rounded-xl hover:bg-[var(--toc-btn-hover)] active:bg-[var(--toc-btn-active)] py-2">
+					<div class="transition w-5 h-5 shrink-0 rounded-lg text-xs flex items-center justify-center font-bold ml-4">
+						<div class="transition w-2 h-2 rounded-[0.1875rem] bg-[var(--toc-badge-bg)]"></div>
+					</div>
+					<div class="transition text-sm text-50 flex-1">${month}月</div>
+					<span class="text-xs text-30">(${items.length || 0})</span>
+				</a>
+			`).join('');
+
+			return `
+				<div class="toc-year-group">
+					<a href="#year-${year}" 
+					   class="toc-year-link px-2 flex gap-2 relative transition w-full min-h-9 rounded-xl hover:bg-[var(--toc-btn-hover)] active:bg-[var(--toc-btn-active)] py-2">
+						<div class="transition w-5 h-5 shrink-0 rounded-lg text-xs flex items-center justify-center font-bold bg-[var(--toc-badge-bg)] text-[var(--btn-content)]">
+							${year.toString().slice(-2)}
+						</div>
+						<div class="transition text-sm text-50 flex-1">${year}</div>
+						<span class="text-xs text-30">(${totalCount})</span>
+					</a>
+					<div class="toc-months">
+						${monthsHTML}
+					</div>
+				</div>
+			`;
+		}).join('');
+
+		this.innerHTML = tocHTML + '<div id="diary-active-indicator" class="-z-10 absolute bg-[var(--toc-btn-hover)] left-0 right-0 rounded-xl transition-all group-hover:bg-transparent border-2 border-[var(--toc-btn-hover)] group-hover:border-[var(--toc-btn-active)] border-dashed" style="opacity: 0;"></div>';
+	}
+
+	disconnectedCallback() {
+		this.sections.forEach((section) => this.observer.unobserve(section));
+		this.observer.disconnect();
+		this.removeEventListener("click", this.handleAnchorClick);
+	}
+}
+
+if (!customElements.get("diary-table-of-contents")) {
+	customElements.define("diary-table-of-contents", DiaryTableOfContents);
+}
