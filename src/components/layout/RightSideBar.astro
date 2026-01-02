@@ -3,6 +3,7 @@ import type { MarkdownHeading } from "astro";
 import Announcement from "@/components/widget/Announcement.astro";
 import Calendar from "@/components/widget/Calendar.astro";
 import Categories from "@/components/widget/Categories.astro";
+import DiaryArchive from "@/components/widget/DiaryArchive.astro";
 import MusicPlayer from "@/components/widget/MusicPlayer.svelte";
 import Profile from "@/components/widget/Profile.astro";
 import SiteStats from "@/components/widget/SiteStats.astro";
@@ -35,6 +36,7 @@ const componentMap = {
 	"music-player": MusicPlayer,
 	"site-stats": SiteStats,
 	calendar: Calendar,
+	"diary-archive": DiaryArchive,
 };
 
 // 渲染组件的辅助函数
