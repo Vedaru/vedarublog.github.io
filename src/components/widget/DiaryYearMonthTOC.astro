@@ -1,0 +1,216 @@
+---
+/**
+ * 日记年月目录组件
+ * 显示日记的年份和月份导航
+ */
+
+interface Props {
+	groupedMoments: [number, [string, any[]][]][];
+}
+
+const { groupedMoments } = Astro.props;
+---
+
+<div class="diary-toc-container card-base p-4">
+	<h2 class="text-lg font-bold mb-4 text-90">📅 日记目录</h2>
+	<nav class="diary-toc">
+		{groupedMoments.map(([year, months]) => {
+			const totalCount = months.reduce((acc, [, arr]) => acc + arr.length, 0);
+			return (
+				<div class="toc-year-group mb-3">
+					<div class="toc-year">
+						<a 
+							href={`#year-${year}`}
+							class="toc-year-link flex items-center justify-between py-2 px-3 rounded-lg hover:bg-[var(--card-bg)] transition-all text-90 font-semibold"
+						>
+							<span class="text-base">{year}</span>
+							<span class="text-xs text-50">({totalCount})</span>
+						</a>
+					</div>
+					<div class="toc-months ml-4 mt-1 space-y-1">
+						{months.map(([month, items]) => (
+							<a
+								href={`#month-${year}-${month}`}
+								class="toc-month-link flex items-center justify-between py-1.5 px-3 rounded-md hover:bg-[var(--card-bg)] transition-all text-75 text-sm"
+							>
+								<span>{month}月</span>
+								<span class="text-xs text-50">({items.length})</span>
+							</a>
+						))}
+					</div>
+				</div>
+			);
+		})}
+	</nav>
+</div>
+
+<style>
+	.diary-toc-container {
+		position: sticky;
+		top: 1rem;
+		max-height: calc(100vh - 2rem);
+		overflow-y: auto;
+		/* 美化滚动条 */
+		scrollbar-width: thin;
+		scrollbar-color: var(--primary) transparent;
+	}
+
+	.diary-toc-container::-webkit-scrollbar {
+		width: 4px;
+	}
+
+	.diary-toc-container::-webkit-scrollbar-thumb {
+		background-color: var(--primary);
+		border-radius: 2px;
+	}
+
+	.diary-toc-container::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.toc-year-link {
+		border-left: 3px solid transparent;
+	}
+
+	.toc-year-link:hover {
+		border-left-color: var(--primary);
+	}
+
+	.toc-month-link {
+		border-left: 2px solid transparent;
+	}
+
+	.toc-month-link:hover {
+		border-left-color: var(--primary);
+	}
+
+	/* 活动状态样式 */
+	.toc-year-link.active {
+		background-color: var(--card-bg);
+		border-left-color: var(--primary);
+		color: var(--primary);
+	}
+
+	.toc-month-link.active {
+		background-color: var(--card-bg);
+		border-left-color: var(--primary);
+		color: var(--primary);
+	}
+
+	/* 移动端适配 */
+	@media (max-width: 768px) {
+		.diary-toc-container {
+			display: none;
+		}
+	}
+</style>
+
+<script>
+	// 监听滚动，高亮当前可见的年月
+	function initDiaryTOC() {
+		const yearGroups = document.querySelectorAll('.moment-group');
+		const monthGroups = document.querySelectorAll('.moment-subgroup');
+		const tocYearLinks = document.querySelectorAll('.toc-year-link');
+		const tocMonthLinks = document.querySelectorAll('.toc-month-link');
+
+		if (!yearGroups.length || !tocYearLinks.length) return;
+
+		function updateActiveTOC() {
+			const scrollPosition = window.scrollY + 100;
+
+			// 找到当前可见的月份
+			let activeMonthId = '';
+			let activeYearId = '';
+
+			monthGroups.forEach((group) => {
+				const rect = group.getBoundingClientRect();
+				const groupTop = rect.top + window.scrollY;
+				
+				if (groupTop <= scrollPosition + 200) {
+					activeMonthId = group.id;
+					// 从月份ID中提取年份
+					const match = activeMonthId.match(/month-(\d+)-/);
+					if (match) {
+						activeYearId = `year-${match[1]}`;
+					}
+				}
+			});
+
+			// 移除所有活动状态
+			tocYearLinks.forEach(link => link.classList.remove('active'));
+			tocMonthLinks.forEach(link => link.classList.remove('active'));
+
+			// 添加活动状态
+			if (activeYearId) {
+				const activeYearLink = document.querySelector(`.toc-year-link[href="#${activeYearId}"]`);
+				if (activeYearLink) {
+					activeYearLink.classList.add('active');
+				}
+			}
+
+			if (activeMonthId) {
+				const activeMonthLink = document.querySelector(`.toc-month-link[href="#${activeMonthId}"]`);
+				if (activeMonthLink) {
+					activeMonthLink.classList.add('active');
+				}
+			}
+		}
+
+		// 监听滚动事件
+		let scrollTimeout: number;
+		window.addEventListener('scroll', () => {
+			if (scrollTimeout) {
+				window.cancelAnimationFrame(scrollTimeout);
+			}
+			scrollTimeout = window.requestAnimationFrame(updateActiveTOC);
+		});
+
+		// 初始化
+		updateActiveTOC();
+
+		// 平滑滚动到目标
+		tocYearLinks.forEach(link => {
+			link.addEventListener('click', (e) => {
+				e.preventDefault();
+				const targetId = link.getAttribute('href')?.substring(1);
+				const target = document.getElementById(targetId || '');
+				if (target) {
+					target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+					// 展开对应的年份
+					const details = target as HTMLDetailsElement;
+					if (details && details.tagName === 'DETAILS') {
+						details.open = true;
+					}
+				}
+			});
+		});
+
+		tocMonthLinks.forEach(link => {
+			link.addEventListener('click', (e) => {
+				e.preventDefault();
+				const targetId = link.getAttribute('href')?.substring(1);
+				const target = document.getElementById(targetId || '');
+				if (target) {
+					target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+					// 展开对应的月份和年份
+					const details = target as HTMLDetailsElement;
+					if (details && details.tagName === 'DETAILS') {
+						details.open = true;
+						// 也展开父级年份
+						const parentYear = details.closest('.moment-group') as HTMLDetailsElement;
+						if (parentYear && parentYear.tagName === 'DETAILS') {
+							parentYear.open = true;
+						}
+					}
+				}
+			});
+		});
+	}
+
+	// 页面加载完成后初始化
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', initDiaryTOC);
+	} else {
+		initDiaryTOC();
+	}
+</script>
