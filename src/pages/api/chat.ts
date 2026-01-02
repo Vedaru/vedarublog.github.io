@@ -1,5 +1,8 @@
 import type { APIRoute } from "astro";
 
+// Mark this route as server-rendered to handle POST requests
+export const prerender = false;
+
 // Simple in-memory rate limiter and cache.
 // Note: serverless may not preserve memory between invocations; this is best-effort protection.
 const ipRateMap = new Map<string, { count: number; resetAt: number }>();
