@@ -17,29 +17,31 @@ const { groupedMoments } = Astro.props;
 			const totalCount = months.reduce((acc, [, arr]) => acc + arr.length, 0);
 			return (
 				<div class="toc-year-group mb-2" data-year={year}>
-					<a 
-						href={`#year-${year}`}
-						class="toc-year-link px-2 flex gap-2 relative transition w-full min-h-9 rounded-xl hover:bg-[var(--toc-btn-hover)] active:bg-[var(--toc-btn-active)] py-2"
-					>
-						<div class="transition w-5 h-5 shrink-0 rounded-lg text-xs flex items-center justify-center font-bold bg-[var(--toc-badge-bg)] text-[var(--btn-content)]">
-							{year.toString().slice(-2)}
+					<div class="toc-year-block">
+						<a 
+							href={`#year-${year}`}
+							class="toc-year-link px-2 flex gap-2 relative transition w-full min-h-9 rounded-xl hover:bg-[var(--toc-btn-hover)] active:bg-[var(--toc-btn-active)] py-2"
+						>
+							<div class="transition w-5 h-5 shrink-0 rounded-lg text-xs flex items-center justify-center font-bold bg-[var(--toc-badge-bg)] text-[var(--btn-content)]">
+								{year.toString().slice(-2)}
+							</div>
+							<div class="transition text-sm text-90 flex-1">{year}</div>
+							<span class="text-xs text-50">({totalCount})</span>
+						</a>
+						<div class="toc-months space-y-1">
+							{months.map(([month, items]) => (
+								<a
+									href={`#month-${year}-${month}`}
+									class="toc-month-link px-2 flex gap-2 relative transition w-full min-h-9 rounded-xl hover:bg-[var(--toc-btn-hover)] active:bg-[var(--toc-btn-active)] py-2"
+								>
+									<div class="transition w-5 h-5 shrink-0 rounded-lg text-xs flex items-center justify-center font-bold ml-4">
+										<div class="transition w-2 h-2 rounded-[0.1875rem] bg-[var(--toc-badge-bg)]"></div>
+									</div>
+									<div class="transition text-sm text-75 flex-1">{month}月</div>
+									<span class="text-xs text-50">({items.length})</span>
+								</a>
+							))}
 						</div>
-						<div class="transition text-sm text-90 flex-1">{year}</div>
-						<span class="text-xs text-50">({totalCount})</span>
-					</a>
-					<div class="toc-months space-y-1">
-						{months.map(([month, items]) => (
-							<a
-								href={`#month-${year}-${month}`}
-								class="toc-month-link px-2 flex gap-2 relative transition w-full min-h-9 rounded-xl hover:bg-[var(--toc-btn-hover)] active:bg-[var(--toc-btn-active)] py-2"
-							>
-								<div class="transition w-5 h-5 shrink-0 rounded-lg text-xs flex items-center justify-center font-bold ml-4">
-									<div class="transition w-2 h-2 rounded-[0.1875rem] bg-[var(--toc-badge-bg)]"></div>
-								</div>
-								<div class="transition text-sm text-75 flex-1">{month}月</div>
-								<span class="text-xs text-50">({items.length})</span>
-							</a>
-						))}
 					</div>
 				</div>
 			);
@@ -63,18 +65,24 @@ const { groupedMoments } = Astro.props;
 		background-color: var(--toc-btn-hover);
 	}
 
-	/* 悬停阴影效果 - 月份悬停时包含年份 */
-	.toc-year-link:hover,
-	.toc-month-link:hover {
-		box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+	/* 悬停阴影效果 - 包含年份与月份的整体块 */
+	.toc-year-block {
+		padding: 0.25rem 0.35rem;
+		border-radius: 0.9rem;
+		transition: background-color 0.2s ease, box-shadow 0.2s ease;
 	}
 
-	/* 月份悬停时，年份也显示背景和阴影 */
-	.toc-months:hover + .toc-year-link,
-	.toc-months:hover ~ .toc-year-link,
-	.toc-year-group:has(.toc-months:hover) > .toc-year-link {
+	.toc-year-block:hover,
+	.toc-year-block:has(.toc-month-link:hover),
+	.toc-year-block:has(.toc-year-link:hover) {
 		background-color: var(--toc-btn-hover);
-		box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+		box-shadow: 0 4px 12px rgb(0 0 0 / 0.12), 0 2px 6px rgb(0 0 0 / 0.08);
+	}
+
+	/* 链接本身不额外叠加阴影，阴影由父块提供 */
+	.toc-year-link:hover,
+	.toc-month-link:hover {
+		box-shadow: none;
 	}
 </style>
 
