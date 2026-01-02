@@ -550,22 +550,6 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 			// 动画延迟时间
 			animationDelay: 250,
 		},
-		{
-			// 组件类型：日记归档组件
-			type: "diary-archive",
-			// 是否启用该组件
-			enable: true,
-			// 组件显示顺序
-			order: 7,
-			// 组件位置
-			position: "sticky",
-			// 所在侧边栏
-			sidebar: "right",
-			// CSS 类名
-			class: "onload-animation",
-			// 动画延迟时间
-			animationDelay: 300,
-		},
 	],
 
 	// 默认动画配置
