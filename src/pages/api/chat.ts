@@ -70,17 +70,29 @@ async function callHuggingFace(prompt: string): Promise<string> {
 }
 
 export const POST: APIRoute = async ({ request }) => {
-  // Basic content-type check
+  // More lenient content-type check for development
   const ct = request.headers.get("content-type") || "";
-  if (!ct.includes("application/json")) {
-    return new Response(JSON.stringify({ error: "Expected application/json" }), { status: 400 });
-  }
+  console.log("[API] Received Content-Type:", ct);
+  console.log("[API] Request method:", request.method);
+  
+  // Accept requests without strict content-type check in case of proxy/dev issues
+  // but still try to parse JSON body
 
   let body: any;
   try {
-    body = await request.json();
-  } catch (e) {
-    return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400 });
+    const rawBody = await request.text();
+    console.log("[API] Raw body received:", rawBody);
+    body = JSON.parse(rawBody);
+    console.log("[API] Parsed body:", body);
+  } catch (e: any) {
+    console.error("[API] JSON parse error:", e.message);
+    return new Response(JSON.stringify({ 
+      error: "Invalid JSON", 
+      detail: e.message 
+    }), { 
+      status: 400,
+      headers: { "Content-Type": "application/json" }
+    });
   }
 
   const prompt: string = (body?.message || body?.prompt || "").toString();
