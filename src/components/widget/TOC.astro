@@ -196,6 +196,9 @@ class TableOfContents extends HTMLElement {
     };
 
     connectedCallback() {
+        if (this.dataset.static === "true") {
+            return;
+        }
         // 优先监听动画结束，兜底定时初始化，确保二次刷新也能正常显示 TOC
         const element = document.querySelector('.custom-md') || document.querySelector('.prose') || document.querySelector('.markdown-content');
         let initialized = false;
@@ -257,6 +260,9 @@ class TableOfContents extends HTMLElement {
     };
 
     regenerateTOC(retryCount = 0) {
+        if (this.dataset.static === "true") {
+            return;
+        }
         // 检查是否为文章页面
         const isPostPage = window.location.pathname.includes('/posts/') || 
                           document.querySelector('.custom-md, .markdown-content') !== null;
