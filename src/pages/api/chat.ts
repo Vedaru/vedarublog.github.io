@@ -69,7 +69,7 @@ async function callHuggingFace(prompt: string): Promise<string> {
   }
 }
 
-export const post: APIRoute = async ({ request }) => {
+export const POST: APIRoute = async ({ request }) => {
   // Basic content-type check
   const ct = request.headers.get("content-type") || "";
   if (!ct.includes("application/json")) {
