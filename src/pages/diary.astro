@@ -48,8 +48,6 @@ const groupByYearMonth = (list: any[]) => {
 };
 
 const groupedMoments = groupByYearMonth(moments);
-
-console.log("Diary page - groupedMoments:", groupedMoments.length, "years");
 const diaryStats = getDiaryStats();
 
 // 时间格式化函数（相对时间，基于 siteConfig.timeZone）

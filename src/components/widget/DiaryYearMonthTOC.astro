@@ -9,12 +9,10 @@ interface Props {
 }
 
 const { groupedMoments } = Astro.props;
-
-console.log("DiaryYearMonthTOC - Received data:", groupedMoments?.length, "years");
 ---
 
-<div class="diary-toc-container" style="background: rgba(255,0,0,0.1); border: 2px solid red;">
-	<h2 class="text-base font-bold mb-3 text-90 px-2">📅 日记目录</h2>
+<div class="diary-toc-container">
+	<h2 class="text-base font-bold mb-3 text-90 px-2">日记目录</h2>
 	<nav class="diary-toc group">
 		{groupedMoments.map(([year, months]) => {
 			const totalCount = months.reduce((acc, [, arr]) => acc + arr.length, 0);
@@ -64,6 +62,12 @@ console.log("DiaryYearMonthTOC - Received data:", groupedMoments?.length, "years
 	.toc-year-link.active,
 	.toc-month-link.active {
 		background-color: var(--toc-btn-hover);
+	}
+
+	/* 悬停阴影效果 - 与文章TOC保持一致 */
+	.toc-year-link:hover,
+	.toc-month-link:hover {
+		box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
 	}
 </style>
 
@@ -192,8 +196,21 @@ console.log("DiaryYearMonthTOC - Received data:", groupedMoments?.length, "years
 		initDiaryTOC();
 	}
 
-	// Swup页面切换时重新初始化
+	// Swup页面切换时处理
 	document.addEventListener('swup:content:replace', () => {
-		setTimeout(initDiaryTOC, 100);
+		// 检查新页面是否是日记页
+		const isDiaryPage = window.location.pathname.includes('/diary');
+		const diaryTocWrapper = document.getElementById('diary-toc-wrapper');
+		
+		if (diaryTocWrapper) {
+			if (isDiaryPage) {
+				diaryTocWrapper.classList.remove('hidden');
+				diaryTocWrapper.classList.add('lg:block');
+				setTimeout(initDiaryTOC, 100);
+			} else {
+				diaryTocWrapper.classList.add('hidden');
+				diaryTocWrapper.classList.remove('lg:block');
+			}
+		}
 	});
 </script>
