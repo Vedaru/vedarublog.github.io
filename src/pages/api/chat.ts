@@ -47,11 +47,23 @@ export const POST: APIRoute = async ({ request, locals }) => {
   // Cloudflare AI binding
   const AI = env.AI;
   const CF_AI_MODEL = env.CF_AI_MODEL || import.meta.env.CF_AI_MODEL || "@cf/meta/llama-3-8b-instruct";
-  const SYSTEM_PROMPT = env.SYSTEM_PROMPT || import.meta.env.SYSTEM_PROMPT || "";
-  
+  let SYSTEM_PROMPT = env.SYSTEM_PROMPT || import.meta.env.SYSTEM_PROMPT || "";
+
+  // 强制使用中文回复：如果用户未在 SYSTEM_PROMPT 中指定语言，则追加中文回复要求
+  try {
+    const needsChinese = !/请用中文|用中文回答|中文/.test(SYSTEM_PROMPT);
+    if (needsChinese) {
+      const suffix = "请用中文回答。除非用户明确要求其他语言，否则始终使用简体中文回复。";
+      SYSTEM_PROMPT = SYSTEM_PROMPT ? `${SYSTEM_PROMPT}\n\n${suffix}` : suffix;
+    }
+  } catch (e) {
+    // 安全回退：若正则出错，仍追加中文要求
+    SYSTEM_PROMPT = SYSTEM_PROMPT ? `${SYSTEM_PROMPT}\n\n请用中文回答。` : "请用中文回答。";
+  }
+
   console.log("[API] Cloudflare AI available:", !!AI);
   console.log("[API] CF_AI_MODEL:", CF_AI_MODEL);
-  console.log("[API] SYSTEM_PROMPT:", SYSTEM_PROMPT ? "已设置" : "未设置");
+  console.log("[API] SYSTEM_PROMPT:", SYSTEM_PROMPT ? "已设置(含语言要求)" : "未设置");
   
   // More lenient content-type check for development
   const ct = request.headers.get("content-type") || "";
