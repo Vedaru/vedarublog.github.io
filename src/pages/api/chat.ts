@@ -12,14 +12,8 @@ const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 const RATE_LIMIT_MAX = 120; // max requests per IP per window
 const CACHE_TTL_MS = 30 * 1000; // cache identical prompt for 30s
 
-async function callGroq(prompt: string, apiKey: string, model: string, timeout: number, systemPrompt?: string): Promise<string> {
-  // Groq uses OpenAI-compatible API
-  const url = "https://api.groq.com/openai/v1/chat/completions";
-  
-  console.log("[Groq] Calling model:", model);
-  
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
+async function callCloudflareAI(prompt: string, ai: any, model: string, systemPrompt?: string): Promise<string> {
+  console.log("[Cloudflare AI] Calling model:", model);
   
   // Build messages array with optional system prompt
   const messages: Array<{role: string, content: string}> = [];
@@ -29,44 +23,19 @@ async function callGroq(prompt: string, apiKey: string, model: string, timeout: 
   messages.push({ role: "user", content: prompt });
   
   try {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ 
-        model: model,
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 1024
-      }),
-      signal: controller.signal,
+    const response = await ai.run(model, {
+      messages: messages,
+      temperature: 0.7,
+      max_tokens: 1024
     });
-    clearTimeout(timeoutId);
-
-    if (!res.ok) {
-      const txt = await res.text();
-      throw new Error(`Groq API error ${res.status}: ${txt}`);
-    }
-
-    const json: any = await res.json();
     
-    if (json.error) {
-      throw new Error(String(json.error.message || json.error));
+    if (response.response) {
+      return response.response;
     }
-
-    if (json.choices && json.choices.length > 0) {
-      return json.choices[0].message.content || "(空响应)";
-    }
-
-    return JSON.stringify(json);
+    
+    throw new Error("AI 返回了空响应");
   } catch (error: any) {
-    clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
-      throw new Error(`请求超时（${timeout}ms）。`);
-    }
-    throw error;
+    throw new Error(`Cloudflare AI error: ${error.message}`);
   }
 }
 
@@ -75,13 +44,13 @@ export const POST: APIRoute = async ({ request, locals }) => {
   const runtime = (locals as any)?.runtime;
   const env = runtime?.env || import.meta.env;
   
-  const GROQ_API_KEY = env.GROQ_API_KEY || import.meta.env.GROQ_API_KEY;
-  const GROQ_MODEL = env.GROQ_MODEL || import.meta.env.GROQ_MODEL || "llama3-8b-8192";
-  const API_TIMEOUT = parseInt(env.API_TIMEOUT || import.meta.env.API_TIMEOUT || "30000");
+  // Cloudflare AI binding
+  const AI = env.AI;
+  const CF_AI_MODEL = env.CF_AI_MODEL || import.meta.env.CF_AI_MODEL || "@cf/meta/llama-3-8b-instruct";
   const SYSTEM_PROMPT = env.SYSTEM_PROMPT || import.meta.env.SYSTEM_PROMPT || "";
   
-  console.log("[API] GROQ_API_KEY available:", !!GROQ_API_KEY);
-  console.log("[API] GROQ_MODEL:", GROQ_MODEL);
+  console.log("[API] Cloudflare AI available:", !!AI);
+  console.log("[API] CF_AI_MODEL:", CF_AI_MODEL);
   console.log("[API] SYSTEM_PROMPT:", SYSTEM_PROMPT ? "已设置" : "未设置");
   
   // More lenient content-type check for development
@@ -140,7 +109,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   // Cache lookup
-  const key = `groq:${GROQ_MODEL}:` + prompt;
+  const key = `cf-ai:${CF_AI_MODEL}:` + prompt;
   const cached = cache.get(key);
   if (cached && cached.expiresAt > now) {
     // return JSON wrapper for cached result
@@ -148,12 +117,11 @@ export const POST: APIRoute = async ({ request, locals }) => {
     return new Response(JSON.stringify({ ok: true, text: cached.text, sessionId: sess }), { status: 200, headers: { "Content-Type": "application/json; charset=utf-8" } });
   }
 
-  if (!GROQ_API_KEY) {
-    console.error("[API] GROQ_API_KEY is undefined!");
-    console.error("[API] import.meta.env.GROQ_API_KEY:", import.meta.env.GROQ_API_KEY);
+  if (!AI) {
+    console.error("[API] Cloudflare AI binding not available!");
     return new Response(JSON.stringify({ 
-      error: "GROQ_API_KEY not configured on server",
-      hint: "请检查 .env 文件是否存在且包含 GROQ_API_KEY，并重启开发服务器"
+      error: "Cloudflare AI not configured",
+      hint: "请在 Cloudflare Pages 设置中添加 AI binding"
     }), { 
       status: 500,
       headers: { "Content-Type": "application/json" }
@@ -161,7 +129,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   try {
-    const reply = await callGroq(prompt, GROQ_API_KEY, GROQ_MODEL, API_TIMEOUT, SYSTEM_PROMPT);
+    const reply = await callCloudflareAI(prompt, AI, CF_AI_MODEL, SYSTEM_PROMPT);
     // cache short-lived
     cache.set(key, { text: reply, expiresAt: Date.now() + CACHE_TTL_MS });
 
