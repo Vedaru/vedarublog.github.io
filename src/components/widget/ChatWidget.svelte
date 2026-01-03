@@ -102,7 +102,7 @@
 
   // 示例欢迎语
   onMount(() => {
-    pushMessage("assistant", "你好！这是一个 AI 聊天页面示例。输入消息并回车发送。");
+    pushMessage("assistant", "来和雪初音聊天吧~");
   });
 </script>
 
