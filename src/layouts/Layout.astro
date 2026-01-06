@@ -32,7 +32,6 @@ import "../styles/fancybox-custom.css";
 import "../styles/expressive-code.css";
 import "../styles/panel-animations.css";
 import "../styles/postcard-optimization.css";
-import "../styles/cls-optimization.css";
 
 declare global {
 	interface Window {
@@ -195,14 +194,6 @@ if (siteConfig.font) {
 		{siteConfig.font?.cjkFont?.localFonts?.map((f) => (
 			<link rel="preload" as="font" href={import.meta.env.BASE_URL + `assets/font/${f}`} type="font/ttf" crossorigin />
 		))}
-		
-		<!-- 字体显示优化 - 使用 font-display: swap 减少 CLS -->
-		<style>
-			@font-face {
-				font-display: swap;
-			}
-		</style>
-		
 		<!-- 第三方分析脚本 - 延迟加载优化 -->
 		<script is:inline>
 			// 预定义全局变量避免运行时 undefined 错误

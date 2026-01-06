@@ -1,11 +1,5 @@
 /* PostCard 图片优化样式 */
 
-/* 为封面图片容器添加固定宽高比，避免 CLS */
-.card-base a[aria-label] {
-  aspect-ratio: 16 / 9;
-  contain: layout;
-}
-
 /* 为文章封面图片添加加载优化 */
 .card-base img {
   /* 内容可见性优化 - 提升渲染性能 */
