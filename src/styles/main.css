@@ -88,6 +88,19 @@ html {
     scroll-behavior: smooth;
 }
 
+/* Screen Reader Only - 无障碍辅助类 */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
 /* 移除移动端点击按钮时的高亮/阴影效果 */
 * {
     -webkit-tap-highlight-color: transparent !important;
