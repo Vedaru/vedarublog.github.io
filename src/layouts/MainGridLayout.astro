@@ -1,5 +1,4 @@
 ---
-import BackToTop from "@components/control/BackToTop.astro";
 import FloatingTOC from "@components/control/FloatingTOC.astro";
 import Footer from "@components/Footer.astro";
 import RightSideBar from "@components/layout/RightSideBar.astro";
@@ -659,9 +658,6 @@ const transparentClass = shouldEnableTransparency
         {siteConfig.toc.enable && isFloatTOC && <FloatingTOC />}
     </div>
 </div>
-
-<!-- Back to Top 按钮 - 放在最外层以确保 fixed 定位正常工作 -->
-<BackToTop></BackToTop>
 
 <!-- 侧边栏TOC模式 -->
 {siteConfig.toc.enable && isSidebarTOC && (

@@ -21,7 +21,9 @@ import { Icon } from "astro-icon/components";
     width: auto
     height: auto
     pointer-events: none
-    z-index: 60
+    z-index: 9999
+    /* 强制创建新的层叠上下文,脱离父元素影响 */
+    isolation: isolate
 
   .back-to-top-btn
     color: var(--primary)
