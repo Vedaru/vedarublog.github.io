@@ -17,11 +17,12 @@ import { Icon } from "astro-icon/components";
     /* Keep the wrapper fixed to the viewport so transforms on ancestors do not affect it */
     position: fixed
     right: 2rem
-    bottom: 2rem
+    bottom: 7rem
     width: auto
     height: auto
     pointer-events: none
-    z-index: 9999
+    /* Keep it below the music player layers but above page content */
+    z-index: 9000
     /* 强制创建新的层叠上下文,脱离父元素影响 */
     isolation: isolate
 
