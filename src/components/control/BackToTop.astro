@@ -69,4 +69,12 @@ import { Icon } from "astro-icon/components";
         // 直接使用原生滚动，避免OverlayScrollbars冲突
         window.scroll({top: 0, behavior: 'smooth'});
     }
+
+    // 将按钮移到 body 的直接子元素，避免父元素 contain 属性的影响
+    (function() {
+        const wrapper = document.querySelector('.back-to-top-wrapper');
+        if (wrapper && wrapper.parentElement !== document.body) {
+            document.body.appendChild(wrapper);
+        }
+    })();
 </script>
