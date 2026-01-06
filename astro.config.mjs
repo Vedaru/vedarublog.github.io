@@ -194,18 +194,13 @@ export default defineConfig({
 		],
 	},
 	vite: {
+		resolve: {
+			conditions: ["workerd", "worker", "browser"],
+		},
 		ssr: {
-			// 排除使用 Node.js 模块的包，让它们保持为外部依赖
-			external: [
-				"node:fs",
-				"node:path",
-				"node:url",
-				"node:buffer",
-				"node:stream",
-				"node:crypto",
-				"node:process",
-				"cssesc",
-			],
+			// Cloudflare Workers 兼容性配置
+			target: "webworker",
+			noExternal: true,
 		},
 		build: {
 			rollupOptions: {
