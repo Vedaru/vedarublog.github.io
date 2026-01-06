@@ -15,6 +15,20 @@
   text-decoration: none;
   gap: 0.5rem;
   white-space: nowrap;
+  /* 移除移动端点击高亮 */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  /* 移除焦点时的轮廓 */
+  outline: none;
+}
+
+/* 移除按钮焦点时的阴影 */
+.btn-gradient:focus,
+.btn-gradient:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 /* 主题色渐变按钮 */

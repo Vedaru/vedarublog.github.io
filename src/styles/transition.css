@@ -239,6 +239,19 @@ html.is-leaving #pio {
     }
 }
 
+/* 归档页面渐进式动画 */
+.archive-year-group {
+    opacity: 0;
+    animation: fade-in-up 400ms ease-out forwards;
+}
+
+.archive-year-group:nth-child(1) { animation-delay: 0ms; }
+.archive-year-group:nth-child(2) { animation-delay: 100ms; }
+.archive-year-group:nth-child(3) { animation-delay: 200ms; }
+.archive-year-group:nth-child(4) { animation-delay: 300ms; }
+.archive-year-group:nth-child(5) { animation-delay: 400ms; }
+.archive-year-group:nth-child(6) { animation-delay: 500ms; }
+
 /* 减少动画的用户偏好设置 */
 @media (prefers-reduced-motion: reduce) {
     .transition-main,
@@ -246,7 +259,8 @@ html.is-leaving #pio {
     .onload-animation,
     .transition-slide-in,
     .card-animation,
-    .nav-animation {
+    .nav-animation,
+    .archive-year-group {
         animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;

@@ -88,6 +88,32 @@ html {
     scroll-behavior: smooth;
 }
 
+/* 移除所有按钮和交互元素的移动端点击高亮效果 */
+button,
+a,
+[role="button"],
+[tabindex] {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+}
+
+/* 移除所有按钮的焦点轮廓和阴影 */
+button:focus,
+button:focus-visible,
+a:focus,
+a:focus-visible,
+[role="button"]:focus,
+[role="button"]:focus-visible {
+    outline: none;
+}
+
+/* 确保按钮在active状态下也没有阴影 */
+button:active,
+a:active,
+[role="button"]:active {
+    outline: none;
+}
+
 /* 页面顶部渐变高光效果 */
 .top-gradient-highlight {
     position: fixed;
@@ -361,7 +387,14 @@ html {
 
     .btn-card {
         @apply transition-colors duration-150 flex items-center justify-center bg-[var(--card-bg)] hover:bg-[var(--btn-card-bg-hover)]
-        active:bg-[var(--btn-card-bg-active)]
+        active:bg-[var(--btn-card-bg-active)];
+        -webkit-tap-highlight-color: transparent;
+        outline: none;
+    }
+    .btn-card:focus,
+    .btn-card:focus-visible {
+        outline: none;
+        box-shadow: none;
     }
     .btn-card.disabled {
         @apply pointer-events-none text-black/10 dark:text-white/10
@@ -369,6 +402,8 @@ html {
     .btn-plain {
         @apply transition-colors duration-150 relative flex items-center justify-center bg-none
         text-black/75 hover:text-[var(--primary)] dark:text-white/75 dark:hover:text-[var(--primary)];
+        -webkit-tap-highlight-color: transparent;
+        outline: none;
         &:not(.scale-animation) {
             @apply hover:bg-[var(--btn-plain-bg-hover)] active:bg-[var(--btn-plain-bg-active)]
         }
@@ -376,9 +411,21 @@ html {
             @apply expand-animation;
         }
     }
+    .btn-plain:focus,
+    .btn-plain:focus-visible {
+        outline: none;
+        box-shadow: none;
+    }
     .btn-regular {
         @apply transition-colors duration-150 flex items-center justify-center bg-[var(--btn-regular-bg)] hover:bg-[var(--btn-regular-bg-hover)] active:bg-[var(--btn-regular-bg-active)]
-        text-[var(--btn-content)] dark:text-white/75
+        text-[var(--btn-content)] dark:text-white/75;
+        -webkit-tap-highlight-color: transparent;
+        outline: none;
+    }
+    .btn-regular:focus,
+    .btn-regular:focus-visible {
+        outline: none;
+        box-shadow: none;
     }
 
     .link-underline {

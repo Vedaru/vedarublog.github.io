@@ -92,9 +92,9 @@ onMount(async () => {
 });
 </script>
 
-<div class="card-base px-8 py-6">
+<div class="card-base px-8 py-6 onload-animation">
     {#each groups as group}
-        <div>
+        <div class="archive-year-group">
             <div class="flex flex-row w-full items-center h-[3.75rem]">
                 <div class="w-[15%] md:w-[10%] transition text-2xl font-bold text-right text-75">
                     {group.year}
