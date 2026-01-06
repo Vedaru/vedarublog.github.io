@@ -1,0 +1,143 @@
+/* CLS 优化 - 累积布局偏移优化 */
+
+/* 1. 字体加载优化 - 防止 FOUT 导致的布局偏移 */
+@font-face {
+  font-display: swap; /* 使用 swap 避免不可见文本 */
+  size-adjust: 100%; /* 调整后备字体大小以匹配主字体 */
+}
+
+/* 为所有文本元素设置 font-display */
+body, html {
+  font-display: swap;
+}
+
+/* 2. 图片尺寸预留 - 防止图片加载导致的布局偏移 */
+img:not([width]):not([height]):not([style*="width"]):not([style*="height"]) {
+  /* 为未设置尺寸的图片设置默认宽高比 */
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  height: auto;
+}
+
+/* 3. 骨架屏和占位符优化 */
+.skeleton-loader {
+  background: linear-gradient(90deg, 
+    rgba(var(--primary-rgb, 0, 0, 0), 0.05) 0%, 
+    rgba(var(--primary-rgb, 0, 0, 0), 0.1) 50%, 
+    rgba(var(--primary-rgb, 0, 0, 0), 0.05) 100%);
+  background-size: 200% 100%;
+  animation: skeletonPulse 1.5s infinite;
+}
+
+@keyframes skeletonPulse {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* 4. 避免动画触发布局重排 */
+.transition-transform,
+.scale-animation,
+.onload-animation,
+[class*="hover:scale"],
+[class*="group-hover:scale"] {
+  /* 使用 GPU 加速，避免回流 */
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* 5. 导航栏固定高度，避免内容跳动 */
+#navbar {
+  min-height: 4.5rem;
+  contain: layout style;
+}
+
+/* 6. 侧边栏容器固定，避免内容偏移 */
+.card-base {
+  contain: layout style;
+}
+
+/* 7. 动态内容容器预留空间 */
+[class*="hidden"]:not(.hidden) {
+  /* 为响应式隐藏元素预留最小空间 */
+  min-height: 1px;
+}
+
+/* 8. 模态框和弹出层优化 */
+.modal,
+.popup,
+[role="dialog"] {
+  /* 使用 transform 而不是 top/left 定位 */
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+/* 9. 网格布局稳定性 */
+.grid,
+[class*="grid-cols"] {
+  /* 使用 minmax 确保网格稳定 */
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+}
+
+/* 10. 防止 Svelte 组件水合导致的偏移 */
+[data-svelte-component] {
+  min-height: 2.75rem; /* 按钮/组件最小高度 */
+}
+
+/* 11. 减少重绘优化 */
+* {
+  /* 避免不必要的重绘 */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 12. 响应式图片容器 */
+picture,
+[data-picture-container] {
+  display: block;
+  position: relative;
+  overflow: hidden;
+}
+
+picture img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 13. 优化过渡动画性能 */
+@media (prefers-reduced-motion: no-preference) {
+  * {
+    /* 确保所有动画使用 transform 和 opacity */
+    transition-property: transform, opacity, color, background-color, border-color, fill, stroke;
+  }
+}
+
+/* 14. 禁用动画时的优化 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    will-change: auto !important;
+  }
+}
+
+/* 15. 关键渲染路径优化 */
+.above-the-fold {
+  /* 首屏内容优先渲染 */
+  contain: layout style paint;
+  content-visibility: auto;
+}
+
+/* 16. 固定布局元素 */
+header,
+nav,
+footer {
+  contain: layout style;
+}
