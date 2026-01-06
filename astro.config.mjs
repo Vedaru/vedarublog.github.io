@@ -195,12 +195,16 @@ export default defineConfig({
 	},
 	vite: {
 		ssr: {
-			// 确保所有依赖都打包到输出中，避免在 Cloudflare Workers 中引用 Node.js 模块
-			noExternal: true,
-			// 排除特定的 Cloudflare 和 Astro 核心模块
+			// 排除使用 Node.js 模块的包，让它们保持为外部依赖
 			external: [
-				"@astrojs/cloudflare",
-				"cloudflare:sockets",
+				"node:fs",
+				"node:path",
+				"node:url",
+				"node:buffer",
+				"node:stream",
+				"node:crypto",
+				"node:process",
+				"cssesc",
 			],
 		},
 		build: {
