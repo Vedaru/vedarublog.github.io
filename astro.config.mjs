@@ -29,6 +29,7 @@ import { remarkReadingTime } from "./src/plugins/remark-reading-time.mjs";
 // https://astro.build/config
 export default defineConfig({
 	site: "https://vedaru.cn",
+	output: "hybrid", // 默认静态生成，按需 SSR
 	adapter: cloudflare({
 		mode: "directory",
 		runtime: {
