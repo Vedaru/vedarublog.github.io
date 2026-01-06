@@ -24,11 +24,7 @@ const { anime, index } = Astro.props;
 
 // 状态信息映射
 const statusMap = {
-	watching: {
-		text: "观看中",
-		icon: "▶️",
-		class: "bg-emerald-500/90 text-white",
-	},
+	watching: { text: "观看中", icon: "▶️", class: "bg-emerald-500/90 text-white" },
 	completed: { text: "已完成", icon: "✅", class: "bg-blue-500/90 text-white" },
 	planned: { text: "计划中", icon: "📅", class: "bg-purple-500/90 text-white" },
 	onhold: { text: "暂停中", icon: "⏸️", class: "bg-yellow-500/90 text-white" },
@@ -36,8 +32,7 @@ const statusMap = {
 };
 
 const statusInfo = statusMap[anime.status];
-const progressPercent =
-	anime.totalEpisodes > 0 ? (anime.progress / anime.totalEpisodes) * 100 : 0;
+const progressPercent = anime.totalEpisodes > 0 ? (anime.progress / anime.totalEpisodes) * 100 : 0;
 
 // 前3个卡片使用高优先级加载，前1个使用 eager
 const isPriority = index < 3;

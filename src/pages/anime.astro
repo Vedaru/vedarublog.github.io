@@ -75,7 +75,7 @@ async function fetchSubjectPersons(subjectId: number) {
 		const response = await fetch(
 			`${BANGUMI_API_BASE}/v0/subjects/${subjectId}/persons`,
 		);
-		const data = (await response.json()) as unknown;
+		const data = await response.json() as unknown;
 		return Array.isArray(data) ? data : [];
 	} catch (error) {
 		console.error(`Error fetching subject ${subjectId} persons:`, error);
@@ -103,7 +103,7 @@ async function fetchBangumiCollection(
 			if (!response.ok) {
 				throw new Error(`Bangumi API error: ${response.status}`);
 			}
-			const data = (await response.json()) as BangumiCollectionResponse;
+			const data = await response.json() as BangumiCollectionResponse;
 
 			// 添加当前页数据到总数据中
 			if (data.data && data.data.length > 0) {

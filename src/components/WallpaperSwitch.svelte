@@ -1,5 +1,4 @@
 <script lang="ts">
-import Icon from "@iconify/svelte";
 import {
 	WALLPAPER_BANNER,
 	WALLPAPER_FULLSCREEN,
@@ -7,12 +6,10 @@ import {
 } from "../constants/constants";
 import I18nKey from "../i18n/i18nKey";
 import { i18n } from "../i18n/translation";
+import Icon from "@iconify/svelte";
+import { getStoredWallpaperMode, setWallpaperMode } from "../utils/setting-utils";
 import type { WALLPAPER_MODE } from "../types/config";
 import { panelManager } from "../utils/panel-manager";
-import {
-	getStoredWallpaperMode,
-	setWallpaperMode,
-} from "../utils/setting-utils";
 
 const seq: WALLPAPER_MODE[] = [
 	WALLPAPER_BANNER,

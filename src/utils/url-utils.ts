@@ -34,10 +34,7 @@ export function getPostUrlByPermalink(permalink: string): string {
 }
 
 export function getPostUrl(post: CollectionEntry<"posts">): string;
-export function getPostUrl(post: {
-	id: string;
-	data: { permalink?: string };
-}): string;
+export function getPostUrl(post: { id: string; data: { permalink?: string } }): string;
 export function getPostUrl(post: any): string {
 	// 如果文章有自定义固定链接，优先使用固定链接
 	if (post.data.permalink) {

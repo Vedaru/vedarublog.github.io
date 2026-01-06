@@ -1,13 +1,13 @@
 <script lang="ts">
-import Icon from "@iconify/svelte";
-import { onMount } from "svelte";
 import { DARK_MODE, LIGHT_MODE } from "../constants/constants";
-import type { LIGHT_DARK_MODE } from "../types/config";
+import Icon from "@iconify/svelte";
 import {
 	applyThemeToDocument,
 	getStoredTheme,
 	setTheme,
 } from "../utils/setting-utils";
+import { onMount } from "svelte";
+import type { LIGHT_DARK_MODE } from "../types/config";
 
 const seq: LIGHT_DARK_MODE[] = [LIGHT_MODE, DARK_MODE];
 let mode: LIGHT_DARK_MODE = getStoredTheme();

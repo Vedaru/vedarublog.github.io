@@ -3,7 +3,6 @@ import ConfigCarrier from "@components/ConfigCarrier.astro";
 import MusicPlayer from "@components/widget/MusicPlayer.svelte";
 import Pio from "@components/widget/Pio.svelte"; // 使用 Svelte 版本的 Pio 组件
 import DiaryYearMonthTOC from "@components/widget/DiaryYearMonthTOC.astro"; // 导入日记目录组件以注册 custom element
-import BackToTop from "@components/control/BackToTop.astro"; // 导入返回顶部按钮
 import {
 	musicPlayerConfig,
 	pioConfig,
@@ -356,9 +355,6 @@ if (siteConfig.font) {
 		
 		<!-- increase the page height during page transition to prevent the scrolling animation from jumping -->
 		<div id="page-height-extend" class="hidden h-[300vh]"></div>
-		
-		<!-- Back to Top 按钮 - 放在 body 最外层确保 fixed 定位正常 -->
-		<BackToTop />
 
 		<!-- 日记目录数据注入脚本 -->
 		<script is:inline>

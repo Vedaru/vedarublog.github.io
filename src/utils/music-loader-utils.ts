@@ -12,34 +12,31 @@ const DEFAULT_COVER = "/favicon/favicon.ico";
  */
 export function getFallbackCovers(originalUrl: string): string[] {
 	const fallbacks: string[] = [];
-
+	
 	// 如果是本地路径，直接返回
-	if (
-		!originalUrl.startsWith("http://") &&
-		!originalUrl.startsWith("https://")
-	) {
+	if (!originalUrl.startsWith("http://") && !originalUrl.startsWith("https://")) {
 		return [originalUrl, DEFAULT_COVER];
 	}
-
+	
 	// 首选原始URL
 	fallbacks.push(originalUrl);
-
+	
 	// 尝试HTTPS协议（如果原始是HTTP）
 	if (originalUrl.startsWith("http://")) {
 		fallbacks.push("https://" + originalUrl.slice(7));
 	}
-
+	
 	// 如果是 Meting API 代理 URL，不生成备用源（因为代理不稳定）
 	// 直接回退到默认封面
 	if (originalUrl.includes("/meting/") && originalUrl.includes("type=pic")) {
 		fallbacks.push(DEFAULT_COVER);
 		return Array.from(new Set(fallbacks));
 	}
-
+	
 	// 如果是网易云 CDN 直接 URL（包含完整路径），保留它
 	// 添加默认封面作为最后的备选
 	fallbacks.push(DEFAULT_COVER);
-
+	
 	// 去重
 	return Array.from(new Set(fallbacks));
 }
@@ -54,20 +51,20 @@ export function getFallbackCovers(originalUrl: string): string[] {
 export async function loadImageWithRetry(
 	url: string,
 	timeout = 5000,
-	maxRetries = 2,
+	maxRetries = 2
 ): Promise<string> {
 	if (!url) return DEFAULT_COVER;
-
+	
 	// 本地路径直接返回
 	if (!url.startsWith("http://") && !url.startsWith("https://")) {
 		return url;
 	}
-
+	
 	// 如果是 Meting API 代理 URL，使用更短的超时时间
 	const isMettingProxy = url.includes("/meting/") && url.includes("type=pic");
 	const actualTimeout = isMettingProxy ? 2000 : timeout;
 	const actualMaxRetries = isMettingProxy ? 0 : maxRetries; // 代理URL不重试
-
+	
 	const fallbackUrls = getFallbackCovers(url);
 	let lastError: unknown = null;
 
@@ -76,12 +73,12 @@ export async function loadImageWithRetry(
 		if (testUrl === DEFAULT_COVER) {
 			return DEFAULT_COVER;
 		}
-
+		
 		for (let attempt = 0; attempt <= actualMaxRetries; attempt++) {
 			try {
 				const controller = new AbortController();
 				const timeoutId = setTimeout(() => controller.abort(), actualTimeout);
-
+				
 				// 使用 GET + no-cors，避免部分源拒绝 HEAD；发生 CORS 也不抛错
 				await fetch(testUrl, {
 					method: "GET",
@@ -95,12 +92,10 @@ export async function loadImageWithRetry(
 				lastError = error;
 				if (attempt < actualMaxRetries) {
 					await new Promise((resolve) =>
-						setTimeout(resolve, Math.min(500 * 2 ** attempt, 2000)),
+						setTimeout(resolve, Math.min(500 * Math.pow(2, attempt), 2000)),
 					);
 				} else {
-					console.debug(
-						`Failed to load cover ${testUrl} after ${actualMaxRetries + 1} attempts`,
-					);
+					console.debug(`Failed to load cover ${testUrl} after ${actualMaxRetries + 1} attempts`);
 				}
 			}
 		}
@@ -120,25 +115,25 @@ export function preloadImage(url: string): Promise<string> {
 			resolve(url);
 			return;
 		}
-
+		
 		const img = new Image();
 		img.crossOrigin = "anonymous";
-
+		
 		// 如果是 Meting API 代理 URL，使用更短的超时
 		const isMettingProxy = url.includes("/meting/") && url.includes("type=pic");
 		const timeout = isMettingProxy ? 3000 : 8000;
-
+		
 		const timeoutId = setTimeout(() => {
 			img.src = ""; // 取消加载
 			// 超时直接返回默认封面
 			resolve(isMettingProxy ? DEFAULT_COVER : url);
 		}, timeout);
-
+		
 		img.onload = () => {
 			clearTimeout(timeoutId);
 			resolve(url);
 		};
-
+		
 		img.onerror = () => {
 			clearTimeout(timeoutId);
 			// 错误时，Meting 代理URL直接用默认封面，其他尝试备用源
@@ -148,7 +143,7 @@ export function preloadImage(url: string): Promise<string> {
 				loadImageWithRetry(url, 3000, 1).then(resolve);
 			}
 		};
-
+		
 		img.src = url;
 	});
 }
@@ -158,16 +153,16 @@ export function preloadImage(url: string): Promise<string> {
  */
 export async function batchPreloadCovers(
 	urls: string[],
-	concurrency = 3,
+	concurrency = 3
 ): Promise<Map<string, string>> {
 	const results = new Map<string, string>();
 	const queue = [...urls];
-
+	
 	const worker = async () => {
 		while (queue.length > 0) {
 			const url = queue.shift();
 			if (!url) break;
-
+			
 			try {
 				const loadedUrl = await preloadImage(url);
 				results.set(url, loadedUrl);
@@ -176,12 +171,12 @@ export async function batchPreloadCovers(
 			}
 		}
 	};
-
+	
 	// 创建并发worker
 	const workers = Array(Math.min(concurrency, urls.length))
 		.fill(null)
 		.map(() => worker());
-
+	
 	await Promise.all(workers);
 	return results;
 }
@@ -218,11 +213,11 @@ export interface ProcessedSong {
 export function processSongData(
 	song: SongData,
 	getAssetPath: (path: string) => string,
-	normalizeCoverUrl: (path: string) => string,
+	normalizeCoverUrl: (path: string) => string
 ): ProcessedSong {
 	const title = song.name ?? song.title ?? "未知歌曲";
 	const artist = song.artist ?? song.author ?? "未知艺术家";
-
+	
 	let duration = song.duration ?? 0;
 	// Meting API有时返回毫秒
 	if (duration > 10000) {
@@ -231,12 +226,12 @@ export function processSongData(
 	if (!Number.isFinite(duration) || duration <= 0) {
 		duration = 0;
 	}
-
+	
 	const rawCover = normalizeCoverUrl(
-		song.pic ?? song.cover ?? song.image ?? "",
+		song.pic ?? song.cover ?? song.image ?? ""
 	);
 	const processedCover = rawCover ? getAssetPath(rawCover) : DEFAULT_COVER;
-
+	
 	return {
 		id: song.id,
 		title,
@@ -254,59 +249,56 @@ export function processSongData(
 export async function fetchMetingAPI(
 	apiUrl: string,
 	timeout = 10000,
-	maxRetries = 3,
+	maxRetries = 3
 ): Promise<SongData[]> {
 	let lastError: Error | null = null;
-
+	
 	for (let attempt = 0; attempt <= maxRetries; attempt++) {
 		try {
 			const controller = new AbortController();
-			const currentTimeout = timeout + attempt * 3000; // 递增超时时间
+			const currentTimeout = timeout + (attempt * 3000); // 递增超时时间
 			const timeoutId = setTimeout(() => controller.abort(), currentTimeout);
-
+			
 			const response = await fetch(apiUrl, {
 				signal: controller.signal,
 				cache: "no-store", // 不使用缓存，每次都获取最新数据
 				headers: {
-					Accept: "application/json",
-					"User-Agent":
-						"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+					"Accept": "application/json",
+					"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
 				},
 			});
-
+			
 			clearTimeout(timeoutId);
-
+			
 			if (!response.ok) {
-				throw new Error(
-					`API returned ${response.status}: ${response.statusText}`,
-				);
+				throw new Error(`API returned ${response.status}: ${response.statusText}`);
 			}
-
+			
 			const data = await response.json();
-
+			
 			if (!Array.isArray(data)) {
 				throw new Error("API response is not an array");
 			}
-
+			
 			if (data.length === 0) {
 				throw new Error("API returned empty playlist");
 			}
-
+			
 			return data;
 		} catch (error) {
 			lastError = error instanceof Error ? error : new Error(String(error));
-
+			
 			if (attempt < maxRetries) {
 				// 指数退避：1.5s, 3s, 4.5s
 				const delay = (attempt + 1) * 1500;
 				console.log(
-					`Meting API attempt ${attempt + 1}/${maxRetries + 1} failed: ${lastError.message}. Retrying in ${delay}ms...`,
+					`Meting API attempt ${attempt + 1}/${maxRetries + 1} failed: ${lastError.message}. Retrying in ${delay}ms...`
 				);
-				await new Promise((resolve) => setTimeout(resolve, delay));
+				await new Promise(resolve => setTimeout(resolve, delay));
 			}
 		}
 	}
-
+	
 	throw lastError ?? new Error("Unknown error fetching Meting API");
 }
 

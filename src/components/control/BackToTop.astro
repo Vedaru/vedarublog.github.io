@@ -14,39 +14,37 @@ import { Icon } from "astro-icon/components";
 
 <style lang="stylus">
   .back-to-top-wrapper
-    /* Keep the wrapper fixed to the viewport so transforms on ancestors do not affect it */
-    position: fixed
-    right: 2rem
-    bottom: 6rem
-    width: auto
-    height: auto
+    width: 3.75rem
+    height: 3.75rem
+    position: absolute
+    right: 0
+    top: 0
     pointer-events: none
-    z-index: 45
-    /* 强制创建新的层叠上下文,脱离父元素影响 */
-    isolation: isolate
 
   .back-to-top-btn
     color: var(--primary)
     font-size: 2.25rem
     font-weight: bold
     border: none
-    position: relative
+    position: fixed
+    bottom: 10rem
     opacity: 1
+    right: 6rem
     cursor: pointer
-    transform: translateY(0)
+    transform: translateX(5rem)
     pointer-events: auto
-    transition: box-shadow 1s ease-in-out, transform 0.25s ease, opacity 0.25s ease
+    transition: box-shadow 1s ease-in-out
 
     i
       font-size: 1.75rem
 
     &.hide
-      transform: translateY(1rem) scale(0.95)
+      transform: translateX(5rem) scale(0.9)
       opacity: 0
       pointer-events: none
 
     &:active
-      transform: translateY(0.2rem) scale(0.95)
+      transform: translateX(5rem) scale(0.9)
 
   @media (max-width: 1560px)
     .back-to-top-btn

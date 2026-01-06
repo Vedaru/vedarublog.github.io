@@ -7,8 +7,6 @@ import MainGridLayout from "../../../layouts/MainGridLayout.astro";
 import type { AlbumGroup, Photo } from "../../../types/album";
 import { scanAlbums } from "../../../utils/album-scanner";
 
-export const prerender = true;
-
 // 检查相册页面是否启用
 if (!siteConfig.featurePages.albums) {
 	return Astro.redirect("/404/");
