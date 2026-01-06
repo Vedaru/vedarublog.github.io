@@ -1,109 +1,119 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+import { onMount } from "svelte";
 
-  type Message = { id: number; role: "user" | "assistant"; text: string };
+type Message = { id: number; role: "user" | "assistant"; text: string };
 
-  let messages: Message[] = [];
-  let input = "";
-  let loading = false;
-  let idCounter = 1;
+let messages: Message[] = [];
+let input = "";
+let loading = false;
+let idCounter = 1;
 
-  function pushMessage(role: "user" | "assistant", text: string) {
-    messages = [...messages, { id: idCounter++, role, text }];
-  }
+function pushMessage(role: "user" | "assistant", text: string) {
+	messages = [...messages, { id: idCounter++, role, text }];
+}
 
-  // session id persisted in localStorage to carry conversation context
-  const SESSION_KEY = "chat:sessionId";
-  let sessionId: string | null = null;
-  onMount(() => {
-    sessionId = localStorage.getItem(SESSION_KEY);
-  });
+// session id persisted in localStorage to carry conversation context
+const SESSION_KEY = "chat:sessionId";
+let sessionId: string | null = null;
+onMount(() => {
+	sessionId = localStorage.getItem(SESSION_KEY);
+});
 
-  async function send() {
-    const text = input.trim();
-    if (!text) return;
-    pushMessage("user", text);
-    input = "";
-    loading = true;
-    // create assistant placeholder message and keep its index
-    const assistantId = idCounter;
-    pushMessage("assistant", "");
-    try {
-      const wantStream = true; // enable streaming for better UX
-      const res = await fetch("/api/chat/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text, sessionId, stream: wantStream }),
-      });
+async function send() {
+	const text = input.trim();
+	if (!text) return;
+	pushMessage("user", text);
+	input = "";
+	loading = true;
+	// create assistant placeholder message and keep its index
+	const assistantId = idCounter;
+	pushMessage("assistant", "");
+	try {
+		const wantStream = true; // enable streaming for better UX
+		const res = await fetch("/api/chat/", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ message: text, sessionId, stream: wantStream }),
+		});
 
-      if (!res.ok) {
-        // try parse JSON error
-        let errText = await res.text();
-        try {
-          const j: any = JSON.parse(errText);
-          errText = j?.error ?? JSON.stringify(j);
-        } catch {}
-        // replace assistant placeholder
-        messages = messages.map(m => (m.id === assistantId ? { ...m, text: `出错：${errText}` } : m));
-        return;
-      }
+		if (!res.ok) {
+			// try parse JSON error
+			let errText = await res.text();
+			try {
+				const j: any = JSON.parse(errText);
+				errText = j?.error ?? JSON.stringify(j);
+			} catch {}
+			// replace assistant placeholder
+			messages = messages.map((m) =>
+				m.id === assistantId ? { ...m, text: `出错：${errText}` } : m,
+			);
+			return;
+		}
 
-      const contentType = res.headers.get("content-type") || "";
-      // If server returned JSON (non-stream)
-      if (contentType.includes("application/json")) {
-        const j: any = await res.json();
-        // update sessionId if returned
-        if (j?.sessionId) {
-          sessionId = String(j.sessionId);
-          localStorage.setItem(SESSION_KEY, sessionId);
-        }
-        const textReply = j?.text ?? "(空响应)";
-        messages = messages.map(m => (m.id === assistantId ? { ...m, text: textReply } : m));
-        return;
-      }
+		const contentType = res.headers.get("content-type") || "";
+		// If server returned JSON (non-stream)
+		if (contentType.includes("application/json")) {
+			const j: any = await res.json();
+			// update sessionId if returned
+			if (j?.sessionId) {
+				sessionId = String(j.sessionId);
+				localStorage.setItem(SESSION_KEY, sessionId);
+			}
+			const textReply = j?.text ?? "(空响应)";
+			messages = messages.map((m) =>
+				m.id === assistantId ? { ...m, text: textReply } : m,
+			);
+			return;
+		}
 
-      // Read sessionId from response header
-      const headerSessionId = res.headers.get("X-Session-Id");
-      if (headerSessionId) {
-        sessionId = headerSessionId;
-        localStorage.setItem(SESSION_KEY, sessionId);
-      }
+		// Read sessionId from response header
+		const headerSessionId = res.headers.get("X-Session-Id");
+		if (headerSessionId) {
+			sessionId = headerSessionId;
+			localStorage.setItem(SESSION_KEY, sessionId);
+		}
 
-      // Otherwise treat as a stream (text chunks). Use reader to progressively append
-      const reader = res.body?.getReader();
-      if (!reader) {
-        const full = await res.text();
-        messages = messages.map(m => (m.id === assistantId ? { ...m, text: full } : m));
-        return;
-      }
+		// Otherwise treat as a stream (text chunks). Use reader to progressively append
+		const reader = res.body?.getReader();
+		if (!reader) {
+			const full = await res.text();
+			messages = messages.map((m) =>
+				m.id === assistantId ? { ...m, text: full } : m,
+			);
+			return;
+		}
 
-      const decoder = new TextDecoder();
-      let accumulated = "";
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        accumulated += chunk;
-        messages = messages.map(m => (m.id === assistantId ? { ...m, text: accumulated } : m));
-      }
-    } catch (e) {
-      messages = messages.map(m => (m.id === assistantId ? { ...m, text: `请求失败：${e}` } : m));
-    } finally {
-      loading = false;
-    }
-  }
+		const decoder = new TextDecoder();
+		let accumulated = "";
+		while (true) {
+			const { done, value } = await reader.read();
+			if (done) break;
+			const chunk = decoder.decode(value, { stream: true });
+			accumulated += chunk;
+			messages = messages.map((m) =>
+				m.id === assistantId ? { ...m, text: accumulated } : m,
+			);
+		}
+	} catch (e) {
+		messages = messages.map((m) =>
+			m.id === assistantId ? { ...m, text: `请求失败：${e}` } : m,
+		);
+	} finally {
+		loading = false;
+	}
+}
 
-  function onKey(e: KeyboardEvent) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      send();
-    }
-  }
+function onKey(e: KeyboardEvent) {
+	if (e.key === "Enter" && !e.shiftKey) {
+		e.preventDefault();
+		send();
+	}
+}
 
-  // 示例欢迎语
-  onMount(() => {
-    pushMessage("assistant", "来和雪初音聊天吧~");
-  });
+// 示例欢迎语
+onMount(() => {
+	pushMessage("assistant", "来和雪初音聊天吧~");
+});
 </script>
 
 <style>

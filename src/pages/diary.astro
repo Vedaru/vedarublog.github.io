@@ -1,10 +1,10 @@
 ---
+import DiaryYearMonthTOC from "../components/widget/DiaryYearMonthTOC.astro";
 import { siteConfig } from "../config";
 import { getDiaryList, getDiaryStats } from "../data/diary";
 import I18nKey from "../i18n/i18nKey";
 import { i18n } from "../i18n/translation";
 import MainGridLayout from "../layouts/MainGridLayout.astro";
-import DiaryYearMonthTOC from "../components/widget/DiaryYearMonthTOC.astro";
 
 // 检查日记页面是否启用
 if (!siteConfig.featurePages.diary) {
@@ -19,10 +19,10 @@ const groupByYearMonth = (list: any[]) => {
 	const yearMap = new Map();
 	list.forEach((m: any) => {
 		// 直接从日期字符串 YYYY-MM-DDTHH:MM:SS 中提取年月，避免时区偏移
-		const datePart = m.date.split('T')[0];
-		const [yStr, mStr] = datePart.split('-');
-		const y = parseInt(yStr, 10);
-		const mth = String(parseInt(mStr, 10)).padStart(2, "0");
+		const datePart = m.date.split("T")[0];
+		const [yStr, mStr] = datePart.split("-");
+		const y = Number.parseInt(yStr, 10);
+		const mth = String(Number.parseInt(mStr, 10)).padStart(2, "0");
 		if (!yearMap.has(y)) yearMap.set(y, new Map());
 		const monthMap = yearMap.get(y);
 		if (!monthMap.has(mth)) monthMap.set(mth, []);
@@ -53,15 +53,16 @@ const diaryStats = getDiaryStats();
 // 时间格式化函数（相对时间，基于 siteConfig.timeZone）
 function formatTime(dateString: string): string {
 	// 直接使用 date 字符串中的日期部分（忽略时区/本地时间），保证展示与数据中的日期一致
-	if (!dateString) return '';
+	if (!dateString) return "";
 	// dateString 可能形如 "YYYY-MM-DDTHH:MM:SS" 或带时区后缀，先按 "T" 分割取日期部分
-	const datePart = dateString.split('T')[0];
-	const parts = datePart.split('-');
+	const datePart = dateString.split("T")[0];
+	const parts = datePart.split("-");
 	if (parts.length < 3) return dateString;
-	const monthStr = String(parts[1]).padStart(2, '0');
-	const dayStr = String(parts[2]).padStart(2, '0');
-	const lang = (siteConfig && siteConfig.lang) ? String(siteConfig.lang).toLowerCase() : '';
-	if (lang.startsWith('zh')) {
+	const monthStr = String(parts[1]).padStart(2, "0");
+	const dayStr = String(parts[2]).padStart(2, "0");
+	const lang =
+		siteConfig && siteConfig.lang ? String(siteConfig.lang).toLowerCase() : "";
+	if (lang.startsWith("zh")) {
 		return `${monthStr}月${dayStr}日`;
 	}
 	return `${monthStr}-${dayStr}`;

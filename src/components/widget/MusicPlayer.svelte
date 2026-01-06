@@ -12,15 +12,15 @@ import Key from "../../i18n/i18nKey";
 import { i18n } from "../../i18n/translation";
 // 导入音乐加载优化工具函数
 import {
-	loadImageWithRetry,
-	preloadImage,
 	batchPreloadCovers,
-	processSongData,
 	fetchMetingAPI,
 	getFallbackCovers,
-	DEFAULT_COVER as UTILS_DEFAULT_COVER,
-	type SongData,
+	loadImageWithRetry,
 	type ProcessedSong,
+	preloadImage,
+	processSongData,
+	type SongData,
+	DEFAULT_COVER as UTILS_DEFAULT_COVER,
 } from "../../utils/music-loader-utils";
 
 // 音乐播放器模式，可选 "local" 或 "meting"，从本地配置中获取或使用默认值 "meting"
@@ -32,9 +32,13 @@ let meting_api =
 
 // Meting API 候选列表：优先使用 `musicPlayerConfig.meting_api_candidates`（在 `src/config.ts` 中配置），
 // 若未配置则回退到单一的 `meting_api`。
-const metingApiCandidates = (musicPlayerConfig.meting_api_candidates && musicPlayerConfig.meting_api_candidates.length > 0)
-	? musicPlayerConfig.meting_api_candidates.map(s => s.replace(/:server|:type|:id|:auth|:r/g, (m) => m)) // template placeholders kept; replaced when building URL
-	: [meting_api].filter(Boolean);
+const metingApiCandidates =
+	musicPlayerConfig.meting_api_candidates &&
+	musicPlayerConfig.meting_api_candidates.length > 0
+		? musicPlayerConfig.meting_api_candidates.map((s) =>
+				s.replace(/:server|:type|:id|:auth|:r/g, (m) => m),
+			) // template placeholders kept; replaced when building URL
+		: [meting_api].filter(Boolean);
 // Meting API 的 ID，从配置中获取或使用默认值
 let meting_id = musicPlayerConfig.id ?? "17514570572";
 // Meting API 的服务器，从配置中获取或使用默认值,有的meting的api源支持更多平台,一般来说,netease=网易云音乐, tencent=QQ音乐, kugou=酷狗音乐, xiami=虾米音乐, baidu=百度音乐
@@ -149,34 +153,34 @@ const loadingCovers = new Set<string>();
 
 // 从 SessionStorage 恢复缓存
 function restoreCoverCache() {
-	if (typeof sessionStorage === 'undefined') return;
+	if (typeof sessionStorage === "undefined") return;
 	try {
-		const cached = sessionStorage.getItem('musicCoverCache');
+		const cached = sessionStorage.getItem("musicCoverCache");
 		if (cached) {
 			const data = JSON.parse(cached);
 			for (const [url, storedUrl] of Object.entries(data)) {
 				// Stored blob URLs are session-specific and will be invalid after reloads.
 				// Ignore any persisted `blob:` URLs and let the browser load the original URL.
-				if (typeof storedUrl === 'string' && storedUrl.startsWith('blob:')) {
+				if (typeof storedUrl === "string" && storedUrl.startsWith("blob:")) {
 					continue;
 				}
 				coverCache.set(url, storedUrl as string);
 			}
 		}
 	} catch (e) {
-		console.debug('Failed to restore cover cache', e);
+		console.debug("Failed to restore cover cache", e);
 	}
 }
 
 // 持久化缓存到 SessionStorage
 function persistCoverCache() {
-	if (typeof sessionStorage === 'undefined' || coverCache.size === 0) return;
+	if (typeof sessionStorage === "undefined" || coverCache.size === 0) return;
 	try {
 		const data: Record<string, string> = {};
 		// Persist only stable URLs. Do NOT persist session-scoped blob: URLs because
 		// they become invalid after a page reload (causing ERR_FILE_NOT_FOUND).
 		coverCache.forEach((value, key) => {
-			if (typeof value === 'string' && value.startsWith('blob:')) {
+			if (typeof value === "string" && value.startsWith("blob:")) {
 				// Store the original key (remote URL) so after reload the browser will
 				// fetch the resource again instead of using a stale blob URL.
 				data[key] = key;
@@ -184,13 +188,15 @@ function persistCoverCache() {
 				data[key] = value as string;
 			}
 		});
-		sessionStorage.setItem('musicCoverCache', JSON.stringify(data));
+		sessionStorage.setItem("musicCoverCache", JSON.stringify(data));
 	} catch (e) {
-		console.debug('Failed to persist cover cache', e);
+		console.debug("Failed to persist cover cache", e);
 	}
 }
 
-async function sleep(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
+async function sleep(ms: number) {
+	return new Promise((r) => setTimeout(r, ms));
+}
 
 // 日志辅助：打印音频相关上下文，便于定位播放/加载失败原因
 function logAudioError(err: any, context = "") {
@@ -204,15 +210,22 @@ function logAudioError(err: any, context = "") {
 			playlistLength: playlist?.length,
 		});
 	} catch (e) {
-		try { console.error('[MusicPlayer] failed to log audio error', e); } catch {}
+		try {
+			console.error("[MusicPlayer] failed to log audio error", e);
+		} catch {}
 	}
 }
 // 增强版：带重试与指数回退的封面预加载（使用新的工具函数）
-async function preloadSingleCover(coverUrl: string, timeout = 5000, maxRetries = 2): Promise<void> {
-	if (!coverUrl || coverCache.has(coverUrl) || loadingCovers.has(coverUrl)) return;
+async function preloadSingleCover(
+	coverUrl: string,
+	timeout = 5000,
+	maxRetries = 2,
+): Promise<void> {
+	if (!coverUrl || coverCache.has(coverUrl) || loadingCovers.has(coverUrl))
+		return;
 
 	// 对于本地路径（不是 http/https），直接设为缓存（不需要 fetch）
-	if (!coverUrl.startsWith('http://') && !coverUrl.startsWith('https://')) {
+	if (!coverUrl.startsWith("http://") && !coverUrl.startsWith("https://")) {
 		coverCache.set(coverUrl, coverUrl);
 		persistCoverCache();
 		return;
@@ -222,19 +235,19 @@ async function preloadSingleCover(coverUrl: string, timeout = 5000, maxRetries =
 	try {
 		// 使用优化的图片加载函数，自动处理备用源和重试
 		const loadedUrl = await loadImageWithRetry(coverUrl, timeout, maxRetries);
-		
+
 		if (loadedUrl && loadedUrl !== UTILS_DEFAULT_COVER) {
 			// 成功加载，尝试转换为blob以提高性能
 			try {
 				const controller = new AbortController();
 				const timeoutId = setTimeout(() => controller.abort(), timeout);
-				const res = await fetch(loadedUrl, { 
-					signal: controller.signal, 
-					cache: 'force-cache', 
-					mode: 'no-cors' // 避免CORS问题
+				const res = await fetch(loadedUrl, {
+					signal: controller.signal,
+					cache: "force-cache",
+					mode: "no-cors", // 避免CORS问题
 				});
 				clearTimeout(timeoutId);
-				
+
 				if (res && res.ok) {
 					const blob = await res.blob();
 					const objectUrl = URL.createObjectURL(blob);
@@ -246,13 +259,16 @@ async function preloadSingleCover(coverUrl: string, timeout = 5000, maxRetries =
 			} catch (e) {
 				// Blob转换失败，直接使用URL
 				coverCache.set(coverUrl, loadedUrl);
-				console.debug('Failed to convert cover to blob, using URL directly:', e);
+				console.debug(
+					"Failed to convert cover to blob, using URL directly:",
+					e,
+				);
 			}
 		} else {
 			// 加载失败，使用默认封面
 			coverCache.set(coverUrl, DEFAULT_COVER);
 		}
-		
+
 		persistCoverCache();
 	} catch (error) {
 		// 最终失败，使用默认封面
@@ -269,8 +285,11 @@ async function preloadCurrentAndNextCovers() {
 		const toPreload: Promise<void>[] = [];
 		// 优化：只预加载当前和下一首，减少初始加载时间
 		const candidates = [0, 1]
-			.map((offset, i) => ({ idx: (currentIndex + offset) % playlist.length, timeout: 3000 + i * 1000 }))
-			.filter((x, i, arr) => arr.findIndex(y => y.idx === x.idx) === i);
+			.map((offset, i) => ({
+				idx: (currentIndex + offset) % playlist.length,
+				timeout: 3000 + i * 1000,
+			}))
+			.filter((x, i, arr) => arr.findIndex((y) => y.idx === x.idx) === i);
 		for (const c of candidates) {
 			if (playlist[c.idx]?.cover) {
 				// 使用处理后的 cover 路径作为缓存 key
@@ -286,20 +305,22 @@ async function preloadCurrentAndNextCovers() {
 }
 
 function cleanupIO() {
-	try { io?.disconnect(); } catch {}
+	try {
+		io?.disconnect();
+	} catch {}
 	io = null;
 }
 
 function ensureMetingLoaded() {
 	if (metingLoaded || mode !== "meting" || isLoading) return;
 	metingLoaded = true;
-	
+
 	// 立即开始列表获取，不等待其他资源
 	fetchMetingPlaylist().then(() => {
 		// 列表获取后立即预加载，不等待 requestIdleCallback
 		preloadCurrentAndNextCovers();
 	});
-	
+
 	// 也在后台继续尝试预加载，以应对未来歌曲
 	setTimeout(() => {
 		if (playlist.length > 0) preloadCurrentAndNextCovers();
@@ -365,7 +386,10 @@ async function fetchMetingPlaylist() {
 		const template = metingApiCandidates[i];
 		if (!template) continue;
 		const apiUrl = buildMetingUrl(template);
-		console.log(`尝试使用 Meting API 源 (${i + 1}/${metingApiCandidates.length}):`, apiUrl);
+		console.log(
+			`尝试使用 Meting API 源 (${i + 1}/${metingApiCandidates.length}):`,
+			apiUrl,
+		);
 		try {
 			const list = await fetchMetingAPI(apiUrl, 10000 + i * 3000, 3);
 			if (list.length > 0) {
@@ -373,7 +397,7 @@ async function fetchMetingPlaylist() {
 				console.log("🎵 第一首歌数据:", list[0]);
 			}
 			playlist = list.map((song: SongData) =>
-				processSongData(song, getAssetPath, normalizeCoverUrl)
+				processSongData(song, getAssetPath, normalizeCoverUrl),
 			);
 			// 如果配置要求自动连播，设置为列表循环
 			if (shouldAutoplayContinuous) {
@@ -388,7 +412,10 @@ async function fetchMetingPlaylist() {
 			isLoading = false;
 			return; // 成功后退出
 		} catch (e) {
-			console.warn(`Meting API 源失败 (${i + 1}/${metingApiCandidates.length}):`, e);
+			console.warn(
+				`Meting API 源失败 (${i + 1}/${metingApiCandidates.length}):`,
+				e,
+			);
 			// 尝试下一个候选源
 		}
 	}
@@ -420,7 +447,7 @@ function ensurePlayerReady(): boolean {
 		console.warn("Audio element not initialized");
 		return false;
 	}
-	
+
 	// 检查播放列表是否已加载
 	if (playlist.length === 0) {
 		console.debug("Playlist is empty, attempting to load");
@@ -429,21 +456,21 @@ function ensurePlayerReady(): boolean {
 			return false;
 		}
 	}
-	
+
 	// 检查当前歌曲是否已加载
 	if (!currentSong.url && playlist.length > 0) {
 		console.debug("Current song not loaded, loading first song");
 		loadSong(playlist[0]);
 		return false;
 	}
-	
+
 	// 检查音频源是否设置
 	if (!audio.src && currentSong.url) {
 		console.debug("Audio src not set, reloading current song");
 		loadSong(currentSong);
 		return false;
 	}
-	
+
 	return true;
 }
 
@@ -462,33 +489,33 @@ function togglePlay() {
 		}, 500);
 		return;
 	}
-	
+
 	if (!audio) {
 		console.warn("Audio element not initialized");
 		return;
 	}
-	
+
 	if (isPlaying) {
 		audio.pause();
 		return;
 	}
-	
+
 	// 播放逻辑
 	// 由于禁用了 AudioContext，此处不需要恢复音频上下文
 	// if (audioContext?.state === "suspended") {
 	// 	audioContext.resume().catch(() => {});
 	// }
-	
+
 	// 确保取消静音并有合理音量
 	audio.muted = false;
 	if (!Number.isFinite(audio.volume) || audio.volume === 0) {
 		audio.volume = Math.max(0.01, audioVolumeCurrent || 0.3);
 	}
-	
+
 	// 如果音频未加载或没有歌曲URL，尝试加载当前歌曲
 	if (!audio.src || !currentSong.url || audio.readyState === 0) {
 		console.debug("Audio source not ready, loading...");
-		
+
 		// 如果播放列表为空，尝试确保加载
 		if (playlist.length === 0) {
 			console.debug("Playlist empty, attempting to load...");
@@ -499,7 +526,7 @@ function togglePlay() {
 					if (playlist.length > 0 && audio) {
 						loadSong(playlist[0]);
 						audio.play().catch((err) => {
-							logAudioError(err, 'togglePlay -> meting load fallback play');
+							logAudioError(err, "togglePlay -> meting load fallback play");
 							showErrorMessage("播放失败，请重试");
 						});
 					}
@@ -507,7 +534,7 @@ function togglePlay() {
 				return;
 			}
 		}
-		
+
 		// 如果有当前歌曲但未加载，加载它
 		if (currentSong.url) {
 			loadSong(currentSong);
@@ -515,16 +542,20 @@ function togglePlay() {
 			const playWhenReady = () => {
 				if (audio.readyState >= 2) {
 					audio.play().catch((err) => {
-						logAudioError(err, 'togglePlay -> playWhenReady (readyState>=2)');
+						logAudioError(err, "togglePlay -> playWhenReady (readyState>=2)");
 						showErrorMessage("播放失败，请重试");
 					});
 				} else {
-					audio.addEventListener("canplay", () => {
-						audio.play().catch((err) => {
-							logAudioError(err, 'togglePlay -> playWhenReady (canplay)');
-							showErrorMessage("播放失败，请重试");
-						});
-					}, { once: true });
+					audio.addEventListener(
+						"canplay",
+						() => {
+							audio.play().catch((err) => {
+								logAudioError(err, "togglePlay -> playWhenReady (canplay)");
+								showErrorMessage("播放失败，请重试");
+							});
+						},
+						{ once: true },
+					);
 				}
 			};
 			playWhenReady();
@@ -532,19 +563,19 @@ function togglePlay() {
 			// 如果当前歌曲无URL但播放列表有歌曲，加载第一首
 			loadSong(playlist[0]);
 			setTimeout(() => {
-					if (audio && audio.readyState >= 2) {
-						audio.play().catch((err) => {
-							logAudioError(err, 'togglePlay -> playlist first load play');
-							showErrorMessage("播放失败，请重试");
-						});
-					}
+				if (audio && audio.readyState >= 2) {
+					audio.play().catch((err) => {
+						logAudioError(err, "togglePlay -> playlist first load play");
+						showErrorMessage("播放失败，请重试");
+					});
+				}
 			}, 200);
 		} else {
 			showErrorMessage("播放列表为空，请稍候");
 		}
 		return;
 	}
-	
+
 	// 调试信息：输出当前音频状态
 	console.debug("Audio play request", {
 		src: audio.src,
@@ -552,16 +583,16 @@ function togglePlay() {
 		muted: audio.muted,
 		readyState: audio.readyState,
 		networkState: audio.networkState,
-		currentSongUrl: currentSong.url
+		currentSongUrl: currentSong.url,
 	});
-	
+
 	// 直接播放
 	audio.play().catch((err) => {
-		logAudioError(err, 'togglePlay -> audio.play direct');
+		logAudioError(err, "togglePlay -> audio.play direct");
 		// 如果播放失败，尝试重新加载
-		if (err.name === 'NotAllowedError') {
+		if (err.name === "NotAllowedError") {
 			showErrorMessage("播放被浏览器阻止，请先点击页面任意位置");
-		} else if (err.name === 'NotSupportedError') {
+		} else if (err.name === "NotSupportedError") {
 			showErrorMessage("音频格式不支持或资源不可用");
 			// 尝试重新加载
 			setTimeout(() => {
@@ -594,7 +625,7 @@ async function toggleHidden() {
 		// Wait for the DOM to update so child elements (canvas/model) can initialize
 		await tick();
 		// If using meting mode, ensure lazy loading starts immediately
-		if (mode === 'meting') ensureMetingLoaded();
+		if (mode === "meting") ensureMetingLoaded();
 		// micro-delay to let transitions / stacking contexts settle
 		setTimeout(() => {}, 0);
 	}
@@ -605,7 +636,7 @@ function togglePlaylist() {
 	// 当用户打开歌单时，确保歌单已加载并尝试预加载列表中所有封面（分批并发以避免过多并发请求）
 	if (showPlaylist) {
 		// 如果在 meting 模式，先确保已加载 Meting 歌单
-		if (mode === 'meting') {
+		if (mode === "meting") {
 			ensureMetingLoaded();
 		}
 		// 异步触发全部封面预加载（不阻塞 UI）
@@ -664,10 +695,12 @@ function nextSong() {
 	if (playlist.length <= 1) {
 		if (!audio) return;
 		if (isRepeating === 1) {
-				try {
-					audio.currentTime = 0;
-					audio.play().catch((e) => { logAudioError(e, 'nextSong -> single-track replay'); });
-				} catch (e) {}
+			try {
+				audio.currentTime = 0;
+				audio.play().catch((e) => {
+					logAudioError(e, "nextSong -> single-track replay");
+				});
+			} catch (e) {}
 			return;
 		}
 		if (isRepeating === 2) {
@@ -690,13 +723,13 @@ function nextSong() {
 	// 强制尝试播放，避免在某些浏览器/状态同步下切歌后未自动开始播放
 	setTimeout(() => {
 		try {
-				if (audio && !isPlaying) {
-					audio.play().catch((e) => {
-						logAudioError(e, 'nextSong -> auto-play after nextSong');
-					});
-				}
+			if (audio && !isPlaying) {
+				audio.play().catch((e) => {
+					logAudioError(e, "nextSong -> auto-play after nextSong");
+				});
+			}
 		} catch (e) {
-			console.debug('Auto-play attempt threw:', e);
+			console.debug("Auto-play attempt threw:", e);
 		}
 	}, 200);
 }
@@ -704,11 +737,20 @@ function nextSong() {
 function playSong(index: number) {
 	if (index < 0 || index >= playlist.length) return;
 	const wasPlaying = isPlaying;
-	console.debug("playSong called:", { index, wasPlaying, shouldAutoplayContinuous, title: playlist[index]?.title });
+	console.debug("playSong called:", {
+		index,
+		wasPlaying,
+		shouldAutoplayContinuous,
+		title: playlist[index]?.title,
+	});
 	currentIndex = index;
-	
+
 	// 检查是否可以直接使用预加载的音频
-	if (preloadAudio && prefetchedForIndex === index && preloadAudio.readyState >= 2) {
+	if (
+		preloadAudio &&
+		prefetchedForIndex === index &&
+		preloadAudio.readyState >= 2
+	) {
 		console.debug("Using preloaded audio for:", playlist[index].title);
 		// 暂停当前音频
 		if (audio) {
@@ -729,32 +771,47 @@ function playSong(index: number) {
 
 		// 同步时长与当前时间：若预加载音频已准备好则立即更新，否则在 loadeddata 时更新
 		try {
-			if (audio && audio.duration && Number.isFinite(audio.duration) && audio.duration > 0) {
+			if (
+				audio &&
+				audio.duration &&
+				Number.isFinite(audio.duration) &&
+				audio.duration > 0
+			) {
 				duration = Math.floor(audio.duration);
 				if (playlist[currentIndex]) playlist[currentIndex].duration = duration;
 				currentSong.duration = duration;
 				currentTime = audio.currentTime || 0;
 			} else if (audio) {
-				audio.addEventListener("loadeddata", () => {
-					if (audio && audio.duration && Number.isFinite(audio.duration) && audio.duration > 0) {
-						duration = Math.floor(audio.duration);
-						if (playlist[currentIndex]) playlist[currentIndex].duration = duration;
-						currentSong.duration = duration;
-					}
-					currentTime = audio.currentTime || 0;
-				}, { once: true });
+				audio.addEventListener(
+					"loadeddata",
+					() => {
+						if (
+							audio &&
+							audio.duration &&
+							Number.isFinite(audio.duration) &&
+							audio.duration > 0
+						) {
+							duration = Math.floor(audio.duration);
+							if (playlist[currentIndex])
+								playlist[currentIndex].duration = duration;
+							currentSong.duration = duration;
+						}
+						currentTime = audio.currentTime || 0;
+					},
+					{ once: true },
+				);
 			}
 		} catch (e) {
-			console.debug('Failed to sync duration from preloaded audio:', e);
+			console.debug("Failed to sync duration from preloaded audio:", e);
 		}
-		
+
 		// 如果之前在播放，立即开始播放
-			if (wasPlaying) {
-				audio.play().catch((err) => {
-					logAudioError(err, 'playSong -> play preloaded audio');
-				});
-			}
-		
+		if (wasPlaying) {
+			audio.play().catch((err) => {
+				logAudioError(err, "playSong -> play preloaded audio");
+			});
+		}
+
 		// 预加载下一首
 		const nextIdx = currentIndex + 1;
 		if (nextIdx < playlist.length && prefetchedForIndex !== nextIdx) {
@@ -763,7 +820,7 @@ function playSong(index: number) {
 		}
 		return;
 	}
-	
+
 	if (audio) {
 		try {
 			audio.pause();
@@ -771,9 +828,9 @@ function playSong(index: number) {
 			console.debug("Pause failed in playSong:", e);
 		}
 	}
-	
+
 	loadSong(playlist[currentIndex]);
-	
+
 	// 预加载当前歌曲及后续歌曲的封面
 	if (playlist[currentIndex]?.cover) {
 		preloadSingleCover(playlist[currentIndex].cover, 3000);
@@ -782,7 +839,7 @@ function playSong(index: number) {
 	if (nextIndex < playlist.length && playlist[nextIndex]?.cover) {
 		preloadSingleCover(playlist[nextIndex].cover, 5000);
 	}
-	
+
 	// 尝试立即预取下一首（如果尚未预取）以降低切换等待
 	const maybeNext = currentIndex + 1;
 	if (
@@ -793,32 +850,43 @@ function playSong(index: number) {
 		prefetchedForIndex = maybeNext;
 		prefetchNext();
 	}
-	
+
 	// 如果之前在播放，或者启用了自动连播（列表循环），则自动开始播放
 	// 仅在用户已交互或配置允许自动播放时才启动自动播放（放宽条件：只要用户已交互或配置允许，就可因“正在播放”而自动续播）
-	const shouldAutoPlay = (wasPlaying || shouldAutoplayContinuous) && (userInteracted || shouldAutoplay);
-	console.debug("Should auto-play next track:", shouldAutoPlay, { wasPlaying, shouldAutoplayContinuous });
+	const shouldAutoPlay =
+		(wasPlaying || shouldAutoplayContinuous) &&
+		(userInteracted || shouldAutoplay);
+	console.debug("Should auto-play next track:", shouldAutoPlay, {
+		wasPlaying,
+		shouldAutoplayContinuous,
+	});
 	if (shouldAutoPlay) {
 		setTimeout(() => {
 			if (!audio) return;
-			
-				const attemptPlay = () => {
-					audio.play().catch((err) => {
-						logAudioError(err, 'playSong -> attemptPlay after song change');
-						// 如果播放失败，尝试再次加载
-						if (err.name === 'NotSupportedError' || err.name === 'AbortError') {
-							setTimeout(() => {
-								if (audio && audio.readyState < 2) {
-									console.debug("Reloading audio after play failure");
-									audio.load();
-									audio.addEventListener("canplay", () => {
-										audio.play().catch((e) => { logAudioError(e, 'playSong -> reload canplay inner play'); });
-									}, { once: true });
-								}
-							}, 200);
-						}
-					});
-				};
+
+			const attemptPlay = () => {
+				audio.play().catch((err) => {
+					logAudioError(err, "playSong -> attemptPlay after song change");
+					// 如果播放失败，尝试再次加载
+					if (err.name === "NotSupportedError" || err.name === "AbortError") {
+						setTimeout(() => {
+							if (audio && audio.readyState < 2) {
+								console.debug("Reloading audio after play failure");
+								audio.load();
+								audio.addEventListener(
+									"canplay",
+									() => {
+										audio.play().catch((e) => {
+											logAudioError(e, "playSong -> reload canplay inner play");
+										});
+									},
+									{ once: true },
+								);
+							}
+						}, 200);
+					}
+				});
+			};
 
 			if (audio.readyState >= 2) {
 				attemptPlay();
@@ -843,23 +911,23 @@ async function prefetchNext() {
 		if (!playlist || nextIndex >= playlist.length) return;
 		const next = playlist[nextIndex];
 		if (!next || !next.url) return;
-		
+
 		// 清理之前的预加载音频
 		if (preloadAudio) {
 			preloadAudio.pause();
-			preloadAudio.src = '';
+			preloadAudio.src = "";
 			preloadAudio = null;
 		}
-		
+
 		// 创建新的预加载音频元素
 		preloadAudio = new Audio();
-		preloadAudio.preload = 'auto';
+		preloadAudio.preload = "auto";
 		preloadAudio.volume = 0; // 静音预加载
-		
+
 		const audioUrl = getAssetPath(next.url);
 		preloadAudio.src = audioUrl;
 		preloadAudio.load();
-		
+
 		// 强制预加载缓冲
 		setTimeout(() => {
 			if (preloadAudio && preloadAudio.readyState < 2) {
@@ -867,23 +935,25 @@ async function prefetchNext() {
 				if (shouldAutoplay && userInteracted) {
 					const tempPlay = preloadAudio.play?.();
 					if (tempPlay && typeof tempPlay.then === "function") {
-						tempPlay.then(() => {
-							setTimeout(() => {
-								if (preloadAudio && preloadAudio !== audio) {
-									try {
-										preloadAudio.pause();
-										preloadAudio.currentTime = 0;
-									} catch (e) {}
-								}
-							}, 200);
-						}).catch(() => {
-							// 忽略预加载播放失败
-						});
+						tempPlay
+							.then(() => {
+								setTimeout(() => {
+									if (preloadAudio && preloadAudio !== audio) {
+										try {
+											preloadAudio.pause();
+											preloadAudio.currentTime = 0;
+										} catch (e) {}
+									}
+								}, 200);
+							})
+							.catch(() => {
+								// 忽略预加载播放失败
+							});
 					}
 				}
 			}
 		}, 300);
-		
+
 		console.debug("Prefetching next track:", next.title);
 	} catch (e) {
 		// 预取失败无需抛错，仅记录以便调试
@@ -918,7 +988,7 @@ function cacheCoverVariants(raw: string) {
 		coverCache.set(stripped, normalized);
 		persistCoverCache();
 	} catch (e) {
-		console.debug('cacheCoverVariants failed', e);
+		console.debug("cacheCoverVariants failed", e);
 	}
 }
 
@@ -927,37 +997,37 @@ function loadSong(song: typeof currentSong) {
 		console.warn("Cannot load song: missing song data or audio element");
 		return;
 	}
-	
+
 	// song.cover已经是完整路径，不需要再次处理
 	currentSong = { ...song };
-	
+
 	// 将当前封面写入缓存的多版本键，确保歌单列表与迷你封面共享同一资源
 	cacheCoverVariants(song.cover);
-	
+
 	if (!song.url) {
 		console.warn("Song has no URL:", song);
 		isLoading = false;
 		return;
 	}
-	
+
 	isLoading = true;
-	
+
 	// 暂停当前播放
 	try {
 		audio.pause();
 	} catch (e) {
 		console.debug("Pause failed:", e);
 	}
-	
+
 	audio.currentTime = 0;
 	currentTime = 0;
 	duration = song.duration ?? 0;
-	
+
 	// 清理旧的事件监听器
 	audio.removeEventListener("loadeddata", handleLoadSuccess);
 	audio.removeEventListener("error", handleLoadError);
 	audio.removeEventListener("loadstart", handleLoadStart);
-	
+
 	// 添加新的事件监听器
 	audio.addEventListener("loadeddata", handleLoadSuccess, { once: true });
 	audio.addEventListener("error", handleLoadError, { once: true });
@@ -965,27 +1035,29 @@ function loadSong(song: typeof currentSong) {
 
 	const audioUrl = getAssetPath(song.url);
 	console.debug("Loading audio:", audioUrl, "readyState:", audio.readyState);
-	
+
 	// 设置音频源并加载
 	audio.src = audioUrl;
 	audio.load();
-	
+
 	// 强制预加载：尝试播放一小段时间然后暂停，以触发浏览器缓冲
 	setTimeout(() => {
 		// 仅在用户已交互或配置允许自动播放时尝试临时播放以触发缓冲
-		if ((shouldAutoplay && userInteracted) && audio.readyState < 2) {
+		if (shouldAutoplay && userInteracted && audio.readyState < 2) {
 			const tempPlay = audio.play();
 			if (tempPlay) {
-				tempPlay.then(() => {
-					setTimeout(() => {
-						if (audio && !isPlaying) {
-							audio.pause();
-							audio.currentTime = 0;
-						}
-					}, 100);
-				}).catch(() => {
-					// 忽略播放失败，继续加载
-				});
+				tempPlay
+					.then(() => {
+						setTimeout(() => {
+							if (audio && !isPlaying) {
+								audio.pause();
+								audio.currentTime = 0;
+							}
+						}, 100);
+					})
+					.catch(() => {
+						// 忽略播放失败，继续加载
+					});
 			}
 		}
 	}, 200);
@@ -1018,7 +1090,9 @@ function handleLoadSuccess() {
 function handleLoadError(event: Event | any) {
 	isLoading = false;
 	// 打印详尽的上下文以便排查（networkState/readyState/mediaError）
-	try { logAudioError(event?.error || event, 'handleLoadError'); } catch (e) {}
+	try {
+		logAudioError(event?.error || event, "handleLoadError");
+	} catch (e) {}
 	showErrorMessage(`无法播放 "${currentSong.title}"，正在尝试下一首...`);
 	if (playlist.length > 1) setTimeout(() => nextSong(), 1000);
 	else showErrorMessage("播放列表中没有可用的歌曲");
@@ -1047,9 +1121,17 @@ function hideError() {
 function setProgress(event: MouseEvent) {
 	if (!audio || !progressBar) return;
 	const rect = progressBar.getBoundingClientRect();
-	const percent = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+	const percent = Math.max(
+		0,
+		Math.min(1, (event.clientX - rect.left) / rect.width),
+	);
 	// 使用实际 audio.duration 优先，回退到组件维护的 duration
-	const actualDuration = (audio.duration && Number.isFinite(audio.duration)) ? audio.duration : (Number.isFinite(duration) ? duration : 0);
+	const actualDuration =
+		audio.duration && Number.isFinite(audio.duration)
+			? audio.duration
+			: Number.isFinite(duration)
+				? duration
+				: 0;
 	// 同步组件的 duration，保证模板渲染时进度条基于最新时长
 	if (actualDuration > 0 && duration !== actualDuration) {
 		duration = actualDuration;
@@ -1079,7 +1161,12 @@ function scheduleProgressUpdate(clientX: number) {
 				Math.min(1, (lastProgressClientX - rect.left) / rect.width),
 			);
 			// 使用实际 audio.duration 优先，回退到组件维护的 duration
-			const actualDuration = (audio.duration && Number.isFinite(audio.duration)) ? audio.duration : (Number.isFinite(duration) ? duration : 0);
+			const actualDuration =
+				audio.duration && Number.isFinite(audio.duration)
+					? audio.duration
+					: Number.isFinite(duration)
+						? duration
+						: 0;
 			// 同步组件的 duration，保证模板使用的 duration 跟随实际值
 			if (actualDuration > 0 && duration !== actualDuration) {
 				duration = actualDuration;
@@ -1089,7 +1176,8 @@ function scheduleProgressUpdate(clientX: number) {
 				newTime = Math.max(0, actualDuration - 0.15);
 			}
 			// 避免不必要的重复设置，特别是当拖动超出边界时
-			if (Math.abs(currentTime - newTime) > 0.01) { // 只有当时间变化超过10ms时才更新
+			if (Math.abs(currentTime - newTime) > 0.01) {
+				// 只有当时间变化超过10ms时才更新
 				currentTime = newTime;
 				audio.currentTime = newTime;
 			}
@@ -1144,7 +1232,12 @@ function stopProgressDrag() {
 	// 确保最终位置已应用到 audio.currentTime（再次截断防止触发 ended）
 	try {
 		if (audio) {
-			const actualDuration = (audio.duration && Number.isFinite(audio.duration)) ? audio.duration : (Number.isFinite(duration) ? duration : 0);
+			const actualDuration =
+				audio.duration && Number.isFinite(audio.duration)
+					? audio.duration
+					: Number.isFinite(duration)
+						? duration
+						: 0;
 			let finalTime = currentTime;
 			if (actualDuration > 0 && finalTime >= actualDuration) {
 				finalTime = Math.max(0, actualDuration - 0.15);
@@ -1153,38 +1246,56 @@ function stopProgressDrag() {
 			currentTime = finalTime;
 		}
 	} catch (e) {
-		console.debug('Error applying final seek after drag:', e);
+		console.debug("Error applying final seek after drag:", e);
 	}
 	// 释放拖动时恢复自动连播：如果当前已接近末尾，则在释放后触发下一首或单曲循环
 	try {
-		const actualDuration2 = (audio?.duration && Number.isFinite(audio.duration)) ? audio.duration : (Number.isFinite(duration) ? duration : 0);
-		const nearEnd = actualDuration2 > 0 && currentTime >= actualDuration2 - 0.15;
+		const actualDuration2 =
+			audio?.duration && Number.isFinite(audio.duration)
+				? audio.duration
+				: Number.isFinite(duration)
+					? duration
+					: 0;
+		const nearEnd =
+			actualDuration2 > 0 && currentTime >= actualDuration2 - 0.15;
 		if (nearEnd) {
 			// 与 ended 处理逻辑一致
 			if (isRepeating === 1) {
 				// 单曲循环：重置并播放
 				if (audio) {
 					audio.currentTime = 0;
-					audio.play().catch((e) => { logAudioError(e, 'stopProgressDrag -> near-end single-loop replay'); });
+					audio.play().catch((e) => {
+						logAudioError(e, "stopProgressDrag -> near-end single-loop replay");
+					});
 				}
-			} else if (isRepeating === 2 || currentIndex < playlist.length - 1 || isShuffled) {
+			} else if (
+				isRepeating === 2 ||
+				currentIndex < playlist.length - 1 ||
+				isShuffled
+			) {
 				setTimeout(() => {
-					try { nextSong(); } catch (e) { console.debug('nextSong after drag failed', e); }
+					try {
+						nextSong();
+					} catch (e) {
+						console.debug("nextSong after drag failed", e);
+					}
 				}, 150);
 			} else {
 				isPlaying = false;
 			}
 		}
 	} catch (e) {
-		console.debug('Error while handling near-end after drag:', e);
+		console.debug("Error while handling near-end after drag:", e);
 	}
 	// 如果拖动前正在播放，尝试恢复播放（某些浏览器在设置 currentTime 后会自动暂停）
 	try {
 		if (wasPlayingDuringDrag && audio && !isPlaying) {
-			audio.play().catch((e) => { logAudioError(e, 'stopProgressDrag -> resume after drag'); });
+			audio.play().catch((e) => {
+				logAudioError(e, "stopProgressDrag -> resume after drag");
+			});
 		}
 	} catch (e) {
-		console.debug('Error while trying to resume after drag:', e);
+		console.debug("Error while trying to resume after drag:", e);
 	} finally {
 		wasPlayingDuringDrag = false;
 	}
@@ -1427,7 +1538,16 @@ function handleAudioEvents() {
 		}
 	});
 	audio.addEventListener("ended", () => {
-		console.debug("Track ended. isRepeating:", isRepeating, "currentIndex:", currentIndex, "playlist.length:", playlist.length, "isProgressDragging:", isProgressDragging);
+		console.debug(
+			"Track ended. isRepeating:",
+			isRepeating,
+			"currentIndex:",
+			currentIndex,
+			"playlist.length:",
+			playlist.length,
+			"isProgressDragging:",
+			isProgressDragging,
+		);
 		// 如果正在拖动进度条，则忽略 ended 事件，等用户释放后再处理
 		if (isProgressDragging) {
 			console.debug("Ended ignored because progress drag is active");
@@ -1436,7 +1556,9 @@ function handleAudioEvents() {
 		if (isRepeating === 1) {
 			// 单曲循环
 			audio.currentTime = 0;
-			audio.play().catch((e) => { logAudioError(e, 'audio ended -> single-loop replay'); });
+			audio.play().catch((e) => {
+				logAudioError(e, "audio ended -> single-loop replay");
+			});
 		} else if (
 			isRepeating === 2 ||
 			currentIndex < playlist.length - 1 ||
@@ -1470,7 +1592,9 @@ function handleAudioEvents() {
 			const buffered = audio.buffered.end(audio.buffered.length - 1);
 			const duration = audio.duration || 1;
 			const bufferPercent = (buffered / duration) * 100;
-			console.debug(`Buffer progress: ${bufferPercent.toFixed(1)}% (${buffered.toFixed(1)}s / ${duration.toFixed(1)}s)`);
+			console.debug(
+				`Buffer progress: ${bufferPercent.toFixed(1)}% (${buffered.toFixed(1)}s / ${duration.toFixed(1)}s)`,
+			);
 		}
 	});
 }
@@ -1483,29 +1607,29 @@ onMount(() => {
 	// 关键修复：仅在确定音源支持CORS时才设置crossOrigin
 	// 默认情况下不设置，避免CORS错误阻止播放
 	// audio.crossOrigin = "anonymous"; // 注释掉，改为按需设置
-	
+
 	// 修改预加载策略：使用 auto 而非 metadata，确保音频内容预加载以避免播放卡顿
 	audio.preload = "auto";
-	
+
 	// 增强缓冲策略：设置更大的缓冲区
 	if (audio.buffered !== undefined) {
 		// 尝试设置缓冲属性（如果浏览器支持）
 		try {
 			// 一些浏览器支持设置缓冲大小
-			if ('buffered' in audio && typeof audio.buffered === 'object') {
+			if ("buffered" in audio && typeof audio.buffered === "object") {
 				console.debug("Audio buffering enabled");
 			}
 		} catch (e) {
 			console.debug("Buffer settings not supported:", e);
 		}
 	}
-	
+
 	// 初始化平滑音量当前/目标值（使用灵敏度压缩以使初始低音量更平滑）
 	const initAdjusted = applySensitivity(volume, SENSITIVITY_GAMMA);
 	audioVolumeCurrent = getLogVolume(initAdjusted);
 	audioVolumeTarget = audioVolumeCurrent;
 	if (audio) audio.volume = audioVolumeCurrent;
-	
+
 	// 禁用 Web Audio API 以避免 CORS 问题
 	// Web Audio API 的 MediaElementAudioSource 在跨域音频源上会因 CORS 限制而输出零值（静音）
 	// 因此我们直接使用原生 Audio 元素，虽然无法使用增益节点提升音量，但至少能正常播放
@@ -1517,26 +1641,29 @@ onMount(() => {
 		if (isBrowser && rootEl && rootEl.parentElement !== document.body) {
 			document.body.appendChild(rootEl);
 			portalAppended = true;
-			console.debug('MusicPlayer portal appended to document.body');
+			console.debug("MusicPlayer portal appended to document.body");
 		}
 	} catch (e) {
-		console.debug('Failed to append MusicPlayer to body', e);
+		console.debug("Failed to append MusicPlayer to body", e);
 	}
-	
+
 	handleAudioEvents();
-	
+
 	if (!musicPlayerConfig.enable) {
 		return;
 	}
-	
+
 	// 视口可见后再加载 Meting 歌单
 	if (isBrowser && mode === "meting") {
-		io = new IntersectionObserver((entries) => {
-			if (entries[0]?.isIntersecting) {
-				ensureMetingLoaded();
-				cleanupIO();
-			}
-		}, { rootMargin: "200px" });
+		io = new IntersectionObserver(
+			(entries) => {
+				if (entries[0]?.isIntersecting) {
+					ensureMetingLoaded();
+					cleanupIO();
+				}
+			},
+			{ rootMargin: "200px" },
+		);
 		if (rootEl) io.observe(rootEl);
 
 		// 任意一次用户交互也触发加载
@@ -1553,15 +1680,23 @@ onMount(() => {
 			window.removeEventListener("keydown", markInteracted, true);
 			window.removeEventListener("touchstart", markInteracted, true);
 		};
-		window.addEventListener("click", markInteracted, { once: true, capture: true });
-		window.addEventListener("keydown", markInteracted, { once: true, capture: true });
-		window.addEventListener("touchstart", markInteracted, { once: true, capture: true });
+		window.addEventListener("click", markInteracted, {
+			once: true,
+			capture: true,
+		});
+		window.addEventListener("keydown", markInteracted, {
+			once: true,
+			capture: true,
+		});
+		window.addEventListener("touchstart", markInteracted, {
+			once: true,
+			capture: true,
+		});
 		// 刷新后立即尝试加载，不等待交互
 		setTimeout(() => {
 			ensureMetingLoaded();
 		}, 100);
-	}
-	else {
+	} else {
 		// 本地歌单：立即加载（成本低），但不预加载所有资源
 		playlist = localPlaylist.map((s) => {
 			const rawCover = normalizeCoverUrl(s.cover);
@@ -1619,12 +1754,19 @@ onDestroy(() => {
 
 		// 清理 portal（如果已移动到 body）
 		try {
-			if (isBrowser && portalAppended && rootEl && rootEl.parentElement === document.body) {
+			if (
+				isBrowser &&
+				portalAppended &&
+				rootEl &&
+				rootEl.parentElement === document.body
+			) {
 				rootEl.remove();
 				portalAppended = false;
-				console.debug('MusicPlayer portal removed from document.body');
+				console.debug("MusicPlayer portal removed from document.body");
 			}
-		} catch (e) { /* ignore */ }
+		} catch (e) {
+			/* ignore */
+		}
 		if (volHoverRafId != null) {
 			cancelAnimationFrame(volHoverRafId);
 			volHoverRafId = null;
@@ -1643,8 +1785,10 @@ onDestroy(() => {
 		// Revoke any session-scoped blob URLs created during this session to avoid leaks.
 		try {
 			for (const val of coverCache.values()) {
-				if (typeof val === 'string' && val.startsWith('blob:')) {
-					try { URL.revokeObjectURL(val); } catch (e) {}
+				if (typeof val === "string" && val.startsWith("blob:")) {
+					try {
+						URL.revokeObjectURL(val);
+					} catch (e) {}
 				}
 			}
 		} catch (e) {}

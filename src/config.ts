@@ -410,7 +410,7 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 	id: "17514570572", // 歌单ID
 	server: "netease", // 音乐源服务器。有的meting的api源支持更多平台,一般来说,netease=网易云音乐, tencent=QQ音乐, kugou=酷狗音乐, xiami=虾米音乐, baidu=百度音乐
 	type: "playlist", // 播单类型
-	
+
 	// === 性能优化配置 ===
 	preload: "auto", // 仅预加载元数据，不预加载完整音频，加快初始加载速度
 	autoplay: false, // 进入页面不自动播放，需要用户手动点击播放
@@ -420,7 +420,7 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 	order: "list", // 播放顺序：list=列表顺序, random=随机播放
 	mutex: true, // 互斥模式，阻止多个播放器同时播放
 	storageName: "music-player-cache", // localStorage 缓存键名，用于缓存播放列表数据减少重复请求
-	
+
 	// 可选：当浏览器支持 WebAudio 时，增益倍数用于放大输出（例如 2.0 表示最多放大 2 倍）
 	// 若音源受 CORS 限制而回退为非 WebAudio 模式，则此配置无效。
 	gainBoost: 1.0, // 设置增益倍数为1.0，避免放大导致的卡顿
@@ -616,8 +616,7 @@ export const sakuraConfig: SakuraConfig = {
 
 // Pio 看板娘配置
 // 改为相对路径避免 404，在部署到 gh-pages 时可切回 CDN
-export const pioCDNBase =
-	import.meta.env.PUBLIC_PIO_CDN_BASE || "/"; // 默认相对路径，可用环境变量覆盖为 CDN
+export const pioCDNBase = import.meta.env.PUBLIC_PIO_CDN_BASE || "/"; // 默认相对路径，可用环境变量覆盖为 CDN
 
 export const pioConfig: import("./types/config").PioConfig = {
 	enable: true, // 启用看板娘

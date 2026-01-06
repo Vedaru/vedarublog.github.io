@@ -1,12 +1,12 @@
 <script lang="ts">
-import I18nKey from "../i18n/i18nKey";
-import { i18n } from "../i18n/translation";
 import Icon from "@iconify/svelte";
-import { navigateToPage } from "../utils/navigation-utils";
-import { url } from "../utils/url-utils";
 import { onMount } from "svelte";
 import type { SearchResult } from "../global";
+import I18nKey from "../i18n/i18nKey";
+import { i18n } from "../i18n/translation";
+import { navigateToPage } from "../utils/navigation-utils";
 import { panelManager } from "../utils/panel-manager";
+import { url } from "../utils/url-utils";
 
 let keywordDesktop = "";
 let keywordMobile = "";

@@ -245,7 +245,7 @@ export type WALLPAPER_MODE =
 export type BlogPostData = {
 	body: string;
 	title: string;
-    published: string | Date;
+	published: string | Date;
 	description: string;
 	tags: string[];
 	draft?: boolean;

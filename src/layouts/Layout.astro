@@ -1,9 +1,9 @@
 ---
 import ConfigCarrier from "@components/ConfigCarrier.astro";
 import BackToTop from "@components/control/BackToTop.astro";
+import DiaryYearMonthTOC from "@components/widget/DiaryYearMonthTOC.astro"; // 导入日记目录组件以注册 custom element
 import MusicPlayer from "@components/widget/MusicPlayer.svelte";
 import Pio from "@components/widget/Pio.svelte"; // 使用 Svelte 版本的 Pio 组件
-import DiaryYearMonthTOC from "@components/widget/DiaryYearMonthTOC.astro"; // 导入日记目录组件以注册 custom element
 import {
 	musicPlayerConfig,
 	pioConfig,
@@ -68,7 +68,7 @@ const configHue = siteConfig.themeColor.hue;
 const navbarTransparentMode =
 	siteConfig.banner?.navbar?.transparentMode || "semi";
 // 判断是否应该显示顶部高光效果（只在full和semifull模式下显示）
-console.debug('Navbar transparent mode:', navbarTransparentMode);
+console.debug("Navbar transparent mode:", navbarTransparentMode);
 
 // 获取默认banner图片的辅助函数
 const getDefaultBanner = (): string => {
@@ -150,9 +150,15 @@ if (siteConfig.font) {
 
 	// 先添加 ASCII 字体（优先级最高）
 	if (siteConfig.font.asciiFont?.fontFamily) {
-		const asciiFonts = siteConfig.font.asciiFont.fontFamily.split(',').map(f => f.trim());
-		asciiFonts.forEach(font => {
-			fonts.push(font.includes(" ") && !font.startsWith('"') && !font.startsWith("'") ? `"${font}"` : font);
+		const asciiFonts = siteConfig.font.asciiFont.fontFamily
+			.split(",")
+			.map((f) => f.trim());
+		asciiFonts.forEach((font) => {
+			fonts.push(
+				font.includes(" ") && !font.startsWith('"') && !font.startsWith("'")
+					? `"${font}"`
+					: font,
+			);
 		});
 	}
 
@@ -185,9 +191,7 @@ if (siteConfig.font) {
 ---
 
 <!DOCTYPE html>
-<html lang={siteLang} class="bg-[var(--page-bg)] text-[14px] md:text-[16px]"
-	  data-overlayscrollbars-initialize
->
+<html lang={siteLang} class="bg-[var(--page-bg)] text-[14px] md:text-[16px]">
 	<head>
 		<!-- Preload local fonts to reduce FOUT on loading screen -->
 		{siteConfig.font?.asciiFont?.localFonts?.map((f) => (
@@ -332,7 +336,6 @@ if (siteConfig.font) {
 </head>
 	<body class=" min-h-screen " class:list={[{"lg:is-home": isHomePage, "enable-banner": enableBanner}]}
 		  style={bodyFontFamily ? `font-family: ${bodyFontFamily};` : ''}
-		  data-overlayscrollbars-initialize
 	>
 		<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KRX3XGVH" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 		

@@ -16,23 +16,29 @@ const { class: className, style } = Astro.props;
 const posts = await getSortedPosts();
 
 // 创建文章日期映射（格式：YYYY-MM-DD -> 文章列表）
-const postDateMap = new Map<string, { id: string; title: string; published: string }[]>();
+const postDateMap = new Map<
+	string,
+	{ id: string; title: string; published: string }[]
+>();
 posts.forEach((post) => {
-  const date = new Date(post.data.published);
-    const dateKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`;
-  const existingPosts = postDateMap.get(dateKey) || [];
-  postDateMap.set(dateKey, [...existingPosts, {
-    id: post.id,
-    title: post.data.title,
-    published: date.toISOString()
-  }]);
+	const date = new Date(post.data.published);
+	const dateKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`;
+	const existingPosts = postDateMap.get(dateKey) || [];
+	postDateMap.set(dateKey, [
+		...existingPosts,
+		{
+			id: post.id,
+			title: post.data.title,
+			published: date.toISOString(),
+		},
+	]);
 });
 
 // 序列化所有文章数据供客户端使用
 const allPostsData = posts.map((post) => ({
-  id: post.id,
-  title: post.data.title,
-    published: new Date(post.data.published).toISOString(),
+	id: post.id,
+	title: post.data.title,
+	published: new Date(post.data.published).toISOString(),
 }));
 
 // 月份名称（使用 i18n）

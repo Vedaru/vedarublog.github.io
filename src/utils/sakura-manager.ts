@@ -205,7 +205,7 @@ export class SakuraManager {
 		// 根据月份选择图片
 		const month = new Date().getMonth() + 1; // getMonth() 返回 0-11
 		let imageName = "sakura.png"; // 默认樱花
-		
+
 		if (month >= 3 && month <= 5) {
 			imageName = "sakura.png"; // 3-5月：樱花
 		} else if (month >= 9 && month <= 11) {

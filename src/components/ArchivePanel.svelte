@@ -19,8 +19,8 @@ interface Post {
 	data: {
 		title: string;
 		tags: string[];
-        category?: string;
-        published: string | Date;
+		category?: string;
+		published: string | Date;
 		permalink?: string; // 添加 permalink 字段
 	};
 }
@@ -65,9 +65,13 @@ onMount(async () => {
 	}
 
 	// 按发布时间倒序排序，确保不受置顶影响
-    filteredPosts = filteredPosts
-    .slice()
-    .sort((a, b) => new Date(b.data.published).getTime() - new Date(a.data.published).getTime());
+	filteredPosts = filteredPosts
+		.slice()
+		.sort(
+			(a, b) =>
+				new Date(b.data.published).getTime() -
+				new Date(a.data.published).getTime(),
+		);
 
 	const grouped = filteredPosts.reduce(
 		(acc, post) => {
