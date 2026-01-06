@@ -1,5 +1,6 @@
 ---
 import ConfigCarrier from "@components/ConfigCarrier.astro";
+import BackToTop from "@components/control/BackToTop.astro";
 import MusicPlayer from "@components/widget/MusicPlayer.svelte";
 import Pio from "@components/widget/Pio.svelte"; // 使用 Svelte 版本的 Pio 组件
 import DiaryYearMonthTOC from "@components/widget/DiaryYearMonthTOC.astro"; // 导入日记目录组件以注册 custom element
@@ -339,6 +340,7 @@ if (siteConfig.font) {
 		
 		<ConfigCarrier></ConfigCarrier>
 		<slot />
+		<BackToTop />
 		
 		<!-- Music Player - 立即加载以确保封面快速显示 -->
 		{musicPlayerConfig.enable && (

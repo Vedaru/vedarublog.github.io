@@ -1,5 +1,4 @@
 ---
-import BackToTop from "@components/control/BackToTop.astro";
 import FloatingTOC from "@components/control/FloatingTOC.astro";
 import Footer from "@components/Footer.astro";
 import RightSideBar from "@components/layout/RightSideBar.astro";
@@ -656,7 +655,6 @@ const transparentClass = shouldEnableTransparency
             </div>
         </div>
 
-        <BackToTop></BackToTop>
         {siteConfig.toc.enable && isFloatTOC && <FloatingTOC />}
     </div>
 </div>
