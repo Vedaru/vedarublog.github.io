@@ -1,4 +1,5 @@
 ---
+import BackToTop from "@components/control/BackToTop.astro";
 import FloatingTOC from "@components/control/FloatingTOC.astro";
 import Footer from "@components/Footer.astro";
 import RightSideBar from "@components/layout/RightSideBar.astro";
@@ -112,10 +113,7 @@ const hasBannerLink = !!siteConfig.banner.credit.url;
 
 // 检查是否为首页
 const baseURL = import.meta.env.BASE_URL;
-const normalizedPathname = Astro.url.pathname.replace(
-	new RegExp(`^${baseURL.replace(/\/$/, "")}`),
-	"",
-);
+const normalizedPathname = Astro.url.pathname.replace(new RegExp(`^${baseURL.replace(/\/$/, '')}`), '');
 const isHomePage = normalizedPathname === "/" || normalizedPathname === "";
 const showHomeText = siteConfig.banner.homeText?.enable && isHomePage;
 // 手机端非首页不显示banner的CSS类
@@ -156,56 +154,52 @@ const initialRightSidebarHidden = false; // 改为始终不隐藏，由right-sid
 // 保证网格模式下也能显示右侧栏（JavaScript 会动态调整列宽比例）
 // Helper: merge and dedupe class tokens while preserving order
 function mergeClasses(...parts: Array<string | undefined | null>) {
-	const tokens: string[] = parts
-		.filter(Boolean)
-		.map((p) => String(p))
-		.join(" ")
-		.split(/\s+/)
-		.filter(Boolean);
-	const seen = new Set<string>();
-	const out: string[] = [];
-	for (const t of tokens) {
-		if (!seen.has(t)) {
-			seen.add(t);
-			out.push(t);
-		}
-	}
-	return out.join(" ");
+    const tokens: string[] = parts
+        .filter(Boolean)
+        .map((p) => String(p))
+        .join(' ')
+        .split(/\s+/)
+        .filter(Boolean);
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const t of tokens) {
+        if (!seen.has(t)) {
+            seen.add(t);
+            out.push(t);
+        }
+    }
+    return out.join(' ');
 }
 
 const gridCols = mergeClasses(
-	mobileShowSidebar ? "grid-cols-1" : "grid-cols-1",
-	tabletShowSidebar ? "grid-cols-1" : "grid-cols-1",
-	desktopShowSidebar ? "lg:grid-cols-[17.5rem_1fr_17.5rem]" : "lg:grid-cols-1",
-	isBothSidebarMode ? "lg:grid-cols-[17.5rem_1fr_17.5rem]" : "",
+    mobileShowSidebar ? 'grid-cols-1' : 'grid-cols-1',
+    tabletShowSidebar ? 'grid-cols-1' : 'grid-cols-1',
+    desktopShowSidebar ? 'lg:grid-cols-[17.5rem_1fr_17.5rem]' : 'lg:grid-cols-1',
+    isBothSidebarMode ? 'lg:grid-cols-[17.5rem_1fr_17.5rem]' : '',
 );
 
 // 侧边栏容器类名 - 始终在左侧（移除 max-w 约束，让网格控制）
 const sidebarClass = mergeClasses(
-	"mb-4",
-	"row-start-2",
-	"row-end-3",
-	"col-span-1",
-	"onload-animation",
-	mobileShowSidebar ? "block" : "hidden",
-	tabletShowSidebar ? "block row-start-2 row-end-3 col-span-1" : "hidden",
-	desktopShowSidebar
-		? "lg:block lg:row-start-1 lg:row-end-2 lg:col-start-1 lg:col-end-2"
-		: "lg:hidden",
+    'mb-4',
+    'row-start-2',
+    'row-end-3',
+    'col-span-1',
+    'onload-animation',
+    mobileShowSidebar ? 'block' : 'hidden',
+    tabletShowSidebar ? 'block row-start-2 row-end-3 col-span-1' : 'hidden',
+    desktopShowSidebar ? 'lg:block lg:row-start-1 lg:row-end-2 lg:col-start-1 lg:col-end-2' : 'lg:hidden',
 );
 
 // 右侧边栏容器类名
 // 手机端：显示在左侧栏下方（row-start-3），全宽（仅在 both 模式）
 // 桌面端：定位到网格第3列（右侧）（总是显示）
 const rightSidebarClass = mergeClasses(
-	"mb-4",
-	"col-span-1",
-	"onload-animation",
-	isBothSidebarMode && mobileShowSidebar
-		? "block row-start-3 row-end-4"
-		: "hidden",
-	"lg:block lg:row-start-1 lg:row-end-2 lg:col-start-3 lg:col-end-4",
-	initialRightSidebarHidden ? "hidden-in-grid-mode" : "",
+    'mb-4',
+    'col-span-1',
+    'onload-animation',
+    isBothSidebarMode && mobileShowSidebar ? 'block row-start-3 row-end-4' : 'hidden',
+    'lg:block lg:row-start-1 lg:row-end-2 lg:col-start-3 lg:col-end-4',
+    initialRightSidebarHidden ? 'hidden-in-grid-mode' : '',
 );
 
 // 主内容区域类名 - 根据侧边栏模式调整grid-column
@@ -213,17 +207,15 @@ const rightSidebarClass = mergeClasses(
 // 桌面端：主内容和侧边栏并排显示
 // 网格模式下也保持中间列（col-start-2 col-end-3）
 const mainContentClass = mergeClasses(
-	"transition-swup-fade",
-	"overflow-hidden",
-	"w-full",
-	"col-span-1",
-	"row-start-1",
-	"row-end-2",
-	tabletShowSidebar ? "col-span-1 row-start-1 row-end-2" : "col-span-1",
-	desktopShowSidebar
-		? "lg:col-start-2 lg:col-end-3"
-		: "lg:col-start-2 lg:col-end-3",
-	isBothSidebarMode ? "lg:col-start-2 lg:col-end-3" : "",
+    'transition-swup-fade',
+    'overflow-hidden',
+    'w-full',
+    'col-span-1',
+    'row-start-1',
+    'row-end-2',
+    tabletShowSidebar ? 'col-span-1 row-start-1 row-end-2' : 'col-span-1',
+    desktopShowSidebar ? 'lg:col-start-2 lg:col-end-3' : 'lg:col-start-2 lg:col-end-3',
+    isBothSidebarMode ? 'lg:col-start-2 lg:col-end-3' : '',
 );
 
 // 检查是否应该启用半透明效果（当默认模式为 fullscreen 时）
@@ -667,6 +659,9 @@ const transparentClass = shouldEnableTransparency
         {siteConfig.toc.enable && isFloatTOC && <FloatingTOC />}
     </div>
 </div>
+
+<!-- Back to Top 按钮 - 放在最外层以确保 fixed 定位正常工作 -->
+<BackToTop></BackToTop>
 
 <!-- 侧边栏TOC模式 -->
 {siteConfig.toc.enable && isSidebarTOC && (
