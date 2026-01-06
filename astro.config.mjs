@@ -206,7 +206,22 @@ export default defineConfig({
 					}
 					warn(warning);
 				},
+				output: {
+					// 为模块预加载添加 crossorigin 属性
+					experimentalMinChunkSize: 10000,
+				},
 			},
+			// 为模块预加载添加 crossorigin="use-credentials"
+			modulePreload: {
+				polyfill: false,
+			},
+		},
+		// 配置服务器和预览服务器的 CORS
+		server: {
+			cors: true,
+		},
+		preview: {
+			cors: true,
 		},
 	},
 });

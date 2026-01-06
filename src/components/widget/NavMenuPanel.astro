@@ -182,70 +182,66 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
 </style>
 
 <script type="module" is:inline>
-    // 等待 panelManager 可用的辅助函数
-    async function waitForPanelManager(maxWaitTime = 5000) {
-        const startTime = Date.now();
-        while (!window['panelManager']) {
-            if (Date.now() - startTime > maxWaitTime) {
-                console.error('panelManager not available after waiting');
-                return null;
-            }
-            await new Promise(resolve => setTimeout(resolve, 50));
-        }
-        return window['panelManager'];
-    }
-    
-    async function initNavMenuPanel() {
-        const mobileDropdowns = document.querySelectorAll('[data-mobile-dropdown]');
+    // 防止重复初始化的标记
+    if (window.__navMenuPanelInitialized) {
+        console.debug('[NavMenuPanel] Already initialized, skipping');
+    } else {
+        window.__navMenuPanelInitialized = true;
         
-        // 等待并使用全局 panelManager
-        try {
-            const panelManager = await waitForPanelManager();
-            if (!panelManager) {
-                console.warn('panelManager not initialized');
-                return;
+        // 等待 panelManager 可用的辅助函数
+        async function waitForPanelManager(maxWaitTime = 5000) {
+            const startTime = Date.now();
+            while (!window['panelManager']) {
+                if (Date.now() - startTime > maxWaitTime) {
+                    console.error('panelManager not available after waiting');
+                    return null;
+                }
+                await new Promise(resolve => setTimeout(resolve, 50));
             }
-            
-            // 检查 closePanel 方法是否存在
-            if (typeof panelManager.closePanel !== 'function') {
-                console.error('panelManager.closePanel is not a function');
-                return;
-            }
-            
-            // 绑定子菜单项点击事件
-            const submenuItems = document.querySelectorAll('[data-submenu-item]');
-            submenuItems.forEach(item => {
-                item.addEventListener('click', async function(_e) {
-                    console.log('Submenu item clicked, closing nav-menu-panel');
-                    try {
-                        await panelManager.closePanel('nav-menu-panel');
-                    } catch (error) {
-                        console.error('Error closing panel:', error);
-                    }
-                });
-            });
-            
-            // 绑定普通导航链接点击事件
-            const navLinks = document.querySelectorAll('[data-nav-link]');
-            navLinks.forEach(link => {
-                link.addEventListener('click', async function(_e) {
-                    console.log('Nav link clicked, closing nav-menu-panel');
-                    try {
-                        await panelManager.closePanel('nav-menu-panel');
-                    } catch (error) {
-                        console.error('Error closing panel:', error);
-                    }
-                });
-            });
-        } catch (error) {
-            console.error('Failed to initialize panelManager:', error);
+            return window['panelManager'];
         }
         
-        mobileDropdowns.forEach(dropdown => {
-            const trigger = dropdown.querySelector('[data-mobile-dropdown-trigger]');
-            const submenu = dropdown.querySelector('[data-mobile-submenu]');
+        async function initNavMenuPanel() {
+            const mobileDropdowns = document.querySelectorAll('[data-mobile-dropdown]');
             
-            if (!trigger || !submenu) return;
+            // 等待并使用全局 panelManager
+            try {
+                const panelManager = await waitForPanelManager();
+                if (!panelManager) {
+                    console.warn('panelManager not initialized');
+                    return;
+                }
+                
+                // 检查 closePanel 方法是否存在
+                if (typeof panelManager.closePanel !== 'function') {
+                    console.error('panelManager.closePanel is not a function');
+                    return;
+                }
+                
+                // 使用事件委托而不是为每个元素添加监听器
+                document.addEventListener('click', async function(e) {
+                    const submenuItem = e.target.closest('[data-submenu-item]');
+                    const navLink = e.target.closest('[data-nav-link]');
+                    
+                    if (submenuItem || navLink) {
+                        console.log('Nav link clicked, closing nav-menu-panel');
+                        try {
+                            await panelManager.closePanel('nav-menu-panel');
+                        } catch (error) {
+                            console.error('Error closing panel:', error);
+                        }
+                    }
+                }, { capture: true, once: false });
+                
+            } catch (error) {
+                console.error('Failed to initialize panelManager:', error);
+            }
+            
+            mobileDropdowns.forEach(dropdown => {
+                const trigger = dropdown.querySelector('[data-mobile-dropdown-trigger]');
+                const submenu = dropdown.querySelector('[data-mobile-submenu]');
+                
+                if (!trigger || !submenu) return;
 
             trigger.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -271,19 +267,20 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
                 console.log('Setting expanded state to:', newState);
                 dropdown.setAttribute('data-expanded', newState.toString());
                 trigger.setAttribute('aria-expanded', newState.toString());
+                });
+                
+                // 阻止子菜单点击时冒泡
+                submenu.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
             });
-            
-            // 阻止子菜单点击时冒泡
-            submenu.addEventListener('click', function(e) {
-                e.stopPropagation();
-            });
-        });
-    }
-    
-    // 页面加载完成后初始化
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initNavMenuPanel);
-    } else {
-        initNavMenuPanel();
+        }
+        
+        // 页面加载完成后初始化
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initNavMenuPanel);
+        } else {
+            initNavMenuPanel();
+        }
     }
 </script>
