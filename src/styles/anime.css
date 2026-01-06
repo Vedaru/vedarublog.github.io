@@ -43,7 +43,21 @@
 
 /* 动漫网格布局 */
 .anime-page .anime-grid {
-	@apply grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6;
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+	.anime-page .anime-grid {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+
+@media (min-width: 1280px) {
+	.anime-page .anime-grid {
+		grid-template-columns: repeat(3, 1fr);
+	}
 }
 
 /* 动漫卡片样式 */

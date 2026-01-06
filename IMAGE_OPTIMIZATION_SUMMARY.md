@@ -102,8 +102,36 @@ preloadImg.src = src;
 - 使用 Chrome DevTools 的 Performance 面板分析
 
 ## 已转换的图片
-- ✅ `86139c9ac6572ee5c3ab9ac61f77a51f4405240c.png` → `.webp`
-- ✅ 更新了 `anime.ts` 中的引用
+- ✅ `86139c9ac6572ee5c3ab9ac61f77a51f4405240c.png` → `.webp` (6.3MB → 58KB)
+- ✅ `cover.png` (guide) → `.webp` (345KB → 151KB)
+- ✅ 更新了 `anime.ts` 和 `guide/index.md` 中的引用
+
+## 最新优化 (2026-01-06)
+
+### 1. **文章封面图片优先加载**
+为首页文章列表的前2张封面图片添加高优先级加载：
+- 修改 `PostCard.astro` 添加 `index` 参数和 `isPriority` 计算
+- 前2张图片：`loading="eager"` + `priority={true}`
+- 其他图片：`loading="lazy"` + `priority={false}`
+
+### 2. **图片压缩优化**
+压缩过大的图片文件：
+- `86139c9ac6572ee5c3ab9ac61f77a51f4405240c.webp`: 2000x2826 (6.3MB) → 566x800 (58KB) **减少 99%**
+- `guide/cover.webp`: 1920x1080 (345KB) → 1280x720 (151KB) **减少 56%**
+
+### 3. **CSS 性能优化** (postcard-optimization.css)
+- 添加 `content-visibility: auto` 优化渲染性能
+- 为懒加载图片添加 shimmer 加载动画
+- 图片加载完成后的淡入效果
+- 支持 `prefers-reduced-motion` 降低动画
+
+### 4. **图片加载状态管理**
+在 Layout.astro 中添加脚本自动标记已加载的图片，改善用户体验
+
+### 预期性能提升
+- **LCP 改善**: 从 16-17 秒降低到 < 1 秒
+- **首屏加载**: 减少 99% 的图片传输量
+- **用户体验**: 添加加载动画和淡入效果
 
 ## 注意事项
 - 所有优化都是渐进式的，不会影响旧浏览器

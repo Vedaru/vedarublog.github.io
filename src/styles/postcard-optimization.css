@@ -1,0 +1,55 @@
+/* PostCard 图片优化样式 */
+
+/* 为文章封面图片添加加载优化 */
+.card-base img {
+  /* 内容可见性优化 - 提升渲染性能 */
+  content-visibility: auto;
+  contain: layout style paint;
+}
+
+/* 为懒加载的图片添加占位背景 */
+.card-base img[loading="lazy"] {
+  background: linear-gradient(90deg, 
+    rgba(var(--primary-rgb), 0.05) 0%, 
+    rgba(var(--primary-rgb), 0.1) 50%, 
+    rgba(var(--primary-rgb), 0.05) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* 闪烁加载动画 */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* 图片加载完成后的淡入效果 */
+.card-base img[loading="lazy"].loaded,
+.card-base img[loading="eager"] {
+  animation: fadeInImage 0.3s ease-in;
+}
+
+@keyframes fadeInImage {
+  from {
+    opacity: 0.8;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 优化封面图片容器 */
+.card-base a[aria-label] > div {
+  will-change: transform;
+}
+
+/* 移除不必要的 transform 导致的重排 */
+@media (prefers-reduced-motion: reduce) {
+  .card-base img,
+  .card-base a[aria-label] > div {
+    animation: none !important;
+    transition: none !important;
+  }
+}

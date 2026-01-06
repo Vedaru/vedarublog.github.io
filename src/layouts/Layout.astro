@@ -31,6 +31,7 @@ import "../styles/wallpaper-navbar-transparent.css";
 import "../styles/fancybox-custom.css";
 import "../styles/expressive-code.css";
 import "../styles/panel-animations.css";
+import "../styles/postcard-optimization.css";
 
 declare global {
 	interface Window {
@@ -1476,6 +1477,28 @@ const setup = () => {
       initFancybox();
     });
   });
+}
+
+// 图片加载完成标记脚本
+function markImagesAsLoaded() {
+  const images = document.querySelectorAll('.card-base img[loading="lazy"]');
+  images.forEach(img => {
+    const imgElement = img as HTMLImageElement;
+    if (imgElement.complete && imgElement.naturalHeight > 0) {
+      imgElement.classList.add('loaded');
+    } else {
+      imgElement.addEventListener('load', () => {
+        imgElement.classList.add('loaded');
+      }, { once: true });
+    }
+  });
+}
+
+// 初始化图片加载标记
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', markImagesAsLoaded);
+} else {
+  markImagesAsLoaded();
 }
 
 if (window.swup) {
