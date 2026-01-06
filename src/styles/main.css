@@ -13,6 +13,17 @@
 @font-face {
     font-family: 'ZenMaruGothic-Medium';
     src: url('/assets/font/ZenMaruGothic-Medium.ttf') format('truetype');
+    font-weight: 500;
+    font-display: swap;
+}
+
+
+
+/* 导入 萝莉体 第二版 字体 */
+@font-face {
+    font-family: "萝莉体 第二版";
+    src: url("/assets/font/萝莉体 第二版.ttf") format("truetype");
+    font-style: normal;
     font-weight: 400;
     font-display: swap;
 }
@@ -23,15 +34,6 @@
     src: url('/assets/font/微软雅黑.ttf') format('truetype');
     font-weight: 400 700;
     font-style: normal;
-    font-display: swap;
-}
-
-/* 萝莉体 第二版 - 仅用于特定装饰元素，不作为全局字体 */
-@font-face {
-    font-family: "萝莉体 第二版";
-    src: url("/assets/font/萝莉体 第二版.ttf") format("truetype");
-    font-style: normal;
-    font-weight: 400;
     font-display: swap;
 }
 
@@ -67,7 +69,7 @@ body.wallpaper-transparent,
 body {
     background: var(--page-bg);
     color: rgba(0, 0, 0, 0.85);
-    /* font-family 由 Layout.astro 通过内联样式设置，不在此处硬编码 */
+    font-family: "Microsoft YaHei", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 }
 
 :root.dark body {
