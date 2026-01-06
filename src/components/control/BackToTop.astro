@@ -16,35 +16,37 @@ import { Icon } from "astro-icon/components";
   .back-to-top-wrapper
     width: 3.75rem
     height: 3.75rem
-    position: absolute
-    right: 0
-    top: 0
+    position: fixed
+    right: 2rem
+    bottom: 2rem
     pointer-events: none
+    z-index: 1000
 
   .back-to-top-btn
     color: var(--primary)
     font-size: 2.25rem
     font-weight: bold
     border: none
-    position: fixed
-    bottom: 10rem
+    position: relative
     opacity: 1
-    right: 6rem
     cursor: pointer
-    transform: translateX(5rem)
+    transform: scale(1)
     pointer-events: auto
-    transition: box-shadow 1s ease-in-out
+    transition: transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease
 
     i
       font-size: 1.75rem
 
     &.hide
-      transform: translateX(5rem) scale(0.9)
+      transform: scale(0)
       opacity: 0
       pointer-events: none
 
+    &:hover
+      transform: scale(1.05)
+
     &:active
-      transform: translateX(5rem) scale(0.9)
+      transform: scale(0.95)
 
   @media (max-width: 1560px)
     .back-to-top-btn
