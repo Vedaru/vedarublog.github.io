@@ -411,23 +411,26 @@ if (siteConfig.font) {
 			}
 
 			// 注入日记目录数据
-			let isInjecting = false; // 防止重复注入
+			// 使用全局变量避免重复声明错误
+			if (typeof window.isInjecting === 'undefined') {
+				window.isInjecting = false;
+			}
 			async function injectDiaryTOC() {
 				console.log('[Layout] injectDiaryTOC called');
 				
 				// 防止重复注入
-				if (isInjecting) {
+				if (window.isInjecting) {
 					console.log('[Layout] Already injecting, skipping...');
 					return;
 				}
-				isInjecting = true;
+				window.isInjecting = true;
 				
 				const diaryTocWrapper = document.getElementById('diary-toc-wrapper');
 				const diaryTocContainer = document.getElementById('diary-toc');
 				
 				if (!diaryTocContainer || !diaryTocWrapper) {
 					console.warn('[Layout] TOC containers not found');
-					isInjecting = false;
+					window.isInjecting = false;
 					return;
 				}
 				
@@ -438,7 +441,7 @@ if (siteConfig.font) {
 				const groupedMoments = loadDiaryDataFromPage();
 				if (!groupedMoments || !Array.isArray(groupedMoments) || groupedMoments.length === 0) {
 					console.log('[Layout] No diary data available');
-					isInjecting = false;
+					window.isInjecting = false;
 					return;
 				}
 				
@@ -472,7 +475,7 @@ if (siteConfig.font) {
 							diaryTocWrapper.classList.remove('opacity-0');
 							diaryTocWrapper.classList.add('opacity-100');
 							console.log('[Layout] Diary TOC fade in complete');
-							isInjecting = false;
+							window.isInjecting = false;
 						});
 					});
 				});
