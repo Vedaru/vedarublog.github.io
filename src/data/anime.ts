@@ -20,7 +20,7 @@ const localAnimeList: AnimeItem[] = [
 		title: "狼与香辛料",
 		status: "completed",
 		rating: 9.8,
-		cover: "/assets/anime/86139c9ac6572ee5c3ab9ac61f77a51f4405240c.png",
+		cover: "/assets/anime/86139c9ac6572ee5c3ab9ac61f77a51f4405240c.webp",
 		description: "Merchant Meets The Wise Wolf",
 		year: "2024",
 		genre: ["日常", "公路番"],

@@ -4,14 +4,14 @@
 class AnimeImagePreloader {
 	private observer: IntersectionObserver;
 	private preloadedImages: Set<string> = new Set();
-	private preloadDistance = 200; // 预加载距离（像素）
+	private preloadDistance = 400; // 预加载距离（像素），增加到400px以提前加载
 
 	constructor() {
 		this.observer = new IntersectionObserver(
 			this.handleIntersection.bind(this),
 			{
 				rootMargin: `${this.preloadDistance}px 0px`,
-				threshold: 0.1
+				threshold: 0.01 // 降低阈值，更早触发预加载
 			}
 		);
 	}
@@ -51,23 +51,19 @@ class AnimeImagePreloader {
 		// 标记为已预加载，避免重复触发
 		this.preloadedImages.add(src);
 
-		// 提高加载优先级并设置真实源
-		try {
-			img.loading = 'eager';
-			img.setAttribute('fetchpriority', 'high');
-		} catch (e) {
-			// 某些环境可能不支持直接设置属性，忽略错误
-		}
-
-		img.src = src;
-
-		// 尝试使用 decode() 平滑渲染（不可用时忽略）
-		if (typeof img.decode === 'function') {
-			img.decode().catch(() => {});
-		}
-
-		// 添加预加载标记
-		card.setAttribute('data-preload', 'true');
+		// 使用 Image() 对象预加载，避免阻塞主线程
+		const preloadImg = new Image();
+		preloadImg.decoding = 'async';
+		preloadImg.onload = () => {
+			// 图片加载完成后才设置到实际的 img 元素
+			img.src = src;
+			card.setAttribute('data-preload', 'true');
+		};
+		preloadImg.onerror = () => {
+			// 即使失败也设置 src，让浏览器尝试直接加载
+			img.src = src;
+		};
+		preloadImg.src = src;
 	}
 
 	// 销毁观察器

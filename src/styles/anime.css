@@ -79,6 +79,29 @@
 .anime-page .anime-cover {
 	@apply w-full h-full object-cover transition-all duration-700;
 	filter: brightness(0.9) contrast(1.1);
+	/* 图片加载优化 */
+	content-visibility: auto;
+	contain: layout style paint;
+}
+
+/* 添加图片加载占位符 */
+.anime-page .anime-card img[data-src] {
+	background: linear-gradient(90deg, 
+		var(--primary)/5 0%, 
+		var(--primary)/10 50%, 
+		var(--primary)/5 100%);
+	background-size: 200% 100%;
+	animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+	0% { background-position: -200% 0; }
+	100% { background-position: 200% 0; }
+}
+
+/* 图片已加载状态 */
+.anime-page .anime-card[data-preload="true"] img {
+	animation: fadeIn 0.3s ease-in;
 }
 
 .anime-page .anime-cover-link:hover .anime-cover {

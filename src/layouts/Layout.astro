@@ -254,6 +254,14 @@ if (siteConfig.font) {
 		<!-- 预连接 Meting API 与可能的 CDN 域名，降低首次握手成本 -->
 		<link rel="preconnect" href="https://www.bilibili.uno" crossorigin>
 		<link rel="dns-prefetch" href="https://www.bilibili.uno">
+		
+		<!-- 预加载关键图片以优化 LCP -->
+		{isHomePage && (
+			<link rel="preload" as="image" href={url("/assets/home/Image_1764853150683.webp")} fetchpriority="high" />
+		)}
+		{Astro.url.pathname.includes('/anime') && (
+			<link rel="preload" as="image" href="/assets/anime/86139c9ac6572ee5c3ab9ac61f77a51f4405240c.webp" fetchpriority="high" />
+		)}
 		{favicons.map(favicon => (
 			<link rel="icon"
 				  href={favicon.src.startsWith('/') ? url(favicon.src) : favicon.src}

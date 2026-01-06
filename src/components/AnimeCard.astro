@@ -34,8 +34,9 @@ const statusMap = {
 const statusInfo = statusMap[anime.status];
 const progressPercent = anime.totalEpisodes > 0 ? (anime.progress / anime.totalEpisodes) * 100 : 0;
 
-// 前几个卡片使用优先加载，后面的使用懒加载
-const isPriority = index < 6;
+// 前3个卡片使用高优先级加载，前1个使用 eager
+const isPriority = index < 3;
+const isEager = index < 1;
 ---
 
 <a
@@ -48,13 +49,13 @@ const isPriority = index < 6;
 	<!-- 封面区域 - 竖屏比例 -->
 	<div class="relative aspect-[2/3] overflow-hidden">
 		<div class="block w-full h-full">
-			<!-- 使用优化的图片加载：前若干张为优先加载，其余使用占位图 + data-src 懒加载 -->
+			<!-- 使用优化的图片加载：第一张使用最高优先级，前3张优先加载，其余懒加载 -->
 			{isPriority ? (
 				<img
 					src={anime.cover}
 					alt={anime.title}
 					class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-					loading="eager"
+					loading={isEager ? "eager" : "lazy"}
 					decoding="async"
 					fetchpriority="high"
 				/>
@@ -66,6 +67,7 @@ const isPriority = index < 6;
 					class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
 					loading="lazy"
 					decoding="async"
+					fetchpriority="low"
 				/>
 			)}
 			<!-- 渐变遮罩 -->
