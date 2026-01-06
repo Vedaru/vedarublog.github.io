@@ -29,13 +29,14 @@ import { remarkReadingTime } from "./src/plugins/remark-reading-time.mjs";
 // https://astro.build/config
 export default defineConfig({
 	site: "https://vedaru.cn",
-	output: "static", // 默认静态生成
+	output: "hybrid", // 混合模式：默认静态，需要时 SSR
 	adapter: cloudflare({
 		mode: "directory",
 		runtime: {
 			mode: "local",
 			type: "pages",
 		},
+		imageService: "cloudflare",
 	}),
 	image: {
 		service: {
@@ -197,7 +198,26 @@ export default defineConfig({
 	vite: {
 		ssr: {
 			// 排除仅在构建时使用的 Node.js 模块
-			external: ["node:fs", "node:path", "sharp"],
+			// 在 Cloudflare Workers 环境中这些模块不可用
+			external: [
+				"node:fs",
+				"node:path",
+				"node:crypto",
+				"node:buffer",
+				"node:stream",
+				"fs",
+				"path",
+				"crypto",
+				"buffer",
+				"stream",
+				"sharp",
+			],
+			// 标记为 noExternal 以确保某些包被正确打包
+			noExternal: ["@astrojs/cloudflare"],
+		},
+		optimizeDeps: {
+			// 在开发时排除这些模块
+			exclude: ["node:fs", "node:path", "fs", "path"],
 		},
 		build: {
 			rollupOptions: {
