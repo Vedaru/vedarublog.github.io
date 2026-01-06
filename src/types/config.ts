@@ -89,7 +89,7 @@ export type SiteConfig = {
 			localFonts: string[];
 			enableCompress: boolean;
 		};
-		cjkFont: {
+		cjkFont?: {
 			fontFamily: string;
 			fontWeight: string | number;
 			localFonts: string[];

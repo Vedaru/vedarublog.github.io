@@ -155,13 +155,13 @@ if (siteConfig.font) {
 		});
 	}
 
-	// 再添加 CJK 字体（作为回退）
-	if (siteConfig.font.cjkFont?.fontFamily) {
-		const cjkFonts = siteConfig.font.cjkFont.fontFamily.split(',').map(f => f.trim());
-		cjkFonts.forEach(font => {
-			fonts.push(font.includes(" ") && !font.startsWith('"') && !font.startsWith("'") ? `"${font}"` : font);
-		});
-	}
+	// CJK 字体已禁用以节省资源，使用浏览器默认字体
+	// if (siteConfig.font.cjkFont?.fontFamily) {
+	// 	const cjkFonts = siteConfig.font.cjkFont.fontFamily.split(',').map(f => f.trim());
+	// 	cjkFonts.forEach(font => {
+	// 		fonts.push(font.includes(" ") && !font.startsWith('"') && !font.startsWith("'") ? `"${font}"` : font);
+	// 	});
+	// }
 
 	// 添加系统字体作为最终回退
 	fonts.push(
@@ -192,9 +192,10 @@ if (siteConfig.font) {
 		{siteConfig.font?.asciiFont?.localFonts?.map((f) => (
 			<link rel="preload" as="font" href={import.meta.env.BASE_URL + `assets/font/${f}`} type="font/ttf" crossorigin="anonymous" />
 		))}
-		{siteConfig.font?.cjkFont?.localFonts?.map((f) => (
+		{/* CJK 字体预加载已禁用以节省资源 */}
+		{/* {siteConfig.font?.cjkFont?.localFonts?.map((f) => (
 			<link rel="preload" as="font" href={import.meta.env.BASE_URL + `assets/font/${f}`} type="font/ttf" crossorigin="anonymous" />
-		))}
+		))} */}
 		<!-- 第三方分析脚本 - 延迟加载优化（移到外部文件） -->
 		<script src="/js/analytics-loader.js" defer></script>
 		<!-- 将构建时静态导入的 panelManager 暴露给运行时脚本，避免部分页面使用动态导入导致 404 -->
