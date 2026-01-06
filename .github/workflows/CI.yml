@@ -145,7 +145,7 @@ jobs:
           echo "开始构建 Astro 项目..."
           echo "仓库名: ${{ github.event.repository.name }}"
           echo "BASE_PATH 环境变量: $BASE_PATH"
-          pnpm astro build
+          pnpm build
         env:
           # Project site path: https://<user>.github.io/vedarublog.github.io/
           BASE_PATH: "/vedarublog.github.io/"
