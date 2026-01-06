@@ -194,13 +194,9 @@ export default defineConfig({
 		],
 	},
 	vite: {
-		resolve: {
-			conditions: ["workerd", "worker", "browser"],
-		},
 		ssr: {
-			// Cloudflare Workers 兼容性配置
-			target: "webworker",
-			noExternal: true,
+			// 排除仅在构建时使用的 Node.js 模块
+			external: ["node:fs", "node:path", "sharp"],
 		},
 		build: {
 			rollupOptions: {
