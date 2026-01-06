@@ -190,10 +190,10 @@ if (siteConfig.font) {
 	<head>
 		<!-- Preload local fonts to reduce FOUT on loading screen -->
 		{siteConfig.font?.asciiFont?.localFonts?.map((f) => (
-			<link rel="preload" as="font" href={import.meta.env.BASE_URL + `assets/font/${f}`} type="font/ttf" crossorigin />
+			<link rel="preload" as="font" href={import.meta.env.BASE_URL + `assets/font/${f}`} type="font/ttf" crossorigin="anonymous" />
 		))}
 		{siteConfig.font?.cjkFont?.localFonts?.map((f) => (
-			<link rel="preload" as="font" href={import.meta.env.BASE_URL + `assets/font/${f}`} type="font/ttf" crossorigin />
+			<link rel="preload" as="font" href={import.meta.env.BASE_URL + `assets/font/${f}`} type="font/ttf" crossorigin="anonymous" />
 		))}
 		<!-- 第三方分析脚本 - 延迟加载优化（移到外部文件） -->
 		<script src="/js/analytics-loader.js" defer></script>
@@ -322,7 +322,7 @@ if (siteConfig.font) {
 		{umamiEnabled && umamiScripts && <Fragment set:html={umamiScripts} />}
 
 		<!-- 脚本加载优化器 - 延迟加载非关键脚本 -->
-		<script src="/src/scripts/script-loader-optimizer.js" defer></script>
+		<script src="/js/script-loader-optimizer.js" defer></script>
 
 </head>
 	<body class=" min-h-screen " class:list={[{"lg:is-home": isHomePage, "enable-banner": enableBanner}]}
