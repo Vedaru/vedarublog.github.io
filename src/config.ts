@@ -191,9 +191,9 @@ export const siteConfig: SiteConfig = {
 		asciiFont: {
 			// 英文字体 - 优先级最高
 			// 指定为英文字体则无论字体包含多大范围，都只会保留 ASCII 字符子集
-			fontFamily: "萝莉体 第二版",
+			fontFamily: "ZenMaruGothic-Medium",
 			fontWeight: "400",
-			localFonts: ["萝莉体 第二版.ttf"],
+			localFonts: ["ZenMaruGothic-Medium.ttf"],
 			enableCompress: false,
 		},
 		cjkFont: {
