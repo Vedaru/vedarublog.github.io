@@ -611,10 +611,10 @@ const transparentClass = shouldEnableTransparency
 <!-- Banner 已删除 -->
 <!-- 原 banner-wrapper 已移除，如需恢复请参考 commit 历史或 siteConfig.banner 设置 -->
 
-<!-- Main content - 使用 CSS 变量和 transform 减少 CLS -->
+<!-- Main content - 使用固定定位减少 CLS -->
 <div 
     class={`w-full z-30 pointer-events-none main-content-stable ${mobileNonHomeBannerClass ? 'mobile-main-no-banner' : ''} ${siteConfig.wallpaperMode.defaultMode === 'none' ? 'no-banner-layout' : ''} ${transparentClass}`} 
-    style={`--main-top: ${finalMainPanelTop}; transform: translateY(var(--main-top, 5.5rem));`}
+    style={`margin-top: ${finalMainPanelTop};`}
 >
     <!-- The pointer-events-none here prevent blocking the click event of the TOC -->
     <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto">

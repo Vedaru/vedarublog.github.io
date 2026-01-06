@@ -3,15 +3,15 @@
  * 通过 CSS transform 替代动态 top 定位，使用 will-change 提升渲染性能
  */
 
-/* 1. 使用 transform 替代 absolute top 定位以减少布局偏移 */
+/* 1. 使用 margin-top 替代 transform 以减少布局偏移 */
 .main-content-stable {
     /* 预留空间，防止布局偏移 */
     min-height: 100vh;
-    /* 使用 transform 替代 top，不触发 layout */
-    transform: translateY(0);
-    will-change: transform;
-    /* 启用 GPU 加速 */
-    transform: translate3d(0, 0, 0);
+    /* 使用 contain 隔离布局 */
+    contain: layout style;
+    /* 启用 content-visibility 优化渲染 */
+    content-visibility: auto;
+    contain-intrinsic-size: 0 100vh;
 }
 
 /* 2. 为可能导致 CLS 的元素预留尺寸 */
@@ -140,10 +140,6 @@ astro-island {
 
 /* 16. 响应式断点优化 - 确保不同设备尺寸下布局稳定 */
 @media (max-width: 768px) {
-    .main-content-stable {
-        min-height: auto;
-    }
-    
     .fixed-height-container {
         min-height: 400px;
     }

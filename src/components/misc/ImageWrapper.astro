@@ -51,8 +51,8 @@ const imageClass = "w-full h-full object-cover";
 const imageStyle = `object-position: ${position}`;
 const shouldLazy = lazy && !priority;
 ---
-<div id={id} class:list={[className, 'overflow-hidden']}>
-    {isLocal && img && <Image src={img} alt={alt || ""} class={imageClass} style={imageStyle} loading={priority ? "eager" : shouldLazy ? "lazy" : "eager"} decoding="async"/>}
+<div id={id} class:list={[className, 'overflow-hidden bg-gray-200 dark:bg-gray-800']}>
+    {isLocal && img && <Image src={img} alt={alt || ""} class={imageClass} style={imageStyle} loading={priority ? "eager" : shouldLazy ? "lazy" : "eager"} decoding="async" fetchpriority={priority ? "high" : "low"}/>}
     {!isLocal && (
         <img
             src={isPublic ? url(src) : src}
@@ -61,6 +61,9 @@ const shouldLazy = lazy && !priority;
             style={imageStyle}
             loading={priority ? "eager" : shouldLazy ? "lazy" : "eager"}
             decoding="async"
+            fetchpriority={priority ? "high" : "low"}
+            width="800"
+            height="450"
         />
     )}
 </div>

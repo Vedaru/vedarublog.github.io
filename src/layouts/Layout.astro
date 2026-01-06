@@ -233,9 +233,12 @@ if (siteConfig.font) {
 
 		<meta name="viewport" content="width=device-width" />
 		<meta name="generator" content={Astro.generator} />
-		<!-- 预连接 Meting API 与可能的 CDN 域名，降低首次握手成本 -->
-		<link rel="preconnect" href="https://www.bilibili.uno" crossorigin>
+		
+		<!-- DNS 预解析和预连接 - 加速第三方资源加载 -->
+		<link rel="dns-prefetch" href="https://www.googletagmanager.com">
+		<link rel="dns-prefetch" href="https://www.clarity.ms">
 		<link rel="dns-prefetch" href="https://www.bilibili.uno">
+		<link rel="preconnect" href="https://www.bilibili.uno" crossorigin="anonymous">
 		
 		<!-- 预加载关键图片以优化 LCP -->
 		{isHomePage && (
