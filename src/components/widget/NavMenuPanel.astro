@@ -149,6 +149,7 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
 <script type="module" is:inline>
     document.addEventListener('DOMContentLoaded', function() {
         const mobileDropdowns = document.querySelectorAll('[data-mobile-dropdown]');
+        const navMenuPanel = document.getElementById('nav-menu-panel');
         
         // 使用全局 panelManager
         (() => {
@@ -178,6 +179,35 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
                         // 关闭 nav-menu-panel
                         await panelManager.closePanel('nav-menu-panel');
                     });
+                });
+                
+                // 点击面板外区域关闭面板
+                document.addEventListener('click', async function(e) {
+                    if (!navMenuPanel) return;
+                    
+                    // 检查点击是否在面板外部
+                    if (!navMenuPanel.contains(e.target)) {
+                        const menuBtn = document.getElementById('nav-menu-switch');
+                        // 如果点击的不是菜单按钮本身，则关闭面板
+                        if (menuBtn && !menuBtn.contains(e.target)) {
+                            const isClosed = navMenuPanel.classList.contains('float-panel-closed');
+                            if (!isClosed) {
+                                console.log('Clicked outside panel, closing nav-menu-panel');
+                                await panelManager.closePanel('nav-menu-panel');
+                            }
+                        }
+                    }
+                });
+                
+                // ESC键关闭面板
+                document.addEventListener('keydown', async function(e) {
+                    if (e.key === 'Escape' && navMenuPanel) {
+                        const isClosed = navMenuPanel.classList.contains('float-panel-closed');
+                        if (!isClosed) {
+                            console.log('ESC pressed, closing nav-menu-panel');
+                            await panelManager.closePanel('nav-menu-panel');
+                        }
+                    }
                 });
             } catch (error) {
                 console.error('Failed to import panelManager:', error);
