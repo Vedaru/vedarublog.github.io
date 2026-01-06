@@ -99,6 +99,7 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
                     hover:bg-[var(--btn-plain-bg-hover)] active:bg-[var(--btn-plain-bg-active)] transition
                 "
                    target={link.external ? "_blank" : null}
+                   data-nav-link
                 >
                     <div class="flex items-center transition text-black/75 dark:text-white/75 font-bold group-hover:text-[var(--primary)] group-active:text-[var(--primary)]">
                         {link.icon && <Icon name={link.icon} class="text-[1.1rem] mr-2" />}
@@ -149,6 +150,16 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
                 submenuItems.forEach(item => {
                     item.addEventListener('click', async function(_e) {
                         console.log('Submenu item clicked, closing nav-menu-panel');
+                        // 关闭 nav-menu-panel
+                        await panelManager.closePanel('nav-menu-panel');
+                    });
+                });
+                
+                // 绑定普通导航链接点击事件
+                const navLinks = document.querySelectorAll('[data-nav-link]');
+                navLinks.forEach(link => {
+                    link.addEventListener('click', async function(_e) {
+                        console.log('Nav link clicked, closing nav-menu-panel');
                         // 关闭 nav-menu-panel
                         await panelManager.closePanel('nav-menu-panel');
                     });

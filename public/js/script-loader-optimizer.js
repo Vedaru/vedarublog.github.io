@@ -18,8 +18,8 @@ function deferNonCriticalScripts() {
 // 2. 优化第三方脚本加载 - 使用 requestIdleCallback
 function loadThirdPartyScripts() {
     const scripts = [
-        { src: '/js/anime.js', priority: 'low' },
-        { src: '/js/yinghua.js', priority: 'low' },
+        // { src: '/js/anime.js', priority: 'low' },
+        // { src: '/js/yinghua.js', priority: 'low' },
     ];
 
     scripts.forEach(({ src, priority }) => {

@@ -360,4 +360,42 @@ let links: NavBarLink[] = navBarConfig.links.map(
     pointer-events: auto !important;
     position: relative !important;
 }
+
+/* 移除所有按钮和链接在移动端点击时的高亮和阴影效果 */
+button, a {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    user-select: none !important;
+    outline: none !important;
+}
+
+button:focus, a:focus, button:active, a:active {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* 专门针对导航栏按钮 */
+#nav-menu-switch,
+#display-settings-switch,
+#wallpaper-mode-switch,
+#scheme-switch,
+.btn-plain {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    tap-highlight-color: transparent !important;
+}
+
+#nav-menu-switch:focus,
+#display-settings-switch:focus,
+#wallpaper-mode-switch:focus,
+#scheme-switch:focus,
+.btn-plain:focus,
+#nav-menu-switch:active,
+#display-settings-switch:active,
+#wallpaper-mode-switch:active,
+#scheme-switch:active,
+.btn-plain:active {
+    outline: none !important;
+    box-shadow: none !important;
+}
 </style>
