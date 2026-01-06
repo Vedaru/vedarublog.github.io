@@ -23,7 +23,7 @@ const SITE_TIMEZONE = 8; //设置你的网站时区 from -12 to 12 default in UT
 export const siteConfig: SiteConfig = {
 	title: "Vedaruの心之海",
 	subtitle: "",
-	siteURL: "https://vedaru.github.io/vedarublog.github.io/", // 项目页需包含仓库路径
+	siteURL: "https://vedaru.cn", // 自定义域名
 	siteStartDate: "2025-12-01", // 站点开始运行日期，用于站点统计组件计算运行天数
 
 	timeZone: SITE_TIMEZONE,
