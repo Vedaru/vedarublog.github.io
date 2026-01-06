@@ -90,18 +90,24 @@ html {
 
 /* 移除移动端点击按钮时的高亮/阴影效果 */
 * {
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none;
+    tap-highlight-color: transparent !important;
 }
 
-button, a {
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
-    outline: none;
+button, a, input, textarea, select {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    tap-highlight-color: transparent !important;
+    outline: none !important;
 }
 
-button:focus, a:focus {
-    outline: none;
+button:focus, a:focus, button:active, a:active,
+button:focus-visible, a:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    -webkit-tap-highlight-color: transparent !important;
 }
 
 /* 页面顶部渐变高光效果 */
@@ -331,8 +337,23 @@ button:focus, a:focus {
         @apply drop-shadow-[0_2px_4px_rgba(0,0,0,0.005)]
     }
     .expand-animation {
-        @apply relative before:ease-out before:duration-75 before:transition-all active:bg-none hover:before:bg-[var(--btn-plain-bg-hover)] active:before:bg-[var(--btn-plain-bg-active)] z-0
-        before:absolute before:rounded-[inherit] before:inset-0 before:scale-[0.85] hover:before:scale-100 before:-z-10
+        @apply relative before:ease-out before:duration-75 before:transition-all z-0
+        before:absolute before:rounded-[inherit] before:inset-0 before:scale-[0.85] hover:before:scale-100 before:-z-10;
+        -webkit-tap-highlight-color: transparent !important;
+        tap-highlight-color: transparent !important;
+    }
+    .expand-animation:hover::before {
+        background: var(--btn-plain-bg-hover);
+    }
+    .expand-animation:active,
+    .expand-animation:focus,
+    .expand-animation:focus-visible {
+        outline: none !important;
+        box-shadow: none !important;
+        -webkit-tap-highlight-color: transparent !important;
+    }
+    .expand-animation:active::before {
+        background: transparent !important;
     }
     /* 主题切换时禁用按钮背景色过渡，确保立即更新 */
     .is-theme-transitioning .expand-animation::before {
@@ -385,12 +406,21 @@ button:focus, a:focus {
     .btn-plain {
         @apply transition-colors duration-150 relative flex items-center justify-center bg-none
         text-black/75 hover:text-[var(--primary)] dark:text-white/75 dark:hover:text-[var(--primary)];
+        -webkit-tap-highlight-color: transparent !important;
+        tap-highlight-color: transparent !important;
         &:not(.scale-animation) {
-            @apply hover:bg-[var(--btn-plain-bg-hover)] active:bg-[var(--btn-plain-bg-active)]
+            @apply hover:bg-[var(--btn-plain-bg-hover)];
         }
         &.scale-animation {
             @apply expand-animation;
         }
+    }
+    .btn-plain:active,
+    .btn-plain:focus,
+    .btn-plain:focus-visible {
+        outline: none !important;
+        box-shadow: none !important;
+        -webkit-tap-highlight-color: transparent !important;
     }
     .btn-regular {
         @apply transition-colors duration-150 flex items-center justify-center bg-[var(--btn-regular-bg)] hover:bg-[var(--btn-regular-bg-hover)] active:bg-[var(--btn-regular-bg-active)]
@@ -534,8 +564,12 @@ button:focus, a:focus {
         @apply outline-none;
     }
 
-    .mobile-dropdown button:focus {
+    .mobile-dropdown button:focus,
+    .mobile-dropdown button:active,
+    .mobile-dropdown button:focus-visible {
         @apply outline-none;
+        box-shadow: none !important;
+        -webkit-tap-highlight-color: transparent !important;
     }
 
     .meta-icon {

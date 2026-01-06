@@ -362,16 +362,27 @@ let links: NavBarLink[] = navBarConfig.links.map(
 }
 
 /* 移除所有按钮和链接在移动端点击时的高亮和阴影效果 */
-button, a {
-    -webkit-tap-highlight-color: transparent !important;
+* {
+    -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
     -webkit-touch-callout: none !important;
+    tap-highlight-color: rgba(0,0,0,0) !important;
+}
+
+button, a, input {
+    -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
+    -webkit-touch-callout: none !important;
+    tap-highlight-color: rgba(0,0,0,0) !important;
+    -webkit-user-select: none !important;
     user-select: none !important;
     outline: none !important;
 }
 
-button:focus, a:focus, button:active, a:active {
+button:focus, a:focus, button:active, a:active,
+button:focus-visible, a:focus-visible {
     outline: none !important;
     box-shadow: none !important;
+    -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
+    tap-highlight-color: rgba(0,0,0,0) !important;
 }
 
 /* 专门针对导航栏按钮 */
@@ -380,9 +391,10 @@ button:focus, a:focus, button:active, a:active {
 #wallpaper-mode-switch,
 #scheme-switch,
 .btn-plain {
-    -webkit-tap-highlight-color: transparent !important;
+    -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
     -webkit-touch-callout: none !important;
-    tap-highlight-color: transparent !important;
+    tap-highlight-color: rgba(0,0,0,0) !important;
+    background-color: transparent !important;
 }
 
 #nav-menu-switch:focus,
@@ -394,8 +406,33 @@ button:focus, a:focus, button:active, a:active {
 #display-settings-switch:active,
 #wallpaper-mode-switch:active,
 #scheme-switch:active,
-.btn-plain:active {
+.btn-plain:active,
+#nav-menu-switch:focus-visible,
+#display-settings-switch:focus-visible,
+#wallpaper-mode-switch:focus-visible,
+#scheme-switch:focus-visible,
+.btn-plain:focus-visible {
     outline: none !important;
     box-shadow: none !important;
+    -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
+    tap-highlight-color: rgba(0,0,0,0) !important;
+    background-color: transparent !important;
+}
+
+/* 移除按钮点击后的背景色变化 */
+#nav-menu-switch::before,
+#display-settings-switch::before,
+#wallpaper-mode-switch::before,
+#scheme-switch::before,
+.btn-plain::before {
+    background-color: transparent !important;
+}
+
+#nav-menu-switch:active::before,
+#display-settings-switch:active::before,
+#wallpaper-mode-switch:active::before,
+#scheme-switch:active::before,
+.btn-plain:active::before {
+    background-color: transparent !important;
 }
 </style>
