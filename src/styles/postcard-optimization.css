@@ -1,18 +1,16 @@
 /* PostCard 图片优化样式 */
 
+/* 为封面图片容器添加固定宽高比，避免 CLS */
+.card-base a[aria-label] {
+  aspect-ratio: 16 / 9;
+  contain: layout;
+}
+
 /* 为文章封面图片添加加载优化 */
 .card-base img {
   /* 内容可见性优化 - 提升渲染性能 */
   content-visibility: auto;
   contain: layout style paint;
-  /* 为图片预留空间，避免 CLS */
-  aspect-ratio: attr(width) / attr(height);
-}
-
-/* 为所有图片添加明确的尺寸以避免 CLS */
-img:not([width]):not([height]) {
-  width: 100%;
-  height: auto;
 }
 
 /* 为懒加载的图片添加占位背景 */
@@ -48,37 +46,16 @@ img:not([width]):not([height]) {
   }
 }
 
-/* 优化封面图片容器，避免布局偏移 */
-.card-base a[aria-label] {
-  /* 使用 contain 避免回流 */
-  contain: layout style;
-}
-
+/* 优化封面图片容器 */
 .card-base a[aria-label] > div {
   will-change: transform;
-}
-
-/* 防止字体加载导致的 CLS */
-body {
-  font-display: swap;
-}
-
-/* 优化动画性能，避免触发 layout */
-.scale-animation,
-.onload-animation {
-  will-change: transform, opacity;
-  transform: translateZ(0);
-  backface-visibility: hidden;
 }
 
 /* 移除不必要的 transform 导致的重排 */
 @media (prefers-reduced-motion: reduce) {
   .card-base img,
-  .card-base a[aria-label] > div,
-  .scale-animation,
-  .onload-animation {
+  .card-base a[aria-label] > div {
     animation: none !important;
     transition: none !important;
-    will-change: auto !important;
   }
 }

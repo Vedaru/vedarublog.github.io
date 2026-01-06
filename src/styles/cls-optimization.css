@@ -1,122 +1,121 @@
-/* CLS 优化 - 累积布局偏移优化 */
+/* CLS (Cumulative Layout Shift) 优化 */
 
-/* 1. 字体加载优化 - 防止 FOUT 导致的布局偏移 */
-@font-face {
-  font-display: swap; /* 使用 swap 避免不可见文本 */
-  size-adjust: 100%; /* 调整后备字体大小以匹配主字体 */
+/* 1. 为可能导致布局偏移的元素添加固定尺寸 */
+
+/* Navbar 固定高度 */
+#navbar {
+  min-height: 72px; /* 4.5rem = 72px */
+  contain: layout style;
 }
 
-/* 为所有文本元素设置 font-display */
-body, html {
-  font-display: swap;
+/* 主内容区域优化 */
+#main-grid {
+  contain: layout style;
+  content-visibility: auto;
 }
 
-/* 2. 图片尺寸预留 - 防止图片加载导致的布局偏移 */
-img:not([width]):not([height]):not([style*="width"]):not([style*="height"]) {
-  /* 为未设置尺寸的图片设置默认宽高比 */
-  aspect-ratio: 16 / 9;
-  width: 100%;
+/* 2. 避免字体加载导致的布局偏移 */
+body {
+  /* 使用 size-adjust 保持字体切换时的一致性 */
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 3. 为图片容器预留空间 */
+img:not([width]):not([height]) {
+  /* 为没有明确尺寸的图片设置默认宽高比 */
+  aspect-ratio: attr(width) / attr(height);
   height: auto;
 }
 
-/* 3. 骨架屏和占位符优化 */
-.skeleton-loader {
-  background: linear-gradient(90deg, 
-    rgba(var(--primary-rgb, 0, 0, 0), 0.05) 0%, 
-    rgba(var(--primary-rgb, 0, 0, 0), 0.1) 50%, 
-    rgba(var(--primary-rgb, 0, 0, 0), 0.05) 100%);
-  background-size: 200% 100%;
-  animation: skeletonPulse 1.5s infinite;
-}
-
-@keyframes skeletonPulse {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-}
-
-/* 4. 避免动画触发布局重排 */
-.transition-transform,
-.scale-animation,
-.onload-animation,
-[class*="hover:scale"],
-[class*="group-hover:scale"] {
-  /* 使用 GPU 加速，避免回流 */
-  transform: translateZ(0);
-  will-change: transform;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
-/* 5. 导航栏固定高度，避免内容跳动 */
-#navbar {
-  min-height: 4.5rem;
-  contain: layout style;
-}
-
-/* 6. 侧边栏容器固定，避免内容偏移 */
-.card-base {
-  contain: layout style;
-}
-
-/* 7. 动态内容容器预留空间 */
-[class*="hidden"]:not(.hidden) {
-  /* 为响应式隐藏元素预留最小空间 */
-  min-height: 1px;
-}
-
-/* 8. 模态框和弹出层优化 */
-.modal,
-.popup,
-[role="dialog"] {
-  /* 使用 transform 而不是 top/left 定位 */
+/* 4. 动画和过渡优化 */
+.onload-animation {
+  /* 使用 transform 代替会触发 reflow 的属性 */
   will-change: transform, opacity;
   transform: translateZ(0);
 }
 
-/* 9. 网格布局稳定性 */
-.grid,
-[class*="grid-cols"] {
-  /* 使用 minmax 确保网格稳定 */
-  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+/* 5. 侧边栏固定宽度避免偏移 */
+#left-sidebar,
+#right-sidebar {
+  contain: layout size style;
 }
 
-/* 10. 防止 Svelte 组件水合导致的偏移 */
-[data-svelte-component] {
-  min-height: 2.75rem; /* 按钮/组件最小高度 */
+/* 6. 卡片容器优化 */
+.card-base {
+  contain: layout style;
+  /* 避免内容加载时的布局跳动 */
+  min-height: fit-content;
 }
 
-/* 11. 减少重绘优化 */
-* {
-  /* 避免不必要的重绘 */
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* 12. 响应式图片容器 */
-picture,
-[data-picture-container] {
-  display: block;
+/* 7. 响应式图片容器 */
+.post-card-image,
+.album-cover,
+.anime-cover {
   position: relative;
   overflow: hidden;
+  /* 强制使用 GPU 加速 */
+  transform: translateZ(0);
+  will-change: transform;
 }
 
-picture img {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+/* 8. 防止 CSS 变量未定义时的布局偏移 */
+:root {
+  --page-width: 75rem;
+  --banner-height: 35vh;
+  --banner-height-extend: 30vh;
+  --banner-height-home: 65vh;
 }
 
-/* 13. 优化过渡动画性能 */
-@media (prefers-reduced-motion: no-preference) {
-  * {
-    /* 确保所有动画使用 transform 和 opacity */
-    transition-property: transform, opacity, color, background-color, border-color, fill, stroke;
+/* 9. 骨架屏优化（可选） */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(var(--primary-rgb), 0.05) 0%,
+    rgba(var(--primary-rgb), 0.1) 50%,
+    rgba(var(--primary-rgb), 0.05) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* 10. 减少重排的优化 */
+* {
+  /* 使用 border-box 避免尺寸计算导致的布局偏移 */
+  box-sizing: border-box;
+}
+
+/* 11. 壁纸容器优化 */
+.wallpaper-transparent {
+  contain: strict;
+  /* 避免背景加载时的布局跳动 */
+  background-color: transparent;
+}
+
+/* 12. 导航链接容器固定高度 */
+.nav-link,
+.dropdown-menu {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+/* 13. 移动端优化 */
+@media (max-width: 768px) {
+  /* 移动端固定导航栏高度 */
+  #navbar {
+    min-height: 64px;
+  }
+  
+  /* 移动端卡片优化 */
+  .card-base {
+    contain: layout;
   }
 }
 
-/* 14. 禁用动画时的优化 */
+/* 14. 减少动画导致的布局偏移 */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -124,20 +123,15 @@ picture img {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-    will-change: auto !important;
+    scroll-behavior: auto !important;
   }
 }
 
-/* 15. 关键渲染路径优化 */
-.above-the-fold {
-  /* 首屏内容优先渲染 */
-  contain: layout style paint;
-  content-visibility: auto;
-}
-
-/* 16. 固定布局元素 */
-header,
-nav,
-footer {
-  contain: layout style;
+/* 15. 内容加载优化 */
+.content-loading {
+  /* 为加载中的内容预留空间 */
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

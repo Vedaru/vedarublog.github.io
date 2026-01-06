@@ -5,8 +5,13 @@
 
 .float-panel {
     z-index: 50;
+    /* 使用 transform 和 opacity 优化性能 */
     will-change: transform, opacity;
     backface-visibility: hidden;
+    /* 强制 GPU 加速 */
+    transform: translateZ(0);
+    /* 使用 contain 减少重排 */
+    contain: layout style;
     
     /* 为动画做准备 */
     transform-origin: top center;

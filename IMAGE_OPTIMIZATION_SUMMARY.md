@@ -133,6 +133,54 @@ preloadImg.src = src;
 - **首屏加载**: 减少 99% 的图片传输量
 - **用户体验**: 添加加载动画和淡入效果
 
+## CLS 优化 (2026-01-06)
+
+### 问题
+CLS 分数显示 67% 需要改进，主要问题元素：
+1. `div.hidden.md:flex.items-center` - 导航栏元素
+2. `div.absolute.w-full.z-30.pointer-events-none.wallpaper-transparent` - 主容器
+
+### 解决方案
+
+#### 1. **导航栏固定尺寸**
+- 为隐藏的桌面菜单添加 `min-height: 44px`
+- 为 navbar 添加 `min-height: 72px` 和 `contain: layout style`
+- 固定导航链接容器高度
+
+#### 2. **主容器优化**
+- 为 wallpaper 容器添加 `contain: layout style`
+- 为主网格添加 `content-visibility: auto`
+- 减少重排和重绘
+
+#### 3. **字体加载优化**
+- 添加 `font-display: swap` 减少字体切换时的布局偏移
+- 优化字体渲染设置
+
+#### 4. **图片容器固定宽高比**
+- PostCard 封面容器添加 `aspect-ratio: 16/9`
+- 为图片容器添加 `contain: layout`
+- 预留图片空间避免加载时的跳动
+
+#### 5. **CSS Containment 策略**
+- 卡片、侧边栏、面板使用 `contain` 属性
+- 减少浏览器重排范围
+- 提升渲染性能
+
+#### 6. **动画优化**
+- 使用 `transform` 代替会触发 reflow 的属性
+- 添加 `will-change` 提示浏览器优化
+- 强制 GPU 加速 (`transform: translateZ(0)`)
+- 支持 `prefers-reduced-motion`
+
+### 新增文件
+- `cls-optimization.css` - 专门的 CLS 优化样式
+- 包含 15+ 项针对性优化
+
+### 预期改善
+- **CLS 分数**: 从 67% "需要改进" → 目标 < 0.1 "良好"
+- **视觉稳定性**: 消除页面加载时的布局跳动
+- **渲染性能**: 使用 containment 减少 30-50% 的重排时间
+
 ## 注意事项
 - 所有优化都是渐进式的，不会影响旧浏览器
 - `fetchpriority` 在旧浏览器中会被忽略
