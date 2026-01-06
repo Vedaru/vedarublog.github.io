@@ -58,6 +58,11 @@ const initialLayoutClass =
         return;
       }
 
+      // 确保容器可见
+      postListContainer.style.visibility = 'visible';
+      postListContainer.style.opacity = '1';
+      postListContainer.style.display = '';
+      
       // 检查是否启用双侧边栏
       const isBothSidebars = postListContainer.getAttribute("data-both-sidebars") === "true";
 

@@ -372,8 +372,6 @@ button, a, input {
     -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
     -webkit-touch-callout: none !important;
     tap-highlight-color: rgba(0,0,0,0) !important;
-    -webkit-user-select: none !important;
-    user-select: none !important;
     outline: none !important;
 }
 
@@ -389,50 +387,48 @@ button:focus-visible, a:focus-visible {
 #nav-menu-switch,
 #display-settings-switch,
 #wallpaper-mode-switch,
-#scheme-switch,
-.btn-plain {
+#scheme-switch {
     -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
     -webkit-touch-callout: none !important;
     tap-highlight-color: rgba(0,0,0,0) !important;
-    background-color: transparent !important;
 }
 
 #nav-menu-switch:focus,
 #display-settings-switch:focus,
 #wallpaper-mode-switch:focus,
 #scheme-switch:focus,
-.btn-plain:focus,
 #nav-menu-switch:active,
 #display-settings-switch:active,
 #wallpaper-mode-switch:active,
 #scheme-switch:active,
-.btn-plain:active,
 #nav-menu-switch:focus-visible,
 #display-settings-switch:focus-visible,
 #wallpaper-mode-switch:focus-visible,
-#scheme-switch:focus-visible,
-.btn-plain:focus-visible {
+#scheme-switch:focus-visible {
     outline: none !important;
     box-shadow: none !important;
     -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
     tap-highlight-color: rgba(0,0,0,0) !important;
-    background-color: transparent !important;
 }
 
 /* 移除按钮点击后的背景色变化 */
 #nav-menu-switch::before,
 #display-settings-switch::before,
 #wallpaper-mode-switch::before,
-#scheme-switch::before,
-.btn-plain::before {
-    background-color: transparent !important;
+#scheme-switch::before {
+    transition: background-color 0.15s ease !important;
 }
 
 #nav-menu-switch:active::before,
 #display-settings-switch:active::before,
 #wallpaper-mode-switch:active::before,
-#scheme-switch:active::before,
-.btn-plain:active::before {
+#scheme-switch:active::before {
     background-color: transparent !important;
+}
+
+/* 确保导航栏主页链接正常工作 */
+a[href="/"],
+a[href="./"] {
+    pointer-events: auto !important;
 }
 </style>
