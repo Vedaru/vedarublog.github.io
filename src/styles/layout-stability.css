@@ -7,8 +7,8 @@
 .main-content-stable {
     /* 预留空间，防止布局偏移 */
     min-height: 100vh;
-    /* 使用 contain 隔离布局 */
-    contain: layout style;
+    /* 使用 contain 隔离布局，但不包含 layout 以允许 fixed 定位元素正常工作 */
+    contain: style;
     /* 启用 content-visibility 优化渲染 */
     content-visibility: auto;
     contain-intrinsic-size: 0 100vh;
