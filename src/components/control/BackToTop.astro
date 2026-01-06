@@ -15,13 +15,16 @@ import { Icon } from "astro-icon/components";
 <style lang="stylus">
   .back-to-top-wrapper
     /* Keep the wrapper fixed to the viewport so transforms on ancestors do not affect it */
-    position: fixed
-    right: 2rem
-    bottom: 2rem
+    position: fixed !important
+    right: 2rem !important
+    bottom: 2rem !important
     width: auto
     height: auto
     pointer-events: none
-    z-index: 60
+    z-index: 9999 !important
+    /* Ensure it's not affected by any parent transform/filter */
+    transform: none !important
+    filter: none !important
 
   .back-to-top-btn
     color: var(--primary)
