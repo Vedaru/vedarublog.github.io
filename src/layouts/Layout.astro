@@ -147,16 +147,18 @@ if (siteConfig.font) {
 
 	// 先添加 ASCII 字体（优先级最高）
 	if (siteConfig.font.asciiFont?.fontFamily) {
-		const asciiFont = siteConfig.font.asciiFont.fontFamily;
-		// 如果字体名包含空格，需要用引号包围
-		fonts.push(asciiFont.includes(" ") ? `"${asciiFont}"` : asciiFont);
+		const asciiFonts = siteConfig.font.asciiFont.fontFamily.split(',').map(f => f.trim());
+		asciiFonts.forEach(font => {
+			fonts.push(font.includes(" ") && !font.startsWith('"') && !font.startsWith("'") ? `"${font}"` : font);
+		});
 	}
 
 	// 再添加 CJK 字体（作为回退）
 	if (siteConfig.font.cjkFont?.fontFamily) {
-		const cjkFont = siteConfig.font.cjkFont.fontFamily;
-		// 如果字体名包含空格，需要用引号包围
-		fonts.push(cjkFont.includes(" ") ? `"${cjkFont}"` : cjkFont);
+		const cjkFonts = siteConfig.font.cjkFont.fontFamily.split(',').map(f => f.trim());
+		cjkFonts.forEach(font => {
+			fonts.push(font.includes(" ") && !font.startsWith('"') && !font.startsWith("'") ? `"${font}"` : font);
+		});
 	}
 
 	// 添加系统字体作为最终回退
