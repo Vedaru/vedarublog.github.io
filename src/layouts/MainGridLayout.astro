@@ -275,12 +275,17 @@ const transparentClass = shouldEnableTransparency
 		}
 		
 		// 立即调整主内容区域位置和布局模式（避免闪烁和位置错误）
-		// 使用CSS变量而不是直接修改style.top，减少重排
+		// 使用 requestAnimationFrame 确保 DOM 准备好
 		requestAnimationFrame(function() {
-			const mainContent = document.querySelector('.main-content-stable');
+			const mainContent = document.querySelector('.absolute.w-full.z-30.pointer-events-none');
 			if (mainContent) {
-				const topValue = wallpaperMode === 'banner' ? `${BANNER_HEIGHT}vh` : '5.5rem';
-				mainContent.style.setProperty('--main-top', topValue);
+				if (wallpaperMode === 'banner') {
+					// 让主内容区域从banner顶部开始，这样波浪线会自然覆盖内容上部
+					mainContent.style.top = `${BANNER_HEIGHT}vh`;
+				} else {
+					// fullscreen 或 none 模式
+					mainContent.style.top = '5.5rem';
+				}
 			}
 			
 			// 立即应用布局模式，避免闪烁
@@ -342,11 +347,12 @@ const transparentClass = shouldEnableTransparency
 		var fullscreenWallpaper = document.querySelector('[data-fullscreen-wallpaper]');
 		var navbar = document.getElementById('navbar');
 		var body = document.body;
-		var mainContent = document.querySelector('.main-content-stable');
+		var mainContent = document.querySelector('.absolute.w-full.z-30.pointer-events-none');
 		
-		// 使用CSS类的切换而不是频繁的重排
-		// 批量DOM操作，减少重排次数
-		var classUpdates = [];
+		// 强制重排以确保样式正确应用
+		var forceReflow = function() {
+			void document.body.offsetHeight;
+		};
 		
 		switch(wallpaperMode) {
 			case 'banner':
@@ -357,22 +363,29 @@ const transparentClass = shouldEnableTransparency
 				if (fullscreenWallpaper) {
 					fullscreenWallpaper.style.display = 'none';
 				}
-				classUpdates.push(
-					() => body.classList.remove('wallpaper-transparent', 'no-banner-mode'),
-					() => body.classList.add('enable-banner')
-				);
-				// 使用CSS变量更新位置，避免直接修改style属性
+				// 先移除body类，避免CSS冲突
+				body.classList.remove('wallpaper-transparent');
+				body.classList.remove('no-banner-mode');
+				// 强制重排
+				forceReflow();
+				// 移除内联样式，让CSS完全接管
 				if (mainContent) {
-					mainContent.style.setProperty('--main-top', `${BANNER_HEIGHT}vh`);
+					mainContent.style.removeProperty('top');
 				}
-				// navbar 恢复原始透明模式
+				// 再添加enable-banner类
+				body.classList.add('enable-banner');
+				// navbar 恢复原始透明模式（从 config 读取）
 				if (navbar) {
 					navbar.removeAttribute('data-dynamic-transparent');
+					// 恢复 config 中设置的 data-transparent-mode
 					navbar.setAttribute('data-transparent-mode', navbarTransparentMode);
+					// 如果是 semifull 模式，重新初始化滚动检测
 					if (navbarTransparentMode === 'semifull' && window.initSemifullScrollDetection) {
 						window.initSemifullScrollDetection();
 					}
 				}
+				// 强制重排以确保CSS变量正确更新
+				forceReflow();
 				break;
 				
 			case 'fullscreen':
@@ -383,19 +396,25 @@ const transparentClass = shouldEnableTransparency
 				if (fullscreenWallpaper) {
 					fullscreenWallpaper.style.display = 'block';
 				}
-				classUpdates.push(
-					() => body.classList.remove('enable-banner'),
-					() => body.classList.add('wallpaper-transparent', 'no-banner-mode')
-				);
-				// 使用CSS变量更新位置
+				// 先移除body类，避免CSS冲突
+				body.classList.remove('enable-banner');
+				// 强制重排
+				forceReflow();
+				// 移除内联样式，让CSS完全接管
 				if (mainContent) {
-					mainContent.style.setProperty('--main-top', '5.5rem');
+					mainContent.style.removeProperty('top');
 				}
-				// navbar 强制设置为 semi 透明模式
+				// 再添加wallpaper-transparent和no-banner-mode类
+				body.classList.add('wallpaper-transparent');
+				body.classList.add('no-banner-mode');
+				// navbar 强制设置为 semi 透明模式（忽略 config 配置）
 				if (navbar) {
 					navbar.setAttribute('data-dynamic-transparent', 'semi');
+					// 强制移除 config 中的 data-transparent-mode 影响
 					navbar.removeAttribute('data-transparent-mode');
 				}
+				// 强制重排以确保CSS变量正确更新
+				forceReflow();
 				break;
 				
 			case 'none':
@@ -406,26 +425,27 @@ const transparentClass = shouldEnableTransparency
 				if (fullscreenWallpaper) {
 					fullscreenWallpaper.style.display = 'none';
 				}
-				classUpdates.push(
-					() => body.classList.remove('enable-banner', 'wallpaper-transparent'),
-					() => body.classList.add('no-banner-mode')
-				);
-				// 使用CSS变量更新位置
+				// 先移除body类，避免CSS冲突
+				body.classList.remove('enable-banner');
+				body.classList.remove('wallpaper-transparent');
+				// 强制重排
+				forceReflow();
+				// 移除内联样式，让CSS完全接管
 				if (mainContent) {
-					mainContent.style.setProperty('--main-top', '5.5rem');
+					mainContent.style.removeProperty('top');
 				}
-				// navbar 强制设置为不透明
+				// 再添加no-banner-mode类
+				body.classList.add('no-banner-mode');
+				// navbar 强制设置为不透明（忽略 config 配置）
 				if (navbar) {
 					navbar.setAttribute('data-dynamic-transparent', 'none');
+					// 强制移除 config 中的 data-transparent-mode 影响
 					navbar.removeAttribute('data-transparent-mode');
 				}
+				// 强制重排以确保CSS变量正确更新
+				forceReflow();
 				break;
 		}
-		
-		// 批量应用class更新，减少重排
-		requestAnimationFrame(function() {
-			classUpdates.forEach(function(update) { update(); });
-		});
 	}
 	
 	// 监听壁纸模式变化，立即应用（不重载页面）
@@ -591,11 +611,10 @@ const transparentClass = shouldEnableTransparency
 <!-- Banner 已删除 -->
 <!-- 原 banner-wrapper 已移除，如需恢复请参考 commit 历史或 siteConfig.banner 设置 -->
 
-<!-- Main content - 使用CSS变量减少CLS -->
+<!-- Main content - 使用固定定位减少 CLS -->
 <div 
     class={`w-full z-30 pointer-events-none main-content-stable ${mobileNonHomeBannerClass ? 'mobile-main-no-banner' : ''} ${siteConfig.wallpaperMode.defaultMode === 'none' ? 'no-banner-layout' : ''} ${transparentClass}`} 
-    style={`--main-top: ${finalMainPanelTop}; margin-top: var(--main-top);`}
-    data-wallpaper-mode={siteConfig.wallpaperMode.defaultMode}
+    style={`margin-top: ${finalMainPanelTop};`}
 >
     <!-- The pointer-events-none here prevent blocking the click event of the TOC -->
     <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto">
@@ -616,10 +635,10 @@ const transparentClass = shouldEnableTransparency
             </a>}
 
 
-            {(mobileShowSidebar || tabletShowSidebar || desktopShowSidebar) && <SideBar class={`${sidebarClass} ${transparentClass} sidebar-stable`} headings={headings} isBothSidebarMode={isBothSidebarMode}></SideBar>}
+            {(mobileShowSidebar || tabletShowSidebar || desktopShowSidebar) && <SideBar class={`${sidebarClass} ${transparentClass}`} headings={headings} isBothSidebarMode={isBothSidebarMode}></SideBar>}
             
             {/* 右侧边栏 - 在双侧模式或有组件时渲染，网格模式下也显示*/}
-            {(isBothSidebarMode || hasRightSidebarComponents) && <RightSideBar class={`right-sidebar-container ${rightSidebarClass} ${transparentClass} sidebar-stable`} headings={headings}></RightSideBar>}
+            {(isBothSidebarMode || hasRightSidebarComponents) && <RightSideBar class={`right-sidebar-container ${rightSidebarClass} ${transparentClass}`} headings={headings}></RightSideBar>}
 
             <main id="swup-container" class={`${mainContentClass} transition-main`}>
                 <div id="content-wrapper" class="onload-animation transition-leaving">

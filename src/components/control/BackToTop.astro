@@ -3,8 +3,9 @@ import { Icon } from "astro-icon/components";
 ---
 
 <!-- There can't be a filter on parent element, or it will break `fixed` -->
-<div class="back-to-top-wrapper block" aria-hidden="true">
-    <div id="back-to-top-btn" class="back-to-top-btn hide flex items-center rounded-2xl overflow-hidden">
+<div class="back-to-top-wrapper block">
+    <div id="back-to-top-btn" class="back-to-top-btn hide flex items-center rounded-2xl overflow-hidden transition"
+         onclick="backToTop()">
         <button aria-label="Back to Top" class="btn-card h-[3.75rem] w-[3.75rem]">
             <Icon name="material-symbols:keyboard-arrow-up-rounded" class="mx-auto"></Icon>
         </button>
@@ -15,11 +16,13 @@ import { Icon } from "astro-icon/components";
   .back-to-top-wrapper
     position: fixed !important
     right: 2rem
-    bottom: 7rem
+    bottom: 6rem
     width: 3.75rem
     height: 3.75rem
     pointer-events: none
     z-index: 40
+    // 确保不受父元素 contain 属性影响
+    will-change: transform
 
   .back-to-top-btn
     color: var(--primary)
@@ -28,20 +31,19 @@ import { Icon } from "astro-icon/components";
     border: none
     width: 100%
     height: 100%
-    opacity: 0
+    opacity: 1
     cursor: pointer
-    transform: scale(0)
-    pointer-events: none
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease
-    will-change: transform, opacity
+    transform: scale(1)
+    pointer-events: auto
+    transition: transform 0.3s ease, opacity 0.3s ease, box-shadow 0.3s ease
 
     i
       font-size: 1.75rem
 
-    &:not(.hide)
-      transform: scale(1)
-      opacity: 1
-      pointer-events: auto
+    &.hide
+      transform: scale(0)
+      opacity: 0
+      pointer-events: none
 
     &:hover
       transform: scale(1.05)
@@ -64,53 +66,15 @@ import { Icon } from "astro-icon/components";
 
 <script is:raw is:inline>
     function backToTop() {
-        window.scrollTo({top: 0, behavior: 'smooth'});
+        // 直接使用原生滚动，避免OverlayScrollbars冲突
+        window.scroll({top: 0, behavior: 'smooth'});
     }
 
-    // 优化滚动监听和按钮显示
+    // 将按钮移到 body 的直接子元素，避免父元素 contain 属性的影响
     (function() {
         const wrapper = document.querySelector('.back-to-top-wrapper');
-        const btn = document.getElementById('back-to-top-btn');
-        
-        if (!wrapper || !btn) return;
-
-        // 将按钮移到 body 的直接子元素
-        if (wrapper.parentElement !== document.body) {
+        if (wrapper && wrapper.parentElement !== document.body) {
             document.body.appendChild(wrapper);
         }
-
-        // 添加点击事件
-        btn.addEventListener('click', backToTop);
-
-        // 使用 Intersection Observer 优化滚动监听
-        let ticking = false;
-        const threshold = 300;
-
-        function updateButtonVisibility() {
-            const shouldShow = window.scrollY > threshold;
-            const isHidden = btn.classList.contains('hide');
-            
-            if (shouldShow && isHidden) {
-                btn.classList.remove('hide');
-                wrapper.setAttribute('aria-hidden', 'false');
-            } else if (!shouldShow && !isHidden) {
-                btn.classList.add('hide');
-                wrapper.setAttribute('aria-hidden', 'true');
-            }
-            ticking = false;
-        }
-
-        function onScroll() {
-            if (!ticking) {
-                requestAnimationFrame(updateButtonVisibility);
-                ticking = true;
-            }
-        }
-
-        // 使用 passive 监听器提高滚动性能
-        window.addEventListener('scroll', onScroll, { passive: true });
-        
-        // 初始检查
-        updateButtonVisibility();
     })();
 </script>
