@@ -3,7 +3,7 @@
  * 通过 CSS transform 替代动态 top 定位，使用 will-change 提升渲染性能
  */
 
-/* 1. 使用 margin-top 替代 transform 以减少布局偏移 */
+/* 1. 使用 CSS 变量和 margin-top 以减少布局偏移 */
 .main-content-stable {
     /* 预留空间，防止布局偏移 */
     min-height: 100vh;
@@ -12,6 +12,10 @@
     /* 启用 content-visibility 优化渲染 */
     content-visibility: auto;
     contain-intrinsic-size: 0 100vh;
+    /* 使用 CSS 变量控制顶部距离，避免 JS 直接修改 style */
+    margin-top: var(--main-top, 5.5rem);
+    /* 使用 transform 替代 margin 的动画过渡 */
+    transition: margin-top 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* 2. 为可能导致 CLS 的元素预留尺寸 */
@@ -89,11 +93,29 @@ astro-island {
     contain: layout style paint;
 }
 
-/* 10. 优化侧边栏加载 */
-.sidebar-stable {
+/* 10. 优化侧边栏加载 - 防止 #sidebar CLS */
+.sidebar-stable,
+#sidebar {
     min-height: 300px;
     will-change: contents;
     contain: layout style;
+    /* 预留固定宽度，避免内容加载时横向偏移 */
+    min-width: 250px;
+}
+
+/* 10.1 右侧边栏稳定性 */
+.right-sidebar-container {
+    min-height: 300px;
+    contain: layout style;
+    will-change: contents;
+    /* 使用 visibility 而不是 display 来隐藏，保持布局空间 */
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.right-sidebar-container.hidden-in-grid-mode {
+    opacity: 0;
+    visibility: hidden;
+    /* 不使用 display: none，避免布局偏移 */
 }
 
 /* 11. 减少隐藏元素影响 */
@@ -102,18 +124,60 @@ astro-island {
     /* 确保 hidden 元素完全不占用布局空间 */
 }
 
-/* 12. Banner 区域稳定性 */
-.banner-stable {
+/* 12. Banner 区域稳定性 - 防止壁纸切换引起 CLS */
+.banner-stable,
+.wallpaper-transparent,
+[data-fullscreen-wallpaper] {
     height: var(--banner-height, 45vh);
     contain: strict;
     content-visibility: auto;
+    /* 使用 transform 进行显示/隐藏切换，而不是 display */
+    transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
-/* 13. 主网格布局优化 */
+/* 壁纸模式切换优化 */
+body.enable-banner .main-content-stable {
+    --main-top: var(--banner-height, 35vh);
+}
+
+body.no-banner-mode .main-content-stable,
+body.wallpaper-transparent .main-content-stable {
+    --main-top: 5.5rem;
+}
+
+/* 壁纸透明效果优化 - 避免透明度变化引起重绘 */
+.wallpaper-transparent {
+    will-change: opacity;
+    backface-visibility: hidden;
+    perspective: 1000px;
+}
+
+/* 13. 主网格布局优化 - 防止网格切换引起 CLS */
 #main-grid {
     /* 使用 grid 的 auto-flow 确保平滑布局 */
     grid-auto-flow: dense;
     contain: layout;
+    /* 预留最小高度，防止内容加载时跳动 */
+    min-height: 500px;
+    /* 使用 CSS Grid 的 minmax 确保列宽稳定 */
+    transition: grid-template-columns 0.3s ease;
+}
+
+/* 网格模式和列表模式的平滑过渡 */
+#main-grid[data-layout-mode="grid"] {
+    /* 网格模式特定优化 */
+    contain: layout style;
+}
+
+#main-grid[data-layout-mode="list"] {
+    /* 列表模式特定优化 */
+    contain: layout;
+}
+
+/* 防止列宽变化引起的 CLS */
+#main-grid > * {
+    contain: layout style;
+    min-height: 100px;
 }
 
 /* 14. 减少动画引起的 CLS */
@@ -172,4 +236,114 @@ astro-island {
     /* 为动态加载的内容预留空间 */
     min-height: var(--min-content-height, 300px);
     contain: layout style;
+}
+
+/* 21. 防止 pointer-events 切换导致的重排 */
+.pointer-events-none {
+    pointer-events: none;
+    /* 使用 GPU 加速 */
+    transform: translateZ(0);
+    will-change: auto;
+}
+
+/* 22. 固定定位元素优化 - 减少对文档流的影响 */
+.absolute,
+.fixed {
+    contain: layout size style;
+    /* 使用 GPU 加速 */
+    backface-visibility: hidden;
+}
+
+/* 23. Flex 容器稳定性 */
+.flex,
+.md\:hidden {
+    /* 防止 flex 项目尺寸变化 */
+    contain: layout style;
+}
+
+/* 24. 减少手机端 banner 隐藏导致的 CLS */
+@media (max-width: 768px) {
+    .mobile-hide-banner .main-content-stable {
+        --main-top: 5.5rem !important;
+    }
+    
+    .mobile-main-no-banner {
+        margin-top: 5.5rem !important;
+    }
+}
+
+/* 25. 图片对象覆盖优化 - 防止图片加载引起 CLS */
+.w-full.h-full.object-cover {
+    /* 预先分配空间 */
+    aspect-ratio: 16 / 9;
+    contain: layout;
+    /* 使用 content-visibility 延迟渲染 */
+    content-visibility: auto;
+    contain-intrinsic-size: 800px 450px;
+}
+
+/* 26. 避免类切换引起的重排 */
+.transition-all,
+.transition {
+    /* 限制过渡属性，避免触发 layout */
+    transition-property: opacity, transform, filter, box-shadow;
+    will-change: opacity, transform;
+}
+
+/* 27. Z-index 层级稳定性 */
+.z-30,
+.z-40,
+.z-50 {
+    /* 使用独立的层叠上下文 */
+    isolation: isolate;
+}
+
+/* 28. 减少 display 切换的影响 */
+.block,
+.hidden {
+    /* 使用 contain 限制影响范围 */
+    contain: style;
+}
+
+/* 29. 优化 items-center 布局 */
+.items-center {
+    /* 防止对齐变化引起重排 */
+    contain: layout;
+}
+
+/* 30. 全局布局稳定性增强 */
+body {
+    /* 使用 contain 隔离文档级别的布局 */
+    contain: layout style;
+}
+
+/* 31. 防止模式切换时的突然变化 */
+body.enable-banner,
+body.wallpaper-transparent,
+body.no-banner-mode {
+    /* 模式切换时平滑过渡 */
+    transition: background-color 0.3s ease;
+}
+
+/* 32. 响应式网格优化 */
+@media (min-width: 1024px) {
+    #main-grid {
+        /* 桌面端固定网格模板 */
+        grid-template-columns: minmax(250px, 17.5rem) minmax(0, 1fr) minmax(250px, 17.5rem);
+    }
+}
+
+/* 33. 预加载状态优化 */
+[data-wallpaper-mode] {
+    /* 根据壁纸模式预设样式 */
+    will-change: margin-top, transform;
+}
+
+[data-wallpaper-mode="banner"] {
+    --expected-main-top: 35vh;
+}
+
+[data-wallpaper-mode="fullscreen"],
+[data-wallpaper-mode="none"] {
+    --expected-main-top: 5.5rem;
 }
