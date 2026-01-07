@@ -89,7 +89,7 @@ export type SiteConfig = {
 			localFonts: string[];
 			enableCompress: boolean;
 		};
-		cjkFont?: {
+		cjkFont: {
 			fontFamily: string;
 			fontWeight: string | number;
 			localFonts: string[];
@@ -100,6 +100,7 @@ export type SiteConfig = {
 	// 添加bangumi配置
 	bangumi?: {
 		userId?: string; // Bangumi用户ID
+		fetchOnDev?: boolean;
 	};
 
 	// 添加番剧页面配置
@@ -166,6 +167,7 @@ export type SiteConfig = {
 		depth: 1 | 2 | 3;
 		useJapaneseBadge?: boolean; // 使用日语假名标记（あいうえお...）代替数字
 	};
+	showCoverInContent: boolean; // 控制文章封面在文章内容页显示的开关
 	generateOgImages: boolean;
 	favicon: Favicon[];
 	showLastModified: boolean; // 控制“上次编辑”卡片显示的开关
@@ -222,6 +224,33 @@ export type LicenseConfig = {
 	name: string;
 	url: string;
 };
+
+// Permalink 配置
+export type PermalinkConfig = {
+	enable: boolean; // 是否启用全局 permalink 功能
+	/**
+	 * permalink 格式模板
+	 * 支持的占位符：
+	 * - %year% : 4位年份 (2024)
+	 * - %monthnum% : 2位月份 (01-12)
+	 * - %day% : 2位日期 (01-31)
+	 * - %hour% : 2位小时 (00-23)
+	 * - %minute% : 2位分钟 (00-59)
+	 * - %second% : 2位秒数 (00-59)
+	 * - %post_id% : 文章序号（按发布时间升序排列）
+	 * - %postname% : 文章文件名（slug）
+	 * - %category% : 分类名（无分类时为 "uncategorized"）
+	 *
+	 * 示例：
+	 * - "%year%-%monthnum%-%postname%" => "2024-12-my-post"
+	 * - "%post_id%-%postname%" => "42-my-post"
+	 * - "%category%-%postname%" => "tech-my-post"
+	 *
+	 * 注意：不支持斜杠 "/"，所有生成的链接都在根目录下
+	 */
+	format: string;
+};
+
 // 评论配置
 
 export type CommentConfig = {
@@ -245,12 +274,12 @@ export type WALLPAPER_MODE =
 export type BlogPostData = {
 	body: string;
 	title: string;
-    published: string | Date;
+	published: Date;
 	description: string;
 	tags: string[];
 	draft?: boolean;
 	image?: string;
-	category?: string | null;
+	category?: string;
 	pinned?: boolean;
 	prevTitle?: string;
 	prevSlug?: string;
@@ -270,7 +299,6 @@ export type AnnouncementConfig = {
 	icon?: string; // 公告栏图标
 	type?: "info" | "warning" | "success" | "error"; // 公告类型
 	closable?: boolean; // 是否可关闭
-	persistClose?: boolean; // 是否持久化保存关闭状态（默认false，关闭后刷新页面恢复）
 	link?: {
 		enable: boolean; // 是否启用链接
 		text: string; // 链接文字
@@ -283,21 +311,9 @@ export type MusicPlayerConfig = {
 	enable: boolean; // 是否启用音乐播放器功能
 	mode: "meting" | "local"; // 音乐播放器模式
 	meting_api: string; // Meting API 地址
-	meting_api_candidates?: string[]; // 可选：多个 Meting API 候选列表，按优先级排列
 	id: string; // 歌单ID
 	server: string; // 音乐源服务器
 	type: string; // 音乐类型
-	// 可选：当浏览器支持 WebAudio 时，增益倍数用于放大输出（例如 2.0 表示最多放大 2 倍）
-	gainBoost?: number;
-	// 可选性能/行为配置
-	preload?: "none" | "metadata" | "auto"; // 音频预加载策略
-	autoplay?: boolean; // 是否自动播放
-	autoplayContinuous?: boolean; // 是否在播放完一首后自动继续播放并循环列表
-	volume?: number; // 默认音量（0-1）
-	listMaxHeight?: string; // 播放列表最大高度（CSS 值，例如 "250px"）
-	order?: "list" | "random"; // 播放顺序
-	mutex?: boolean; // 互斥模式，防止多个播放器同时播放
-	storageName?: string; // localStorage 缓存键名
 };
 
 export type FooterConfig = {
@@ -316,7 +332,6 @@ export type WidgetComponentType =
 	| "pio" // 添加 pio 组件类型
 	| "site-stats" // 站点统计组件
 	| "calendar" // 日历组件
-	| "diary-archive" // 日记归档组件
 	| "custom";
 
 export type WidgetComponentConfig = {
@@ -332,7 +347,7 @@ export type WidgetComponentConfig = {
 		hidden?: ("mobile" | "tablet" | "desktop")[]; // 在指定设备上隐藏
 		collapseThreshold?: number; // 折叠阈值
 	};
-	customProps?: Record<string, unknown>; // 自定义属性，用于扩展组件功能
+	customProps?: Record<string, any>; // 自定义属性，用于扩展组件功能
 };
 
 export type SidebarLayoutConfig = {
@@ -426,4 +441,11 @@ export type PioConfig = {
 			text?: string; // 自定义文本
 		}>;
 	};
+};
+
+/**
+ * 分享组件配置
+ */
+export type ShareConfig = {
+	enable: boolean; // 是否启用分享功能
 };

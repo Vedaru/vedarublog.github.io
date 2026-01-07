@@ -18,6 +18,10 @@ const brands = Object.keys(devices);
 ---
 
 <MainGridLayout title={i18n(I18nKey.devices)}>
+  <!-- 引入右侧边栏布局管理器 -->
+  <script>
+    import('../scripts/right-sidebar-layout.js');
+  </script>
   <div class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative min-h-32">
     <div class="card-base z-10 px-9 py-6 relative w-full">
       <!-- 页面标题 -->
@@ -49,7 +53,7 @@ const brands = Object.keys(devices);
       </div>
 
       <!-- 设备列表 -->
-      <div id="devices-container" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div id="devices-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {devices[brands[0]].map((device, index) => (
           <a 
             href={device.link}
@@ -67,8 +71,6 @@ const brands = Object.keys(devices);
                   src={device.image} 
                   alt={device.name}
                   class="w-auto h-full max-h-full object-contain group-hover:scale-110 transition-all duration-500 drop-shadow-md relative z-10"
-                  loading="lazy"
-                  decoding="async"
                 />
               </div>
             </div>

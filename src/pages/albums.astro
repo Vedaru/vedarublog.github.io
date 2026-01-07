@@ -15,6 +15,10 @@ const albumsData = await scanAlbums();
 ---
 
 <MainGridLayout title={i18n(I18nKey.albums)} description={i18n(I18nKey.albumsSubtitle)}>
+    <!-- 引入右侧边栏布局管理器 -->
+  <script>
+    import('../scripts/right-sidebar-layout.js');
+  </script>
   <div class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative min-h-32">
     <div class="card-base z-10 px-9 py-6 relative w-full">
       
@@ -31,7 +35,7 @@ const albumsData = await scanAlbums();
       </header>
 
       <!-- 相册网格 -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {albumsData.map(album => (
           <article 
             class="album-card group bg-white dark:bg-neutral-900 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border border-neutral-200 dark:border-neutral-800"
@@ -44,7 +48,6 @@ const albumsData = await scanAlbums();
                   alt={album.title}
                   class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   loading="lazy"
-                  decoding="async"
                 />
               </div>
               

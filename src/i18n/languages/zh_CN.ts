@@ -3,7 +3,7 @@ import type { Translation } from "../translation";
 
 export const zh_CN: Translation = {
 	[Key.home]: "主页",
-	[Key.about]: "关于本站",
+	[Key.about]: "关于我们",
 	[Key.archive]: "归档",
 	[Key.search]: "搜索",
 	[Key.other]: "其他",
@@ -79,7 +79,7 @@ export const zh_CN: Translation = {
 	[Key.diarySubtitle]: "随时随地，分享生活",
 	[Key.diaryCount]: "条短文",
 	[Key.diaryReply]: "回复",
-	[Key.diaryTips]: "显示全部日记",
+	[Key.diaryTips]: "只展示最近30条日记",
 	[Key.diaryMinutesAgo]: "分钟前",
 	[Key.diaryHoursAgo]: "小时前",
 	[Key.diaryDaysAgo]: "天前",
@@ -226,7 +226,8 @@ export const zh_CN: Translation = {
 	[Key.rssBenefit2]: "在一个地方管理多个网站的订阅",
 	[Key.rssBenefit3]: "避免错过重要更新和文章",
 	[Key.rssBenefit4]: "享受无广告的纯净阅读体验",
-	[Key.rssHowToUse]: "推荐使用 Feedly、Inoreader 或其他 RSS 阅读器来订阅本站。",
+	[Key.rssHowToUse]:
+		"推荐使用 Feedly、Inoreader 或其他 RSS 阅读器来订阅本站。",
 	[Key.rssCopied]: "RSS 链接已复制到剪贴板！",
 	[Key.rssCopyFailed]: "复制失败，请手动复制链接",
 
@@ -286,4 +287,15 @@ export const zh_CN: Translation = {
 	[Key.calendarOctober]: "10月",
 	[Key.calendarNovember]: "11月",
 	[Key.calendarDecember]: "12月",
+
+	// 分享功能
+	[Key.shareArticle]: "分享",
+	[Key.generatingPoster]: "正在生成海报...",
+	[Key.copied]: "已复制",
+	[Key.copyLink]: "复制链接",
+	[Key.savePoster]: "保存海报",
+	[Key.scanToRead]: "扫码阅读",
+	[Key.shareOnSocial]: "分享",
+	[Key.shareOnSocialDescription]:
+		"如果这篇文章对你有帮助，欢迎分享给更多人！",
 };

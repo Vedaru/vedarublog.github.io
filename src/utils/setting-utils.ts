@@ -32,12 +32,6 @@ export function setHue(hue: number): void {
 }
 
 export function applyThemeToDocument(theme: LIGHT_DARK_MODE) {
-	try {
-		// mark that theme util is executing
-		(window as any).__THEME_UTILS_RUNNING__ = true;
-	} catch (e) {
-		// ignore
-	}
 	// 获取当前主题状态的完整信息
 	const currentIsDark = document.documentElement.classList.contains("dark");
 	const currentTheme = document.documentElement.getAttribute("data-theme");
@@ -71,47 +65,25 @@ export function applyThemeToDocument(theme: LIGHT_DARK_MODE) {
 
 	// 定义实际执行主题切换的函数
 	const performThemeChange = () => {
-		try {
-			console.log("[setting-utils] performThemeChange", {
-				theme,
-				targetIsDark,
-				needsThemeChange,
-				needsCodeThemeUpdate,
-				currentIsDark,
-				currentTheme,
-			});
-		} catch (e) {
-			console.warn("[setting-utils] logging failed", e);
-		}
 		// 应用主题变化
 		if (needsThemeChange) {
 			if (targetIsDark) {
 				document.documentElement.classList.add("dark");
-				document.body.classList.add("dark");
 			} else {
 				document.documentElement.classList.remove("dark");
-				document.body.classList.remove("dark");
 			}
 		}
-
-		// 同步数据属性与颜色模式，便于其他脚本/样式使用
-		document.documentElement.setAttribute(
-			"data-theme-mode",
-			targetIsDark ? DARK_MODE : LIGHT_MODE,
-		);
-		document.body.setAttribute(
-			"data-theme-mode",
-			targetIsDark ? DARK_MODE : LIGHT_MODE,
-		);
-		document.documentElement.style.colorScheme = targetIsDark
-			? "dark"
-			: "light";
 
 		// Set the theme for Expressive Code based on current mode
 		// 只在必要时更新 data-theme 属性以减少重绘
 		if (needsCodeThemeUpdate) {
-			const expressiveTheme = targetIsDark ? "github-dark" : "github-light";
-			document.documentElement.setAttribute("data-theme", expressiveTheme);
+			const expressiveTheme = targetIsDark
+				? "github-dark"
+				: "github-light";
+			document.documentElement.setAttribute(
+				"data-theme",
+				expressiveTheme,
+			);
 		}
 	};
 
@@ -162,32 +134,21 @@ export function applyThemeToDocument(theme: LIGHT_DARK_MODE) {
 		// 使用 requestAnimationFrame 确保在下一帧移除过渡保护类
 		if (needsThemeChange) {
 			requestAnimationFrame(() => {
-				document.documentElement.classList.remove("is-theme-transitioning");
+				document.documentElement.classList.remove(
+					"is-theme-transitioning",
+				);
 			});
 		}
 	}
 }
 
 export function setTheme(theme: LIGHT_DARK_MODE): void {
-	try {
-		console.log("[setting-utils] setTheme ->", theme);
-		localStorage.setItem("theme", theme);
-	} catch (e) {
-		console.warn("[setting-utils] setTheme: localStorage failed", e);
-	}
+	localStorage.setItem("theme", theme);
 	applyThemeToDocument(theme);
 }
 
 export function getStoredTheme(): LIGHT_DARK_MODE {
-	try {
-		return (localStorage.getItem("theme") as LIGHT_DARK_MODE) || DEFAULT_THEME;
-	} catch (e) {
-		console.warn(
-			"[setting-utils] getStoredTheme: localStorage access failed",
-			e,
-		);
-		return DEFAULT_THEME;
-	}
+	return (localStorage.getItem("theme") as LIGHT_DARK_MODE) || DEFAULT_THEME;
 }
 
 export function getStoredWallpaperMode(): WALLPAPER_MODE {

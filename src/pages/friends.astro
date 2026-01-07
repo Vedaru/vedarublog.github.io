@@ -32,6 +32,9 @@ const allTags = Array.from(new Set(friendsList.flatMap((item) => item.tags)));
 		// 标记当前页面为友情链接页面
 		window.isFriendsPage = true;
 	</script>
+  <script>
+    import('../scripts/right-sidebar-layout.js');
+  </script>
 	<div class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative min-h-32">
 		<div class="card-base z-10 px-9 py-6 relative w-full">
       <!-- 页面标题 -->
@@ -90,7 +93,7 @@ const allTags = Array.from(new Set(friendsList.flatMap((item) => item.tags)));
 
 			<!-- 友链卡片网格 -->
 			<div id="friends-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 mb-6">
-				{friendsList.map((item, idx) => (
+				{friendsList.map((item) => (
 					<div 
 						class="friend-card group relative bg-transparent rounded-xl border border-black/10 dark:border-white/10
 								 overflow-hidden transition-all duration-300
@@ -112,9 +115,7 @@ const allTags = Array.from(new Set(friendsList.flatMap((item) => item.tags)));
 										src={item.imgurl} 
 										alt={item.title}
 										class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300"
-										loading={idx < 6 ? "eager" : "lazy"}
-										fetchpriority={idx < 6 ? "high" : "low"}
-										decoding="async"
+										loading="lazy"
 									/>
 								</div>
 
@@ -215,7 +216,7 @@ const allTags = Array.from(new Set(friendsList.flatMap((item) => item.tags)));
 	</div>
 	
 	<!-- 引用全局脚本 -->
-	<script is:inline src={`${import.meta.env.BASE_URL}js/friends-page-handler.js`}></script>
+	<script is:inline src="/js/friends-page-handler.js"></script>
 </MainGridLayout>
 
 <style>

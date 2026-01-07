@@ -7,7 +7,7 @@ Mizuki 主题的相册功能采用**自动扫描**机制，只需创建文件夹
 创建一个相册只需 3 步：
 
 1. 在 `public/images/albums/` （本说明文件所在目录）下创建一个文件夹（文件夹名即为相册 ID）
-2. 在文件夹中放置 `cover.webp`（封面图）和其他照片
+2. 在文件夹中放置 `cover.jpg`（封面图）和其他照片
 3. 创建 `info.json` 配置文件
 
 完成！相册会自动出现在相册列表页面。
@@ -18,13 +18,13 @@ Mizuki 主题的相册功能采用**自动扫描**机制，只需创建文件夹
 public/images/albums/
 ├── my-travel-2024/              # 相册文件夹（文件夹名 = 相册ID）
 │   ├── info.json                # 相册配置文件（必需）
-│   ├── cover.webp                # 封面图（必需）
-│   ├── photo1.webp               # 相册照片
-│   ├── photo2.webp
-│   └── photo3.webp
+│   ├── cover.jpg                # 封面图（必需）
+│   ├── photo1.jpg               # 相册照片
+│   ├── photo2.jpg
+│   └── photo3.jpg
 ├── daily-life/                  # 另一个相册
 │   ├── info.json
-│   ├── cover.webp
+│   ├── cover.jpg
 │   └── ...
 └── README.md                    # 本说明文件
 ```
@@ -75,11 +75,11 @@ public/images/albums/
   "tags": ["外链", "示例"],
   "layout": "masonry",
   "columns": 3,
-  "cover": "https://example.com/cover.webp",
+  "cover": "https://example.com/cover.jpg",
   "photos": [
     {
       "id": "photo-1",
-      "src": "https://example.com/photo1.webp",
+      "src": "https://example.com/photo1.jpg",
       "alt": "图片描述",
       "title": "图片标题",
       "description": "详细描述",
@@ -104,8 +104,8 @@ public/images/albums/
 | 字段 | 必需 | 说明 | 示例 |
 |------|------|------|------|
 | `id` | 否 | 照片唯一标识符 | `"photo-1"` |
-| `src` | 是 | 照片 URL 地址 | `"https://example.com/photo.webp"` |
-| `thumbnail` | 否 | 缩略图 URL（不提供则使用原图） | `"https://example.com/thumb.webp"` |
+| `src` | 是 | 照片 URL 地址 | `"https://example.com/photo.jpg"` |
+| `thumbnail` | 否 | 缩略图 URL（不提供则使用原图） | `"https://example.com/thumb.jpg"` |
 | `alt` | 否 | 图片替代文本（用于无障碍访问） | `"美丽的日落"` |
 | `title` | 否 | 照片标题 | `"海边日落"` |
 | `description` | 否 | 照片详细描述 | `"2024年夏天在海边拍摄的日落"` |
@@ -125,7 +125,7 @@ public/images/albums/
 
 ## 图片格式建议
 
-### 封面图片 (cover.webp)
+### 封面图片 (cover.jpg)
 - **尺寸**：800×600px（4:3 比例）
 - **格式**：JPG （外链模式可支持更多格式）
 - **大小**：建议 < 200KB
@@ -185,7 +185,7 @@ public/images/albums/
 系统支持从文件名解析标签（格式：`基本名_标签1_标签2.ext`）：
 
 ```
-photo_sunset_beach.webp  →  标签：sunset, beach
+photo_sunset_beach.jpg  →  标签：sunset, beach
 ```
 
 ### 隐藏相册
@@ -199,7 +199,7 @@ photo_sunset_beach.webp  →  标签：sunset, beach
 ## 常见问题
 
 **Q: 为什么我的相册没有显示？**  
-A: 检查是否存在 `info.json` 和 `cover.webp`，以及 `hidden` 是否设置为 `true`。
+A: 检查是否存在 `info.json` 和 `cover.jpg`，以及 `hidden` 是否设置为 `true`。
 
 **Q: 可以使用其他图片格式吗？**  
 A: 可以，支持 JPG、PNG、WebP、GIF、SVG、AVIF 等格式。

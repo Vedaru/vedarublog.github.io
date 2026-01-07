@@ -85,7 +85,7 @@ export const ja: Translation = {
 	[Key.diarySubtitle]: "いつでもどこでも、生活を共有する",
 	[Key.diaryCount]: "日記エントリ",
 	[Key.diaryReply]: "返信",
-	[Key.diaryTips]: "すべての日記を表示",
+	[Key.diaryTips]: "最新の30件の日記エントリのみを表示",
 	[Key.diaryMinutesAgo]: "分前",
 	[Key.diaryHoursAgo]: "時間前",
 	[Key.diaryDaysAgo]: "日前",
@@ -157,7 +157,8 @@ export const ja: Translation = {
 	[Key.rssHowToUse]:
 		"Feedly、Inoreaderまたは他のRSSリーダーを使用してこのサイトを購読することを推奨します。",
 	[Key.rssCopied]: "RSSリンクがクリップボードにコピーされました！",
-	[Key.rssCopyFailed]: "コピーに失敗しました。手動でリンクをコピーしてください",
+	[Key.rssCopyFailed]:
+		"コピーに失敗しました。手動でリンクをコピーしてください",
 
 	// Atomページ
 	[Key.atom]: "Atomフィード",
@@ -234,7 +235,8 @@ export const ja: Translation = {
 
 	// パスワード保護
 	[Key.passwordProtected]: "パスワード保護",
-	[Key.passwordProtectedTitle]: "このコンテンツはパスワードで保護されています",
+	[Key.passwordProtectedTitle]:
+		"このコンテンツはパスワードで保護されています",
 	[Key.passwordProtectedDescription]:
 		"保護されたコンテンツを表示するにはパスワードを入力してください",
 	[Key.passwordPlaceholder]: "パスワードを入力",
@@ -300,4 +302,15 @@ export const ja: Translation = {
 	[Key.calendarOctober]: "10月",
 	[Key.calendarNovember]: "11月",
 	[Key.calendarDecember]: "12月",
+
+	// シェア機能
+	[Key.shareArticle]: "シェア",
+	[Key.generatingPoster]: "ポスターを生成中...",
+	[Key.copied]: "コピーしました",
+	[Key.copyLink]: "リンクをコピー",
+	[Key.savePoster]: "ポスターを保存",
+	[Key.scanToRead]: "QRコードで読む",
+	[Key.shareOnSocial]: "シェア",
+	[Key.shareOnSocialDescription]:
+		"この記事が役に立った場合は、ぜひ他の人とシェアしてください！",
 };

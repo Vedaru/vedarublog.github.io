@@ -14,8 +14,8 @@ const umamiApiKey = umamiConfig.apiKey || "";
 const umamiBaseUrl = umamiConfig.baseUrl || "";
 
 export interface Props {
-    published: string | Date;
-    updated?: string | Date;
+	published: Date;
+	updated?: Date;
 	category?: string;
 	tags?: string[];
 	hideUpdateDate?: boolean;
@@ -56,7 +56,7 @@ const {
     </div>
 
     <!-- update date -->
-        {!hideUpdateDate && updated && (new Date(updated).getTime() !== new Date(published).getTime()) && (
+    {!hideUpdateDate && updated && updated.getTime() !== published.getTime() && (
         <div class="flex items-center">
             <div class="meta-icon">
                 <Icon name="material-symbols:edit-calendar-outline-rounded" class="text-xl"></Icon>

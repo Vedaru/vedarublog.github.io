@@ -3,20 +3,23 @@ import {
 	WALLPAPER_BANNER,
 	WALLPAPER_FULLSCREEN,
 	WALLPAPER_NONE,
-} from "../constants/constants";
-import I18nKey from "../i18n/i18nKey";
-import { i18n } from "../i18n/translation";
+} from "@constants/constants.ts";
+import I18nKey from "@i18n/i18nKey";
+import { i18n } from "@i18n/translation";
 import Icon from "@iconify/svelte";
-import { getStoredWallpaperMode, setWallpaperMode } from "../utils/setting-utils";
-import type { WALLPAPER_MODE } from "../types/config";
-import { panelManager } from "../utils/panel-manager";
+import {
+	getStoredWallpaperMode,
+	setWallpaperMode,
+} from "@utils/setting-utils.ts";
+import type { WALLPAPER_MODE } from "@/types/config.ts";
+import { panelManager } from "../utils/panel-manager.js";
 
 const seq: WALLPAPER_MODE[] = [
 	WALLPAPER_BANNER,
 	WALLPAPER_FULLSCREEN,
 	WALLPAPER_NONE,
 ];
-let mode: WALLPAPER_MODE = getStoredWallpaperMode();
+let mode: WALLPAPER_MODE = $state(getStoredWallpaperMode());
 
 function switchWallpaperMode(newMode: WALLPAPER_MODE) {
 	mode = newMode;
@@ -43,19 +46,6 @@ async function togglePanel() {
 <style>
 .current-theme-btn {
 	background-color: var(--primary);
-	color: black;
-}
-
-.current-theme-btn:hover {
-	background-color: var(--primary) !important;
-	color: black;
-}
-
-:global(.dark) .current-theme-btn {
-	color: white;
-}
-
-:global(.dark) .current-theme-btn:hover {
 	color: white;
 }
 

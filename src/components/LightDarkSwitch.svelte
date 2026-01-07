@@ -1,16 +1,11 @@
 <script lang="ts">
-import { DARK_MODE, LIGHT_MODE } from "../constants/constants";
+import { DARK_MODE, LIGHT_MODE } from "@constants/constants.ts";
 import Icon from "@iconify/svelte";
-import {
-	applyThemeToDocument,
-	getStoredTheme,
-	setTheme,
-} from "../utils/setting-utils";
-import { onMount } from "svelte";
-import type { LIGHT_DARK_MODE } from "../types/config";
+import { getStoredTheme, setTheme } from "@utils/setting-utils.ts";
+import type { LIGHT_DARK_MODE } from "@/types/config.ts";
 
 const seq: LIGHT_DARK_MODE[] = [LIGHT_MODE, DARK_MODE];
-let mode: LIGHT_DARK_MODE = getStoredTheme();
+let mode: LIGHT_DARK_MODE = $state(getStoredTheme());
 let isChanging = false;
 
 function switchScheme(newMode: LIGHT_DARK_MODE) {
@@ -41,11 +36,6 @@ function toggleScheme() {
 
 // 添加Swup钩子监听，确保在页面切换后同步主题状态
 if (typeof window !== "undefined") {
-	// 首次挂载时应用已存主题，确保根元素 class/data-theme 正确
-	onMount(() => {
-		applyThemeToDocument(mode);
-	});
-
 	// 监听Swup的内容替换事件
 	const handleContentReplace = () => {
 		// 使用requestAnimationFrame确保在下一帧更新状态，避免渲染冲突
@@ -53,7 +43,6 @@ if (typeof window !== "undefined") {
 			const newMode = getStoredTheme();
 			if (mode !== newMode) {
 				mode = newMode;
-				applyThemeToDocument(mode);
 			}
 		});
 	};
@@ -75,32 +64,20 @@ if (typeof window !== "undefined") {
 			const newMode = getStoredTheme();
 			if (mode !== newMode) {
 				mode = newMode;
-				applyThemeToDocument(mode);
 			}
 		});
-	});
-
-	// 跨标签页/窗口同步主题
-	window.addEventListener("storage", (e) => {
-		if (e.key === "theme") {
-			const newMode = getStoredTheme();
-			if (mode !== newMode) {
-				mode = newMode;
-				applyThemeToDocument(mode);
-			}
-		}
 	});
 }
 </script>
 
 <div class="relative z-50">
-	<button 
-		aria-label="Light/Dark Mode" 
-		class="relative btn-plain scale-animation rounded-lg h-11 w-11 active:scale-90 theme-switch-btn" 
-		id="scheme-switch" 
-		onclick={toggleScheme}
-		data-mode={mode}
-	>
+    <button 
+        aria-label="Light/Dark Mode" 
+        class="relative btn-plain scale-animation rounded-lg h-11 w-11 active:scale-90 theme-switch-btn" 
+        id="scheme-switch" 
+        onclick={toggleScheme}
+        data-mode={mode}
+    >
         <div class="absolute transition-all duration-300 ease-in-out" class:opacity-0={mode !== LIGHT_MODE} class:rotate-180={mode !== LIGHT_MODE}>
             <Icon icon="material-symbols:wb-sunny-outline-rounded" class="text-[1.25rem]"></Icon>
         </div>

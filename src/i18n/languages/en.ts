@@ -81,7 +81,7 @@ export const en: Translation = {
 	[Key.diarySubtitle]: "Share life anytime, anywhere",
 	[Key.diaryCount]: "diary entries",
 	[Key.diaryReply]: "Reply",
-	[Key.diaryTips]: "Showing all diary entries",
+	[Key.diaryTips]: "Only show the latest 30 diary entries",
 	[Key.diaryMinutesAgo]: "minutes ago",
 	[Key.diaryHoursAgo]: "hours ago",
 	[Key.diaryDaysAgo]: "days ago",
@@ -173,7 +173,8 @@ export const en: Translation = {
 		"Atom (Atom Syndication Format) is an XML-based standard for describing feeds and their items. With Atom, you can:",
 	[Key.atomBenefit1]:
 		"Get the latest website content in time without manually visiting",
-	[Key.atomBenefit2]: "Manage subscriptions to multiple websites in one place",
+	[Key.atomBenefit2]:
+		"Manage subscriptions to multiple websites in one place",
 	[Key.atomBenefit3]: "Avoid missing important updates and articles",
 	[Key.atomBenefit4]: "Enjoy an ad-free, clean reading experience",
 	[Key.atomHowToUse]:
@@ -253,7 +254,8 @@ export const en: Translation = {
 	[Key.passwordUnlockButton]: "Unlock",
 	[Key.copyFailed]: "Copy failed:",
 	[Key.syntaxHighlightFailed]: "Syntax highlighting failed:",
-	[Key.autoSyntaxHighlightFailed]: "Automatic syntax highlighting also failed:",
+	[Key.autoSyntaxHighlightFailed]:
+		"Automatic syntax highlighting also failed:",
 	[Key.decryptionError]: "An error occurred during decryption:",
 
 	// Last Modified Time Card
@@ -297,4 +299,15 @@ export const en: Translation = {
 	[Key.calendarOctober]: "Oct",
 	[Key.calendarNovember]: "Nov",
 	[Key.calendarDecember]: "Dec",
+
+	// Share Functionality
+	[Key.shareArticle]: "Share",
+	[Key.generatingPoster]: "Generating poster...",
+	[Key.copied]: "Copied",
+	[Key.copyLink]: "Copy Link",
+	[Key.savePoster]: "Save Poster",
+	[Key.scanToRead]: "Scan to Read",
+	[Key.shareOnSocial]: "Share",
+	[Key.shareOnSocialDescription]:
+		"If this article helped you, please share it with others!",
 };

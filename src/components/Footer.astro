@@ -47,63 +47,8 @@ if (footerConfig.enable) {
         <a class="transition link text-[var(--primary)] font-medium" target="_blank" href={url('sitemap-index.xml')}>Sitemap</a><br>
         Powered by
         <a class="transition link text-[var(--primary)] font-medium" target="_blank" href="https://astro.build">Astro</a> &
-        <a class="transition link text-[var(--primary)] font-medium" target="_blank" href="https://github.com/matsuzaka-yuki/mizuki">Mizuki</a>&nbsp; Version <a class="transition link text-[var(--primary)] font-medium" target="_blank" href="https://github.com/matsuzaka-yuki/mizuki">7.6</a><br>
-        <a id="sakura-trigger" class="transition link text-[var(--primary)] font-medium cursor-pointer" style="user-select: none;" href="javascript:void(0);" onclick="window.handleSakuraToggle?.();">点击一下什么都不会发生吧</a>
+        <a class="transition link text-[var(--primary)] font-medium" target="_blank" href="https://github.com/matsuzaka-yuki/mizuki">Mizuki</a>&nbsp; Version <a class="transition link text-[var(--primary)] font-medium" target="_blank" href="https://github.com/matsuzaka-yuki/mizuki">7.6.5</a><br>
+        
+
     </div>
 </div>
-
-<script is:inline>
-    // 全局处理函数
-    window.handleSakuraToggle = function() {
-        console.log('=== 触发樱花切换 ===');
-        
-        if (typeof window.__toggleSakura === 'function') {
-            try {
-                window.__toggleSakura();
-                const isRunning = typeof window.__getSakuraStatus === 'function' ? window.__getSakuraStatus() : false;
-                console.log('樱花状态:', isRunning ? '开启' : '关闭');
-            } catch (error) {
-                console.error('切换樱花时出错:', error);
-            }
-        } else {
-            console.error('樱花管理器未加载');
-        }
-    };
-    console.log('全局樱花处理函数已注册');
-</script>
-
-<script>
-    import { toggleSakura, getSakuraStatus, initSakura } from '../utils/sakura-manager';
-    import { sakuraConfig } from '../config';
-
-    // 阻止Layout.astro中的樱花初始化
-    (window as any).sakuraInitialized = true;
-    
-    // 挂载到window对象
-    (window as any).__toggleSakura = toggleSakura;
-    (window as any).__getSakuraStatus = getSakuraStatus;
-    
-    // 立即初始化樱花管理器（使用enable:false，这样toggle时才会启动）
-    const config = { ...sakuraConfig, enable: false };
-    initSakura(config);
-    
-    // 预加载图片以提高响应速度
-    (function preloadSeasonalImage() {
-        const month = new Date().getMonth() + 1;
-        let imageName = "sakura.png";
-        
-        if (month >= 3 && month <= 5) {
-            imageName = "sakura.png";
-        } else if (month >= 9 && month <= 11) {
-            imageName = "mapleleaf.png";
-        } else if (month === 12 || month === 1 || month === 2) {
-            imageName = "snowflake.png";
-        }
-        
-        const img = new Image();
-        img.src = `/${imageName}`;
-        console.log(`预加载季节图片: ${imageName}`);
-    })();
-    
-    console.log('樱花管理器已初始化（待命状态）');
-</script>

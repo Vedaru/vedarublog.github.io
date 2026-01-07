@@ -68,9 +68,10 @@ const getCategoryText = (category: string) => {
 ---
 
 <MainGridLayout title={title} description={subtitle}>
-  <!-- 导入Iconify图标库 -->
-  <script type="module" is:inline>
-    import { loadIconify } from "@/utils/icon-loader";
+  <!-- 引入右侧边栏布局管理器 -->
+  <script>
+    import('../scripts/right-sidebar-layout.js');
+    import { loadIconify } from "../utils/icon-loader";
     
     // 加载Iconify图标库
     loadIconify().catch((error) => {
@@ -128,8 +129,6 @@ const getCategoryText = (category: string) => {
                       src={project.image} 
                       alt={project.title}
                       class="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                      loading="lazy"
-                      decoding="async"
                     />
                   </div>
                 )}
@@ -212,7 +211,7 @@ const getCategoryText = (category: string) => {
                   ({categoryProjects.length})
                 </span>
               </h2>
-              <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {categoryProjects.map((project) => (
                   <div class="bg-transparent rounded-lg border border-black/10 dark:border-white/10 overflow-hidden hover:shadow-lg transition-shadow duration-300">
                     {project.image && (
@@ -221,8 +220,6 @@ const getCategoryText = (category: string) => {
                           src={project.image} 
                           alt={project.title}
                           class="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                          loading="lazy"
-                          decoding="async"
                         />
                       </div>
                     )}

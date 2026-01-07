@@ -10,7 +10,7 @@
 
 ---- */
 
-window.Paul_Pio = function (prop) {
+var Paul_Pio = function (prop) {
 	const current = {
 		idol: 0,
 		timeout: undefined,
@@ -25,9 +25,8 @@ window.Paul_Pio = function (prop) {
 		// 创建内容
 		create: (tag, options) => {
 			const el = document.createElement(tag);
-			if (options.class) {
-				el.className = options.class;
-			}
+			options.class && (el.className = options.class);
+
 			return el;
 		},
 		// 随机内容
@@ -36,13 +35,10 @@ window.Paul_Pio = function (prop) {
 		},
 		// 是否为移动设备
 		isMobile: () => {
-			// 使用触控能力与 UA 双重判断，提升平板/手机识别准确度
-			const hasTouch =
-				navigator.maxTouchPoints > 0 ||
-				window.matchMedia("(pointer: coarse)").matches;
 			let ua = window.navigator.userAgent.toLowerCase();
 			ua = ua.indexOf("mobile") || ua.indexOf("android") || ua.indexOf("ios");
-			return hasTouch || window.innerWidth < 820 || ua !== -1;
+
+			return window.innerWidth < 500 || ua !== -1;
 		},
 	};
 
@@ -64,11 +60,10 @@ window.Paul_Pio = function (prop) {
 	const modules = {
 		// 更换模型
 		idol: () => {
-			if (current.idol < prop.model.length - 1) {
-				current.idol += 1;
-			} else {
-				current.idol = 0;
-			}
+			current.idol < prop.model.length - 1
+				? current.idol++
+				: (current.idol = 0);
+
 			return current.idol;
 		},
 		// 创建对话框方法
@@ -104,7 +99,7 @@ window.Paul_Pio = function (prop) {
 	const action = {
 		// 欢迎
 		welcome: () => {
-			if (document?.referrer?.includes(current.root)) {
+			if (document.referrer && document.referrer.includes(current.root)) {
 				const referrer = document.createElement("a");
 				referrer.href = document.referrer;
 
@@ -116,8 +111,8 @@ window.Paul_Pio = function (prop) {
 					modules.message(`欢迎来自 “${referrer.hostname}” 的朋友！`);
 				}
 			} else if (prop.tips) {
-				let text;
-				const hour = new Date().getHours();
+				let text,
+					hour = new Date().getHours();
 
 				if (hour > 22 || hour <= 5) {
 					text = "你是夜猫子呀？这么晚还不睡觉，明天起的来嘛";
@@ -159,10 +154,6 @@ window.Paul_Pio = function (prop) {
 		},
 		// 右侧按钮
 		buttons: () => {
-			// 重建前清空按钮，防止重复累加
-			if (current.menu) {
-				current.menu.innerHTML = "";
-			}
 			// 返回首页 - 使用 Swup 无刷新跳转
 			elements.home.onclick = () => {
 				// 检查 Swup 是否可用
@@ -215,13 +206,7 @@ window.Paul_Pio = function (prop) {
 			// 夜间模式
 			if (prop.night) {
 				elements.night.onclick = () => {
-					if (typeof prop.night === "function") {
-						prop.night();
-					} else {
-						console.warn(
-							"Night toggle is not a function; skipping unsafe eval",
-						);
-					}
+					typeof prop.night === "function" ? prop.night() : eval(prop.night);
 				};
 				elements.night.onmouseover = () => {
 					modules.message("夜间点击这里可以保护眼睛呢");
@@ -365,7 +350,7 @@ window.Paul_Pio = function (prop) {
 };
 
 // 请保留版权说明
-if (window.console?.log) {
+if (window.console && window.console.log) {
 	console.log(
 		"%c Pio %c https://paugram.com ",
 		"color: #fff; margin: 1em 0; padding: 5px 0; background: #673ab7;",

@@ -17,53 +17,50 @@ const className = Astro.props.class;
 
 // 获取导航栏透明模式配置
 const navbarTransparentMode =
-    siteConfig.banner?.navbar?.transparentMode || "semi";
+	siteConfig.banner?.navbar?.transparentMode || "semi";
 
 // 获取整体布局方案切换按钮显示设置
 const modeSwitchDisplay =
-    siteConfig.wallpaperMode?.showModeSwitchOnMobile || "desktop";
+	siteConfig.wallpaperMode?.showModeSwitchOnMobile || "desktop";
 
 // 检查是否为首页
 const isHomePage = Astro.url.pathname === "/" || Astro.url.pathname === "";
 
 let links: NavBarLink[] = navBarConfig.links.map(
-    (item: NavBarLink | LinkPreset): NavBarLink => {
-        if (typeof item === "number") {
-            return LinkPresets[item];
-        }
-        return item;
-    },
+	(item: NavBarLink | LinkPreset): NavBarLink => {
+		if (typeof item === "number") {
+			return LinkPresets[item];
+		}
+		return item;
+	},
 );
-
 ---
-
-<div id="navbar" class="z-50" data-transparent-mode={navbarTransparentMode} data-is-home={isHomePage}>
-    <div class="absolute h-8 left-0 right-0 -top-8 bg-[var(--card-bg)]"></div>
+<div id="navbar" class="z-50 onload-animation" data-transparent-mode={navbarTransparentMode} data-is-home={isHomePage}>
+    <div class="absolute h-8 left-0 right-0 -top-8 bg-[var(--card-bg)] transition"></div> <!-- used for onload animation -->
     <div class:list={[className, "!overflow-visible max-w-[var(--page-width)] h-[4.5rem] mx-auto flex items-center justify-between px-4"]}>
         <a href={url('/')} class="btn-plain scale-animation rounded-lg h-[3.25rem] px-5 font-bold active:scale-95">
             <div class="flex flex-row items-center text-md">
+                {/* 使用navbarTitle配置或默认配置 */}
                 {siteConfig.navbarTitle ? (
-                    <span class="flex items-center">
-                        {siteConfig.navbarTitle.icon ? (
-                            <img src={url(siteConfig.navbarTitle.icon)} alt={siteConfig.navbarTitle.text} width="28" height="28" class="h-[1.75rem] w-[1.75rem] mb-1 mr-2 object-contain rounded-lg" loading="eager" fetchpriority="high" decoding="async" />
-                        ) : (
-                            <Icon name="material-symbols:home-pin-outline" class="text-[1.75rem] mb-1 mr-2" />
-                        )}
+                    <>
+                        <img src={url(siteConfig.navbarTitle.icon || "/assets/home/home.png")} alt={siteConfig.navbarTitle.text} class="h-[1.75rem] w-[1.75rem] mb-1 mr-2 object-contain" loading="lazy" />
                         <span class="dark:text-white text-black">{siteConfig.navbarTitle.text}</span>
-                    </span>
+                    </>
                 ) : (
-                    <span class="flex items-center">
+                    <>
                         <Icon name="material-symbols:home-pin-outline" class="text-[1.75rem] mb-1 mr-2" />
                         <span class="dark:text-white text-black">{siteConfig.title}</span>
-                    </span>
+                    </>
                 )}
             </div>
         </a>
-        <div class="hidden md:flex items-center" style="gap: 0.125rem;">
+        <div class="hidden md:flex items-center space-x-1">
             {links.map((l) => {
                 return <DropdownMenu link={l} />;
             })}
-
+        </div>
+        <div class="flex">
+            <!--<SearchPanel client:load>-->
             <Search client:only="svelte"></Search>
             {siteConfig.toc.enable && <MobileTOC client:only="svelte"></MobileTOC>}
             {!siteConfig.themeColor.fixed && (
@@ -71,8 +68,8 @@ let links: NavBarLink[] = navBarConfig.links.map(
                         <Icon name="material-symbols:palette-outline" class="text-[1.25rem]"></Icon>
                     </button>
             )}
-            {/* 布局切换功能已禁用 */}
-            {/* <LayoutSwitchButton client:only="svelte" currentLayout={siteConfig.postListLayout.defaultMode}></LayoutSwitchButton> */}
+            <LayoutSwitchButton client:only="svelte" currentLayout={siteConfig.postListLayout.defaultMode}></LayoutSwitchButton>
+            <!-- 整体布局方案切换按钮：根据配置决定在哪些设备上显示 -->
             <div class:list={[
                 modeSwitchDisplay === "off" ? "hidden" :
                 modeSwitchDisplay === "mobile" ? "block md:hidden" :
@@ -81,354 +78,184 @@ let links: NavBarLink[] = navBarConfig.links.map(
             ]}>
                 <WallpaperSwitch client:only="svelte"></WallpaperSwitch>
             </div>
-            <button aria-label="Show Pio" class="hidden btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90" id="pio-show-switch" style="display:none;">
-                <Icon name="material-symbols:smart-toy-outline" class="text-[1.25rem]"></Icon>
-            </button>
-            <button aria-label="Show Announcement" class="btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90 hidden" id="announcement-show-switch" onclick="showAnnouncement()">
-                <Icon name="material-symbols:notifications-outline" class="text-[1.25rem]"></Icon>
-            </button>
             <LightDarkSwitch client:only="svelte"></LightDarkSwitch>
-        </div>
-        <!-- Mobile-only controls: 将菜单按钮移到这里以便在移动端显示 -->
-        <div class="flex md:hidden items-center" style="gap: 0.125rem;">
-            <button aria-label="Menu" name="Nav Menu" class="btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90" id="nav-menu-switch">
+            <button aria-label="Menu" name="Nav Menu" class="btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90 md:!hidden" id="nav-menu-switch">
                 <Icon name="material-symbols:menu-rounded" class="text-[1.25rem]"></Icon>
             </button>
-            <LightDarkSwitch client:only="svelte"></LightDarkSwitch>
         </div>
-                                        <NavMenuPanel links={links}></NavMenuPanel>
-                                        <DisplaySettings client:only="svelte"></DisplaySettings>
-                                    </div>
-                                </div>
+        <NavMenuPanel links={links}></NavMenuPanel>
+        <DisplaySettings client:only="svelte"></DisplaySettings>
+    </div>
+</div>
 
-                                <script>
-                                async function loadButtonScript() {
-                                    const panelManager = (window as Record<string, any>).panelManager;
+<script>
+// function switchTheme() {
+//     if (localStorage.theme === 'dark') {
+//         document.documentElement.classList.remove('dark');
+//         localStorage.theme = 'light';
+//     } else {
+//         document.documentElement.classList.add('dark');
+//         localStorage.theme = 'dark';
+//     }
+// }
 
-                                    // Display settings button
-                                    try {
-                                        const settingBtn = document.getElementById('display-settings-switch');
-                                        if (settingBtn) {
-                                            if (panelManager && typeof panelManager.togglePanel === 'function') {
-                                                settingBtn.onclick = async () => { await panelManager.togglePanel('display-setting'); };
-                                            } else {
-                                                settingBtn.onclick = () => {
-                                                    const settingPanel = document.getElementById('display-setting');
-                                                    if (settingPanel) settingPanel.classList.toggle('float-panel-closed');
-                                                };
-                                            }
-                                        }
-                                    } catch (e) {
-                                        // ignore
-                                    }
-
-                                    // Menu button
-                                    try {
-                                        const menuBtn = document.getElementById('nav-menu-switch');
-                                        if (menuBtn) {
-                                            if (panelManager && typeof panelManager.togglePanel === 'function') {
-                                                menuBtn.onclick = async () => { await panelManager.togglePanel('nav-menu-panel'); };
-                                            } else {
-                                                menuBtn.onclick = () => {
-                                                    const menuPanel = document.getElementById('nav-menu-panel');
-                                                    if (menuPanel) menuPanel.classList.toggle('float-panel-closed');
-                                                };
-                                            }
-                                        }
-                                    } catch (e) {
-                                        // ignore
-                                    }
-
-                                    // Pio button: force-show behavior (no hide)
-                                    try {
-                                        const pioBtn = document.getElementById('pio-show-switch');
-                                        if (!pioBtn) return;
-
-                                        // hide on small screens
-                                        try {
-                                            if (window.matchMedia && !window.matchMedia('(min-width: 768px)').matches) {
-                                                pioBtn.style.display = 'none';
-                                            }
-                                        } catch (e) {}
-
-                                        const bindPioClick = () => {
-                                            pioBtn.onclick = () => {
-                                                try {
-                                                    const last = (window as any).__lastPioToggle || 0;
-                                                    const now = Date.now();
-                                                    if (now - last < 200) return;
-                                                    (window as any).__lastPioToggle = now;
-                                                    const showLock = (window as any).__pioShowLock || 0;
-                                                    if (now - showLock < 400) return;
-                                                    if ((window as any).__pendingPioShow) { console.log('[NAVBAR] click ignored due to __pendingPioShow'); return; }
-                                                } catch (e) {}
-
-                                                try {
-                                                    try { localStorage.setItem('posterGirl', '1'); } catch (e) {}
-                                                    try { (window as any).__pendingPioShow = true; } catch (e) {}
-                                                    try { (window as any).__pioShowLock = Date.now(); } catch (e) {}
-
-                                                    if (!document.querySelector('.pio-container')) {
-                                                        const tmp = document.createElement('div');
-                                                        tmp.setAttribute('data-temp-pio', '1');
-                                                        tmp.className = 'pio-container right';
-                                                        tmp.style.position = 'fixed';
-                                                        tmp.style.bottom = '0';
-                                                        tmp.style.right = '0';
-                                                        tmp.style.zIndex = '9999';
-                                                        tmp.style.pointerEvents = 'auto';
-                                                        tmp.style.minHeight = '280px';
-                                                        tmp.style.minWidth = '250px';
-                                                        tmp.innerHTML = '<div class="pio-action"></div><canvas style="width:280px;height:250px;display:block;background:transparent;border-radius:6px;"></canvas>';
-                                                        document.body.appendChild(tmp);
-                                                    }
-
-                                                    const canvas = document.getElementById('pio');
-                                                    if (canvas instanceof HTMLElement) {
-                                                        canvas.style.display = 'block';
-                                                        canvas.style.visibility = 'visible';
-                                                        canvas.style.opacity = '1';
-                                                    }
-
-                                                    window.dispatchEvent(new CustomEvent('pio:show'));
-                                                    setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 250);
-                                                    setTimeout(() => { try { window.dispatchEvent(new CustomEvent('pio:show')); } catch (e) {} }, 600);
-                                                } catch (e) {}
-                                            };
-                                        };
-
-                                        bindPioClick();
-                                    } catch (e) {
-                                        // ignore
-                                    }
-                                }
-
-                                if (document.readyState === 'loading') {
-                                    document.addEventListener('DOMContentLoaded', loadButtonScript);
-                                } else {
-                                    loadButtonScript();
-                                }
-
-                                // 更稳健的 Pio 可见性检测，避免依赖易变的行内 style/opacity
-                                function isPioVisible(el) {
-                                    try {
-                                        if (!el || !(el instanceof HTMLElement)) return false;
-                                        // 显式的可见类优先判定
-                                        if (el.classList.contains('visible-manual') || el.classList.contains('visible-manual-strong')) return true;
-                                        // 明确的 hidden 类表示不可见
-                                        if (el.classList.contains('hidden')) return false;
-                                        // 回退到计算样式，但更严格地同时检查 display/visibility/opacity
-                                        const s = getComputedStyle(el);
-                                        if (!s) return false;
-                                        if (s.display === 'none' || s.visibility === 'hidden') return false;
-                                        const op = parseFloat(s.opacity || '1');
-                                        if (isNaN(op) || op <= 0) return false;
-                                        return true;
-                                    } catch (e) {
-                                        return false;
-                                    }
-                                }
-
-                                // 为semifull模式添加滚动检测逻辑
-                                function initSemifullScrollDetection() {
-                                    const navbar = document.getElementById('navbar');
-                                    if (!navbar) return;
-    
-                                    const transparentMode = navbar.getAttribute('data-transparent-mode');
-                                    if (transparentMode !== 'semifull') return;
-    
-                                    const isHomePage = navbar.getAttribute('data-is-home') === 'true';
-    
-                                    // 如果不是首页，移除滚动事件监听器并设置为半透明状态
-                                    if (!isHomePage) {
-                                        // 移除之前的滚动事件监听器（如果存在）
-                                        // @ts-ignore
-                                        if (window.semifullScrollHandler) {
-                                            // @ts-ignore
-                                            window.removeEventListener('scroll', window.semifullScrollHandler);
-                                            // @ts-ignore
-                                            window.semifullScrollHandler = null;
-                                        }
-                                        // 设置为半透明状态
-                                        navbar.classList.add('scrolled');
-                                        return;
-                                    }
-    
-                                    // 移除现有的scrolled类，重置状态
-                                    navbar.classList.remove('scrolled');
-    
-                                    let ticking = false;
-    
-                                    function updateNavbarState() {
-                                        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-                                        const threshold = 50; // 滚动阈值，可以根据需要调整
+async function loadButtonScript() {
+    try {
+        // 导入面板管理器
+        const { panelManager } = await import('../utils/panel-manager.js');
         
-                                        if (navbar && scrollTop > threshold) {
-                                            navbar.classList.add('scrolled');
-                                        } else if (navbar) {
-                                            navbar.classList.remove('scrolled');
-                                        }
+        let settingBtn = document.getElementById("display-settings-switch");
+        if (settingBtn) {
+            settingBtn.onclick = async function () {
+                await panelManager.togglePanel('display-setting');
+            };
+        }
+
+        let menuBtn = document.getElementById("nav-menu-switch");
+        if (menuBtn) {
+            menuBtn.onclick = async function () {
+                await panelManager.togglePanel('nav-menu-panel');
+            };
+        }
+    } catch (error) {
+        console.error('Failed to load panel manager:', error);
+        // 备用逻辑
+        let settingBtn = document.getElementById("display-settings-switch");
+        if (settingBtn) {
+            settingBtn.onclick = function () {
+                let settingPanel = document.getElementById("display-setting");
+                if (settingPanel) {
+                    settingPanel.classList.toggle("float-panel-closed");
+                }
+            };
+        }
+
+        let menuBtn = document.getElementById("nav-menu-switch");
+        if (menuBtn) {
+            menuBtn.onclick = function () {
+                let menuPanel = document.getElementById("nav-menu-panel");
+                if (menuPanel) {
+                    menuPanel.classList.toggle("float-panel-closed");
+                }
+            };
+        }
+    }
+}
+
+loadButtonScript();
+
+// 为semifull模式添加滚动检测逻辑
+function initSemifullScrollDetection() {
+    const navbar = document.getElementById('navbar');
+    if (!navbar) return;
+    
+    const transparentMode = navbar.getAttribute('data-transparent-mode');
+    if (transparentMode !== 'semifull') return;
+    
+    const isHomePage = navbar.getAttribute('data-is-home') === 'true';
+    
+    // 如果不是首页，移除滚动事件监听器并设置为半透明状态
+    if (!isHomePage) {
+        // 移除之前的滚动事件监听器（如果存在）
+        // @ts-ignore
+        if (window.semifullScrollHandler) {
+            // @ts-ignore
+            window.removeEventListener('scroll', window.semifullScrollHandler);
+            // @ts-ignore
+            window.semifullScrollHandler = null;
+        }
+        // 设置为半透明状态
+        navbar.classList.add('scrolled');
+        return;
+    }
+    
+    // 移除现有的scrolled类，重置状态
+    navbar.classList.remove('scrolled');
+    
+    let ticking = false;
+    
+    function updateNavbarState() {
+        const scrollTop = window.scrollY || document.documentElement.scrollTop;
+        const threshold = 50; // 滚动阈值，可以根据需要调整
         
-                                        ticking = false;
-                                    }
+        if (navbar && scrollTop > threshold) {
+            navbar.classList.add('scrolled');
+        } else if (navbar) {
+            navbar.classList.remove('scrolled');
+        }
+        
+        ticking = false;
+    }
     
-                                    function requestTick() {
-                                        if (!ticking) {
-                                            requestAnimationFrame(updateNavbarState);
-                                            ticking = true;
-                                        }
-                                    }
+    function requestTick() {
+        if (!ticking) {
+            requestAnimationFrame(updateNavbarState);
+            ticking = true;
+        }
+    }
     
-                                    // 移除之前的滚动事件监听器（如果存在）
-                                    // @ts-ignore
-                                    if (window.semifullScrollHandler) {
-                                        // @ts-ignore
-                                        window.removeEventListener('scroll', window.semifullScrollHandler);
-                                    }
+    // 移除之前的滚动事件监听器（如果存在）
+    // @ts-ignore
+    if (window.semifullScrollHandler) {
+        // @ts-ignore
+        window.removeEventListener('scroll', window.semifullScrollHandler);
+    }
     
-                                    // 保存新的事件处理器引用
-                                    // @ts-ignore
-                                    window.semifullScrollHandler = requestTick;
+    // 保存新的事件处理器引用
+    // @ts-ignore
+    window.semifullScrollHandler = requestTick;
     
-                                    // 监听滚动事件
-                                    window.addEventListener('scroll', requestTick, { passive: true });
+    // 监听滚动事件
+    window.addEventListener('scroll', requestTick, { passive: true });
     
-                                    // 初始化状态
-                                    updateNavbarState();
-                                }
-
-                                // 将函数暴露到全局对象，供页面切换时调用
-                                // @ts-ignore
-                                window.initSemifullScrollDetection = initSemifullScrollDetection;
-
-                                // 页面加载完成后初始化滚动检测
-                                if (document.readyState === 'loading') {
-                                    document.addEventListener('DOMContentLoaded', initSemifullScrollDetection);
-                                } else {
-                                    initSemifullScrollDetection();
-                                }
-                                </script>
-
-                                {import.meta.env.PROD && <script is:inline define:vars={{scriptUrl: url('/pagefind/pagefind.js')}}>
-                                async function loadPagefind() {
-                                    try {
-                                        const response = await fetch(scriptUrl, { method: 'HEAD' });
-                                        if (!response.ok) {
-                                            throw new Error(`Pagefind script not found: ${response.status}`);
-                                        }
-
-                                        const pagefind = await import(scriptUrl);
-
-                                        await pagefind.options({
-                                            excerptLength: 20
-                                        });
-
-                                        window.pagefind = pagefind;
-
-                                        document.dispatchEvent(new CustomEvent('pagefindready'));
-                                        console.log('Pagefind loaded and initialized successfully, event dispatched.');
-                                    } catch (error) {
-                                        console.error('Failed to load Pagefind:', error);
-                                        window.pagefind = {
-                                            search: () => Promise.resolve({ results: [] }),
-                                            options: () => Promise.resolve(),
-                                        };
-                                        document.dispatchEvent(new CustomEvent('pagefindloaderror'));
-                                        console.log('Pagefind load error, event dispatched.');
-                                    }
-                                }
-
-                                if (document.readyState === 'loading') {
-                                    document.addEventListener('DOMContentLoaded', loadPagefind);
-                                } else {
-                                    loadPagefind();
-                                }
-                                </script>}
-
-<style is:inline>
-/* 更强制地减小 Display Settings、Wallpaper Mode、Light/Dark 三个按钮的间距 */
-#display-settings-switch,
-#wallpaper-mode-switch,
-#scheme-switch {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-}
-/* 确保主题切换按钮在移动端无壁纸时依然可点击（避免被覆盖层阻挡） */
-#scheme-switch,
-.theme-switch-btn {
-    z-index: 99999 !important;
-    pointer-events: auto !important;
-    position: relative !important;
+    // 初始化状态
+    updateNavbarState();
 }
 
-/* 移除所有按钮和链接在移动端点击时的高亮和阴影效果 */
-* {
-    -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
-    -webkit-touch-callout: none !important;
-    tap-highlight-color: rgba(0,0,0,0) !important;
+// 将函数暴露到全局对象，供页面切换时调用
+// @ts-ignore
+window.initSemifullScrollDetection = initSemifullScrollDetection;
+
+// 页面加载完成后初始化滚动检测
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initSemifullScrollDetection);
+} else {
+    initSemifullScrollDetection();
+}
+</script>
+
+{import.meta.env.PROD && <script is:inline define:vars={{scriptUrl: url('/pagefind/pagefind.js')}}>
+async function loadPagefind() {
+    try {
+        const response = await fetch(scriptUrl, { method: 'HEAD' });
+        if (!response.ok) {
+            throw new Error(`Pagefind script not found: ${response.status}`);
+        }
+
+        const pagefind = await import(scriptUrl);
+
+        await pagefind.options({
+            excerptLength: 20
+        });
+
+        window.pagefind = pagefind;
+
+        document.dispatchEvent(new CustomEvent('pagefindready'));
+        console.log('Pagefind loaded and initialized successfully, event dispatched.');
+    } catch (error) {
+        console.error('Failed to load Pagefind:', error);
+        window.pagefind = {
+            search: () => Promise.resolve({ results: [] }),
+            options: () => Promise.resolve(),
+        };
+        document.dispatchEvent(new CustomEvent('pagefindloaderror'));
+        console.log('Pagefind load error, event dispatched.');
+    }
 }
 
-button, a, input {
-    -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
-    -webkit-touch-callout: none !important;
-    tap-highlight-color: rgba(0,0,0,0) !important;
-    outline: none !important;
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadPagefind);
+} else {
+    loadPagefind();
 }
-
-button:focus, a:focus, button:active, a:active,
-button:focus-visible, a:focus-visible {
-    outline: none !important;
-    box-shadow: none !important;
-    -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
-    tap-highlight-color: rgba(0,0,0,0) !important;
-}
-
-/* 专门针对导航栏按钮 */
-#nav-menu-switch,
-#display-settings-switch,
-#wallpaper-mode-switch,
-#scheme-switch {
-    -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
-    -webkit-touch-callout: none !important;
-    tap-highlight-color: rgba(0,0,0,0) !important;
-}
-
-#nav-menu-switch:focus,
-#display-settings-switch:focus,
-#wallpaper-mode-switch:focus,
-#scheme-switch:focus,
-#nav-menu-switch:active,
-#display-settings-switch:active,
-#wallpaper-mode-switch:active,
-#scheme-switch:active,
-#nav-menu-switch:focus-visible,
-#display-settings-switch:focus-visible,
-#wallpaper-mode-switch:focus-visible,
-#scheme-switch:focus-visible {
-    outline: none !important;
-    box-shadow: none !important;
-    -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
-    tap-highlight-color: rgba(0,0,0,0) !important;
-}
-
-/* 移除按钮点击后的背景色变化 */
-#nav-menu-switch::before,
-#display-settings-switch::before,
-#wallpaper-mode-switch::before,
-#scheme-switch::before {
-    transition: background-color 0.15s ease !important;
-}
-
-#nav-menu-switch:active::before,
-#display-settings-switch:active::before,
-#wallpaper-mode-switch:active::before,
-#scheme-switch:active::before {
-    background-color: transparent !important;
-}
-
-/* 确保导航栏主页链接正常工作 */
-a[href="/"],
-a[href="./"] {
-    pointer-events: auto !important;
-}
-</style>
+</script>}

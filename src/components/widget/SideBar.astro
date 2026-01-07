@@ -1,17 +1,14 @@
 ---
 import type { MarkdownHeading } from "astro";
-import type { WidgetComponentConfig } from "../../types/config";
 import { widgetManager } from "../../utils/widget-manager";
 import Announcement from "./Announcement.astro";
 import Calendar from "./Calendar.astro";
 import Categories from "./Categories.astro";
+import MusicPlayer from "./MusicPlayer.svelte";
 import Profile from "./Profile.astro";
 import SiteStats from "./SiteStats.astro";
 import Tags from "./Tags.astro";
 import TOC from "./TOC.astro";
-
-// 异步加载音乐播放器组件
-const MusicPlayer = (await import("./MusicPlayer.svelte")).default;
 
 interface Props {
 	class?: string;
@@ -45,11 +42,7 @@ const componentMap = {
 };
 
 // 渲染组件的辅助函数
-function renderComponent(
-	component: WidgetComponentConfig,
-	index: number,
-	_components: WidgetComponentConfig[],
-) {
+function renderComponent(component: any, index: number, _components: any[]) {
 	const ComponentToRender =
 		componentMap[component.type as keyof typeof componentMap];
 	if (!ComponentToRender) return null;
@@ -67,15 +60,9 @@ function renderComponent(
 		},
 	};
 }
-
-// 将必要的响应式配置序列化到客户端脚本中，避免在浏览器端直接导入 server-only 模块
-const breakpoints = widgetManager.getBreakpoints();
-const clientResponsiveLayout = widgetManager.getConfig().responsive.layout;
 ---
 
-<div id="sidebar" class:list={[className, "w-full"]}
-	data-breakpoints={JSON.stringify(breakpoints)}
-	data-responsive={JSON.stringify(clientResponsiveLayout)}>
+<div id="sidebar" class:list={[className, "w-full"]}>
 	<!-- 顶部固定组件区域 -->
 	{topComponents.length > 0 && (
 		<div class="flex flex-col w-full gap-4 mb-4">
@@ -91,7 +78,7 @@ const clientResponsiveLayout = widgetManager.getConfig().responsive.layout;
 	
 	<!-- 粘性组件区域 -->
 	{stickyComponents.length > 0 && (
-		<div id="sidebar-sticky" class="transition-all duration-700 flex flex-col w-full gap-4 sticky top-4">
+		<div id="sidebar-sticky" class="transition-all duration-700 flex flex-col w-full gap-4 top-4 sticky top-4">
 			{stickyComponents.map((component, index) => {
 				const renderData = renderComponent(component, index, stickyComponents);
 				if (!renderData) return null;
@@ -125,50 +112,55 @@ const clientResponsiveLayout = widgetManager.getConfig().responsive.layout;
 	}
 </style>
 
-<script type="module" is:inline>
-	// 从 DOM dataset 读取服务端序列化的配置
-	const sidebarEl = document.getElementById('sidebar');
-	const BREAKPOINTS = sidebarEl && sidebarEl.dataset.breakpoints ? JSON.parse(sidebarEl.dataset.breakpoints) : { mobile: 640, tablet: 1024 };
-	const RESPONSIVE_LAYOUT = sidebarEl && sidebarEl.dataset.responsive ? JSON.parse(sidebarEl.dataset.responsive) : { mobile: 'sidebar', tablet: 'sidebar', desktop: 'sidebar' };
-
+<script is:inline>
+	import { widgetManager } from "../../utils/widget-manager";
+	
+	// 响应式布局管理
 	class SidebarManager {
 		constructor() {
 			this.init();
 		}
-
+		
 		init() {
 			this.updateResponsiveDisplay();
 			window.addEventListener('resize', () => this.updateResponsiveDisplay());
-
+			
+			// 监听SWUP内容替换事件
 			if (typeof window !== 'undefined' && window.swup) {
 				window.swup.hooks.on('content:replace', () => {
-					setTimeout(() => this.updateResponsiveDisplay(), 100);
+					// 延迟执行以确保DOM已更新
+					setTimeout(() => {
+						this.updateResponsiveDisplay();
+					}, 100);
 				});
 			}
 		}
-
+		
 		updateResponsiveDisplay() {
+			const breakpoints = widgetManager.getBreakpoints();
 			const width = window.innerWidth;
-
+			
 			let deviceType;
-			if (width < BREAKPOINTS.mobile) {
+			if (width < breakpoints.mobile) {
 				deviceType = 'mobile';
-			} else if (width < BREAKPOINTS.tablet) {
+			} else if (width < breakpoints.tablet) {
 				deviceType = 'tablet';
 			} else {
 				deviceType = 'desktop';
 			}
-
-			const shouldShow = RESPONSIVE_LAYOUT[deviceType] === 'sidebar';
+			
+			const shouldShow = widgetManager.shouldShowSidebar(deviceType);
 			const sidebar = document.getElementById('sidebar');
+			
 			if (sidebar) {
 				sidebar.style.setProperty(
-					`--sidebar-${deviceType}-display`,
+					`--sidebar-${deviceType}-display`, 
 					shouldShow ? 'block' : 'none'
 				);
 			}
 		}
 	}
-
+	
+	// 初始化侧边栏管理器
 	new SidebarManager();
 </script>

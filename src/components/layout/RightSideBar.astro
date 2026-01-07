@@ -8,8 +8,7 @@ import Profile from "@/components/widget/Profile.astro";
 import SiteStats from "@/components/widget/SiteStats.astro";
 import Tags from "@/components/widget/Tags.astro";
 import TOC from "@/components/widget/TOC.astro";
-import type { WidgetComponentConfig } from "@/types/config";
-import { widgetManager } from "../../utils/widget-manager";
+import { widgetManager } from "@/utils/widget-manager";
 
 interface Props {
 	class?: string;
@@ -38,11 +37,7 @@ const componentMap = {
 };
 
 // 渲染组件的辅助函数
-function renderComponent(
-	component: WidgetComponentConfig,
-	index: number,
-	_components: WidgetComponentConfig[],
-) {
+function renderComponent(component: any, index: number, _components: any[]) {
 	const ComponentToRender =
 		componentMap[component.type as keyof typeof componentMap];
 	if (!ComponentToRender) return null;
@@ -123,7 +118,7 @@ function renderComponent(
   }
 </style>
 
-  <script>
+<script>
   import { widgetManager } from "../../utils/widget-manager";
   
   // 响应式布局管理
