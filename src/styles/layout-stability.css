@@ -117,11 +117,16 @@ astro-island {
 
 /* 12. Banner 区域稳定性 - 防止壁纸切换引起 CLS */
 .banner-stable,
-.wallpaper-transparent,
-[data-fullscreen-wallpaper] {
+.wallpaper-transparent {
     height: var(--banner-height, 45vh);
     /* 使用 transform 进行显示/隐藏切换，而不是 display */
     transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* 全屏壁纸必须占据整个视口 */
+[data-fullscreen-wallpaper] {
+    height: 100vh;
+    min-height: 100vh;
 }
 
 /* 壁纸模式切换优化 */
