@@ -397,41 +397,33 @@ onMount(() => {
 		}
 	} catch (e) {}
 
-	// 显示逻辑：等待 Pio 初始化完成后再根据加载状态决定是否显示
-	function showWhenReady() {
-		try {
-			// 如果 Pio 已初始化，立即显示
-			if (pioInitialized && pioInstance) {
-				handleShow();
-			} else {
-				// 否则等待初始化完成
-				const checkInit = setInterval(() => {
-					if (pioInitialized && pioInstance) {
-						clearInterval(checkInit);
-						handleShow();
-					}
-				}, 50);
-				// 最多等待 5 秒
-				setTimeout(() => clearInterval(checkInit), 5000);
-			}
-		} catch (e) {
-			console.error('[PIO] show after loading failed', e);
-		}
-	}
-
-	// 如果加载已完成，等待初始化后显示；否则监听加载结束事件
+	// 如果加载已完成，立即显示；否则等待加载结束事件
 	try {
+		const showWhenReady = (retryCount = 0) => {
+			try {
+				// 确保脚本已加载且已初始化
+				if (typeof Paul_Pio !== 'undefined' && pioInitialized) {
+					console.log('[PIO] showWhenReady: scripts ready and initialized, calling handleShow');
+					handleShow();
+				} else if (retryCount < 50) {
+					// 脚本或初始化未完成，延迟重试（最多 5 秒）
+					console.log('[PIO] showWhenReady: not ready yet, retrying...', retryCount);
+					setTimeout(() => showWhenReady(retryCount + 1), 100);
+				} else {
+					// 超时后强制显示（可能脚本加载失败）
+					console.warn('[PIO] showWhenReady: timeout, force showing anyway');
+					handleShow();
+				}
+			} catch (e) { 
+				console.error('[PIO] show after loading failed', e); 
+			}
+		};
 		if (typeof window !== 'undefined' && (window).__loadingScreenDone) {
-			// 加载已完成，等待 Pio 初始化后显示
-			console.log('[PIO] Loading already done, waiting for init');
-			// 延迟一点确保 initPio 已经被调用
-			setTimeout(showWhenReady, 100);
+			console.log('[PIO] loading already done, showing when ready');
+			showWhenReady();
 		} else {
-			// 加载未完成，监听事件
-			window.addEventListener('mizuki:loading:end', () => {
-				console.log('[PIO] Loading end event received');
-				showWhenReady();
-			}, { once: true });
+			console.log('[PIO] waiting for mizuki:loading:end event');
+			window.addEventListener('mizuki:loading:end', () => showWhenReady(), { once: true });
 		}
 	} catch (e) {}
 
