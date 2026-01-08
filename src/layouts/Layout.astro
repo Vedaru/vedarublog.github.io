@@ -334,8 +334,71 @@ if (siteConfig.font) {
 		  data-overlayscrollbars-initialize
 	>
 		<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-KRX3XGVH" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-		
-		<!-- 加载画面 已移除 -->
+
+		<!-- 全局加载页面（覆盖层） -->
+		<style is:inline>
+			/* 旋转加载动画，适配明暗主题 */
+			.loader-spinner {
+				width: 2rem; /* 32px */
+				height: 2rem;
+				border-radius: 9999px;
+				border: 3px solid rgba(0,0,0,0.12);
+				border-top-color: rgba(0,0,0,0.6);
+				animation: mizuki-spin 0.8s linear infinite;
+			}
+			.dark .loader-spinner {
+				border: 3px solid rgba(255,255,255,0.18);
+				border-top-color: rgba(255,255,255,0.85);
+			}
+			@keyframes mizuki-spin { to { transform: rotate(360deg); } }
+		</style>
+
+		<div id="global-loading" class="fixed inset-0 z-[9999] flex items-center justify-center bg-[var(--page-bg)] transition-opacity duration-300">
+			<div class="flex flex-col items-center gap-4">
+				<div class="loader-spinner"></div>
+				<div class="text-sm opacity-70">
+					正在加载...
+				</div>
+			</div>
+		</div>
+
+		<script is:inline>
+			(function(){
+				const el = document.getElementById('global-loading');
+				if(!el) return;
+				function show(){
+					el.style.display = 'flex';
+					el.classList.remove('opacity-0');
+					el.setAttribute('aria-hidden','false');
+				}
+				function hide(){
+					el.classList.add('opacity-0');
+					el.setAttribute('aria-hidden','true');
+					setTimeout(()=>{ el.style.display = 'none'; }, 300);
+				}
+				// 初次页面加载：资源加载完成后隐藏
+				if (document.readyState === 'complete') {
+					// 页面已经加载完成（例如通过快速切换），直接隐藏
+					hide();
+				} else {
+					show();
+					window.addEventListener('load', hide, { once: true });
+				}
+
+				// Swup 页面切换：开始访问时显示，视图完成后隐藏
+				function attachSwupHooks(){
+					if (!window.swup || !window.swup.hooks) return;
+					window.swup.hooks.on('visit:start', show);
+					window.swup.hooks.on('page:view', hide);
+					window.swup.hooks.on('visit:end', hide);
+				}
+				if (window?.swup?.hooks) {
+					attachSwupHooks();
+				} else {
+					document.addEventListener('swup:enable', attachSwupHooks);
+				}
+			})();
+		</script>
 		
 		<ConfigCarrier></ConfigCarrier>
 		<slot />
