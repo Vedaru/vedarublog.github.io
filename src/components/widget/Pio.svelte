@@ -355,10 +355,24 @@ onMount(() => {
 	window.addEventListener('pio:show', handleShow);
 	// Hide handling removed: Pio is forced visible; external 'pio:hide' events are ignored.
 
-	// Force Pio visible unconditionally (ignore persisted hide state)
+	// 仅在全局加载完成后显示；避免在加载界面期间抢占层级
 	try { localStorage.setItem("posterGirl", "1"); } catch (e) {}
-	try { if (typeof window !== 'undefined' && window.__pendingPioShow) { try { delete window.__pendingPioShow; } catch (e) {} console.log('[PIO] consumed __pendingPioShow after show'); } } catch (e) {}
-	try { handleShow(); } catch (e) { console.error('[PIO] force show failed', e); }
+	try {
+		if (typeof window !== 'undefined' && window.__pendingPioShow) {
+			try { delete window.__pendingPioShow; } catch (e) {}
+			console.log('[PIO] consumed __pendingPioShow after show');
+		}
+	} catch (e) {}
+
+	// 如果加载已完成，立即显示；否则等待加载结束事件
+	try {
+		const showWhenReady = () => { try { handleShow(); } catch (e) { console.error('[PIO] show after loading failed', e); } };
+		if (typeof window !== 'undefined' && (window).__loadingScreenDone) {
+			showWhenReady();
+		} else {
+			window.addEventListener('mizuki:loading:end', showWhenReady, { once: true });
+		}
+	} catch (e) {}
 
 	removeShowListener = () => {
 		window.removeEventListener("pio:show", handleShow);

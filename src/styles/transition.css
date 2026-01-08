@@ -75,10 +75,23 @@ html.is-leaving .pio-action {
     opacity: 0 !important;
 }
 
+/* 全局加载期间隐藏 Pio 的三个按钮 */
+html.loading-active .pio-action {
+    display: none !important;
+    opacity: 0 !important;
+}
+
 /* 切页期间隐藏 Pio 对话气泡，避免触发离场文案导致布局抖动 */
 html.is-changing .pio-container .pio-dialog,
 html.is-leaving .pio-container .pio-dialog,
 html.is-animating .pio-container .pio-dialog {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+/* 全局加载期间隐藏 Pio 对话气泡 */
+html.loading-active .pio-container .pio-dialog {
     display: none !important;
     opacity: 0 !important;
     visibility: hidden !important;

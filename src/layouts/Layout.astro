@@ -353,7 +353,7 @@ if (siteConfig.font) {
 			@keyframes mizuki-spin { to { transform: rotate(360deg); } }
 		</style>
 
-		<div id="global-loading" class="fixed inset-0 z-[9999] flex items-center justify-center bg-[var(--page-bg)] transition-opacity duration-300">
+		<div id="global-loading" class="fixed inset-0 z-[10000] flex items-center justify-center bg-[var(--page-bg)] transition-opacity duration-300">
 			<div class="flex flex-col items-center gap-4">
 				<div class="loader-spinner"></div>
 				<div class="text-sm opacity-70">
@@ -367,14 +367,24 @@ if (siteConfig.font) {
 				const el = document.getElementById('global-loading');
 				if(!el) return;
 				function show(){
+					// 标记加载开始，添加根级控制类以隐藏 Pio UI
+					try { window.__loadingScreenDone = false; } catch {}
+					try { document.documentElement.classList.add('loading-active'); } catch {}
 					el.style.display = 'flex';
 					el.classList.remove('opacity-0');
 					el.setAttribute('aria-hidden','false');
+					// 广播自定义事件供组件监听
+					try { window.dispatchEvent(new CustomEvent('mizuki:loading:start')); } catch {}
 				}
 				function hide(){
 					el.classList.add('opacity-0');
 					el.setAttribute('aria-hidden','true');
 					setTimeout(()=>{ el.style.display = 'none'; }, 300);
+					// 移除控制类并标记加载完成
+					try { document.documentElement.classList.remove('loading-active'); } catch {}
+					try { window.__loadingScreenDone = true; } catch {}
+					// 广播加载结束事件
+					try { window.dispatchEvent(new CustomEvent('mizuki:loading:end')); } catch {}
 				}
 				// 初次页面加载：资源加载完成后隐藏
 				if (document.readyState === 'complete') {
