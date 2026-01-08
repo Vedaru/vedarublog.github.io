@@ -88,12 +88,13 @@ function initPio() {
 		try {
 			// 确保DOM元素存在
 			if (pioContainer && pioCanvas && !pioInitialized) {
-				// 临时设置容器可见但移至视口外，确保 canvas 能正确渲染
-				const tempVisible = pioContainer.style.visibility === 'hidden';
-				if (tempVisible) {
+				// 临时设置为负 z-index 让容器在视觉上不可见但能正确渲染
+				const tempHidden = pioContainer.style.visibility === 'hidden';
+				if (tempHidden) {
+					pioContainer.style.zIndex = '-1';
 					pioContainer.style.visibility = 'visible';
 					pioContainer.style.opacity = '1';
-					pioContainer.style.transform = 'translateX(-9999px)';
+					pioContainer.style.pointerEvents = 'none';
 				}
 				// 在初始化前根据设备情况设置画布尺寸
 				sizeCanvas();
@@ -105,9 +106,9 @@ function initPio() {
 				// 如果组件初次初始化时处于隐藏状态，仍然强制触发内部 init 以预加载模型
 				try { if (pioInstance && typeof pioInstance.init === 'function') { pioInstance.init(); console.log('[PIO] pioInstance.init() called during initPio'); } } catch (e) {}
 				// 恢复隐藏状态（如果之前是隐藏的）
-				if (tempVisible) {
+				if (tempHidden) {
 					setTimeout(() => {
-						pioContainer.style.transform = '';
+						pioContainer.style.zIndex = '9999';
 						pioContainer.style.visibility = 'hidden';
 						pioContainer.style.opacity = '0';
 					}, 100);
@@ -305,50 +306,31 @@ onMount(() => {
 		console.log('[PIO] handleShow invoked');
 		try { localStorage.setItem("posterGirl", "1"); } catch (e) { console.warn("Unable to set posterGirl localStorage", e); }
 		if (!pioContainer) return;
-		// 清理可能残留的 hide timeout
+		// 清理可能残留的 hide timeout 和 observer
 		try { if (_hideTimeout) { clearTimeout(_hideTimeout); _hideTimeout = null; } } catch (e) {}
-		// 先移除 hidden，添加可见类
+		try { if (_overrideInterval) { clearInterval(_overrideInterval); _overrideInterval = null; } } catch (e) {}
+		try { if (_classObserver) { _classObserver.disconnect(); _classObserver = null; } } catch (e) {}
+		
+		// 使用渐进式显示，让 CSS 过渡自然生效
 		try {
 			pioContainer.classList.remove('hidden');
 			pioContainer.classList.add('visible-manual');
 			pioContainer.classList.add('visible-manual-strong');
-			console.log('[PIO] handleShow: scheduling visibility and opacity');
+			
+			// 先设置为可见但透明
+			pioContainer.style.display = 'block';
 			pioContainer.style.visibility = 'visible';
+			
+			// 下一帧再设置 opacity，触发 CSS transition
 			requestAnimationFrame(() => {
-				try { pioContainer.style.display = 'block'; pioContainer.style.visibility = 'visible'; pioContainer.style.opacity = '1'; pioContainer.style.pointerEvents = 'auto'; } catch (e) {}
-			});
-		} catch (e) {}
-
-		// 若外部脚本在随后重置了 display/hidden，为保证首点能见，短期内反复覆盖这些样式
-		try { if (_overrideInterval) clearInterval(_overrideInterval); } catch (e) {}
-		try {
-			let tries = 0;
-			_overrideInterval = setInterval(() => {
-				tries += 1;
-				try {
-					pioContainer.classList.remove('hidden');
-					pioContainer.classList.add('visible-manual-strong');
-					pioContainer.style.display = 'block';
-					pioContainer.style.opacity = '1';
-					pioContainer.style.pointerEvents = 'auto';
-				} catch (e) {}
-				if (tries > 8) { clearInterval(_overrideInterval); _overrideInterval = null; }
-			}, 100);
-		} catch (e) {}
-
-		// 观察 class 变化，若外部脚本再次添加 hidden，立即移除（短期内）
-		try { if (_classObserver) _classObserver.disconnect(); } catch (e) {}
-		try {
-			if (typeof MutationObserver !== 'undefined') {
-				_classObserver = new MutationObserver((muts) => {
-					for (const m of muts) {
-						if (m.attributeName === 'class' && pioContainer.classList.contains('hidden')) {
-							try { pioContainer.classList.remove('hidden'); pioContainer.classList.add('visible-manual-strong'); pioContainer.style.display = 'block'; pioContainer.style.opacity = '1'; } catch (e) {}
-						}
-					}
+				requestAnimationFrame(() => {
+					try {
+						pioContainer.style.opacity = '1';
+						pioContainer.style.pointerEvents = 'auto';
+						console.log('[PIO] Container fading in');
+					} catch (e) {}
 				});
-				_classObserver.observe(pioContainer, { attributes: true, attributeFilter: ['class'] });
-			}
+			});
 		} catch (e) {}
 
 		// ensure canvas is visible and sized
