@@ -397,40 +397,43 @@ onMount(() => {
 		}
 	} catch (e) {}
 
-	// 如果加载已完成，立即显示；否则等待加载结束事件
+	// 显示逻辑：等待 Pio 初始化完成后再根据加载状态决定是否显示
+	function showWhenReady() {
+		try {
+			// 如果 Pio 已初始化，立即显示
+			if (pioInitialized && pioInstance) {
+				handleShow();
+			} else {
+				// 否则等待初始化完成
+				const checkInit = setInterval(() => {
+					if (pioInitialized && pioInstance) {
+						clearInterval(checkInit);
+						handleShow();
+					}
+				}, 50);
+				// 最多等待 5 秒
+				setTimeout(() => clearInterval(checkInit), 5000);
+			}
+		} catch (e) {
+			console.error('[PIO] show after loading failed', e);
+		}
+	}
+
+	// 如果加载已完成，等待初始化后显示；否则监听加载结束事件
 	try {
-		const showWhenReady = () => { 
-			try { 
-				console.log('[PIO] showWhenReady called');
-				handleShow(); 
-			} catch (e) { 
-				console.error('[PIO] show after loading failed', e); 
-			} 
-		};
-		
-		// 检查加载是否已完成
-		const isLoadingDone = typeof window !== 'undefined' && (window).__loadingScreenDone;
-		const isPageReady = document.readyState === 'complete';
-		
-		console.log('[PIO] onMount end - isLoadingDone:', isLoadingDone, 'isPageReady:', isPageReady);
-		
-		if (isLoadingDone || isPageReady) {
-			// 加载已完成或页面已准备好，延迟一点确保所有初始化完成
+		if (typeof window !== 'undefined' && (window).__loadingScreenDone) {
+			// 加载已完成，等待 Pio 初始化后显示
+			console.log('[PIO] Loading already done, waiting for init');
+			// 延迟一点确保 initPio 已经被调用
 			setTimeout(showWhenReady, 100);
 		} else {
-			// 等待加载结束事件
-			window.addEventListener('mizuki:loading:end', showWhenReady, { once: true });
-			// 设置超时后备，如果3秒后还没显示则强制显示
-			setTimeout(() => {
-				if (!pioVisible) {
-					console.log('[PIO] Timeout fallback - forcing show');
-					showWhenReady();
-				}
-			}, 300);
+			// 加载未完成，监听事件
+			window.addEventListener('mizuki:loading:end', () => {
+				console.log('[PIO] Loading end event received');
+				showWhenReady();
+			}, { once: true });
 		}
-	} catch (e) {
-		console.error('[PIO] Error in show setup:', e);
-	}
+	} catch (e) {}
 
 	removeShowListener = () => {
 		window.removeEventListener("pio:show", handleShow);
