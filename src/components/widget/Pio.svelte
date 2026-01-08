@@ -88,13 +88,12 @@ function initPio() {
 		try {
 			// 确保DOM元素存在
 			if (pioContainer && pioCanvas && !pioInitialized) {
-				// 临时设置为负 z-index 让容器在视觉上不可见但能正确渲染
-				const tempHidden = pioContainer.style.visibility === 'hidden';
-				if (tempHidden) {
-					pioContainer.style.zIndex = '-1';
+				// 临时设置容器可见但移至视口外，确保 canvas 能正确渲染
+				const tempVisible = pioContainer.style.visibility === 'hidden';
+				if (tempVisible) {
 					pioContainer.style.visibility = 'visible';
 					pioContainer.style.opacity = '1';
-					pioContainer.style.pointerEvents = 'none';
+					pioContainer.style.transform = 'translateX(-9999px)';
 				}
 				// 在初始化前根据设备情况设置画布尺寸
 				sizeCanvas();
@@ -106,9 +105,9 @@ function initPio() {
 				// 如果组件初次初始化时处于隐藏状态，仍然强制触发内部 init 以预加载模型
 				try { if (pioInstance && typeof pioInstance.init === 'function') { pioInstance.init(); console.log('[PIO] pioInstance.init() called during initPio'); } } catch (e) {}
 				// 恢复隐藏状态（如果之前是隐藏的）
-				if (tempHidden) {
+				if (tempVisible) {
 					setTimeout(() => {
-						pioContainer.style.zIndex = '9999';
+						pioContainer.style.transform = '';
 						pioContainer.style.visibility = 'hidden';
 						pioContainer.style.opacity = '0';
 					}, 100);
@@ -306,29 +305,24 @@ onMount(() => {
 		console.log('[PIO] handleShow invoked');
 		try { localStorage.setItem("posterGirl", "1"); } catch (e) { console.warn("Unable to set posterGirl localStorage", e); }
 		if (!pioContainer) return;
-		// 清理可能残留的 hide timeout 和 observer
+		
+		// 清理可能残留的定时器和观察器
 		try { if (_hideTimeout) { clearTimeout(_hideTimeout); _hideTimeout = null; } } catch (e) {}
 		try { if (_overrideInterval) { clearInterval(_overrideInterval); _overrideInterval = null; } } catch (e) {}
 		try { if (_classObserver) { _classObserver.disconnect(); _classObserver = null; } } catch (e) {}
 		
-		// 使用渐进式显示，让 CSS 过渡自然生效
+		// 一次性设置所有样式，避免闪动
 		try {
 			pioContainer.classList.remove('hidden');
 			pioContainer.classList.add('visible-manual');
 			pioContainer.classList.add('visible-manual-strong');
-			
-			// 先设置为可见但透明
 			pioContainer.style.display = 'block';
 			pioContainer.style.visibility = 'visible';
-			
-			// 下一帧再设置 opacity，触发 CSS transition
+			pioContainer.style.pointerEvents = 'auto';
+			// 使用 requestAnimationFrame 确保 display 生效后再设置 opacity，实现平滑淡入
 			requestAnimationFrame(() => {
 				requestAnimationFrame(() => {
-					try {
-						pioContainer.style.opacity = '1';
-						pioContainer.style.pointerEvents = 'auto';
-						console.log('[PIO] Container fading in');
-					} catch (e) {}
+					try { pioContainer.style.opacity = '1'; } catch (e) {}
 				});
 			});
 		} catch (e) {}
