@@ -364,9 +364,29 @@ onMount(() => {
 		}
 	} catch (e) {}
 
-	// 如果加载已完成，立即显示；否则等待加载结束事件
+	// 等待脚本与初始化完成再显示，避免加载完成后控件裸露或模型缺失
+	function waitForReady(timeoutMs = 8000) {
+		return new Promise((resolve) => {
+			const start = Date.now();
+			const check = () => {
+				if (pioInitialized && pioContainer?.classList.contains('pio-ready')) {
+					return resolve(true);
+				}
+				if (Date.now() - start > timeoutMs) return resolve(false);
+				setTimeout(check, 120);
+			};
+			check();
+		});
+	}
+
+	const showWhenReady = () => {
+		waitForScripts()
+			.then(() => waitForReady())
+			.then(() => { try { handleShow(); } catch (e) { console.error('[PIO] show after loading failed', e); } })
+			.catch((e) => { console.error('[PIO] waitForReady failed', e); });
+	};
+
 	try {
-		const showWhenReady = () => { try { handleShow(); } catch (e) { console.error('[PIO] show after loading failed', e); } };
 		if (typeof window !== 'undefined' && (window).__loadingScreenDone) {
 			showWhenReady();
 		} else {
