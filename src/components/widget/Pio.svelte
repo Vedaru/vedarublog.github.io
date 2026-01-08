@@ -399,13 +399,38 @@ onMount(() => {
 
 	// 如果加载已完成，立即显示；否则等待加载结束事件
 	try {
-		const showWhenReady = () => { try { handleShow(); } catch (e) { console.error('[PIO] show after loading failed', e); } };
-		if (typeof window !== 'undefined' && (window).__loadingScreenDone) {
-			showWhenReady();
+		const showWhenReady = () => { 
+			try { 
+				console.log('[PIO] showWhenReady called');
+				handleShow(); 
+			} catch (e) { 
+				console.error('[PIO] show after loading failed', e); 
+			} 
+		};
+		
+		// 检查加载是否已完成
+		const isLoadingDone = typeof window !== 'undefined' && (window).__loadingScreenDone;
+		const isPageReady = document.readyState === 'complete';
+		
+		console.log('[PIO] onMount end - isLoadingDone:', isLoadingDone, 'isPageReady:', isPageReady);
+		
+		if (isLoadingDone || isPageReady) {
+			// 加载已完成或页面已准备好，延迟一点确保所有初始化完成
+			setTimeout(showWhenReady, 100);
 		} else {
+			// 等待加载结束事件
 			window.addEventListener('mizuki:loading:end', showWhenReady, { once: true });
+			// 设置超时后备，如果3秒后还没显示则强制显示
+			setTimeout(() => {
+				if (!pioVisible) {
+					console.log('[PIO] Timeout fallback - forcing show');
+					showWhenReady();
+				}
+			}, 300);
 		}
-	} catch (e) {}
+	} catch (e) {
+		console.error('[PIO] Error in show setup:', e);
+	}
 
 	removeShowListener = () => {
 		window.removeEventListener("pio:show", handleShow);
