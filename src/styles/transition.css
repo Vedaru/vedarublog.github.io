@@ -90,14 +90,6 @@ html.is-animating .pio-container .pio-dialog {
     visibility: hidden !important;
 }
 
-/* 初始化完成前隐藏 Pio 控件与气泡，避免模型未就绪时裸露按钮 */
-.pio-container:not(.pio-ready) .pio-action,
-.pio-container:not(.pio-ready) .pio-dialog {
-    display: none !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
-}
-
 /* 全局加载期间隐藏 Pio 对话气泡 */
 html.loading-active .pio-container .pio-dialog {
     display: none !important;

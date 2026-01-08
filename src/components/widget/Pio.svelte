@@ -88,6 +88,13 @@ function initPio() {
 		try {
 			// 确保DOM元素存在
 			if (pioContainer && pioCanvas && !pioInitialized) {
+				// 临时设置容器可见但移至视口外，确保 canvas 能正确渲染
+				const tempVisible = pioContainer.style.visibility === 'hidden';
+				if (tempVisible) {
+					pioContainer.style.visibility = 'visible';
+					pioContainer.style.opacity = '1';
+					pioContainer.style.transform = 'translateX(-9999px)';
+				}
 				// 在初始化前根据设备情况设置画布尺寸
 				sizeCanvas();
 				pioInstance = new Paul_Pio(pioOptions);
@@ -97,6 +104,14 @@ function initPio() {
 				console.log("Pio initialized successfully (Svelte)");
 				// 如果组件初次初始化时处于隐藏状态，仍然强制触发内部 init 以预加载模型
 				try { if (pioInstance && typeof pioInstance.init === 'function') { pioInstance.init(); console.log('[PIO] pioInstance.init() called during initPio'); } } catch (e) {}
+				// 恢复隐藏状态（如果之前是隐藏的）
+				if (tempVisible) {
+					setTimeout(() => {
+						pioContainer.style.transform = '';
+						pioContainer.style.visibility = 'hidden';
+						pioContainer.style.opacity = '0';
+					}, 100);
+				}
 				// remove any temporary placeholder when real Pio is ready
 				try {
 					const temp = document.querySelector('.pio-container[data-temp-pio]');
@@ -340,7 +355,25 @@ onMount(() => {
 		try { if (pioCanvas) { pioCanvas.style.display = 'block'; sizeCanvas(); } } catch (e) {}
 		if (typeof Paul_Pio !== 'undefined') {
 			try {
-				if (!pioInitialized) { pioInstance = new Paul_Pio(pioOptions); pioInitialized = true; }
+				if (!pioInitialized) { 
+					pioInstance = new Paul_Pio(pioOptions); 
+					pioInitialized = true; 
+				}
+				// 显示时强制重新加载模型，确保模型可见
+				if (pioInstance) {
+					try {
+						// 延迟一帧确保容器完全可见后再加载模型
+						setTimeout(() => {
+							if (typeof pioInstance.loadModel === 'function') {
+								pioInstance.loadModel(0);
+								console.log('[PIO] loadModel called in handleShow');
+							} else if (typeof pioInstance.init === 'function') {
+								pioInstance.init();
+								console.log('[PIO] init called in handleShow');
+							}
+						}, 50);
+					} catch (e) { console.error('[PIO] Error reloading model:', e); }
+				}
 			} catch (e) { console.error('Pio re-init error:', e); }
 		} else {
 			waitForScripts().then(() => { if (!pioInitialized) initPio(); }).catch((err) => console.error('Error re-init:', err));
@@ -364,29 +397,9 @@ onMount(() => {
 		}
 	} catch (e) {}
 
-	// 等待脚本与初始化完成再显示，避免加载完成后控件裸露或模型缺失
-	function waitForReady(timeoutMs = 8000) {
-		return new Promise((resolve) => {
-			const start = Date.now();
-			const check = () => {
-				if (pioInitialized && pioContainer?.classList.contains('pio-ready')) {
-					return resolve(true);
-				}
-				if (Date.now() - start > timeoutMs) return resolve(false);
-				setTimeout(check, 120);
-			};
-			check();
-		});
-	}
-
-	const showWhenReady = () => {
-		waitForScripts()
-			.then(() => waitForReady())
-			.then(() => { try { handleShow(); } catch (e) { console.error('[PIO] show after loading failed', e); } })
-			.catch((e) => { console.error('[PIO] waitForReady failed', e); });
-	};
-
+	// 如果加载已完成，立即显示；否则等待加载结束事件
 	try {
+		const showWhenReady = () => { try { handleShow(); } catch (e) { console.error('[PIO] show after loading failed', e); } };
 		if (typeof window !== 'undefined' && (window).__loadingScreenDone) {
 			showWhenReady();
 		} else {
