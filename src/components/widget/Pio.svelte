@@ -388,7 +388,7 @@ onMount(() => {
 	window.addEventListener('pio:show', handleShow);
 	// Hide handling removed: Pio is forced visible; external 'pio:hide' events are ignored.
 
-	// 仅在全局加载完成后显示；避免在加载界面期间抢占层级
+	// 仅在全局加载完成且 Pio 初始化完成后显示
 	try { localStorage.setItem("posterGirl", "1"); } catch (e) {}
 	try {
 		if (typeof window !== 'undefined' && window.__pendingPioShow) {
@@ -397,35 +397,34 @@ onMount(() => {
 		}
 	} catch (e) {}
 
-	// 如果加载已完成，立即显示；否则等待加载结束事件
-	try {
-		const showWhenReady = (retryCount = 0) => {
-			try {
-				// 确保脚本已加载且已初始化
-				if (typeof Paul_Pio !== 'undefined' && pioInitialized) {
-					console.log('[PIO] showWhenReady: scripts ready and initialized, calling handleShow');
-					handleShow();
-				} else if (retryCount < 50) {
-					// 脚本或初始化未完成，延迟重试（最多 5 秒）
-					console.log('[PIO] showWhenReady: not ready yet, retrying...', retryCount);
-					setTimeout(() => showWhenReady(retryCount + 1), 100);
+	// 等待 Pio 初始化完成后再根据加载状态决定是否显示
+	waitForScripts().then(() => {
+		// 等待初始化完成
+		const waitForInit = () => {
+			if (pioInitialized && pioReady) {
+				console.log('[PIO] Pio initialized, checking loading state...');
+				// Pio 初始化完成，检查加载状态
+				const showWhenReady = () => { 
+					console.log('[PIO] showWhenReady called');
+					try { handleShow(); } catch (e) { console.error('[PIO] show after loading failed', e); } 
+				};
+				if (typeof window !== 'undefined' && (window).__loadingScreenDone) {
+					console.log('[PIO] Loading already done, showing now');
+					// 延迟一小段时间确保所有初始化完成
+					setTimeout(showWhenReady, 100);
 				} else {
-					// 超时后强制显示（可能脚本加载失败）
-					console.warn('[PIO] showWhenReady: timeout, force showing anyway');
-					handleShow();
+					console.log('[PIO] Waiting for loading:end event');
+					window.addEventListener('mizuki:loading:end', showWhenReady, { once: true });
 				}
-			} catch (e) { 
-				console.error('[PIO] show after loading failed', e); 
+			} else {
+				// 还没初始化完成，继续等待
+				setTimeout(waitForInit, 100);
 			}
 		};
-		if (typeof window !== 'undefined' && (window).__loadingScreenDone) {
-			console.log('[PIO] loading already done, showing when ready');
-			showWhenReady();
-		} else {
-			console.log('[PIO] waiting for mizuki:loading:end event');
-			window.addEventListener('mizuki:loading:end', () => showWhenReady(), { once: true });
-		}
-	} catch (e) {}
+		waitForInit();
+	}).catch(err => {
+		console.error('[PIO] waitForScripts failed:', err);
+	});
 
 	removeShowListener = () => {
 		window.removeEventListener("pio:show", handleShow);
