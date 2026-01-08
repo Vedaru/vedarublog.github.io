@@ -386,27 +386,16 @@ if (siteConfig.font) {
 					// 广播加载结束事件
 					try { window.dispatchEvent(new CustomEvent('mizuki:loading:end')); } catch {}
 				}
-				// 初次页面加载：资源加载完成后隐藏
+				// 仅在初次页面加载时显示，Swup 页面切换时不显示
 				if (document.readyState === 'complete') {
-					// 页面已经加载完成（例如通过快速切换），直接隐藏
+					// 页面已经加载完成（例如通过快速切换或返回），直接隐藏
 					hide();
 				} else {
 					show();
 					window.addEventListener('load', hide, { once: true });
 				}
 
-				// Swup 页面切换：开始访问时显示，视图完成后隐藏
-				function attachSwupHooks(){
-					if (!window.swup || !window.swup.hooks) return;
-					window.swup.hooks.on('visit:start', show);
-					window.swup.hooks.on('page:view', hide);
-					window.swup.hooks.on('visit:end', hide);
-				}
-				if (window?.swup?.hooks) {
-					attachSwupHooks();
-				} else {
-					document.addEventListener('swup:enable', attachSwupHooks);
-				}
+				// Swup 页面切换时不显示加载界面，由页面过渡动画处理
 			})();
 		</script>
 		
