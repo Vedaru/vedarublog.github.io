@@ -7,8 +7,6 @@
 @import './animation-enhancements.css';
 /* 导入渐变按钮样式 */
 @import './gradient-buttons.css';
-/* 导入桌面隐喻风格样式 */
-@import './desktop-metaphor.css';
 /* 加密内容样式已移除，现在直接使用非加密文章的样式 */
 
 /* 导入 ZenMaruGothic-Medium 字体 - 仅用于英文、数字和符号 */

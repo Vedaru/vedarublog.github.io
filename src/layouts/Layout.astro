@@ -3,7 +3,7 @@ import ConfigCarrier from "@components/ConfigCarrier.astro";
 import MusicPlayer from "@components/widget/MusicPlayer.svelte";
 import Pio from "@components/widget/Pio.svelte"; // 使用 Svelte 版本的 Pio 组件
 import DiaryYearMonthTOC from "@components/widget/DiaryYearMonthTOC.astro"; // 导入日记目录组件以注册 custom element
-import Taskbar from "@components/Taskbar.astro"; // 导入任务栏组件
+import WindowManager from "@components/desktop/WindowManager.svelte"; // 导入桌面窗口管理器
 import {
 	musicPlayerConfig,
 	pioConfig,
@@ -423,6 +423,9 @@ if (siteConfig.font) {
 			<DiaryYearMonthTOC groupedMoments={[]} />
 		</div>
 		
+		<!-- Desktop Metaphor 窗口管理器 -->
+		<WindowManager client:load />
+		
 		<!-- increase the page height during page transition to prevent the scrolling animation from jumping -->
 		<div id="page-height-extend" class="hidden h-[300vh]"></div>
 
@@ -603,8 +606,6 @@ if (siteConfig.font) {
 			}
 		</script>
 		
-		<!-- 桌面隐喻任务栏 -->
-		<Taskbar />
 	</body>
 </html>
 
@@ -1169,12 +1170,13 @@ const setup = () => {
 			}
 		}
 	})
-	window.swup.hooks.on('visit:start', (visit: {to: {url: string}}) => {
-		// change banner height immediately when a link is clicked
-		const bodyElement = document.querySelector('body')
-		const isHomePage = pathsEqual(visit.to.url, url('/'))
-		
-		if (isHomePage) {
+window.swup.hooks.on('visit:start', (visit?: {to: {url: string}}) => {
+	if (!visit?.to?.url) return;
+	// change banner height immediately when a link is clicked
+	const bodyElement = document.querySelector('body')
+	const isHomePage = pathsEqual(visit.to.url, url('/'))
+	
+	if (isHomePage) {
 			bodyElement!.classList.add('lg:is-home');
 		} else {
 			bodyElement!.classList.remove('lg:is-home');
@@ -1294,7 +1296,7 @@ const setup = () => {
 			}
 		}, 300);
 	});
-	window.swup.hooks.on('visit:end', (_visit: {to: {url: string}}) => {
+	window.swup.hooks.on('visit:end', (_visit?: {to: {url: string}}) => {
 		setTimeout(() => {
 			const heightExtend = document.getElementById('page-height-extend')
 			if (heightExtend) {

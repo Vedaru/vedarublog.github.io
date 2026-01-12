@@ -7,6 +7,8 @@
 		"jsxImportSource": "react",
 		"baseUrl": ".",
 		"skipLibCheck": true,
+		"strict": true,
+		"forceConsistentCasingInFileNames": true,
 		"strictNullChecks": true,
 		"allowJs": false,
 		"declaration": true,
