@@ -1,29 +1,46 @@
 <script lang="ts">
 	import ArchivePanel from '../../ArchivePanel.svelte';
-	import { getSortedPostsList } from '../../../utils/content-utils';
+	import { onMount } from 'svelte';
 	
-	// 异步加载文章列表
-	let sortedPostsListPromise = getSortedPostsList();
+	interface Post {
+		id: string;
+		data: {
+			title: string;
+			tags: string[];
+			category?: string;
+			published: string | Date;
+			permalink?: string;
+		};
+	}
+	
+	let sortedPosts: Post[] = [];
+	let loading = true;
+	let error: string | null = null;
+	
+	onMount(async () => {
+		try {
+			const response = await fetch('/api/posts');
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+			sortedPosts = await response.json();
+		} catch (err) {
+			error = err instanceof Error ? err.message : '加载失败';
+			console.error('Failed to load posts:', err);
+		} finally {
+			loading = false;
+		}
+	});
 </script>
 
 <div class="archive-window-content">
-	{#await sortedPostsListPromise}
+	{#if loading}
 		<div class="loading">加载中...</div>
-	{:then sortedPosts}
-		<ArchivePanel 
-			sortedPosts={sortedPosts.map(post => ({
-				...post,
-				data: {
-					...post.data,
-					category: post.data.category || undefined
-				}
-			}))} 
-			tags={[]} 
-			categories={[]} 
-		/>
-	{:catch error}
-		<div class="error">加载失败: {error.message}</div>
-	{/await}
+	{:else if error}
+		<div class="error">加载失败: {error}</div>
+	{:else}
+		<ArchivePanel {sortedPosts} tags={[]} categories={[]} />
+	{/if}
 </div>
 
 <style>
