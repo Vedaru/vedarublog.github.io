@@ -38,9 +38,13 @@ html.is-animating.is-leaving .transition-leaving {
     opacity: 0;
 }
 
-/* Swup fade 动画 - 保持兼容性 */
+/* Swup fade 动画 - 保持兼容性，添加明确的transition duration */
+.transition-swup-fade {
+    transition: opacity 300ms ease-out, transform 300ms ease-out;
+}
+
 html.is-changing .transition-swup-fade {
-    transition: all 300ms ease-out;
+    transition: opacity 300ms ease-out, transform 300ms ease-out;
 }
 
 html.is-animating .transition-swup-fade {

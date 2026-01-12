@@ -16,7 +16,8 @@ const umamiBaseUrl = umamiConfig.baseUrl || "";
 <div class="card-base p-3">
     <a aria-label="Go to About Page" href={url('/about/')}
        class="group block relative mx-auto mt-1 lg:mx-0 lg:mt-0 mb-3
-       max-w-[12rem] lg:max-w-none overflow-hidden rounded-xl active:scale-95">
+       max-w-[12rem] lg:max-w-none overflow-hidden rounded-xl active:scale-95"
+       style="aspect-ratio: 1/1;">
         <div class="absolute transition pointer-events-none group-hover:bg-black/30 group-active:bg-black/50
         w-full h-full z-50 flex items-center justify-center">
             <Icon name="fa6-regular:address-card"
@@ -28,7 +29,7 @@ const umamiBaseUrl = umamiConfig.baseUrl || "";
             srcset={`${url("/assets/home/avatar-80w.webp")} 80w, ${url("/assets/home/avatar-160w.webp")} 160w, ${url("/assets/home/avatar-200w.webp")} 200w, ${url("/assets/home/avatar-400w.webp")} 400w`}
             sizes="(max-width: 768px) 80px, (max-width: 1024px) 160px, 200px"
             alt="Profile Image of the Author" 
-            class="mx-auto w-full h-full lg:mt-0 object-cover"
+            class="w-full h-full object-cover"
             loading="eager"
             fetchpriority="high"
             decoding="async"
