@@ -6,6 +6,7 @@
 	import BlogWindow from './windows/BlogWindow.svelte';
 	import ProjectsWindow from './windows/ProjectsWindow.svelte';
 	import ContactWindow from './windows/ContactWindow.svelte';
+	import ChatWindow from './windows/ChatWindow.svelte';
 	
 	interface WindowConfig {
 		id: string;
@@ -129,6 +130,8 @@
 				<ProjectsWindow />
 			{:else if window.component === 'contact'}
 				<ContactWindow />
+			{:else if window.component === 'chat'}
+				<ChatWindow />
 			{:else}
 				<div class="window-content-wrapper">
 					<h2>{window.title}</h2>
