@@ -1,12 +1,12 @@
 import type { APIRoute } from 'astro';
-import { getSortedPostsList } from '../../../utils/content-utils';
+import { getSortedPostsList } from '../../utils/content-utils';
 
 export const GET: APIRoute = async () => {
 	try {
 		const posts = await getSortedPostsList();
 
 		// 转换数据以匹配 ArchivePanel 期望的类型
-		const transformedPosts = posts.map(post => ({
+		const transformedPosts = posts.map((post: any) => ({
 			...post,
 			data: {
 				...post.data,
