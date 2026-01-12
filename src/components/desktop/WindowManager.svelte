@@ -3,6 +3,9 @@
 	import DesktopWindow from './DesktopWindow.svelte';
 	import AboutWindow from './windows/AboutWindow.svelte';
 	import ArchiveWindow from './windows/ArchiveWindow.svelte';
+	import BlogWindow from './windows/BlogWindow.svelte';
+	import ProjectsWindow from './windows/ProjectsWindow.svelte';
+	import ContactWindow from './windows/ContactWindow.svelte';
 	
 	interface WindowConfig {
 		id: string;
@@ -121,20 +124,11 @@
 			{:else if window.component === 'archive'}
 				<ArchiveWindow />
 			{:else if window.component === 'blog'}
-				<div class="window-content-wrapper">
-					<h2>博客文章</h2>
-					<p>博客列表功能开发中...</p>
-				</div>
+				<BlogWindow />
 			{:else if window.component === 'projects'}
-				<div class="window-content-wrapper">
-					<h2>项目展示</h2>
-					<p>项目列表功能开发中...</p>
-				</div>
+				<ProjectsWindow />
 			{:else if window.component === 'contact'}
-				<div class="window-content-wrapper">
-					<h2>联系方式</h2>
-					<p>联系信息功能开发中...</p>
-				</div>
+				<ContactWindow />
 			{:else}
 				<div class="window-content-wrapper">
 					<h2>{window.title}</h2>

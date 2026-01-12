@@ -54,7 +54,11 @@ const hasChildren = processedLink.children && processedLink.children.length > 0;
 
 // 定义哪些页面应该在窗口中打开 - 现在默认所有内部链接都以窗口方式打开
 function shouldOpenInWindow(urlPath: string): boolean {
-	// 排除外部链接，所有内部链接都以窗口方式打开
+	// 排除主页链接，直接导航到主页
+	if (urlPath === '/' || urlPath === '') {
+		return false;
+	}
+	// 排除外部链接，所有其他内部链接都以窗口方式打开
 	return true;
 }
 
