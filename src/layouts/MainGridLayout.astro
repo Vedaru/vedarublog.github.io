@@ -39,6 +39,7 @@ interface Props {
 	setOGTypeArticle?: boolean;
 	postSlug?: string;
 	headings?: MarkdownHeading[];
+	hideMainContent?: boolean; // 仅显示导航栏，隐藏主内容和侧边栏
 }
 
 // 类型守卫函数
@@ -107,6 +108,7 @@ const {
 	setOGTypeArticle,
 	postSlug,
 	headings = [],
+	hideMainContent = false,
 } = Astro.props;
 const hasBannerCredit = siteConfig.banner.credit.enable;
 const hasBannerLink = !!siteConfig.banner.credit.url;
@@ -635,11 +637,12 @@ const transparentClass = shouldEnableTransparency
             </a>}
 
 
-            {(mobileShowSidebar || tabletShowSidebar || desktopShowSidebar) && <SideBar class={`${sidebarClass} ${transparentClass}`} headings={headings} isBothSidebarMode={isBothSidebarMode}></SideBar>}
+            {(mobileShowSidebar || tabletShowSidebar || desktopShowSidebar) && !hideMainContent && <SideBar class={`${sidebarClass} ${transparentClass}`} headings={headings} isBothSidebarMode={isBothSidebarMode}></SideBar>}
             
             {/* 右侧边栏 - 在双侧模式或有组件时渲染，网格模式下也显示*/}
-            {(isBothSidebarMode || hasRightSidebarComponents) && <RightSideBar class={`right-sidebar-container ${rightSidebarClass} ${transparentClass}`} headings={headings}></RightSideBar>}
+            {(isBothSidebarMode || hasRightSidebarComponents) && !hideMainContent && <RightSideBar class={`right-sidebar-container ${rightSidebarClass} ${transparentClass}`} headings={headings}></RightSideBar>}
 
+            {!hideMainContent && (
             <main id="swup-container" class={`${mainContentClass} transition-main`}>
                 <div id="content-wrapper" class="onload-animation transition-leaving">
                     <!-- the overflow-hidden here prevent long text break the layout-->
@@ -650,10 +653,13 @@ const transparentClass = shouldEnableTransparency
                     </div>
                 </div>
             </main>
+            )}
 
+            {!hideMainContent && (
             <div class="footer col-span-2 onload-animation block lg:hidden">
                 <Footer></Footer>
             </div>
+            )}
         </div>
 
         <BackToTop></BackToTop>

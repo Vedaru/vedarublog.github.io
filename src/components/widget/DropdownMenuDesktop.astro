@@ -52,18 +52,21 @@ const processedLink = {
 
 const hasChildren = processedLink.children && processedLink.children.length > 0;
 
-// 定义哪些页面应该在窗口中打开
-const windowPages = ['about', 'archive', 'projects'];
-
+// 定义哪些页面应该在窗口中打开 - 现在默认所有内部链接都以窗口方式打开
 function shouldOpenInWindow(urlPath: string): boolean {
-	return windowPages.some(page => urlPath.includes(`/${page}`));
+	// 排除外部链接，所有内部链接都以窗口方式打开
+	return true;
 }
 
 function getWindowId(urlPath: string): string {
-	for (const page of windowPages) {
-		if (urlPath.includes(`/${page}`)) {
-			return page;
-		}
+	// 从 URL 路径提取页面标识
+	const match = urlPath.match(/\/([^\/]+)\/?$/);
+	if (match && match[1]) {
+		return match[1];
+	}
+	// 如果是根路径，返回 'home'
+	if (urlPath === '/' || urlPath === '') {
+		return 'home';
 	}
 	return 'default';
 }

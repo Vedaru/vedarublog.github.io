@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import DesktopWindow from './DesktopWindow.svelte';
 	import AboutWindow from './windows/AboutWindow.svelte';
+	import ArchiveWindow from './windows/ArchiveWindow.svelte';
 	
 	interface WindowConfig {
 		id: string;
@@ -117,7 +118,9 @@
 		>
 			{#if window.component === 'about'}
 				<AboutWindow />
-			{:else if window.component === 'blog' || window.component === 'archive'}
+			{:else if window.component === 'archive'}
+				<ArchiveWindow />
+			{:else if window.component === 'blog'}
 				<div class="window-content-wrapper">
 					<h2>博客文章</h2>
 					<p>博客列表功能开发中...</p>
