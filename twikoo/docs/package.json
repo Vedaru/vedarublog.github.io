@@ -1,0 +1,19 @@
+{
+  "name": "twikoo-docs",
+  "author": "imaegoo <hello@imaegoo.com> (https://github.com/imaegoo)",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/twikoojs/twikoo.git"
+  },
+  "homepage": "https://twikoo.js.org",
+  "scripts": {
+    "docs:dev": "vitepress",
+    "docs:build": "vitepress build"
+  },
+  "devDependencies": {
+    "vitepress": "^1.0.0-rc.29"
+  }
+}
