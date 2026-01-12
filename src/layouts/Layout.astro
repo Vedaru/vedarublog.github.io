@@ -1170,7 +1170,7 @@ const setup = () => {
 			}
 		}
 	})
-window.swup.hooks.on('visit:start', (visit?: {to: {url: string}}) => {
+window.swup.hooks.on('visit:start', ((visit?: {to: {url: string}}) => {
 	if (!visit?.to?.url) return;
 	// change banner height immediately when a link is clicked
 	const bodyElement = document.querySelector('body')
@@ -1241,7 +1241,7 @@ window.swup.hooks.on('visit:start', (visit?: {to: {url: string}}) => {
 		if (toc) {
 			toc.classList.add('toc-not-ready')
 		}
-	});
+	}) as any);
 	window.swup.hooks.on('page:view', () => {
 		// hide the temp high element when the transition is done
 		const heightExtend = document.getElementById('page-height-extend')
@@ -1296,7 +1296,7 @@ window.swup.hooks.on('visit:start', (visit?: {to: {url: string}}) => {
 			}
 		}, 300);
 	});
-	window.swup.hooks.on('visit:end', (_visit?: {to: {url: string}}) => {
+	window.swup.hooks.on('visit:end', ((_visit?: {to: {url: string}}) => {
 		setTimeout(() => {
 			const heightExtend = document.getElementById('page-height-extend')
 			if (heightExtend) {
@@ -1309,7 +1309,7 @@ window.swup.hooks.on('visit:start', (visit?: {to: {url: string}}) => {
                 toc.classList.remove('toc-not-ready')
             }
         }, 200)
-	});
+	}) as any);
 }
 if (window?.swup?.hooks) {
 	setup()
