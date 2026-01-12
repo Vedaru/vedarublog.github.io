@@ -23,7 +23,16 @@ const umamiBaseUrl = umamiConfig.baseUrl || "";
                   class="transition opacity-0 scale-90 group-hover:scale-100 group-hover:opacity-100 text-white text-5xl">
             </Icon>
         </div>
-        <ImageWrapper src={profileConfig.avatar || ""} alt="Profile Image of the Author" class="mx-auto lg:w-full h-full lg:mt-0 " priority={true}></ImageWrapper>
+        <img 
+            src={url("/assets/home/avatar-80w.webp")} 
+            srcset={`${url("/assets/home/avatar-80w.webp")} 80w, ${url("/assets/home/avatar-160w.webp")} 160w, ${url("/assets/home/avatar-200w.webp")} 200w, ${url("/assets/home/avatar-400w.webp")} 400w`}
+            sizes="(max-width: 768px) 80px, (max-width: 1024px) 160px, 200px"
+            alt="Profile Image of the Author" 
+            class="mx-auto w-full h-full lg:mt-0 object-cover"
+            loading="eager"
+            fetchpriority="high"
+            decoding="async"
+        />
     </a>
     <div class="px-2">
         <div class="font-bold text-xl text-center mb-1 dark:text-neutral-50 transition">{profileConfig.name}</div>

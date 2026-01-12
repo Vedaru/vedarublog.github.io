@@ -242,7 +242,10 @@ if (siteConfig.font) {
 		
 		<!-- 预加载关键图片以优化 LCP -->
 		{isHomePage && (
-			<link rel="preload" as="image" href={url("/assets/home/Image_1764853150683.webp")} fetchpriority="high" />
+			<>
+				<link rel="preload" as="image" href={url("/assets/home/avatar-28w.webp")} fetchpriority="high" />
+				<link rel="preload" as="image" href={url("/assets/home/avatar-80w.webp")} fetchpriority="high" />
+			</>
 		)}
 		{Astro.url.pathname.includes('/anime') && (
 			<link rel="preload" as="image" href="/assets/anime/86139c9ac6572ee5c3ab9ac61f77a51f4405240c.webp" fetchpriority="high" />

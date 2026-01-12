@@ -7,3 +7,16 @@
   Access-Control-Allow-Origin: *
   Access-Control-Allow-Methods: GET
   Access-Control-Max-Age: 86400
+
+# 图片资源缓存策略 - 优化LCP性能
+/assets/home/*.webp
+  Cache-Control: public, max-age=31536000, immutable
+  
+/_astro/*.webp
+  Cache-Control: public, max-age=31536000, immutable
+  
+/_astro/*.jpg
+  Cache-Control: public, max-age=31536000, immutable
+  
+/_astro/*.png
+  Cache-Control: public, max-age=31536000, immutable
