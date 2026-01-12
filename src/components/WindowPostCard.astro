@@ -1,0 +1,124 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { render } from "astro:content";
+import { Icon } from "astro-icon/components";
+import { getFileDirFromPath, getTagUrl } from "@/utils/url-utils";
+import { siteConfig } from "../config";
+import I18nKey from "../i18n/i18nKey";
+import { i18n } from "../i18n/translation";
+import ImageWrapper from "./misc/ImageWrapper.astro";
+import PostMetadata from "./PostMeta.astro";
+import Window from "./Window.astro";
+
+interface Props {
+	class?: string;
+	entry: CollectionEntry<"posts">;
+	title: string;
+	url: string;
+	published: string | Date;
+	updated?: string | Date;
+	tags: string[];
+	category: string | null;
+	image: string;
+	description: string;
+	draft: boolean;
+	pinned?: boolean;
+	style?: string;
+	index?: number;
+	windowPosition?: { x: number; y: number };
+}
+const {
+	entry,
+	title,
+	url,
+	published,
+	updated,
+	tags,
+	category,
+	image,
+	description,
+	pinned,
+	style,
+	index = 999,
+	windowPosition = { x: 100 + (index % 5) * 50, y: 100 + (index % 5) * 50 },
+} = Astro.props;
+const className = Astro.props.class;
+
+const isPriority = index < 2;
+const hasCover = image !== undefined && image !== null && image !== "";
+const { remarkPluginFrontmatter } = await render(entry);
+---
+
+<Window
+	title={title}
+	icon="/assets/home/home.png"
+	className={className}
+	defaultPosition={windowPosition}
+	defaultSize={{ width: "500px", height: "auto" }}
+	closable={false}
+	minimizable={false}
+	maximizable={false}
+>
+	<div class="flex flex-col gap-3">
+		{
+			hasCover && (
+				<a href={url} aria-label={title} class="block">
+					<ImageWrapper
+						src={image}
+						basePath={getFileDirFromPath(entry.filePath || "")}
+						alt="Cover Image of the Post"
+						class="w-full h-auto rounded"
+						priority={isPriority}
+						lazy={!isPriority}
+					/>
+				</a>
+			)
+		}
+
+		<div class="flex flex-col gap-2">
+			<PostMetadata
+				published={published}
+				updated={updated}
+				tags={tags}
+				category={category || ""}
+				hideTagsForMobile={true}
+				hideUpdateDate={true}
+				showOnlyBasicMeta={true}
+				words={remarkPluginFrontmatter.words}
+				showWordCount={true}
+			/>
+
+			<div class="text-sm text-gray-700 dark:text-gray-300 line-clamp-3">
+				{description || remarkPluginFrontmatter.excerpt}
+			</div>
+
+			<div class="flex flex-wrap gap-2">
+				{
+					tags && tags.length > 0 ? (
+						tags.map((tag) => (
+							<a
+								href={getTagUrl(tag)}
+								class="text-xs px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+								aria-label={`View all posts tagged with ${tag.trim()}`}
+							>
+								# {tag.trim()}
+							</a>
+						))
+					) : (
+						<span class="text-xs text-gray-500">
+							{i18n(I18nKey.noTags)}
+						</span>
+					)
+				}
+			</div>
+
+			<a
+				href={url}
+				class="inline-flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:underline mt-2"
+			>
+				<span>阅读全文</span>
+				<Icon name="material-symbols:chevron-right-rounded" class="text-lg" />
+			</a>
+		</div>
+	</div>
+</Window>

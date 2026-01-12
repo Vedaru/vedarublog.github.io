@@ -3,6 +3,7 @@ import ConfigCarrier from "@components/ConfigCarrier.astro";
 import MusicPlayer from "@components/widget/MusicPlayer.svelte";
 import Pio from "@components/widget/Pio.svelte"; // 使用 Svelte 版本的 Pio 组件
 import DiaryYearMonthTOC from "@components/widget/DiaryYearMonthTOC.astro"; // 导入日记目录组件以注册 custom element
+import Taskbar from "@components/Taskbar.astro"; // 导入任务栏组件
 import {
 	musicPlayerConfig,
 	pioConfig,
@@ -327,9 +328,12 @@ if (siteConfig.font) {
 
 		<!-- 脚本加载优化器 - 延迟加载非关键脚本 -->
 		<script src="/js/script-loader-optimizer.js" defer></script>
+		
+		<!-- 桌面隐喻窗口管理器 -->
+		<script src="/js/window-manager.js" defer></script>
 
 </head>
-	<body class=" min-h-screen " class:list={[{"lg:is-home": isHomePage, "enable-banner": enableBanner}]}
+	<body class="min-h-screen desktop-container" class:list={[{"lg:is-home": isHomePage, "enable-banner": enableBanner}]}
 		  style={bodyFontFamily ? `font-family: ${bodyFontFamily};` : ''}
 		  data-overlayscrollbars-initialize
 	>
@@ -400,7 +404,11 @@ if (siteConfig.font) {
 		</script>
 		
 		<ConfigCarrier></ConfigCarrier>
-		<slot />
+		
+		<!-- 桌面隐喻内容容器 -->
+		<div class="desktop-content">
+			<slot />
+		</div>
 		
 		<!-- Music Player - 立即加载以确保封面快速显示 -->
 		{musicPlayerConfig.enable && (
@@ -594,6 +602,9 @@ if (siteConfig.font) {
 				});
 			}
 		</script>
+		
+		<!-- 桌面隐喻任务栏 -->
+		<Taskbar />
 	</body>
 </html>
 

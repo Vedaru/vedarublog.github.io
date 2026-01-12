@@ -1,0 +1,77 @@
+---
+interface Props {
+	title: string;
+	icon?: string;
+	id?: string;
+	className?: string;
+	closable?: boolean;
+	minimizable?: boolean;
+	maximizable?: boolean;
+	defaultPosition?: { x: number; y: number };
+	defaultSize?: { width: string; height: string };
+}
+
+const {
+	title,
+	icon,
+	id,
+	className = "",
+	closable = true,
+	minimizable = true,
+	maximizable = true,
+	defaultPosition = { x: 100, y: 100 },
+	defaultSize = { width: "600px", height: "auto" },
+} = Astro.props;
+
+const windowId = id || `window-${Math.random().toString(36).substr(2, 9)}`;
+---
+
+<div
+	class={`window ${className}`}
+	id={windowId}
+	data-x={defaultPosition.x}
+	data-y={defaultPosition.y}
+	style={`left: ${defaultPosition.x}px; top: ${defaultPosition.y}px; width: ${defaultSize.width}; height: ${defaultSize.height}; position: absolute;`}
+>
+	<div class="window-titlebar" data-window-id={windowId}>
+		<div class="window-title">
+			{icon && <img src={icon} alt="" class="window-title-icon" />}
+			<span>{title}</span>
+		</div>
+		<div class="window-controls">
+			{minimizable && (
+				<button
+					class="window-control-btn minimize"
+					data-action="minimize"
+					data-window-id={windowId}
+					aria-label="最小化"
+				></button>
+			)}
+			{maximizable && (
+				<button
+					class="window-control-btn maximize"
+					data-action="maximize"
+					data-window-id={windowId}
+					aria-label="最大化"
+				></button>
+			)}
+			{closable && (
+				<button
+					class="window-control-btn close"
+					data-action="close"
+					data-window-id={windowId}
+					aria-label="关闭"
+				></button>
+			)}
+		</div>
+	</div>
+	<div class="window-content">
+		<slot />
+	</div>
+</div>
+
+<style>
+	.window {
+		display: block;
+	}
+</style>

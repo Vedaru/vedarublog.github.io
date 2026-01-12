@@ -1,0 +1,189 @@
+---
+import { Icon } from "astro-icon/components";
+import { siteConfig } from "../config";
+
+interface TaskbarApp {
+	id: string;
+	title: string;
+	icon?: string;
+}
+
+interface Props {
+	apps?: TaskbarApp[];
+	showStartMenu?: boolean;
+}
+
+const { apps = [], showStartMenu = true } = Astro.props;
+
+// 获取当前时间（仅用于初始渲染）
+const now = new Date();
+const timeString = now.toLocaleTimeString("zh-CN", {
+	hour: "2-digit",
+	minute: "2-digit",
+});
+const dateString = now.toLocaleDateString("zh-CN", {
+	year: "numeric",
+	month: "2-digit",
+	day: "2-digit",
+});
+---
+
+<div class="taskbar" id="desktop-taskbar">
+	{
+		showStartMenu && (
+			<button
+				class="taskbar-start-btn"
+				id="start-menu-btn"
+				aria-label="开始菜单"
+			>
+				<Icon name="material-symbols:grid-view-rounded" class="taskbar-start-icon" />
+				<span>开始</span>
+			</button>
+		)
+	}
+
+	<div class="taskbar-divider"></div>
+
+	<div class="taskbar-apps" id="taskbar-apps">
+		{
+			apps.map((app) => (
+				<button
+					class="taskbar-app-btn"
+					data-window-id={app.id}
+					title={app.title}
+				>
+					{app.icon && (
+						<img
+							src={app.icon}
+							alt=""
+							class="window-title-icon"
+							width="16"
+							height="16"
+						/>
+					)}
+					<span>{app.title}</span>
+				</button>
+			))
+		}
+	</div>
+
+	<div class="taskbar-clock" id="taskbar-clock">
+		<div id="clock-time">{timeString}</div>
+		<div id="clock-date">{dateString}</div>
+	</div>
+</div>
+
+<!-- 开始菜单 -->
+<div class="start-menu" id="start-menu">
+	<div class="start-menu-header">{siteConfig.title}</div>
+	<div class="start-menu-content">
+		<a href="/" class="start-menu-item">
+			<Icon name="material-symbols:home-outline" class="start-menu-item-icon" />
+			<span>首页</span>
+		</a>
+		<a href="/archive" class="start-menu-item">
+			<Icon name="material-symbols:folder-outline" class="start-menu-item-icon" />
+			<span>归档</span>
+		</a>
+		{
+			siteConfig.featurePages?.projects && (
+				<a href="/projects" class="start-menu-item">
+					<Icon name="material-symbols:code" class="start-menu-item-icon" />
+					<span>项目</span>
+				</a>
+			)
+		}
+		{
+			siteConfig.featurePages?.friends && (
+				<a href="/friends" class="start-menu-item">
+					<Icon name="material-symbols:group-outline" class="start-menu-item-icon" />
+					<span>友链</span>
+				</a>
+			)
+		}
+		{
+			siteConfig.featurePages?.timeline && (
+				<a href="/timeline" class="start-menu-item">
+					<Icon name="material-symbols:timeline" class="start-menu-item-icon" />
+					<span>时间线</span>
+				</a>
+			)
+		}
+		<div class="start-menu-divider"></div>
+		<a href="/about" class="start-menu-item">
+			<Icon name="material-symbols:info-outline" class="start-menu-item-icon" />
+			<span>关于</span>
+		</a>
+	</div>
+</div>
+
+<script>
+	function initTaskbar() {
+		const startMenuBtn = document.getElementById("start-menu-btn");
+		const startMenu = document.getElementById("start-menu");
+		const clockTime = document.getElementById("clock-time");
+		const clockDate = document.getElementById("clock-date");
+
+		// 开始菜单切换
+		if (startMenuBtn && startMenu) {
+			startMenuBtn.addEventListener("click", (e) => {
+				e.stopPropagation();
+				startMenuBtn.classList.toggle("active");
+				startMenu.classList.toggle("active");
+			});
+
+			// 点击其他地方关闭开始菜单
+			document.addEventListener("click", (e) => {
+				if (
+					!startMenu.contains(e.target as Node) &&
+					e.target !== startMenuBtn
+				) {
+					startMenuBtn.classList.remove("active");
+					startMenu.classList.remove("active");
+				}
+			});
+
+			// 点击菜单项后关闭菜单
+			const menuItems = startMenu.querySelectorAll(".start-menu-item");
+			menuItems.forEach((item) => {
+				item.addEventListener("click", () => {
+					startMenuBtn.classList.remove("active");
+					startMenu.classList.remove("active");
+				});
+			});
+		}
+
+		// 更新时钟
+		function updateClock() {
+			const now = new Date();
+			if (clockTime) {
+				clockTime.textContent = now.toLocaleTimeString("zh-CN", {
+					hour: "2-digit",
+					minute: "2-digit",
+				});
+			}
+			if (clockDate) {
+				clockDate.textContent = now.toLocaleDateString("zh-CN", {
+					year: "numeric",
+					month: "2-digit",
+					day: "2-digit",
+				});
+			}
+		}
+
+		// 每秒更新时钟
+		if (clockTime || clockDate) {
+			setInterval(updateClock, 1000);
+		}
+	}
+
+	// 页面加载时初始化
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", initTaskbar);
+	} else {
+		initTaskbar();
+	}
+
+	// Swup 页面切换后重新初始化
+	document.addEventListener("swup:contentReplaced", initTaskbar);
+</script>
