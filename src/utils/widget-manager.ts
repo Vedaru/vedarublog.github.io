@@ -18,7 +18,6 @@ export const WIDGET_COMPONENT_MAP = {
 	pio: "../components/widget/Pio.astro", // 添加 Pio 组件映射
 	"site-stats": "../components/widget/SiteStats.astro", // 站点统计组件
 	calendar: "../components/widget/Calendar.astro", // 日历组件
-	"diary-archive": "../components/widget/DiaryArchive.astro", // 日记归档组件
 	custom: null, // 自定义组件需要在配置中指定路径
 } as const;
 

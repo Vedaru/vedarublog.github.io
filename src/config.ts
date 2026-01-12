@@ -2,7 +2,6 @@ import { getTsBuildInfoEmitOutputFilePath } from "typescript";
 import type {
 	AnnouncementConfig,
 	CommentConfig,
-	DesktopMetaphorConfig,
 	ExpressiveCodeConfig,
 	FooterConfig,
 	FullscreenWallpaperConfig,
@@ -676,19 +675,6 @@ export const widgetConfigs = {
 	fullscreenWallpaper: fullscreenWallpaperConfig,
 	pio: pioConfig, // 添加 pio 配置
 } as const;
-
-export const desktopMetaphorConfig: DesktopMetaphorConfig = {
-	enable: true, // 是否启用桌面隐喻风格
-	wallpaper: "/assets/desktop/wallpaper-default.jpg", // 桌面壁纸路径
-	showDesktopIcons: false, // 是否显示桌面图标（首页可用）
-	enableWindowDrag: true, // 是否启用窗口拖拽
-	enableWindowControls: true, // 是否启用窗口控制按钮
-	taskbar: {
-		position: "bottom", // 任务栏位置
-		showClock: true, // 显示时钟
-		showStartMenu: true, // 显示开始菜单
-	},
-};
 
 export const umamiConfig = {
 	enabled: false, // 是否显示Umami统计

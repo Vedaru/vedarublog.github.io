@@ -15,7 +15,7 @@ if (!siteConfig.featurePages.diary) {
 const moments = getDiaryList(Number.MAX_SAFE_INTEGER);
 
 // 按年 -> 月分组（外层年份，内层月份；均倒序）
-const groupByYearMonth = (list: any[]): Array<[number, Array<[string, any[]]>]> => {
+const groupByYearMonth = (list: any[]) => {
 	const yearMap = new Map();
 	list.forEach((m: any) => {
 		// 直接从日期字符串 YYYY-MM-DDTHH:MM:SS 中提取年月，避免时区偏移
@@ -36,13 +36,13 @@ const groupByYearMonth = (list: any[]): Array<[number, Array<[string, any[]]>]> 
 				b: [number, Map<string, Record<string, unknown>>],
 			) => (a[0] < b[0] ? 1 : -1),
 		)
-		.map(([year, mMap]: [number, Map<string, any>]): [number, Array<[string, any[]]>] => [
+		.map(([year, mMap]) => [
 			year,
 			Array.from(mMap.entries()).sort(
 				(
 					a: [string, Record<string, unknown>],
 					b: [string, Record<string, unknown>],
-				): number => (a[0] < b[0] ? 1 : -1),
+				) => (a[0] < b[0] ? 1 : -1),
 			),
 		]);
 };
@@ -106,7 +106,7 @@ function formatClock(dateString: string): string {
 								<span class="group-count text-50 text-xs md:text-sm">({months.reduce((acc: number, [, arr]: any) => acc + arr.length, 0)})</span>
 							</div>
 							<div class="space-y-3">
-							{months.map(([month, items]: [string, any[]]) => (
+							{months.map(([month, items]) => (
 								<div class="moment-subgroup" id={`month-${year}-${month}`}>
 									<div class="moment-subgroup-header flex items-center gap-2 text-sm md:text-base font-semibold text-90">
 										<span class="group-label">{year}-{month}</span>

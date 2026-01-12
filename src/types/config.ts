@@ -427,17 +427,3 @@ export type PioConfig = {
 		}>;
 	};
 };
-
-export type DesktopMetaphorConfig = {
-	enable: boolean; // 是否启用桌面隐喻风格
-	wallpaper?: string; // 桌面壁纸路径
-	showDesktopIcons?: boolean; // 是否显示桌面图标
-	enableWindowDrag?: boolean; // 是否启用窗口拖拽
-	enableWindowControls?: boolean; // 是否启用窗口最小化/最大化/关闭
-	taskbar?: {
-		position?: "top" | "bottom"; // 任务栏位置
-		showClock?: boolean; // 是否显示时钟
-		showStartMenu?: boolean; // 是否显示开始菜单
-	};
-};
-

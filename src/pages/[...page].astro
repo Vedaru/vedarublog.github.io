@@ -15,19 +15,10 @@ export const getStaticPaths = (async ({ paginate }) => {
 const { page } = Astro.props;
 
 const len = page.data.length;
-
-// 检查是否为首页（路径为 / 或 /1）
-const isHomePage = Astro.url.pathname === "/" || Astro.url.pathname === "/1";
 ---
 
-{isHomePage ? (
-	<MainGridLayout hideMainContent={true}>
-		<h1 class="sr-only">首页</h1>
-	</MainGridLayout>
-) : (
-	<MainGridLayout>
-		<h1 class="sr-only">首页 - 文章列表</h1>
-		<PostPage page={page}></PostPage>
-		<Pagination class="mx-auto onload-animation" page={page} style={`animation-delay: calc(var(--content-delay) + ${(len)*50}ms)`}></Pagination>
-	</MainGridLayout>
-)}
+<MainGridLayout>
+    <h1 class="sr-only">首页 - 文章列表</h1>
+    <PostPage page={page}></PostPage>
+    <Pagination class="mx-auto onload-animation" page={page} style={`animation-delay: calc(var(--content-delay) + ${(len)*50}ms)`}></Pagination>
+</MainGridLayout>
