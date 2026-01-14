@@ -355,16 +355,12 @@ button:focus-visible, a:focus-visible {
         -webkit-tap-highlight-color: transparent !important;
         tap-highlight-color: transparent !important;
     }
-    .expand-animation:hover::before {
-        background: var(--btn-plain-bg-hover);
-    }
 
-    /* 默认情况下隐藏伪元素，只有 hover 或 keyboard focus-visible 时才显示 */
+    /* 默认隐藏伪元素，避免无交互时残留可视效果 */
     .expand-animation::before {
         background: transparent;
         opacity: 0;
-        transform: scale(0.85);
-        transition: background 150ms ease, opacity 150ms ease, transform 150ms ease;
+        transform-origin: center;
     }
 
     .expand-animation:hover::before,
@@ -374,24 +370,6 @@ button:focus-visible, a:focus-visible {
         transform: scale(1);
     }
 
-    /* 在触摸设备上禁用 hover 引起的伪元素显示 */
-    @media (hover: none) and (pointer: coarse) {
-        .expand-animation:hover::before {
-            background: transparent !important;
-            opacity: 0 !important;
-            transform: scale(0.85) !important;
-        }
-    }
-
-    /* 强制在不处于 active/hover/focus-visible 时隐藏伪元素，避免残留 */
-    .expand-animation:not(:active):not(:hover):not(:focus-visible)::before,
-    .expand-animation.no-shadow::before,
-    .btn-plain.no-shadow::before {
-        background: transparent !important;
-        opacity: 0 !important;
-        transform: scale(0.85) !important;
-        pointer-events: none !important;
-    }
     .expand-animation:active,
     .expand-animation:focus,
     .expand-animation:focus-visible {
@@ -400,11 +378,8 @@ button:focus-visible, a:focus-visible {
         -webkit-tap-highlight-color: transparent !important;
     }
     .expand-animation:active::before {
-        /* 显示按下时的主题色阴影（用于鼠标按下或触摸按下） */
-        background: var(--btn-plain-bg-active);
-        opacity: 1;
-        transform: scale(1);
-        transition: background 120ms ease, opacity 120ms ease, transform 120ms ease;
+        background: transparent !important;
+        opacity: 0 !important;
     }
 
     /* 在鼠标/触摸触发的 focus 下也隐藏伪元素（保留键盘 focus-visible，用于可访问性） */
