@@ -432,22 +432,30 @@ button:focus-visible, a:focus-visible {
 /* 兼容性保护：当 JS 无法触发媒体查询或浏览器表现异常时，JS 会在页面最早阶段加上 .is-touch 类，使下列规则强制生效 */
 .is-touch .btn-plain::before,
 .is-touch .btn-plain.scale-animation::before,
-.is-touch .expand-animation::before,
-#navbar-wrapper .btn-plain.touch-hide::before,
-#navbar-wrapper .btn-plain.touch-hide.scale-animation::before {
+.is-touch .expand-animation::before {
+    /* 默认隐藏伪元素（即未按下时无阴影） */
     display: none !important;
     background: transparent !important;
     box-shadow: none !important;
     opacity: 0 !important;
     transform: none !important;
 }
+/* 当处于按下态（pressed 或 :active）时，临时显示阴影以反馈点击；按键释放后 JS 会清理 pressed 并 blur 元素，避免残留 */
+.is-touch .btn-plain.pressed::before,
+.is-touch .btn-plain:active::before,
+.is-touch .btn-plain.scale-animation.pressed::before,
+.is-touch .expand-animation.pressed::before,
+.is-touch .expand-animation:active::before {
+    display: block !important;
+    background: var(--btn-plain-bg-active) !important;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12) !important;
+    opacity: 1 !important;
+    transform: scale(1) !important;
+}
 /* 额外保险：彻底移除移动端按钮的 hover 背景样式（若有残留） */
 .is-touch .btn-plain,
-.is-touch .btn-plain.scale-animation,
-#navbar-wrapper .btn-plain.touch-hide,
-#navbar-wrapper .btn-plain.touch-hide.scale-animation {
+.is-touch .btn-plain.scale-animation {
     background: none !important;
-    box-shadow: none !important;
 }
     .link {
         @apply transition-colors duration-150 rounded-md p-1 -m-1 expand-animation;

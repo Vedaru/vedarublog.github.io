@@ -300,32 +300,35 @@ if (siteConfig.font) {
 						el.classList.remove('scale-animation');
 					});
 
-n					// 当用户在触控设备上进行交互（pointerup / touchend）时，主动 blur 相关按钮并清理阴影，防止点击后阴影残留
-					const clearNavbarShadow = (e) => {
+n					// 为触控设备添加按下态处理：按下时添加 pressed 类，松开时移除并 blur，防止残留 focus 导致伪元素可见
+					document.querySelectorAll('#navbar-wrapper .btn-plain').forEach(el => {
 						try {
-							const tgt = e && e.target ? e.target : null;
-							const btn = tgt && tgt.closest ? tgt.closest('.btn-plain') : null;
-							if (btn) {
-								// 延迟一个宏任务，确保 active 状态先触发再清理
+							// pointerdown 在大多数设备都可用，使用它来添加 pressed 状态
+							el.addEventListener('pointerdown', () => {
+								el.classList.add('pressed');
+							});
+							// pointerup / pointercancel 移除 pressed，并 blur（短延迟以避免阻塞 click 处理）
+							el.addEventListener('pointerup', () => {
 								setTimeout(() => {
-									try { (btn).blur(); (btn).style.boxShadow = 'none'; } catch (err) {}
-								}, 0);
-							}
-							// 保险：若 navbar 内有其他元素仍保持焦点，也一并 blur
-							const navbarEl = document.getElementById('navbar-wrapper');
-							if (navbarEl) {
-								const focusedInNav = navbarEl.querySelector(':focus');
-								if (focusedInNav && focusedInNav instanceof HTMLElement) {
-									try { focusedInNav.blur(); } catch (err) {}
-								}
-							}
-						} catch (err) {
-							// ignore
+									try { el.blur(); } catch (e) {}
+									el.classList.remove('pressed');
+								}, 10);
+							});
+							el.addEventListener('pointercancel', () => {
+								try { el.blur(); } catch (e) {}
+								el.classList.remove('pressed');
+							});
+							// 兼容性：部分旧手机只触发 touchend
+							el.addEventListener('touchend', () => {
+								setTimeout(() => {
+									try { el.blur(); } catch (e) {}
+									el.classList.remove('pressed');
+								}, 10);
+							}, { passive: true });
+						} catch (e) {
+							// ignore per-element errors
 						}
-					};
-					document.addEventListener('pointerup', clearNavbarShadow, { passive: true });
-					document.addEventListener('touchend', clearNavbarShadow, { passive: true });
-					document.addEventListener('touchcancel', clearNavbarShadow, { passive: true });
+					});
 				}
 			} catch (e) {
 				// ignore
