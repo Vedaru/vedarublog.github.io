@@ -28,6 +28,7 @@ export class AnimationManager {
 	init(): void {
 		this.setupSwupIntegration();
 		this.setupScrollAnimations();
+		this.setupPointerFocusCleanup(); // 清理指针后残留焦点导致的伪元素残留问题
 		console.log("🎨 Animation Manager initialized");
 	}
 
@@ -157,9 +158,41 @@ export class AnimationManager {
 			sidebar.dispatchEvent(event);
 		}
 
-		// 触发全局事件，通知所有组件重新初始化
+n		// 触发全局事件，通知所有组件重新初始化
 		const globalEvent = new CustomEvent("page:reinit");
 		document.dispatchEvent(globalEvent);
+	}
+
+	/**
+	 * 清理 pointer 触发后残留的 focus（避免伪元素阴影残留）
+	 */
+	private setupPointerFocusCleanup(): void {
+		if (typeof window === "undefined") return;
+
+n		// 在 pointerdown 时监听，如果点击的是具有扩张伪元素的按钮，
+		// 在 pointerup 时移除焦点（仅限指针触发，不影响键盘焦点）
+		document.addEventListener(
+			"pointerdown",
+			(e: PointerEvent) => {
+				const el = (e.target as Element).closest?.(".expand-animation, .btn-plain") as HTMLElement | null;
+				if (!el) return;
+
+n				const onUp = () => {
+					// 放在微任务之后执行，以让 :active 状态能稍微显现（更自然）
+					setTimeout(() => {
+						if (document.activeElement === el) {
+							// 如果是通过指针触发的焦点，则移除焦点以避免残留伪元素
+							(el as HTMLElement).blur();
+						}
+					}, 50);
+
+				window.removeEventListener("pointerup", onUp);
+				};
+
+			window.addEventListener("pointerup", onUp, { once: true });
+			},
+			{ passive: true },
+		);
 	}
 
 	/**
