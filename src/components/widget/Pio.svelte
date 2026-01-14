@@ -364,6 +364,41 @@ onMount(() => {
 	window.addEventListener('pio:show', handleShow);
 	// Hide handling removed: Pio is forced visible; external 'pio:hide' events are ignored.
 
+	// Observe root class changes (page transition classes) to throttle rendering during animations
+	if (typeof MutationObserver !== 'undefined' && typeof document !== 'undefined') {
+		try {
+			_classObserver = new MutationObserver(() => {
+				try {
+					const html = document.documentElement;
+					const inTransition = html.classList.contains('is-animating') || html.classList.contains('is-leaving') || html.classList.contains('is-changing');
+					if (inTransition) {
+						// reduce to lower fps while animating
+						try {
+							if (pioInstance && typeof pioInstance.reduceRendering === 'function') {
+								pioInstance.reduceRendering(12);
+							} else {
+								window.__PIO_RENDER_CONTROL = window.__PIO_RENDER_CONTROL || { mode: 'normal', reduceFPS: 15, _lastRender: 0 };
+								window.__PIO_RENDER_CONTROL.mode = 'reduced';
+								window.__PIO_RENDER_CONTROL.reduceFPS = 12;
+							}
+						} catch (e) {}
+					} else {
+						// resume normal rendering
+						try {
+							if (pioInstance && typeof pioInstance.resumeRendering === 'function') {
+								pioInstance.resumeRendering();
+							} else {
+								window.__PIO_RENDER_CONTROL = window.__PIO_RENDER_CONTROL || { mode: 'normal', reduceFPS: 15, _lastRender: 0 };
+								window.__PIO_RENDER_CONTROL.mode = 'normal';
+							}
+						} catch (e) {}
+					}
+				} catch (e) {}
+			});
+			_classObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+		} catch (e) {}
+	}
+
 	// 仅在全局加载完成且 Pio 初始化完成后显示
 	try { localStorage.setItem("posterGirl", "1"); } catch (e) {}
 	try {

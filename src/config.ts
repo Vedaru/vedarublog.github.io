@@ -626,7 +626,9 @@ export const pioConfig: import("./types/config").PioConfig & { eagerLoad?: boole
 	height: 250, // 默认高度
 	mode: "fixed", // 默认为可拖拽模式
 	// 是否在首屏前加载 Pio 脚本（如果为 false，则只在用户交互或显示时动态加载脚本与样式）
-	eagerLoad: false,
+	// 默认关闭会按需加载；若你遇到“Pio 无法显示”且页面没有动态注入脚本，
+	// 可将其置为 true 以静态引入脚本与样式（快速修复）
+	eagerLoad: true,
 	hiddenOnMobile: true, // 移动端自动禁用显示
 	dialog: {
 		welcome: "欢迎！", // 欢迎词

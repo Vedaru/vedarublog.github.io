@@ -52,28 +52,36 @@ html.is-animating .transition-swup-fade {
 .pio-container {
     z-index: 9999 !important;
     pointer-events: auto !important;
+    /* 强制合成层以减少在页面切换时的重绘/卡顿 */
+    will-change: transform, opacity !important;
+    transform: translateZ(0) !important;
+    backface-visibility: hidden !important;
 }
 
-/* 防止 Pio 组件在页面切换时错位 */
+/* 防止 Pio 组件在页面切换时错位 - 优化以减少卡顿 */
 html.is-changing .pio-container,
 html.is-animating .pio-container,
 html.is-leaving .pio-container {
-    transform: none !important;
+    /* 保持在合成层，避免触发重排/重绘 */
+    transform: translateZ(0) !important;
     transition: none !important;
-    will-change: auto !important;
+    will-change: transform, opacity !important;
+    backface-visibility: hidden !important;
+    contain: paint !important;
     position: fixed !important;
     bottom: 0 !important;
     z-index: 9999 !important;
     pointer-events: auto !important;
-}
+} 
 
-/* 切页时隐藏 Pio 的三个按钮，避免闪现 */
+/* 切页时隐藏 Pio 的三个按钮，避免闪现 - 使用 opacity/visibility 避免 layout thrash */
 html.is-changing .pio-action,
 html.is-animating .pio-action,
 html.is-leaving .pio-action {
-    display: none !important;
     opacity: 0 !important;
-}
+    visibility: hidden !important;
+    pointer-events: none !important;
+} 
 
 /* 全局加载期间隐藏 Pio 的三个按钮 */
 html.loading-active .pio-action {
@@ -81,13 +89,13 @@ html.loading-active .pio-action {
     opacity: 0 !important;
 }
 
-/* 切页期间隐藏 Pio 对话气泡，避免触发离场文案导致布局抖动 */
+/* 切页期间隐藏 Pio 对话气泡，避免触发离场文案导致布局抖动 - 使用 opacity/visibility */
 html.is-changing .pio-container .pio-dialog,
 html.is-leaving .pio-container .pio-dialog,
 html.is-animating .pio-container .pio-dialog {
-    display: none !important;
     opacity: 0 !important;
     visibility: hidden !important;
+    pointer-events: none !important;
 }
 
 /* 全局加载期间隐藏 Pio 对话气泡 */

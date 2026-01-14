@@ -99,7 +99,31 @@ window.Paul_Pio = function (prop) {
 
 	this.destroy = modules.destroy;
 	this.message = modules.message;
+	// Rendering control helpers - allow host page to pause/reduce/resume rendering during heavy transitions
+	this.pauseRendering = function() {
+		try {
+			window.__PIO_RENDER_CONTROL = window.__PIO_RENDER_CONTROL || { mode: 'normal', reduceFPS: 15, _lastRender: 0 };
+			window.__PIO_RENDER_CONTROL.mode = 'paused';
+			console.log('[PIO] rendering paused');
+		} catch (e) { }
+	};
 
+	this.resumeRendering = function() {
+		try {
+			window.__PIO_RENDER_CONTROL = window.__PIO_RENDER_CONTROL || { mode: 'normal', reduceFPS: 15, _lastRender: 0 };
+			window.__PIO_RENDER_CONTROL.mode = 'normal';
+			console.log('[PIO] rendering resumed');
+		} catch (e) { }
+	};
+
+	this.reduceRendering = function(fps) {
+		try {
+			window.__PIO_RENDER_CONTROL = window.__PIO_RENDER_CONTROL || { mode: 'normal', reduceFPS: 15, _lastRender: 0 };
+			window.__PIO_RENDER_CONTROL.mode = 'reduced';
+			window.__PIO_RENDER_CONTROL.reduceFPS = fps || 12;
+			console.log('[PIO] rendering reduced to ' + window.__PIO_RENDER_CONTROL.reduceFPS + ' fps');
+		} catch (e) { }
+	};
 	/* - 提示操作 */
 	const action = {
 		// 欢迎
