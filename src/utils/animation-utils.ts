@@ -30,6 +30,7 @@ export class AnimationManager {
 		this.setupScrollAnimations();
 		this.setupPointerFocusCleanup(); // 清理指针后残留焦点导致的伪元素残留问题
 		this.setupPointerFocusCleanupRobust(); // 更强力的全局清理，处理 pointercancel/visibility/scroll 等异常场景
+		this.setupForceHideOnPointerUp(); // 在 pointerup 时基于计算样式做最终的强制隐藏
 		console.log("🎨 Animation Manager initialized");
 	}
 
@@ -199,6 +200,41 @@ n				const onUp = () => {
 	/**
 	 * 设置滚动动画
 	 */
+	private setupForceHideOnPointerUp(): void {
+		if (typeof window === "undefined") return;
+
+		document.addEventListener(
+			"pointerup",
+			(e: PointerEvent) => {
+				const el = (e.target as Element).closest?.(".expand-animation, .btn-plain") as HTMLElement | null;
+				if (!el) return;
+
+				const check = () => {
+					try {
+						const comp = window.getComputedStyle(el, "::before");
+						const opa = parseFloat(comp.getPropertyValue("opacity") || "0");
+						if (opa > 0.01) {
+							el.classList.add("no-shadow");
+							el.style.setProperty("--btn-plain-bg-hover", "transparent");
+							void el.offsetWidth;
+							setTimeout(check, 60);
+							return;
+						}
+						setTimeout(() => {
+							el.classList.remove("no-shadow");
+							el.style.removeProperty("--btn-plain-bg-hover");
+						}, 80);
+					} catch (err) {
+						setTimeout(() => el.classList.remove("no-shadow"), 150);
+					}
+				};
+
+				setTimeout(check, 40);
+			},
+			{ passive: true },
+		);
+	}
+
 	private setupScrollAnimations(): void {
 		if (typeof window === "undefined") return;
 
