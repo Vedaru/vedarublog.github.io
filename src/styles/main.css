@@ -358,6 +358,30 @@ button:focus-visible, a:focus-visible {
     .expand-animation:hover::before {
         background: var(--btn-plain-bg-hover);
     }
+
+    /* 默认情况下隐藏伪元素，只有 hover 或 keyboard focus-visible 时才显示 */
+    .expand-animation::before {
+        background: transparent;
+        opacity: 0;
+        transform: scale(0.85);
+        transition: background 150ms ease, opacity 150ms ease, transform 150ms ease;
+    }
+
+    .expand-animation:hover::before,
+    .expand-animation:focus-visible::before {
+        background: var(--btn-plain-bg-hover);
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    /* 在触摸设备上禁用 hover 引起的伪元素显示 */
+    @media (hover: none) and (pointer: coarse) {
+        .expand-animation:hover::before {
+            background: transparent !important;
+            opacity: 0 !important;
+            transform: scale(0.85) !important;
+        }
+    }
     .expand-animation:active,
     .expand-animation:focus,
     .expand-animation:focus-visible {
