@@ -101,22 +101,43 @@ export class AnimationManager {
 	 * 初始化页面动画
 	 */
 	private initializePageAnimations(): void {
-		// 重新应用加载动画
+		// 重新应用加载动画（支持 reduced-motion，使用 rAF 调度以减少布局抖动）
 		const animatedElements = document.querySelectorAll(".onload-animation");
+		const prefersReducedMotion =
+			typeof window !== "undefined" &&
+			window.matchMedia &&
+			window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+		const isMobile = typeof window !== "undefined" && window.innerWidth <= 768;
+		const baseDuration = prefersReducedMotion ? 0 : isMobile ? 200 : 320;
+
 		animatedElements.forEach((element, index) => {
 			const htmlElement = element as HTMLElement;
 			const delay =
-				Number.parseInt(htmlElement.style.animationDelay, 10) || index * 50;
+				Number.parseInt(htmlElement.style.animationDelay, 10) || index * (isMobile ? 30 : 50);
 
-			// 重置动画
-			htmlElement.style.opacity = "0";
-			htmlElement.style.transform = "translateY(1.5rem)";
-
-			setTimeout(() => {
-				htmlElement.style.transition =
-					"opacity 320ms cubic-bezier(0.4, 0, 0.2, 1), transform 320ms cubic-bezier(0.4, 0, 0.2, 1)";
+			// 若用户偏好减少动画，直接显示最终状态
+			if (prefersReducedMotion) {
 				htmlElement.style.opacity = "1";
 				htmlElement.style.transform = "translateY(0)";
+				return;
+			}
+
+			// 重置初始状态并提示会更改的属性
+			htmlElement.style.opacity = "0";
+			htmlElement.style.transform = "translateY(1.5rem)";
+			htmlElement.style.willChange = "transform, opacity";
+
+			setTimeout(() => {
+				requestAnimationFrame(() => {
+					htmlElement.style.transition = `opacity ${baseDuration}ms cubic-bezier(0.4,0,0.2,1), transform ${baseDuration}ms cubic-bezier(0.4,0,0.2,1)`;
+					htmlElement.style.opacity = "1";
+					htmlElement.style.transform = "translateY(0)";
+					const cleanup = () => {
+						htmlElement.style.willChange = "";
+						htmlElement.removeEventListener("transitionend", cleanup);
+					};
+					htmlElement.addEventListener("transitionend", cleanup);
+				});
 			}, delay);
 		});
 

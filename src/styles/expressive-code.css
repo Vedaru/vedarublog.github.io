@@ -159,3 +159,28 @@
         display: none !important;
     }
 }
+
+/* 移动端与 reduced-motion 优化：移除重阴影，降低过渡开销 */
+@media (hover: none) and (pointer: coarse), (max-width: 768px) {
+    .expressive-code.collapsible .collapse-toggle-btn,
+    .custom-md .copy-btn {
+        box-shadow: none !important;
+        transition: transform 150ms ease, opacity 150ms ease !important;
+    }
+
+    .expressive-code.collapsed .frame pre {
+        transition: none !important;
+    }
+
+    /* 不显示语言标签以减少渲染 */
+    .expressive-code [data-language]::before {
+        display: none !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .expressive-code *, .custom-md .copy-btn, .expressive-code .frame {
+        transition: none !important;
+        animation: none !important;
+    }
+}

@@ -391,3 +391,59 @@
 .anime-page .anime-card:hover::after {
 	opacity: 1;
 }
+
+/* ---------------------- 移动端性能优化 ---------------------- */
+@media (hover: none) and (pointer: coarse), (max-width: 768px) {
+	/* 移除毛玻璃与大阴影，避免昂贵的绘制开销 */
+	.anime-page .anime-header,
+	.anime-page .stat-card,
+	.anime-page .anime-card {
+		backdrop-filter: none !important;
+		-webkit-backdrop-filter: none !important;
+		box-shadow: none !important;
+		/* 保留简单、性能友好的过渡 */
+		transition: transform 200ms ease, opacity 200ms ease !important;
+		will-change: transform, opacity;
+	}
+
+	/* 禁用 hover 放大和 overlay 效果 */
+	.anime-page .anime-card:hover,
+	.anime-page .anime-cover-link:hover .play-button,
+	.anime-page .anime-cover-link:hover .anime-cover-overlay,
+	.anime-page .anime-cover-link:hover .anime-cover {
+		transform: none !important;
+		box-shadow: none !important;
+		opacity: 1 !important;
+	}
+
+	/* 缩短或禁用入场动画延迟 */
+	.anime-page .anime-card,
+	.anime-page .stat-card {
+		animation-duration: 300ms !important;
+		animation-delay: 0ms !important;
+	}
+
+	/* 减少图片滤镜开销 */
+	.anime-page .anime-cover img {
+		filter: none !important;
+		backdrop-filter: none !important;
+	}
+
+	/* 关闭骨架 shimmer 动画以节省电量 */
+	.anime-page .anime-card img[data-src] {
+		animation: none !important;
+		background-size: auto !important;
+	}
+}
+
+/* 支持用户减少动画首选项 */
+@media (prefers-reduced-motion: reduce) {
+	.anime-page .anime-card,
+	.anime-page .stat-card,
+	.anime-page .anime-cover,
+	.anime-page .anime-grid,
+	.anime-page * {
+		animation: none !important;
+		transition: none !important;
+	}
+}
