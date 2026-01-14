@@ -315,7 +315,9 @@ n					// 当用户在触控设备上进行交互（pointerup / touchend）时，
 							const navbarEl = document.getElementById('navbar-wrapper');
 							if (navbarEl) {
 								const focusedInNav = navbarEl.querySelector(':focus');
-								if (focusedInNav) try { (focusedInNav as HTMLElement).blur(); } catch (err) {}
+								if (focusedInNav && focusedInNav instanceof HTMLElement) {
+									try { focusedInNav.blur(); } catch (err) {}
+								}
 							}
 						} catch (err) {
 							// ignore
