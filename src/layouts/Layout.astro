@@ -299,6 +299,24 @@ if (siteConfig.font) {
 					document.querySelectorAll('#navbar-wrapper .btn-plain.scale-animation').forEach(el => {
 						el.classList.remove('scale-animation');
 					});
+
+					// 为触控设备绑定点击/指针事件，点击后立即 blur 并临时应用 touch-hide，避免伪元素或阴影残留
+					document.querySelectorAll('#navbar-wrapper .btn-plain').forEach(btn => {
+						try {
+							btn.addEventListener('pointerdown', () => {
+								btn.classList.add('touch-hide');
+							});
+							btn.addEventListener('pointerup', () => {
+								setTimeout(() => btn.classList.remove('touch-hide'), 50);
+							});
+							// click 事件确保在导航或面板切换时也能 blur 并清理焦点状态
+							btn.addEventListener('click', () => {
+								try { btn.blur(); } catch (e) {}
+								btn.classList.add('touch-hide');
+								setTimeout(() => btn.classList.remove('touch-hide'), 50);
+							});
+						} catch (e) {}
+					});
 				}
 			} catch (e) {
 				// ignore

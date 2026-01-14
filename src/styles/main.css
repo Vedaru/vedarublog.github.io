@@ -432,7 +432,9 @@ button:focus-visible, a:focus-visible {
 /* 兼容性保护：当 JS 无法触发媒体查询或浏览器表现异常时，JS 会在页面最早阶段加上 .is-touch 类，使下列规则强制生效 */
 .is-touch .btn-plain::before,
 .is-touch .btn-plain.scale-animation::before,
-.is-touch .expand-animation::before {
+.is-touch .expand-animation::before,
+#navbar-wrapper .btn-plain.touch-hide::before,
+#navbar-wrapper .btn-plain.touch-hide.scale-animation::before {
     display: none !important;
     background: transparent !important;
     box-shadow: none !important;
@@ -441,8 +443,11 @@ button:focus-visible, a:focus-visible {
 }
 /* 额外保险：彻底移除移动端按钮的 hover 背景样式（若有残留） */
 .is-touch .btn-plain,
-.is-touch .btn-plain.scale-animation {
+.is-touch .btn-plain.scale-animation,
+#navbar-wrapper .btn-plain.touch-hide,
+#navbar-wrapper .btn-plain.touch-hide.scale-animation {
     background: none !important;
+    box-shadow: none !important;
 }
     .link {
         @apply transition-colors duration-150 rounded-md p-1 -m-1 expand-animation;
