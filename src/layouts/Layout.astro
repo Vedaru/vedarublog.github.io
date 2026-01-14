@@ -186,7 +186,7 @@ if (siteConfig.font) {
 <!DOCTYPE html>
 <html lang={siteLang} class="bg-[var(--page-bg)] text-[14px] md:text-[16px]"
 	  data-overlayscrollbars-initialize
-> 
+>
 	<head>
 		<!-- Preload local fonts to reduce FOUT on loading screen -->
 		{siteConfig.font?.asciiFont?.localFonts?.map((f) => (
@@ -346,8 +346,8 @@ n					// 为触控设备添加按下态处理：按下时添加 pressed 类，�
 		<!-- Pio 看板娘样式和脚本延迟加载（可配置） -->
 		{pioConfig.enable && pioConfig.eagerLoad && (
 			<>
-				<script src={import.meta.env.BASE_URL + "pio/static/l2d.js"} defer></script>
-				<script src={import.meta.env.BASE_URL + "pio/static/pio.js"} defer></script>
+				<script src={import.meta.env.BASE_URL + "pio/static/l2d.js"} defer is:inline></script>
+				<script src={import.meta.env.BASE_URL + "pio/static/pio.js"} defer is:inline></script>
 				<link rel="stylesheet" href={import.meta.env.BASE_URL + "pio/static/pio.css"} />
 			</>
 		)}
@@ -648,29 +648,28 @@ n					// 为触控设备添加按下态处理：按下时添加 pressed 类，�
 	'banner-height': `${BANNER_HEIGHT}vh`,
 }}>
 @tailwind components;
-@tailwind utilities;
 @layer components {
 	.enable-banner.is-home #banner-wrapper {
-		@apply h-[var(--banner-height-home)] translate-y-[var(--banner-height-extend)];
+		@apply h-[var(--banner-height-home)] translate-y-[var(--banner-height-extend)]
 	}
 	.enable-banner #banner-wrapper {
-		@apply h-[var(--banner-height-home)];
+		@apply h-[var(--banner-height-home)]
 	}
 
 	.enable-banner.is-home #banner {
-		@apply h-[var(--banner-height-home)] translate-y-0;
+		@apply h-[var(--banner-height-home)] translate-y-0
 	}
 	.enable-banner #banner {
-		@apply h-[var(--banner-height-home)] translate-y-[var(--bannerOffset)];
+		@apply h-[var(--banner-height-home)] translate-y-[var(--bannerOffset)]
 	}
 	.enable-banner.is-home #main-grid {
 		@apply translate-y-[var(--banner-height-extend)];
 	}
 	.enable-banner #top-row {
-		@apply h-[calc(var(--banner-height-home)-4.5rem)] transition-all duration-300;
+		@apply h-[calc(var(--banner-height-home)_-_4.5rem)] transition-all duration-300
 	}
 	.enable-banner.is-home #sidebar-sticky {
-		top: calc(1rem - var(--banner-height-extend));
+		@apply top-[calc(1rem_-_var(--banner-height-extend))]
 	}
 	.navbar-hidden {
 		@apply opacity-0 -translate-y-16

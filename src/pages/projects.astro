@@ -69,13 +69,21 @@ const getCategoryText = (category: string) => {
 
 <MainGridLayout title={title} description={subtitle}>
   <!-- 导入Iconify图标库 -->
-  <script type="module" is:inline>
-    import { loadIconify } from "@/utils/icon-loader";
-    
-    // 加载Iconify图标库
-    loadIconify().catch((error) => {
-      console.error("Failed to load Iconify:", error);
-    });
+  <script is:inline>
+    (function () {
+      // 如果已经注册了自定义元素则无需重复加载
+      if (typeof customElements !== 'undefined' && customElements.get('iconify-icon')) return;
+      const script = document.createElement('script');
+      script.src = 'https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js';
+      script.defer = true;
+      script.onload = () => {
+        // Iconify 加载完成
+      };
+      script.onerror = () => {
+        console.error('Failed to load Iconify');
+      };
+      document.head.appendChild(script);
+    })();
   </script>
   <div class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative min-h-32">
     <div class="card-base z-10 px-9 py-6 relative w-full">
