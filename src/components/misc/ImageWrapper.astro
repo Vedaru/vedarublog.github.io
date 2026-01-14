@@ -52,7 +52,7 @@ const imageStyle = `object-position: ${position}`;
 const shouldLazy = lazy && !priority;
 ---
 <div id={id} class:list={[className, 'overflow-hidden bg-gray-200 dark:bg-gray-800']}>
-    {isLocal && img && <Image src={img} alt={alt || ""} class={imageClass} style={imageStyle} loading={priority ? "eager" : shouldLazy ? "lazy" : "eager"} decoding="async" fetchpriority={priority ? "high" : "low"}/>}
+{isLocal && img && <Image src={img} alt={alt || ""} class={imageClass} style={imageStyle} loading={priority ? "eager" : shouldLazy ? "lazy" : "eager"} priority={priority} decoding="async" fetchpriority={priority ? "high" : "low"}/> }
     {!isLocal && (
         <img
             src={isPublic ? url(src) : src}
