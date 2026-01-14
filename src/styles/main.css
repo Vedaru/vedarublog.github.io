@@ -367,7 +367,17 @@ button:focus-visible, a:focus-visible {
     }
     .expand-animation:active::before {
         background: transparent !important;
+        opacity: 0 !important;
     }
+
+    /* 在鼠标/触摸触发的 focus 下也隐藏伪元素（保留键盘 focus-visible，用于可访问性） */
+    .expand-animation:focus:not(:focus-visible)::before,
+    .btn-plain:focus:not(:focus-visible)::before {
+        background: transparent !important;
+        opacity: 0 !important;
+        transform: scale(0.85) !important;
+    }
+
     /* 主题切换时禁用按钮背景色过渡，确保立即更新 */
     .is-theme-transitioning .expand-animation::before {
         transition: transform 75ms ease-out !important;
