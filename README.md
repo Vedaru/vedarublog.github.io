@@ -1,1 +1,3 @@
-# vedarublog.github.io
+# 个人博客
+
+自己做的个人博客，使用的是Mizuki博客模板
