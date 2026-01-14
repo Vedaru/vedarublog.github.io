@@ -389,9 +389,13 @@ button:focus-visible, a:focus-visible {
         box-shadow: none !important;
         -webkit-tap-highlight-color: transparent !important;
     }
-    .expand-animation:active::before {
-        background: transparent !important;
-        opacity: 0 !important;
+    /* 显示点击态伪元素（短时显示，便于反馈） */
+    .expand-animation:active::before,
+    .expand-animation:active:before {
+        background: var(--btn-plain-bg-active) !important;
+        opacity: 1 !important;
+        transform: scale(1) !important;
+        transition: transform 120ms ease, opacity 120ms ease, background 120ms ease !important;
     }
 
     /* 在鼠标/触摸触发的 focus 下也隐藏伪元素（保留键盘 focus-visible，用于可访问性） */
