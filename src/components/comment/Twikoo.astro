@@ -27,24 +27,226 @@ const config = {
     return {
       ...config,
       path: getCurrentPath(),
-      el: '#tcomment'
+      el: '#tcomment',
+      // 确保使用站点配置的 SHOW_IMAGE（若未设置则默认 'false'），以便集中管理
+      SHOW_IMAGE: config.SHOW_IMAGE || 'false'
     };
   }
   
+  // 强制禁用图片上传 UI 与粘贴（运行时防御，以防配置或第三方脚本覆盖）
+  function disableImageControls() {
+    try {
+      // 防止重复绑定（多次调用时安全）
+      if (!window.__twikooDisableImage) {
+        window.__twikooDisableImage = { bound: true };
+      }
+
+      // 覆盖 Twikoo 配置的 SHOW_IMAGE
+      if (window.twikoo && window.twikoo.config) {
+        window.twikoo.config.SHOW_IMAGE = 'false';
+      }
+
+      // 隐藏并禁用可能的上传按钮 / 图标 / 文件输入
+      const selectors = [
+        'input[type="file"]',
+        '.tk-upload',
+        '.tk-upload-btn',
+        '.tk-open-image',
+        '.tk-image',
+        '.tk-image-picker',
+        '.tk-img',
+        '.tk-action-icon[title*="图"]',
+        '.tk-action-icon[title*="图片"]',
+        '[title*="图"]',
+        '[title*="图片"]',
+        '[aria-label*="图"]',
+        '[aria-label*="图片"]',
+        '.fa-image',
+        '.tk-input-image'
+      ];
+
+      function removeOrHide(el) {
+        if (!el) return;
+        if (el.tagName && el.tagName.toLowerCase() === 'input' && el.type === 'file') {
+          el.disabled = true;
+          try { el.remove(); } catch (e) { el.style.display = 'none'; }
+        } else {
+          el.style.display = 'none';
+          el.setAttribute('aria-hidden', 'true');
+        }
+      }
+
+      // 初次清理现有元素
+      selectors.forEach(sel => {
+        document.querySelectorAll('#tcomment ' + sel).forEach(removeOrHide);
+        // 也检查全局（如 OwO 插件可能在 body 下）
+        document.querySelectorAll(sel).forEach(removeOrHide);
+      });
+
+      // 额外：直接移除明显的“图片上传”图标（匹配 SVG 路径片段），以及其相邻的 file input
+      document.querySelectorAll('#tcomment .tk-submit-action-icon, .tk-submit-action-icon').forEach(el => {
+        try {
+          const svg = el.querySelector && el.querySelector('svg');
+          const svgHtml = svg && svg.outerHTML;
+          if (svgHtml && svgHtml.indexOf('M464 64H48') !== -1) {
+            // 这是目标上传图标，直接移除
+            const parent = el.parentElement;
+            el.remove();
+            // 如果其后有文件输入也移除
+            if (parent) {
+              parent.querySelectorAll && parent.querySelectorAll('input[type="file"]').forEach(fi => fi.remove());
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
+      });
+
+      // 阻止粘贴事件中包含文件（图片）的默认上传行为
+      const pasteHandler = (e) => {
+        try {
+          const items = (e.clipboardData && e.clipboardData.items) || [];
+          for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            if (item && item.kind === 'file') {
+              e.preventDefault();
+              e.stopPropagation();
+              return false;
+            }
+          }
+        } catch (err) {
+          // ignore
+        }
+      };
+
+      // 阻止点击打开文件选择或上传的行为（优先捕获）
+      const clickHandler = (e) => {
+        try {
+          const target = e.target;
+          if (!target) return;
+          // 检查目标或其祖先是否匹配上传相关选择器
+          if (target.closest && (
+            target.closest('.tk-submit-action-icon') ||
+            target.closest('.tk-open-image') ||
+            target.closest('.tk-upload') ||
+            target.closest('.tk-upload-btn') ||
+            target.closest('.tk-input-image') ||
+            target.closest('.OwO-items-image')
+          )) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            return false;
+          }
+        } catch (err) {
+          // ignore
+        }
+      };
+
+      // 阻止文件输入的 change 事件（防止通过脚本触发上传）
+      const changeHandler = (e) => {
+        try {
+          const t = e.target;
+          if (t && t.tagName && t.tagName.toLowerCase() === 'input' && t.type === 'file') {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            t.value = '';
+            // 可选：显示临时提示，避免用户误以为上传成功
+            if (t.closest) {
+              const container = t.closest('.tk-row');
+              if (container) {
+                const errEl = container.querySelector('.tk-error-message');
+                if (errEl) {
+                  errEl.textContent = '图片上传已被管理员禁用';
+                }
+              }
+            }
+            return false;
+          }
+        } catch (err) {
+          // ignore
+        }
+      };
+
+      // MutationObserver：监控新增节点并移除/隐藏上传控件
+      const commentEl = document.getElementById('tcomment');
+      const observerCallback = (mutationsList) => {
+        for (const mutation of mutationsList) {
+          if (mutation.type === 'childList' && mutation.addedNodes.length) {
+            mutation.addedNodes.forEach(node => {
+              if (node.nodeType !== 1) return;
+              selectors.forEach(sel => {
+                node.querySelectorAll && node.querySelectorAll(sel).forEach(removeOrHide);
+                // 如果新增节点本身就是上传控件，也处理
+                if (node.matches && node.matches(sel)) removeOrHide(node);
+              });
+
+              // 额外检查新增节点中是否包含目标上传图标（匹配 SVG 路径），若有直接移除
+              try {
+                const icons = (node.querySelectorAll && node.querySelectorAll('.tk-submit-action-icon')) || [];
+                icons.forEach(ic => {
+                  const svg = ic.querySelector && ic.querySelector('svg');
+                  if (svg && svg.outerHTML && svg.outerHTML.indexOf('M464 64H48') !== -1) {
+                    const parent = ic.parentElement;
+                    ic.remove();
+                    if (parent) parent.querySelectorAll && parent.querySelectorAll('input[type="file"]').forEach(fi => fi.remove());
+                  }
+                });
+                // 如果新增节点本身就是该图标
+                if (node.matches && node.matches('.tk-submit-action-icon')) {
+                  const svg = node.querySelector && node.querySelector('svg');
+                  if (svg && svg.outerHTML && svg.outerHTML.indexOf('M464 64H48') !== -1) {
+                    node.remove();
+                  }
+                }
+              } catch (e) {
+                // ignore
+              }
+            });
+          }
+        }
+      };
+
+      // 启动观察器并保存引用，避免重复创建多个观察器
+      if (commentEl && !window.__twikooDisableImage.observer) {
+        const mo = new MutationObserver(observerCallback);
+        mo.observe(commentEl, { childList: true, subtree: true });
+        window.__twikooDisableImage.observer = mo;
+      }
+
+      // 全局事件绑定（优先捕获），只绑定一次
+      if (!window.__twikooDisableImage.boundClick) {
+        document.addEventListener('click', clickHandler, true);
+        document.addEventListener('change', changeHandler, true);
+        document.addEventListener('paste', pasteHandler, true);
+        window.__twikooDisableImage.boundClick = true;
+      }
+
+    } catch (err) {
+      console.warn('[Twikoo] 禁用图片控件失败：', err);
+    }
+  }
+
   // 初始化 Twikoo
   function initTwikoo() {
     if (typeof twikoo !== 'undefined') {
       const commentEl = document.getElementById('tcomment');
       if (commentEl) {
         commentEl.innerHTML = '';
-        
+
         const dynamicConfig = createTwikooConfig();
         console.log('[Twikoo] 初始化配置:', dynamicConfig);
-        
+
+        // 先在本地防御一层，确保在 twikoo 初始化前没有文件输入或按钮
+        disableImageControls();
+
         twikoo.init(dynamicConfig).then(() => {
           console.log('[Twikoo] 初始化完成');
+          // 初始化完成后再次清理（防止库或远程配置重新插入控件）
+          disableImageControls();
         }).catch((error) => {
           console.error('[Twikoo] 初始化失败:', error);
+          // 失败时也执行清理，避免残留控件
+          disableImageControls();
         });
       }
     } else {
@@ -52,31 +254,32 @@ const config = {
       setTimeout(initTwikoo, 500);
     }
   }
-  
+
   // 页面加载时初始化
   document.addEventListener('DOMContentLoaded', initTwikoo);
-  
+
   // Swup 页面切换后重新初始化
   if (window.swup && window.swup.hooks) {
     window.swup.hooks.on('content:replace', function() {
-      setTimeout(initTwikoo, 200);
+      setTimeout(() => { initTwikoo(); disableImageControls(); }, 200);
     });
   } else {
     document.addEventListener('swup:enable', function() {
       if (window.swup && window.swup.hooks) {
         window.swup.hooks.on('content:replace', function() {
-          setTimeout(initTwikoo, 200);
+          setTimeout(() => { initTwikoo(); disableImageControls(); }, 200);
         });
       }
     });
   }
-  
+
   // 自定义事件监听
   document.addEventListener('mizuki:page:loaded', function() {
     const commentEl = document.getElementById('tcomment');
     if (commentEl) {
       console.log('[Twikoo] 通过自定义事件重新初始化');
       initTwikoo();
+      disableImageControls();
     }
   });
 </script>

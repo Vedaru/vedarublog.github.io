@@ -376,6 +376,8 @@ export const commentConfig: CommentConfig = {
 	twikoo: {
 		 envId: "https://comment.vedaru.cn", // Cloudflare Workers 自定义域名
 		lang: "zh-CN", // 设置 Twikoo 评论系统语言为中文
+		// 禁用图片上传（'true' 或 'false' 字符串）。Twikoo 前端会读取此值。
+		// SHOW_IMAGE: 'false', // 已移除，避免类型错误
 	},
 };
 

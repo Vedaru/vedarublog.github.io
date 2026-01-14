@@ -188,3 +188,39 @@ Make the emoji component display correctly when there are too many emoji packs
   position: relative;
   z-index: 100;
 }
+
+/* 🔧 强制隐藏 Twikoo 的图片上传相关控件（防止残留图标/文件输入可见） */
+.twikoo input[type="file"],
+.twikoo .tk-upload,
+.twikoo .tk-upload-btn,
+.twikoo .tk-open-image,
+.twikoo .tk-image,
+.twikoo .tk-image-picker,
+.twikoo .tk-img {
+  display: none !important;
+}
+
+/* 隐藏常见的上传/图片图标或按钮（以防样式或类名不同） */
+.twikoo .tk-action-icon[title*="图"],
+.twikoo .tk-action-icon[title*="图片"],
+.twikoo .tk-action-icon[title*="Image"],
+.twikoo .tk-action-icon[title*="image"],
+.twikoo [title*="图"],
+.twikoo [title*="图片"],
+.twikoo [title*="Image"],
+.twikoo [title*="image"],
+.twikoo [aria-label*="图"],
+.twikoo [aria-label*="图片"],
+.twikoo [aria-label*="Image"],
+.twikoo [aria-label*="image"] {
+  display: none !important;
+}
+
+/* 隐藏可能的图标类名（FontAwesome / 通用命名） */
+.twikoo .fa-image,
+.twikoo .fa-photo,
+.twikoo .fa-picture,
+.twikoo .icon-image,
+.twikoo .icon-photo {
+  display: none !important;
+}
