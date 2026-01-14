@@ -288,6 +288,19 @@ if (siteConfig.font) {
 			let offset = Math.floor(window.innerHeight * (BANNER_HEIGHT_EXTEND / 100));
 			offset = offset - offset % 4;
 			document.documentElement.style.setProperty('--banner-height-extend', `${offset}px`);
+
+			// 移动设备优化：移除导航中按钮的 scale-animation 类，防止伪元素阴影在触控设备上残留（尽早执行）
+			try {
+				const isTouchDevice = (window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches) || ('ontouchstart' in window);
+				if (isTouchDevice) {
+					// 只移除导航栏内的按钮 scale-animation，保留桌面交互效果
+					document.querySelectorAll('#navbar-wrapper .btn-plain.scale-animation').forEach(el => {
+						el.classList.remove('scale-animation');
+					});
+				}
+			} catch (e) {
+				// ignore
+			}
 		</script>
 		<style define:vars={{
 			configHue,
@@ -298,8 +311,8 @@ if (siteConfig.font) {
 
 		<slot name="head"></slot>
 
-		<!-- Pio 看板娘样式和脚本延迟加载 -->
-		{pioConfig.enable && (
+		<!-- Pio 看板娘样式和脚本延迟加载（可配置） -->
+		{pioConfig.enable && pioConfig.eagerLoad && (
 			<>
 				<script src={import.meta.env.BASE_URL + "pio/static/l2d.js"} defer is:inline></script>
 				<script src={import.meta.env.BASE_URL + "pio/static/pio.js"} defer is:inline></script>
