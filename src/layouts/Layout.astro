@@ -300,23 +300,30 @@ if (siteConfig.font) {
 						el.classList.remove('scale-animation');
 					});
 
-					// 为触控设备绑定点击/指针事件，点击后立即 blur 并临时应用 touch-hide，避免伪元素或阴影残留
-					document.querySelectorAll('#navbar-wrapper .btn-plain').forEach(btn => {
+n					// 当用户在触控设备上进行交互（pointerup / touchend）时，主动 blur 相关按钮并清理阴影，防止点击后阴影残留
+					const clearNavbarShadow = (e) => {
 						try {
-							btn.addEventListener('pointerdown', () => {
-								btn.classList.add('touch-hide');
-							});
-							btn.addEventListener('pointerup', () => {
-								setTimeout(() => btn.classList.remove('touch-hide'), 50);
-							});
-							// click 事件确保在导航或面板切换时也能 blur 并清理焦点状态
-							btn.addEventListener('click', () => {
-								try { btn.blur(); } catch (e) {}
-								btn.classList.add('touch-hide');
-								setTimeout(() => btn.classList.remove('touch-hide'), 50);
-							});
-						} catch (e) {}
-					});
+							const tgt = e && e.target ? e.target : null;
+							const btn = tgt && tgt.closest ? tgt.closest('.btn-plain') : null;
+							if (btn) {
+								// 延迟一个宏任务，确保 active 状态先触发再清理
+								setTimeout(() => {
+									try { (btn).blur(); (btn).style.boxShadow = 'none'; } catch (err) {}
+								}, 0);
+							}
+							// 保险：若 navbar 内有其他元素仍保持焦点，也一并 blur
+							const navbarEl = document.getElementById('navbar-wrapper');
+							if (navbarEl) {
+								const focusedInNav = navbarEl.querySelector(':focus');
+								if (focusedInNav) try { (focusedInNav as HTMLElement).blur(); } catch (err) {}
+							}
+						} catch (err) {
+							// ignore
+						}
+					};
+					document.addEventListener('pointerup', clearNavbarShadow, { passive: true });
+					document.addEventListener('touchend', clearNavbarShadow, { passive: true });
+					document.addEventListener('touchcancel', clearNavbarShadow, { passive: true });
 				}
 			} catch (e) {
 				// ignore
