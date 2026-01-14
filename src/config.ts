@@ -395,7 +395,7 @@ export const announcementConfig: AnnouncementConfig = {
 };
 
 export const musicPlayerConfig: MusicPlayerConfig = {
-	enable: true, // 启用音乐播放器功能
+	enable: false, // 启用音乐播放器功能
 	mode: "meting", // 音乐播放器模式，可选 "local" 或 "meting"
 	// 当前使用：官方 Meting API（主源）。
 	// 可选：按优先级提供多个候选 Meting API 源，播放器会按顺序尝试备用源。
