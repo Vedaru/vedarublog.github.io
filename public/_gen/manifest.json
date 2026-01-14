@@ -1,0 +1,177 @@
+{
+  "/images/abstract.webp": {
+    "original": "/images/abstract.webp",
+    "variants": [],
+    "fallback": "/_gen/abstract-fallback.webp"
+  },
+  "/images/holo-and-lawrence.webp": {
+    "original": "/images/holo-and-lawrence.webp",
+    "variants": [
+      {
+        "src": "/_gen/holo-and-lawrence-w320.webp",
+        "width": 320
+      },
+      {
+        "src": "/_gen/holo-and-lawrence-w480.webp",
+        "width": 480
+      },
+      {
+        "src": "/_gen/holo-and-lawrence-w768.webp",
+        "width": 768
+      },
+      {
+        "src": "/_gen/holo-and-lawrence-w1024.webp",
+        "width": 1024
+      }
+    ],
+    "fallback": "/_gen/holo-and-lawrence-fallback.webp"
+  },
+  "/images/ixo22.webp": {
+    "original": "/images/ixo22.webp",
+    "variants": [
+      {
+        "src": "/_gen/ixo22-w320.webp",
+        "width": 320
+      },
+      {
+        "src": "/_gen/ixo22-w480.webp",
+        "width": 480
+      },
+      {
+        "src": "/_gen/ixo22-w768.webp",
+        "width": 768
+      },
+      {
+        "src": "/_gen/ixo22-w1024.webp",
+        "width": 1024
+      },
+      {
+        "src": "/_gen/ixo22-w1600.webp",
+        "width": 1600
+      }
+    ],
+    "fallback": "/_gen/ixo22-fallback.webp"
+  },
+  "/images/jambuddy.webp": {
+    "original": "/images/jambuddy.webp",
+    "variants": [
+      {
+        "src": "/_gen/jambuddy-w320.webp",
+        "width": 320
+      },
+      {
+        "src": "/_gen/jambuddy-w480.webp",
+        "width": 480
+      },
+      {
+        "src": "/_gen/jambuddy-w768.webp",
+        "width": 768
+      },
+      {
+        "src": "/_gen/jambuddy-w1024.webp",
+        "width": 1024
+      },
+      {
+        "src": "/_gen/jambuddy-w1600.webp",
+        "width": 1600
+      }
+    ],
+    "fallback": "/_gen/jambuddy-fallback.webp"
+  },
+  "/images/squier-sonic.webp": {
+    "original": "/images/squier-sonic.webp",
+    "variants": [
+      {
+        "src": "/_gen/squier-sonic-w320.webp",
+        "width": 320
+      },
+      {
+        "src": "/_gen/squier-sonic-w480.webp",
+        "width": 480
+      },
+      {
+        "src": "/_gen/squier-sonic-w768.webp",
+        "width": 768
+      }
+    ],
+    "fallback": "/_gen/squier-sonic-fallback.webp"
+  },
+  "/images/UR22MK3.webp": {
+    "original": "/images/UR22MK3.webp",
+    "variants": [
+      {
+        "src": "/_gen/UR22MK3-w320.webp",
+        "width": 320
+      },
+      {
+        "src": "/_gen/UR22MK3-w480.webp",
+        "width": 480
+      }
+    ],
+    "fallback": "/_gen/UR22MK3-fallback.webp"
+  },
+  "/images/valeton-rushhead-max.webp": {
+    "original": "/images/valeton-rushhead-max.webp",
+    "variants": [
+      {
+        "src": "/_gen/valeton-rushhead-max-w320.webp",
+        "width": 320
+      },
+      {
+        "src": "/_gen/valeton-rushhead-max-w480.webp",
+        "width": 480
+      },
+      {
+        "src": "/_gen/valeton-rushhead-max-w768.webp",
+        "width": 768
+      }
+    ],
+    "fallback": "/_gen/valeton-rushhead-max-fallback.webp"
+  },
+  "/images/アスノヨゾラ哨戒班.webp": {
+    "original": "/images/アスノヨゾラ哨戒班.webp",
+    "variants": [
+      {
+        "src": "/_gen/アスノヨゾラ哨戒班-w320.webp",
+        "width": 320
+      },
+      {
+        "src": "/_gen/アスノヨゾラ哨戒班-w480.webp",
+        "width": 480
+      }
+    ],
+    "fallback": "/_gen/アスノヨゾラ哨戒班-fallback.webp"
+  },
+  "/images/月を歩いている.webp": {
+    "original": "/images/月を歩いている.webp",
+    "variants": [
+      {
+        "src": "/_gen/月を歩いている-w320.webp",
+        "width": 320
+      },
+      {
+        "src": "/_gen/月を歩いている-w480.webp",
+        "width": 480
+      },
+      {
+        "src": "/_gen/月を歩いている-w768.webp",
+        "width": 768
+      },
+      {
+        "src": "/_gen/月を歩いている-w1024.webp",
+        "width": 1024
+      }
+    ],
+    "fallback": "/_gen/月を歩いている-fallback.webp"
+  },
+  "/images/花と水飴、最終電車.webp": {
+    "original": "/images/花と水飴、最終電車.webp",
+    "variants": [
+      {
+        "src": "/_gen/花と水飴、最終電車-w320.webp",
+        "width": 320
+      }
+    ],
+    "fallback": "/_gen/花と水飴、最終電車-fallback.webp"
+  }
+}

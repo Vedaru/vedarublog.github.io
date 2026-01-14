@@ -4,6 +4,7 @@ import { getDiaryList, getDiaryStats } from "../data/diary";
 import I18nKey from "../i18n/i18nKey";
 import { i18n } from "../i18n/translation";
 import MainGridLayout from "../layouts/MainGridLayout.astro";
+import ResponsiveImage from "../components/ResponsiveImage.astro";
 
 // 检查日记页面是否启用
 if (!siteConfig.featurePages.diary) {
@@ -120,11 +121,13 @@ function formatClock(dateString: string): string {
 					<div class="moment-images grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-4 mb-3">
 						{moment.images.map((image: any, _index: number) => (
 						<div class="image-item relative rounded-md overflow-hidden aspect-square cursor-pointer hover:scale-105 transition-transform">
-							<img 
-								src={image} 
-									alt="diary moment image"
+							<ResponsiveImage 
+								src={image}
+								alt="diary moment image"
 								class="w-full h-full object-cover"
+								sizes="(max-width: 768px) 50vw, 25vw"
 								loading="lazy"
+								decoding="async"
 							/>
 						</div>
 						))}

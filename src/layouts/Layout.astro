@@ -346,8 +346,8 @@ n					// 为触控设备添加按下态处理：按下时添加 pressed 类，�
 		<!-- Pio 看板娘样式和脚本延迟加载（可配置） -->
 		{pioConfig.enable && pioConfig.eagerLoad && (
 			<>
-				<script src={import.meta.env.BASE_URL + "pio/static/l2d.js"} defer is:inline></script>
-				<script src={import.meta.env.BASE_URL + "pio/static/pio.js"} defer is:inline></script>
+				<script src={import.meta.env.BASE_URL + "pio/static/l2d.js"} defer></script>
+				<script src={import.meta.env.BASE_URL + "pio/static/pio.js"} defer></script>
 				<link rel="stylesheet" href={import.meta.env.BASE_URL + "pio/static/pio.css"} />
 			</>
 		)}

@@ -4,6 +4,7 @@ import I18nKey from "../i18n/i18nKey";
 import { i18n } from "../i18n/translation";
 import MainGridLayout from "../layouts/MainGridLayout.astro";
 import { scanAlbums } from "../utils/album-scanner";
+import ResponsiveImage from "../components/ResponsiveImage.astro";
 
 // 检查相册页面是否启用
 if (!siteConfig.featurePages.albums) {
@@ -39,10 +40,11 @@ const albumsData = await scanAlbums();
             <a href={`/albums/${album.id}/`} class="block">
               <!-- 封面图片 -->
               <div class="aspect-[4/3] overflow-hidden bg-neutral-100 dark:bg-neutral-700">
-                <img 
+                <ResponsiveImage 
                   src={album.cover} 
                   alt={album.title}
                   class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  sizes="(max-width: 768px) 100vw, 33vw"
                   loading="lazy"
                   decoding="async"
                 />

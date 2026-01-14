@@ -13,8 +13,91 @@ const config = {
 ---
 
 <div id="tcomment"></div>
-<script is:inline src={`${import.meta.env.BASE_URL}scroll-protection.js`}></script>
-<script is:inline src={`${import.meta.env.BASE_URL}assets/js/twikoo.all.min.js`}></script>
+<div id="tcomment-placeholder" style="text-align:center;margin:1rem 0;">
+  <button id="load-twikoo-btn" class="twikoo-load-btn">加载评论</button>
+</div>
+<script is:inline>
+  (function() {
+    // Lazy loader: load scroll-protection and Twikoo when user requests or when comments are near viewport
+    function loadTwikooScript() {
+      if (window.__twikooScriptLoading || window.__twikooScriptLoaded) return window.__twikooScriptLoaded ? Promise.resolve() : window.__twikooScriptLoading;
+      window.__twikooScriptLoading = new Promise((resolve, reject) => {
+        const sp = document.createElement('script');
+        // Use absolute public paths to avoid relying on build-time env in client runtime
+        sp.src = '/scroll-protection.js';
+        sp.defer = true;
+        sp.onload = () => {
+          const s = document.createElement('script');
+          s.src = '/assets/js/twikoo.all.min.js';
+          s.defer = true;
+          s.onload = () => {
+            window.__twikooScriptLoaded = true;
+            resolve();
+          };
+          s.onerror = reject;
+          document.head.appendChild(s);
+        };
+        sp.onerror = reject;
+        document.head.appendChild(sp);
+      });
+      return window.__twikooScriptLoading;
+    }
+    document.addEventListener('click', function(e){
+      if(e.target && e.target.id === 'load-twikoo-btn'){
+        const btn = e.target;
+        btn.disabled = true;
+        const original = btn.textContent;
+        btn.textContent = '加载中...';
+        loadTwikooScript().then(() => {
+          if (window.initTwikoo) {
+            initTwikoo();
+          }
+          try {
+            btn.remove();
+            document.getElementById('tcomment-placeholder')?.remove();
+          } catch (e) {
+            // ignore
+          }
+        }).catch((err) => {
+          console.error(err);
+          btn.disabled = false;
+          btn.textContent = '加载失败，重试';
+          setTimeout(() => {
+            btn.textContent = original;
+          }, 3000);
+        });
+      }
+    }, {capture:true});
+    try {
+      const obs = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const ph = document.getElementById('tcomment-placeholder');
+            const btn = ph && ph.querySelector && ph.querySelector('#load-twikoo-btn');
+            if (btn) { btn.disabled = true; btn.textContent = '加载中...'; }
+            loadTwikooScript().then(() => {
+              if (window.initTwikoo) {
+                initTwikoo();
+              }
+              try {
+                ph && ph.remove();
+              } catch (e) {
+                // ignore
+              }
+            }).catch(() => {
+              if (btn) {
+                btn.disabled = false;
+                btn.textContent = '加载评论';
+              }
+            });
+            obs.disconnect();
+          }
+        });
+      }, { rootMargin: '200px' });
+      obs.observe(document.getElementById('tcomment'));
+    } catch (e) { /* ignore */ }
+  })();
+</script>
 <script is:inline define:vars={{ config }}>
   // 获取当前页面路径
   function getCurrentPath() {
@@ -34,6 +117,24 @@ const config = {
   }
   
   // 强制禁用图片上传 UI 与粘贴（运行时防御，以防配置或第三方脚本覆盖）
+  function sanitizeCommentImages() {
+    try {
+      const commentEl = document.getElementById('tcomment');
+      if (!commentEl) return;
+      commentEl.querySelectorAll('img').forEach(img => {
+        try {
+          img.loading = 'lazy';
+          img.decoding = 'async';
+          img.style.maxWidth = '100%';
+          img.style.height = 'auto';
+          img.classList.add('tk-img-processed');
+        } catch (e) {}
+      });
+    } catch (e) {
+      // ignore
+    }
+  }
+
   function disableImageControls() {
     try {
       // 防止重复绑定（多次调用时安全）
@@ -69,7 +170,11 @@ const config = {
         if (!el) return;
         if (el.tagName && el.tagName.toLowerCase() === 'input' && el.type === 'file') {
           el.disabled = true;
-          try { el.remove(); } catch (e) { el.style.display = 'none'; }
+          try {
+            el.remove();
+          } catch (e) {
+            el.style.display = 'none';
+          }
         } else {
           el.style.display = 'none';
           el.setAttribute('aria-hidden', 'true');
@@ -124,14 +229,17 @@ const config = {
         try {
           const target = e.target;
           if (!target) return;
-          // 检查目标或其祖先是否匹配上传相关选择器
+          // If the click happens inside OwO (emoji picker), allow it so OwO can handle its UI
+          if (target.closest && (target.closest('.OwO') || target.closest('.tk-owo'))) {
+            return;
+          }
+          // 检查目标或其祖先是否匹配上传相关选择器（只阻止非 OwO 内的上传触发）
           if (target.closest && (
             target.closest('.tk-submit-action-icon') ||
             target.closest('.tk-open-image') ||
             target.closest('.tk-upload') ||
             target.closest('.tk-upload-btn') ||
-            target.closest('.tk-input-image') ||
-            target.closest('.OwO-items-image')
+            target.closest('.tk-input-image')
           )) {
             e.preventDefault();
             e.stopImmediatePropagation();
@@ -201,6 +309,20 @@ const config = {
               } catch (e) {
                 // ignore
               }
+
+              // 处理新增的评论内图片：延迟加载、Async 解码、最大宽度约束
+              try {
+                (node.querySelectorAll && node.querySelectorAll('img')) && node.querySelectorAll('img').forEach(img => {
+                  try {
+                    img.loading = 'lazy';
+                    img.decoding = 'async';
+                    img.style.maxWidth = '100%';
+                    img.style.height = 'auto';
+                    // Add a helper class for consistent object-fit handling
+                    img.classList.add('tk-img-processed');
+                  } catch (e) { /* ignore per-image errors */ }
+                });
+              } catch (e) { /* ignore */ }
             });
           }
         }
@@ -240,9 +362,195 @@ const config = {
         disableImageControls();
 
         twikoo.init(dynamicConfig).then(() => {
-          console.log('[Twikoo] 初始化完成');
-          // 初始化完成后再次清理（防止库或远程配置重新插入控件）
-          disableImageControls();
+          try {
+            console.log('[Twikoo] 初始化完成');
+            // 初始化完成后再次清理（防止库或远程配置重新插入控件）
+            disableImageControls();
+            // ensure comment images have lazy loading and constrained sizing
+            sanitizeCommentImages();
+              // Re-enable pointer events on possible OwO containers and make sure they are above overlays
+              const owoSelectors = ['#tcomment .OwO', '#tcomment .tk-owo', '#tcomment .OwO-body', '#tcomment .OwO-items', '#tcomment .OwO-item'];
+              owoSelectors.forEach(sel => {
+                document.querySelectorAll(sel).forEach(el => {
+                  el.style.pointerEvents = 'auto';
+                  el.style.zIndex = 99999;
+                });
+              });
+
+              // Add capturing pointerdown logger to see what element receives the interaction
+              function pointerLogger(e) {
+                try {
+                  const el = document.elementFromPoint(e.clientX, e.clientY);
+                  if (!el) return;
+                  if (el.closest && (el.closest('.OwO') || el.closest('.tk-owo') || el.closest('.OwO-item') || el.closest('.OwO-items'))) {
+                    console.log('[Twikoo Debug] pointerdown at OwO element:', el);
+                  } else {
+                    // Log topmost element at click for diagnosis when OwO not responding
+                    console.log('[Twikoo Debug] pointerdown top element:', el);
+                  }
+                } catch (err) { console.warn('[Twikoo Debug] pointerLogger error', err); }
+              }
+
+              document.removeEventListener('pointerdown', window.__twikooPointerLogger, true);
+              window.__twikooPointerLogger = pointerLogger;
+              document.addEventListener('pointerdown', pointerLogger, true);
+
+              // Add pointerup/mouseup logger to see full interaction sequence
+              function pointerUpLogger(e) {
+                try {
+                  const el = document.elementFromPoint(e.clientX, e.clientY);
+                  if (!el) return;
+                  if (el.closest && (el.closest('.OwO') || el.closest('.tk-owo') || el.closest('.OwO-item') || el.closest('.OwO-items'))) {
+                    console.log('[Twikoo Debug] pointerup at OwO element:', el);
+                  } else {
+                    console.log('[Twikoo Debug] pointerup top element:', el);
+                  }
+                } catch (err) { console.warn('[Twikoo Debug] pointerUpLogger error', err); }
+              }
+              document.removeEventListener('pointerup', window.__twikooPointerUpLogger, true);
+              window.__twikooPointerUpLogger = pointerUpLogger;
+              document.addEventListener('pointerup', pointerUpLogger, true);
+
+              // Add click logger on capture phase as well, to detect if events are blocked later
+              function clickLogger(e) {
+                try {
+                  const t = e.target;
+                  if (t && (t.closest('.tk-owo') || t.closest('.OwO') || t.closest('.OwO-item') || t.closest('.OwO-items') || t.closest('.OwO-logo'))) {
+                    console.log('[Twikoo Debug] click detected on OwO item', t);
+                  }
+                } catch (err) { /* ignore */ }
+              }
+              document.removeEventListener('click', window.__twikooClickLogger, true);
+              window.__twikooClickLogger = clickLogger;
+              document.addEventListener('click', clickLogger, true);
+
+              // Attach a capture-phase click handler to OwO logos to perform an atomic toggle
+              // (open/close the OwO container AND show/hide the items together) to avoid race
+              // conditions with the library's native click handler which may cause a flash.
+              document.querySelectorAll('#tcomment .OwO, #tcomment .tk-owo').forEach(root => {
+                try {
+                  const logo = root.querySelector('.OwO-logo');
+                  if (!logo) return;
+                  if (logo.__twikooLogoHandler) logo.removeEventListener('click', logo.__twikooLogoHandler, true);
+                  logo.__twikooLogoHandler = function (ev) {
+                    try {
+                      ev.stopImmediatePropagation();
+                      ev.preventDefault();
+
+                      const items = Array.from(root.querySelectorAll('.OwO-items'));
+                      if (!items || items.length === 0) return;
+
+                      const anyShown = items.some(it => it.classList.contains('OwO-items-show'));
+
+                      if (anyShown || root.classList.contains('OwO-open')) {
+                        // currently shown -> hide both items and container
+                        items.forEach(it => it.classList.remove('OwO-items-show'));
+                        root.classList.remove('OwO-open');
+                        const activePkg = root.querySelectorAll('.OwO-package-active') || [];
+                        activePkg.forEach(p => p.classList.remove('OwO-package-active'));
+                        console.log('[Twikoo Debug] logo toggle: hiding OwO');
+                        return;
+                      }
+
+                      // currently hidden -> show active package (or first) and open container
+                      const activeIdx = Array.from(root.querySelectorAll('.OwO-packages li')).findIndex(li => li.classList.contains('OwO-package-active'));
+                      if (root.__twikooShowPackage) root.__twikooShowPackage(activeIdx === -1 ? 0 : activeIdx);
+                      else items[0].classList.add('OwO-items-show');
+                      root.classList.add('OwO-open');
+                      console.log('[Twikoo Debug] logo toggle: showing OwO');
+                    } catch (err) { console.warn('[Twikoo Debug] logo handler failed', err); }
+                  };
+                  logo.addEventListener('click', logo.__twikooLogoHandler, true);
+                } catch (err) { /* ignore per-root errors */ }
+              });
+
+              // Ensure package buttons control which OwO-items list is visible (only one at a time)
+              function setupOwOPackages(owoRoot) {
+                try {
+                  const pkgList = owoRoot.querySelector('.OwO-packages');
+                  const items = Array.from(owoRoot.querySelectorAll('.OwO-items'));
+                  if (!pkgList || items.length === 0) return;
+                  const pkgs = Array.from(pkgList.querySelectorAll('li'));
+
+                  // default active index: any with show, else -1 (none)
+                  let activeIndex = items.findIndex(it => it.classList.contains('OwO-items-show'));
+                  if (activeIndex === -1) activeIndex = -1;
+
+                  // body: hide initially if nothing is shown, keep .OwO-open in sync
+                  const body = owoRoot.querySelector('.OwO-body');
+                  const hasShown = items.some(it => it.classList.contains('OwO-items-show'));
+                  if (body) {
+                    if (hasShown) {
+                      body.style.display = '';
+                      owoRoot.classList.add('OwO-open');
+                    } else {
+                      body.style.display = 'none';
+                      owoRoot.classList.remove('OwO-open');
+                    }
+                  }
+
+                  // enforce single visible list (if any)
+                  items.forEach((it, i) => {
+                    if (i === activeIndex) it.classList.add('OwO-items-show'); else it.classList.remove('OwO-items-show');
+                  });
+
+                  // bind package buttons
+                  pkgs.forEach((li, i) => {
+                    // set active class
+                    li.classList.toggle('OwO-package-active', i === activeIndex);
+
+                    // remove previous handler if any
+                    if (li.__twikooPkgHandler) li.removeEventListener('click', li.__twikooPkgHandler);
+                    li.__twikooPkgHandler = function (ev) {
+                      try {
+                        // On first click, ensure body is visible and OwO is open
+                        if (body && body.style.display === 'none') {
+                          body.style.display = '';
+                        }
+
+                        items.forEach((it, j) => {
+                          if (j === i) it.classList.add('OwO-items-show'); else it.classList.remove('OwO-items-show');
+                        });
+                        pkgs.forEach((p, idx) => p.classList.toggle('OwO-package-active', idx === i));
+
+                        // Ensure OwO container is opened so bar/items are visible
+                        owoRoot.classList.add('OwO-open');
+
+                        console.log('[Twikoo Debug] OwO package selected:', i);
+                      } catch (err) { console.warn('[Twikoo Debug] package handler failed', err); }
+                    };
+                    li.addEventListener('click', li.__twikooPkgHandler);
+                  });
+
+                  // expose helper to show package programmatically
+                  owoRoot.__twikooShowPackage = (index) => {
+                    if (body) body.style.display = '';
+                    // Ensure OwO container is opened when showing a package programmatically
+                    owoRoot.classList.add('OwO-open');
+                    items.forEach((it, j) => {
+                      if (j === index) it.classList.add('OwO-items-show'); else it.classList.remove('OwO-items-show');
+                    });
+                    pkgs.forEach((p, idx) => p.classList.toggle('OwO-package-active', idx === index));
+                  };
+                } catch (err) { console.warn('[Twikoo Debug] setupOwOPackages failed', err); }
+              }
+
+              // Initialize setup for any OwO instances in the comment area
+              try {
+                document.querySelectorAll('#tcomment .OwO, #tcomment .tk-owo').forEach(root => setupOwOPackages(root));
+              } catch (err) { /* ignore */ }
+
+              // If OwO exists but interaction doesn't work, try to force-init OwO emotions if Twikoo exposes the API
+              if (window.twikoo && window.twikoo.initOwo && typeof window.twikoo.initOwo === 'function') {
+                try {
+                  window.twikoo.initOwo();
+                  console.log('[Twikoo Debug] called twikoo.initOwo() to ensure emotions loaded');
+                } catch (e) { console.warn('[Twikoo Debug] twikoo.initOwo() failed', e); }
+              }
+
+            } catch (err) {
+              console.warn('[Twikoo Debug] setup failed', err);
+            }
         }).catch((error) => {
           console.error('[Twikoo] 初始化失败:', error);
           // 失败时也执行清理，避免残留控件

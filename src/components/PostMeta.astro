@@ -126,46 +126,5 @@ const {
 
 <!-- 只有在非首页且启用umami且有slug时才加载脚本 -->
 {!isHome && umamiEnabled && id && (
-    <script is:inline define:vars={{ id, umamiBaseUrl, umamiApiKey, umamiWebsiteId, umamiConfig }}>
-        // 客户端统计文案生成函数
-        function generateStatsText(pageViews, visitors) {
-            return `浏览量 ${pageViews} · 访客 ${visitors}`;
-        }
-        
-        // 获取访问量统计
-        async function fetchPageViews(isRetry = false) {
-            // @ts-ignore
-            if (!umamiConfig.enabled || !umamiWebsiteId || !id || !isRetry) return;
-            
-            try {
-                // 构造文章页面的URL路径
-                const pageUrl = `/posts/${id}/`;
-                
-                // 调用全局工具获取特定页面的 Umami 统计数据
-                const stats = await getUmamiPageStats(umamiBaseUrl, umamiApiKey, umamiWebsiteId, pageUrl);
-                
-                // 从返回的数据中提取页面浏览量和访客数
-                const pageViews = stats.pageviews || 0;
-                const visitors = stats.visitors || 0;
-                
-                const displayElement = document.getElementById('page-views-display');
-                if (displayElement) {
-                    displayElement.textContent = generateStatsText(pageViews, visitors);
-                }
-            } catch (error) {
-                console.error('Error fetching page views:', error);
-                const displayElement = document.getElementById('page-views-display');
-                if (displayElement) {
-                    displayElement.textContent = '统计不可用';
-                }
-            }
-        }
-
-        // 页面加载完成后获取统计数据
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', fetchPageViews);
-        } else {
-            fetchPageViews();
-        }
-    </script>
+    <script src={import.meta.env.BASE_URL + 'js/umami-stats.js'} defer data-umami-type="page" data-umami-base={umamiBaseUrl} data-umami-apikey={umamiApiKey} data-umami-websiteid={umamiWebsiteId} data-page-id={id}></script>
 )}
