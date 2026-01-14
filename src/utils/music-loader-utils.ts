@@ -66,7 +66,6 @@ export async function loadImageWithRetry(
 	const actualMaxRetries = isMettingProxy ? 0 : maxRetries; // 代理URL不重试
 	
 	const fallbackUrls = getFallbackCovers(url);
-	let lastError: unknown = null;
 
 	for (const testUrl of fallbackUrls) {
 		// 如果已经是默认封面，直接返回
@@ -89,7 +88,6 @@ export async function loadImageWithRetry(
 				clearTimeout(timeoutId);
 				return testUrl;
 			} catch (error) {
-				lastError = error;
 				if (attempt < actualMaxRetries) {
 					await new Promise((resolve) =>
 						setTimeout(resolve, Math.min(500 * Math.pow(2, attempt), 2000)),

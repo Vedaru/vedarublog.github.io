@@ -7,6 +7,7 @@ interface ImportMetaEnv {
 	readonly PROD: boolean;
 	readonly DEV: boolean;
 	readonly SSR: boolean;
+	readonly BASE_URL: string;
 }
 
 interface ImportMeta {
@@ -15,6 +16,9 @@ interface ImportMeta {
 
 declare namespace astroHTML.JSX {
 	interface ImgHTMLAttributes {
+		fetchpriority?: "high" | "low" | "auto";
+	}
+	interface LinkHTMLAttributes {
 		fetchpriority?: "high" | "low" | "auto";
 	}
 }

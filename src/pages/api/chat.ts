@@ -75,8 +75,6 @@ export const POST: APIRoute = async ({ request, locals }) => {
 
   let body: any;
   try {
-    // Clone request before reading to allow debugging
-    const clonedRequest = request.clone();
     body = await request.json();
     console.log("[API] Parsed body:", JSON.stringify(body));
   } catch (e: any) {

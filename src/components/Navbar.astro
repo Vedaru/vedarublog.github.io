@@ -4,7 +4,6 @@ import { navBarConfig, siteConfig } from "../config";
 import { LinkPresets } from "../constants/link-presets";
 import { LinkPreset, type NavBarLink } from "../types/config";
 import { url } from "../utils/url-utils";
-import LayoutSwitchButton from "./LayoutSwitchButton.svelte";
 import LightDarkSwitch from "./LightDarkSwitch.svelte";
 import MobileTOC from "./MobileTOC.svelte";
 import Search from "./Search.svelte";
@@ -210,7 +209,8 @@ let links: NavBarLink[] = navBarConfig.links.map(
                                 }
 
                                 // 更稳健的 Pio 可见性检测，避免依赖易变的行内 style/opacity
-                                function isPioVisible(el) {
+                                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                                function _isPioVisible(el: HTMLElement | null) {
                                     try {
                                         if (!el || !(el instanceof HTMLElement)) return false;
                                         // 显式的可见类优先判定

@@ -160,7 +160,7 @@ export class AnimationManager {
 			sidebar.dispatchEvent(event);
 		}
 
-n		// 触发全局事件，通知所有组件重新初始化
+		// 触发全局事件，通知所有组件重新初始化
 		const globalEvent = new CustomEvent("page:reinit");
 		document.dispatchEvent(globalEvent);
 	}
@@ -171,7 +171,7 @@ n		// 触发全局事件，通知所有组件重新初始化
 	private setupPointerFocusCleanup(): void {
 		if (typeof window === "undefined") return;
 
-n		// 在 pointerdown 时监听，如果点击的是具有扩张伪元素的按钮，
+		// 在 pointerdown 时监听，如果点击的是具有扩张伪元素的按钮，
 		// 在 pointerup 时移除焦点（仅限指针触发，不影响键盘焦点）
 		document.addEventListener(
 			"pointerdown",
@@ -179,7 +179,7 @@ n		// 在 pointerdown 时监听，如果点击的是具有扩张伪元素的按�
 				const el = (e.target as Element).closest?.(".expand-animation, .btn-plain") as HTMLElement | null;
 				if (!el) return;
 
-n				const onUp = () => {
+				const onUp = () => {
 					// 放在微任务之后执行，以让 :active 状态能稍微显现（更自然）
 					setTimeout(() => {
 						if (document.activeElement === el) {

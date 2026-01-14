@@ -9,8 +9,6 @@ import type { MarkdownHeading } from "astro";
 import { Icon } from "astro-icon/components";
 import FullscreenWallpaper from "../components/misc/FullscreenWallpaper.astro";
 import IconifyLoader from "../components/misc/IconifyLoader.astro";
-import ImageWrapper from "../components/misc/ImageWrapper.astro";
-import TypewriterText from "../components/TypewriterText.astro";
 import TOC from "../components/widget/TOC.astro";
 import {
 	fullscreenWallpaperConfig,
@@ -19,7 +17,6 @@ import {
 } from "../config";
 import {
 	BANNER_HEIGHT,
-	BANNER_HEIGHT_EXTEND,
 	// BANNER_HEIGHT_HOME,
 	// MAIN_PANEL_OVERLAPS_BANNER_HEIGHT,
 } from "../constants/constants";
@@ -57,7 +54,7 @@ interface Props {
 // };
 
 // 获取banner图片的辅助函数
-const getBannerImages = async () => {
+const getBannerImages = async (): Promise<{ desktop: string | string[]; mobile: string | string[] }> => {
 	let bannerSrc = siteConfig.banner.src;
 
 	// 如果启用了图片API，获取API图片
@@ -92,12 +89,12 @@ const getBannerImages = async () => {
 	}
 	// 如果是字符串或字符串数组，同时用于桌面端和移动端
 	return {
-		desktop: bannerSrc,
-		mobile: bannerSrc,
+		desktop: (bannerSrc as string | string[]) || "",
+		mobile: (bannerSrc as string | string[]) || "",
 	};
 };
 
-const bannerImages = await getBannerImages();
+const _bannerImages = await getBannerImages();
 
 const {
 	title,
@@ -115,7 +112,6 @@ const hasBannerLink = !!siteConfig.banner.credit.url;
 const baseURL = import.meta.env.BASE_URL;
 const normalizedPathname = Astro.url.pathname.replace(new RegExp(`^${baseURL.replace(/\/$/, '')}`), '');
 const isHomePage = normalizedPathname === "/" || normalizedPathname === "";
-const showHomeText = siteConfig.banner.homeText?.enable && isHomePage;
 // 手机端非首页不显示banner的CSS类
 const mobileNonHomeBannerClass = !isHomePage ? "mobile-hide-banner" : "";
 
