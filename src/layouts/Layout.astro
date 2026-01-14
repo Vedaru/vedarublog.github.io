@@ -289,10 +289,12 @@ if (siteConfig.font) {
 			offset = offset - offset % 4;
 			document.documentElement.style.setProperty('--banner-height-extend', `${offset}px`);
 
-			// 移动设备优化：移除导航中按钮的 scale-animation 类，防止伪元素阴影在触控设备上残留（尽早执行）
+			// 移动设备优化：标记并移除导航中按钮的 scale-animation 类，防止伪元素阴影在触控设备上残留（尽早执行）
 			try {
 				const isTouchDevice = (window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches) || ('ontouchstart' in window);
 				if (isTouchDevice) {
+					// 标记 HTML，使 CSS 能更早作用（针对某些浏览器媒体查询无法正确匹配的情况）
+					document.documentElement.classList.add('is-touch');
 					// 只移除导航栏内的按钮 scale-animation，保留桌面交互效果
 					document.querySelectorAll('#navbar-wrapper .btn-plain.scale-animation').forEach(el => {
 						el.classList.remove('scale-animation');
