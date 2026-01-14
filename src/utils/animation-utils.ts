@@ -29,6 +29,7 @@ export class AnimationManager {
 		this.setupSwupIntegration();
 		this.setupScrollAnimations();
 		this.setupPointerFocusCleanup(); // 清理指针后残留焦点导致的伪元素残留问题
+		this.setupPointerFocusCleanupRobust(); // 更强力的全局清理，处理 pointercancel/visibility/scroll 等异常场景
 		console.log("🎨 Animation Manager initialized");
 	}
 
@@ -220,6 +221,43 @@ n				const onUp = () => {
 		const scrollElements = document.querySelectorAll(".animate-on-scroll");
 		scrollElements.forEach((element) => {
 			observer.observe(element);
+		});
+	}
+
+	/**
+	 * 全局强力清理：在更多异常场景（pointercancel/visibility/scroll/click 等）下也清理可能残留的阴影和焦点
+	 */
+	private setupPointerFocusCleanupRobust(): void {
+		if (typeof window === "undefined") return;
+
+		const doCleanup = (maybeTarget?: EventTarget | null) => {
+			try {
+				const focused = document.activeElement as HTMLElement | null;
+				if (focused && (focused.matches?.(".expand-animation") || focused.matches?.(".btn-plain"))) {
+					focused.blur();
+					focused.classList.add("no-shadow");
+					setTimeout(() => focused.classList.remove("no-shadow"), 200);
+				}
+
+				if (maybeTarget && (maybeTarget as Element).closest) {
+					const el = (maybeTarget as Element).closest(".expand-animation, .btn-plain") as HTMLElement | null;
+					if (el) {
+						el.classList.add("no-shadow");
+						setTimeout(() => el.classList.remove("no-shadow"), 200);
+					}
+				}
+			} catch (e) {
+				/* ignore */
+			}
+		};
+
+		["pointerup", "pointercancel", "touchend", "touchcancel", "click"].forEach((ev) => {
+			document.addEventListener(ev, (e) => doCleanup(e.target), { passive: true });
+		});
+
+		window.addEventListener("scroll", () => doCleanup(null), { passive: true });
+		document.addEventListener("visibilitychange", () => {
+			if (document.visibilityState !== "visible") doCleanup(null);
 		});
 	}
 

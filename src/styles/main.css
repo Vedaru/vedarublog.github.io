@@ -384,7 +384,9 @@ button:focus-visible, a:focus-visible {
     }
 
     /* 强制在不处于 active/hover/focus-visible 时隐藏伪元素，避免残留 */
-    .expand-animation:not(:active):not(:hover):not(:focus-visible)::before {
+    .expand-animation:not(:active):not(:hover):not(:focus-visible)::before,
+    .expand-animation.no-shadow::before,
+    .btn-plain.no-shadow::before {
         background: transparent !important;
         opacity: 0 !important;
         transform: scale(0.85) !important;
