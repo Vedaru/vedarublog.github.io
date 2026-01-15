@@ -1357,10 +1357,29 @@ const setup = () => {
         }, 200)
 	});
 }
+function ensureSwupCacheEnabled() {
+	try {
+		// Use an any-cast to avoid TypeScript errors when accessing non-typed plugin options
+		const swupAny = (window as any).swup;
+		if (swupAny && swupAny.options) {
+			if (swupAny.options.cache === false) {
+				console.warn('[perf] Swup cache disabled — enabling it to improve navigation performance');
+				swupAny.options.cache = true;
+			}
+		}
+	} catch (e) {
+		console.warn('[perf] Failed to ensure Swup cache:', e);
+	}
+}
+
 if (window?.swup?.hooks) {
-	setup()
+	ensureSwupCacheEnabled();
+	setup();
 } else {
-	document.addEventListener('swup:enable', setup)
+	document.addEventListener('swup:enable', () => {
+		ensureSwupCacheEnabled();
+		setup();
+	});
 }
 
 let backToTopBtn = document.getElementById('back-to-top-btn');

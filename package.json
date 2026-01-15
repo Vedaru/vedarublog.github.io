@@ -13,6 +13,8 @@
 		"check": "astro check",
 		"build": "astro build && pagefind --site dist && node scripts/compress-fonts.js",
 		"deploy": "gh-pages -d dist -r https://github.com/vedaru/vedarublog.github.io.git",
+		"deploy:worker": "wrangler publish --env production",
+		"deploy:worker:preview": "wrangler publish --env preview",
 		"submit": "node scripts/indexnow-submit.js",
 		"preview": "astro preview",
 		"astro": "astro",
