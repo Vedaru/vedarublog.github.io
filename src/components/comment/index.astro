@@ -21,7 +21,7 @@ if (commentConfig?.enable && commentConfig?.twikoo) {
 ---
 {commentConfig?.enable && (
   <div class="card-base p-6 mb-4">
-    {commentService === 'twikoo' && <Twikoo path={path} />}
+    {commentService === 'twikoo' && <Twikoo client:visible path={path} />}
     {commentService === '' && null}
   </div>
 )}
