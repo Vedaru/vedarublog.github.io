@@ -427,6 +427,8 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 	gainBoost: 1.0, // 设置增益倍数为1.0，避免放大导致的卡顿
 	// 可选：为外部音频 URL 提供一个代理前缀（若不希望在配置中暴露，可保持 undefined）
 	proxyBase: "https://music-api.vedaru.cn/?url=",
+	// 选填：用于探测代理是否可用的短音频 URL（用于健康检查）
+	proxyPingUrl: "https://interactive-examples.mdn.mozilla.net/media/examples/t-rex-roar.mp3",
 };
 
 export const footerConfig: FooterConfig = {
