@@ -857,8 +857,8 @@ async function prefetchNext() {
 		preloadAudio.volume = 0; // 静音预加载
 		
 		const audioUrl = getAssetPath(next.url);
-		preloadAudio.src = audioUrl;
-		preloadAudio.load();
+	const finalAudioUrl = getProxiedAudioUrl(audioUrl);
+	preloadAudio.src = finalAudioUrl;
 		
 		// 强制预加载缓冲
 		setTimeout(() => {
@@ -897,6 +897,50 @@ function getAssetPath(path: string): string {
 	if (path.startsWith("http://") || path.startsWith("https://")) return path;
 	if (path.startsWith("/")) return `${base}${path}`;
 	return `${base}/${path}`;
+}
+
+// Helper: decide whether to proxy this audio url (e.g. Netease CDN URLs)
+function isLikelyNeteaseUrl(u: string): boolean {
+	try {
+		if (!u) return false;
+		return /(?:music\.126\.net|music\.163\.com|\.163\.com|netease)/i.test(u);
+	} catch (e) { return false; }
+}
+
+function buildProxyUrl(original: string): string {
+	// Prefer runtime-configured base exposed by Layout: window.MUSIC_PROXY_BASE
+	try {
+		const runtimeBase = (typeof window !== 'undefined') ? (window as any).MUSIC_PROXY_BASE : undefined;
+		const defaultBase = 'https://musicproxy.l2859794.workers.dev/?url='; // fallback
+		const base = runtimeBase || (musicPlayerConfig.proxyBase ?? defaultBase);
+		return base + encodeURIComponent(original);
+	} catch (e) {
+		return original;
+	}
+}
+
+function getProxiedAudioUrl(original: string): string {
+	if (!original) return original;
+	// Only proxy full http(s) urls
+	if (!(original.startsWith('http://') || original.startsWith('https://'))) return original;
+	// If it's not a likely netease link, keep as is
+	if (!isLikelyNeteaseUrl(original)) return original;
+	try {
+		// If runtime status indicates proxy available, use it; otherwise fallback to original
+		const available = (typeof window !== 'undefined') ? (window as any).MUSIC_PROXY_AVAILABLE : false;
+		if (available) {
+			const prox = buildProxyUrl(original);
+			console.debug('[MusicPlayer] Proxying audio URL:', original, '->', prox);
+			// Emit event for other components or analytics
+			if (typeof window !== 'undefined') {
+				window.dispatchEvent(new CustomEvent('musicproxy:proxyused', { detail: { original, prox } }));
+			}
+			return prox;
+		}
+	} catch (e) {
+		console.debug('[MusicPlayer] Proxy decision failed', e);
+	}
+	return original;
 }
 
 function normalizeCoverUrl(path: string): string {
@@ -964,10 +1008,11 @@ function loadSong(song: typeof currentSong) {
 	audio.addEventListener("loadstart", handleLoadStart, { once: true });
 
 	const audioUrl = getAssetPath(song.url);
-	console.debug("Loading audio:", audioUrl, "readyState:", audio.readyState);
+	const finalAudioUrl = getProxiedAudioUrl(audioUrl);
+	console.debug("Loading audio:", audioUrl, "->", finalAudioUrl, "readyState:", audio.readyState);
 	
 	// 设置音频源并加载
-	audio.src = audioUrl;
+	audio.src = finalAudioUrl;
 	audio.load();
 	
 	// 强制预加载：尝试播放一小段时间然后暂停，以触发浏览器缓冲
