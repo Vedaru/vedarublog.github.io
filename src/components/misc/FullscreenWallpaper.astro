@@ -1,6 +1,7 @@
 ---
 import { siteConfig } from "../../config";
 import type { FullscreenWallpaperConfig } from "../../types/config";
+import ResponsiveImage from "../ResponsiveImage.astro";
 
 interface Props {
 	config: FullscreenWallpaperConfig;
@@ -106,15 +107,16 @@ const renderGroups = [
 	{renderGroups.map(group => group.hasImages && (
 		<div class={`${group.containerClass} w-full h-full relative`} style="transform: translateZ(0);">
 			{group.images.map((src, index) => (
-				<img
+				<ResponsiveImage
 					src={src}
 					alt={`${group.key} wallpaper ${index + 1}`}
 					class={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${positionClass}`}
 					data-carousel-item={isCarouselEnabled ? index : undefined}
 					style={`transform: translateZ(0); backface-visibility: hidden; will-change: opacity; ${blur > 0 ? `filter: blur(${blur}px);` : ''}; opacity: ${index === 0 ? 1 : 0};`}
 					decoding="async"
-					loading={index === 0 ? "eager" : "lazy"} 
-				/>
+					loading={index === 0 ? "eager" : "lazy"}
+					fetchpriority={index === 0 ? 'high' : undefined}
+					/>
 			))}
 		</div>
 	))}
@@ -154,14 +156,44 @@ const renderGroups = [
 				const { items, currentIndex } = stateItem;
 				// 立即设置样式，防止视觉上跳回第一张
 				for (let i = 0; i < items.length; i++) {
-					items[i].style.opacity = i === currentIndex ? '1' : '0';
+					// 优化加载策略：当前显示项设置为 eager 并提升优先级
+					try {
+						items[i].style.opacity = i === currentIndex ? '1' : '0';
+						items[i].loading = i === currentIndex ? 'eager' : 'lazy';
+						if (i === currentIndex) items[i].setAttribute('fetchpriority', 'high');
+					} catch (e) {
+						// ignore
+					}
 				}
 			}
 
+			// 预加载图片（返回一个 promise）
+			function preloadImage(img) {
+				return new Promise((resolve) => {
+					const src = img.currentSrc || img.src;
+					if (!src) return resolve();
+					const pre = new Image();
+					pre.src = src;
+					if (pre.decode) {
+						pre.decode().then(resolve).catch(resolve);
+					} else {
+						// no decode support, resolve immediately
+						setTimeout(resolve, 50);
+					}
+				});
+			}
+
 			// 切换下一张
-			function switchNextImage(stateItem) {
+			async function switchNextImage(stateItem) {
 				const { items, currentIndex } = stateItem;
 				const nextIndex = (currentIndex + 1) % items.length;
+				
+				// 预加载下一张图以避免切换时出现空白
+				try {
+					await preloadImage(items[nextIndex]);
+				} catch (e) {
+					// ignore
+				}
 				
 				items[currentIndex].style.opacity = '0';
 				items[nextIndex].style.opacity = '1';

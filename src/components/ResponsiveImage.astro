@@ -16,6 +16,14 @@ interface Props {
 
 const { src, alt = '', class: cls = '', sizes = '100vw', loading = 'lazy', width, height, decoding = 'async' } = Astro.props as Props;
 
+// Collect any other props to forward to the <img> element (e.g. data-*, fetchpriority)
+const forwardedProps: Record<string, any> = {};
+for (const key of Object.keys(Astro.props)) {
+  if (!['src', 'alt', 'class', 'sizes', 'loading', 'width', 'height', 'decoding'].includes(key)) {
+    forwardedProps[key] = (Astro.props as Record<string, any>)[key];
+  }
+}
+
 let manifest: Record<string, any> = {};
 const manifestPath = path.resolve('public', '_gen', 'manifest.json');
 if (fs.existsSync(manifestPath)) {
@@ -32,7 +40,7 @@ let srcset = '';
 let fallback = src;
 if (entry) {
   const variants = entry.variants || [];
-  // assembly srcset using generated /__gen/ URLs
+  // assembly srcset using generated /_gen/ URLs
   srcset = variants.map((v) => `${v.src} ${v.width}w`).join(', ');
   fallback = entry.fallback || entry.original || src;
 }
@@ -50,4 +58,5 @@ if (entry) {
   width={width}
   height={height}
   style={"max-width:100%;height:auto;"}
+  {...forwardedProps}
 />
