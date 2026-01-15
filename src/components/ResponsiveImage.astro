@@ -12,9 +12,13 @@ interface Props {
   width?: number;
   height?: number;
   decoding?: 'async' | 'sync' | 'auto';
+  // Allow passing style/fetchpriority/data-* and other attributes
+  style?: string;
+  fetchpriority?: 'high' | 'low' | 'auto' | string;
+  [key: string]: any;
 }
 
-const { src, alt = '', class: cls = '', sizes = '100vw', loading = 'lazy', width, height, decoding = 'async' } = Astro.props as Props;
+const { src, alt = '', class: cls = '', sizes = '100vw', loading = 'lazy', width, height, decoding = 'async', style } = Astro.props as Props;
 
 // Collect any other props to forward to the <img> element (e.g. data-*, fetchpriority)
 const forwardedProps: Record<string, any> = {};
@@ -57,6 +61,6 @@ if (entry) {
   decoding={decoding}
   width={width}
   height={height}
-  style={"max-width:100%;height:auto;"}
+  style={style ?? "max-width:100%;height:auto;"}
   {...forwardedProps}
 />
