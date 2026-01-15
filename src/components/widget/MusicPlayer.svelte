@@ -357,8 +357,37 @@ function buildMetingUrl(template: string) {
 		.replace(":r", Date.now().toString());
 }
 
+// Resolve a single song's direct streaming URL from Meting API when missing
+async function resolveSongUrl(songId: string | number, timeout = 8000) {
+	if (!songId) return null;
+	for (let i = 0; i < metingApiCandidates.length; i++) {
+		const template = metingApiCandidates[i];
+		if (!template) continue;
+		const url = template
+			.replace(':server', meting_server)
+			.replace(':type', 'song')
+			.replace(':id', String(songId))
+			.replace(':auth', '')
+			.replace(':r', Date.now().toString());
+		try {
+			const controller = new AbortController();
+			const id = setTimeout(() => controller.abort(), timeout + i * 2000);
+			const res = await fetch(url, { signal: controller.signal, headers: { 'Accept': 'application/json' } });
+			clearTimeout(id);
+			if (!res.ok) continue;
+			const data = await res.json();
+			if (Array.isArray(data) && data.length > 0 && data[0].url) {
+				return data[0].url;
+			}
+		} catch (e) {
+			console.debug('resolveSongUrl attempt failed for', url, e);
+		}
+	}
+	return null;
+}
+
 async function fetchMetingPlaylist() {
-	if (!meting_id) return;
+	if (!meting_id) return; 
 	isLoading = true;
 
 	for (let i = 0; i < metingApiCandidates.length; i++) {
@@ -375,10 +404,11 @@ async function fetchMetingPlaylist() {
 			playlist = list.map((song: SongData) =>
 				processSongData(song, getAssetPath, normalizeCoverUrl)
 			);
-			// 如果配置要求自动连播，设置为列表循环
+				// 如果配置要求自动连播，设置为列表循环
 			if (shouldAutoplayContinuous) {
 				isRepeating = 2;
 			}
+
 			if (playlist.length > 0) {
 				loadSong(playlist[0]);
 				preloadCurrentAndNextCovers().catch((e) =>
@@ -966,7 +996,7 @@ function cacheCoverVariants(raw: string) {
 	}
 }
 
-function loadSong(song: typeof currentSong) {
+async function loadSong(song: typeof currentSong) {
 	if (!song || !audio) {
 		console.warn("Cannot load song: missing song data or audio element");
 		return;
@@ -979,9 +1009,28 @@ function loadSong(song: typeof currentSong) {
 	cacheCoverVariants(song.cover);
 	
 	if (!song.url) {
-		console.warn("Song has no URL:", song);
-		isLoading = false;
-		return;
+		// Try to resolve URL from Meting API (sometimes playlist item lacks direct url)
+		console.debug('Song lacks direct URL, attempting to resolve via Meting API:', song);
+		if (mode === 'meting' && (song as any).id) {
+			try {
+				const resolved = await resolveSongUrl(String((song as any).id));
+				if (resolved) {
+					song.url = resolved;
+					console.debug('Resolved song url via Meting API:', resolved);
+				} else {
+					console.warn('Failed to resolve song URL via Meting API for', (song as any).id);
+				}
+			} catch (e) {
+				console.warn('Error while resolving song url:', e);
+			}
+		}
+		if (!song.url) {
+			console.warn("Song has no URL after resolution attempt:", song);
+			isLoading = false;
+			// Emit diagnostic event so frontend can surface to user/analytics
+			try { window.dispatchEvent(new CustomEvent('musicproxy:song-url-missing', { detail: { song } })); } catch (e) {}
+			return;
+		}
 	}
 	
 	isLoading = true;
@@ -1520,7 +1569,37 @@ function handleAudioEvents() {
 	});
 }
 
-onMount(() => {
+let musicProxyAvailable = (typeof window !== 'undefined') ? !!(window as any).MUSIC_PROXY_AVAILABLE : false;
+function onMusicProxyStatus(e: any) {
+	try {
+		const available = !!(e?.detail?.available);
+		if (available === musicProxyAvailable) return;
+		musicProxyAvailable = available;
+		console.debug('[MusicPlayer] musicproxy:status changed ->', available);
+		// If we have a loaded song, re-evaluate the best source
+		if (!audio || !currentSong || !currentSong.url) return;
+		const nowTime = audio.currentTime || 0;
+		const wasPlaying = !audio.paused && !audio.ended;
+		const desired = getProxiedAudioUrl(getAssetPath(currentSong.url));
+		// If desired differs from current src, perform a gentle swap
+		if (desired && audio.src !== desired) {
+			console.debug('[MusicPlayer] Switching audio src due to proxy change:', audio.src, '->', desired);
+			try { audio.pause(); } catch (e) {}
+			audio.src = desired;
+			audio.load();
+			const restoreHandler = () => {
+				try { audio.currentTime = Math.min(nowTime, audio.duration || (currentSong.duration || 0)); } catch (e) {}
+				if (wasPlaying) audio.play().catch(() => {});
+				audio.removeEventListener('loadedmetadata', restoreHandler);
+			};
+			audio.addEventListener('loadedmetadata', restoreHandler);
+		}
+	} catch (e) {
+		console.debug('[MusicPlayer] onMusicProxyStatus failed', e);
+	}
+}
+
+onMount(() => { 
 	// 尽早恢复缓存
 	restoreCoverCache();
 
@@ -1569,7 +1648,11 @@ onMount(() => {
 	}
 	
 	handleAudioEvents();
-	
+
+	if (typeof window !== 'undefined') {
+		window.addEventListener('musicproxy:status', onMusicProxyStatus as EventListener);
+	}
+
 	if (!musicPlayerConfig.enable) {
 		return;
 	}
@@ -1664,6 +1747,10 @@ onDestroy(() => {
 
 		// 清理 portal（如果已移动到 body）
 		try {
+			// 移除全局 musicproxy 事件监听
+			if (typeof window !== 'undefined' && (window as any).removeEventListener) {
+				window.removeEventListener('musicproxy:status', onMusicProxyStatus as EventListener);
+			}
 			if (isBrowser && portalAppended && rootEl && rootEl.parentElement === document.body) {
 				rootEl.remove();
 				portalAppended = false;
