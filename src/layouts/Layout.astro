@@ -464,10 +464,8 @@ n					// 为触控设备添加按下态处理：按下时添加 pressed 类，�
 		<!-- Music Player - 延迟加载以减少首屏 JS（从 client:load -> client:idle） -->
 		<script is:inline>
 			(function(){
-				const base = 'https://musicproxy.l2859794.workers.dev';
-				window.MUSIC_PROXY_BASE = base;
-				window.MUSIC_PROXY_AVAILABLE = false;
-				const statusElId = 'musicproxy-status';
+			// NOTE: include the `?url=` suffix so components can simply append the encoded target URL
+		const base = 'https://music-api.vedaru.cn/?url=';
 
 				function updateUI(available){
 					const el = document.getElementById(statusElId);

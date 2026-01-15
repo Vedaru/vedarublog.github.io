@@ -911,7 +911,7 @@ function buildProxyUrl(original: string): string {
 	// Prefer runtime-configured base exposed by Layout: window.MUSIC_PROXY_BASE
 	try {
 		const runtimeBase = (typeof window !== 'undefined') ? (window as any).MUSIC_PROXY_BASE : undefined;
-		const defaultBase = 'https://musicproxy.l2859794.workers.dev/?url='; // fallback
+		const defaultBase = 'https://music-api.vedaru.cn/?url='; // fallback
 		const base = runtimeBase || (musicPlayerConfig.proxyBase ?? defaultBase);
 		return base + encodeURIComponent(original);
 	} catch (e) {
