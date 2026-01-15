@@ -16,8 +16,8 @@ import ChatWidget from "../components/widget/ChatWidget.svelte";
             .chat-intro { color: var(--text-foreground); }
           </style>
 
-      <!-- 使用 Svelte 组件并在客户端加载 -->
-      <ChatWidget client:load />
+      <!-- 使用 Svelte 组件并在客户端延迟加载 -->
+      <ChatWidget client:idle />
     </div>
   </div>
 </MainGridLayout>

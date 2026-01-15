@@ -47,6 +47,7 @@
 - ✅ Use `pnpm` and a Node >=18 runtime.
 - ❌ Don’t assume dynamic behavior persists across page-swap events without re-initialization.
 - ❌ Do not directly modify generated code in `dist/` or in `content` when content separation is enabled — update upstream content repo instead.
+- ✅ Always fix all errors in repository before finishing a task (lint, typecheck, build).
 
 ---
 
@@ -58,5 +59,3 @@
 - **Content sync (if relevant):** Test `pnpm run sync-content` with `ENABLE_CONTENT_SYNC` set appropriately (Windows will copy instead of symlink); verify `src/content`, `src/data`, and `public/images` are correct.
 - **Tests:** Add or run Playwright tests for interactive flows: `npx playwright test` (optional but recommended for UI changes).
 - **Docs:** Update `docs/DEPLOYMENT.md` or `docs/CONTENT_SEPARATION.md` if your change affects deployment/content workflows.
-
-If you'd like, I can open a draft PR now with this change and the checklist included. Would you like me to proceed? 🔍

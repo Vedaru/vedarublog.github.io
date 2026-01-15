@@ -25,7 +25,6 @@ import { defaultFavicons } from "../constants/icon";
 import type { Favicon } from "../types/config";
 import { pathsEqual, url } from "../utils/url-utils";
 
-import "katex/dist/katex.css";
 import "../styles/mobile-navbar.css";
 import "../styles/wallpaper-navbar-transparent.css";
 import "../styles/fancybox-custom.css";
@@ -447,13 +446,28 @@ n					// 为触控设备添加按下态处理：按下时添加 pressed 类，�
 		<ConfigCarrier></ConfigCarrier>
 		<slot />
 		
-		<!-- Music Player - 立即加载以确保封面快速显示 -->
+		<!-- Lazy-load KaTeX CSS 仅在页面包含数学(KaTeX)元素时加载，减少首屏 CSS 体积 -->
+		<script is:inline>
+			(function(){
+				try{
+					if (typeof document !== 'undefined' && document.querySelector('.katex')) {
+						const l = document.createElement('link');
+						l.rel = 'stylesheet';
+						l.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.css';
+						l.crossOrigin = 'anonymous';
+						document.head.appendChild(l);
+					}
+				} catch(e){}
+			})();
+		</script>
+
+		<!-- Music Player - 延迟加载以减少首屏 JS（从 client:load -> client:idle） -->
 		{musicPlayerConfig.enable && (
-			<MusicPlayer client:load />
+			<MusicPlayer client:idle />
 		)}
 		
-		<!-- Pio 看板娘组件 - 在加载界面期间就加载，但保持初始隐藏 -->
-		{pioConfig.enable && <Pio client:load baseURL={import.meta.env.BASE_URL} />}
+		<!-- Pio 看板娘组件 - 改为延迟加载（从 client:load -> client:idle） -->
+		{pioConfig.enable && <Pio client:idle baseURL={import.meta.env.BASE_URL} />}
 		
 		<!-- 日记目录组件 - 隐藏但加载 script 以注册 custom element -->
 		<div class="hidden">
