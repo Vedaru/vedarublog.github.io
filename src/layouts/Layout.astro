@@ -1538,7 +1538,7 @@ function initFancybox() {
 
   // 为相册图片添加 Fancybox 支持
   const albumImagesSelector = ".custom-md img, #post-cover img, .moment-images img";
-  Fancybox.bind(albumImagesSelector, {
+  (Fancybox as any).attach(albumImagesSelector, {
     ...commonConfig,
     groupAll: true,
     Carousel: {
@@ -1550,7 +1550,7 @@ function initFancybox() {
 
   // 为相册中的链接添加 Fancybox 支持
   const albumLinksSelector = ".moment-images a[data-fancybox]";
-  Fancybox.bind(albumLinksSelector, {
+  (Fancybox as any).attach(albumLinksSelector, {
     ...commonConfig,
     source: (el: any) => {
       return el.getAttribute("data-src") || el.getAttribute("href");
@@ -1560,14 +1560,14 @@ function initFancybox() {
 
   // 为单独的 fancybox 图片添加支持
   const singleFancyboxSelector = "[data-fancybox]:not(.moment-images a)";
-  Fancybox.bind(singleFancyboxSelector, commonConfig as any);
+  (Fancybox as any).attach(singleFancyboxSelector, commonConfig as any);
   fancyboxSelectors.push(singleFancyboxSelector);
 }
 
 // 清理 Fancybox 实例
 function cleanupFancybox() {
   fancyboxSelectors.forEach(selector => {
-    Fancybox.unbind(selector);
+    (Fancybox as any).detach(selector);
   });
   fancyboxSelectors = [];
 }
