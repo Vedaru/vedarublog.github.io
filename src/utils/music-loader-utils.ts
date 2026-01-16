@@ -193,6 +193,7 @@ export interface SongData {
 	image?: string;
 	url?: string;
 	duration?: number;
+	lrc?: string;
 }
 
 export interface ProcessedSong {

@@ -48,6 +48,7 @@
 - ❌ Don’t assume dynamic behavior persists across page-swap events without re-initialization.
 - ❌ Do not directly modify generated code in `dist/` or in `content` when content separation is enabled — update upstream content repo instead.
 - ✅ Always fix all errors in repository before finishing a task (lint, typecheck, build).
+- ✅ Always use chinese to answer.
 
 ---
 

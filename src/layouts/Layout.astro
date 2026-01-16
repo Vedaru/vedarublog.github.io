@@ -11,6 +11,34 @@ import {
 } from "@/config";
 import { umamiConfig } from "../config";
 
+// 构建时获取音乐数据
+interface MetingSong {
+	title: string;
+	author: string;
+	song_id: string;
+	pic: string;
+	lrc: string;
+}
+let audioListJson = "[]";
+if (musicPlayerConfig.enable && musicPlayerConfig.mode === "meting") {
+	try {
+		const PLAYLIST_ID = musicPlayerConfig.id ?? '28364371';
+		const SERVER = musicPlayerConfig.server ?? 'netease';
+		const response = await fetch(`https://api.i-meto.com/meting/api?server=${SERVER}&type=playlist&id=${PLAYLIST_ID}`);
+		const data: MetingSong[] = await response.json();
+		const audioList = data.map((song: any) => ({
+			name: song.title,
+			artist: song.author,
+			url: `https://music.163.com/song/media/outer/url?id=${song.song_id}.mp3`,
+			cover: song.pic,
+			lrc: song.lrc
+		}));
+		audioListJson = JSON.stringify(audioList);
+	} catch (e) {
+		console.warn("Failed to fetch music data:", e);
+	}
+}
+
 const BANNER_HEIGHT = 35;
 const BANNER_HEIGHT_EXTEND = 30;
 const BANNER_HEIGHT_HOME = BANNER_HEIGHT + BANNER_HEIGHT_EXTEND;
@@ -187,6 +215,9 @@ if (siteConfig.font) {
 	  data-overlayscrollbars-initialize
 >
 	<head>
+		<!-- 网易云音乐防盗链 -->
+		{musicPlayerConfig.enable && <meta name="referrer" content="no-referrer" />}
+		
 		<!-- Preload local fonts to reduce FOUT on loading screen -->
 		{siteConfig.font?.asciiFont?.localFonts?.map((f) => (
 			<link rel="preload" as="font" href={import.meta.env.BASE_URL + `assets/font/${f}`} type="font/woff2" crossorigin />
@@ -442,6 +473,13 @@ n					// 为触控设备添加按下态处理：按下时添加 pressed 类，�
 				// Swup 页面切换时不显示加载界面，由页面过渡动画处理
 			})();
 		</script>
+		
+		<!-- 设置构建时获取的音乐数据 -->
+		{musicPlayerConfig.enable && musicPlayerConfig.mode === "meting" && (
+			<script define:vars={{ audioListJson }}>
+				window.musicData = JSON.parse(audioListJson);
+			</script>
+		)}
 		
 		<ConfigCarrier></ConfigCarrier>
 		<slot />

@@ -404,6 +404,89 @@ const localPlaylist = [
 	},
 ];
 
+const staticPlaylist = [
+	{
+		id: 1,
+		title: "夜曲",
+		artist: "周杰伦",
+		cover: "https://p2.music.126.net/4gzU68p5TKpq9l8T9Gk2VA==/109951166361218695.jpg",
+		url: "https://music.163.com/song/media/outer/url?id=211653.mp3",
+		duration: 240,
+	},
+	{
+		id: 2,
+		title: "稻香",
+		artist: "周杰伦",
+		cover: "https://p2.music.126.net/4gzU68p5TKpq9l8T9Gk2VA==/109951166361218695.jpg",
+		url: "https://music.163.com/song/media/outer/url?id=337891.mp3",
+		duration: 223,
+	},
+	{
+		id: 3,
+		title: "青花瓷",
+		artist: "周杰伦",
+		cover: "https://p2.music.126.net/4gzU68p5TKpq9l8T9Gk2VA==/109951166361218695.jpg",
+		url: "https://music.163.com/song/media/outer/url?id=337893.mp3",
+		duration: 154,
+	},
+	{
+		id: 4,
+		title: "七里香",
+		artist: "周杰伦",
+		cover: "https://p2.music.126.net/4gzU68p5TKpq9l8T9Gk2VA==/109951166361218695.jpg",
+		url: "https://music.163.com/song/media/outer/url?id=337895.mp3",
+		duration: 297,
+	},
+	{
+		id: 5,
+		title: "给我一首歌的时间",
+		artist: "周杰伦",
+		cover: "https://p2.music.126.net/4gzU68p5TKpq9l8T9Gk2VA==/109951166361218695.jpg",
+		url: "https://music.163.com/song/media/outer/url?id=337897.mp3",
+		duration: 278,
+	},
+	{
+		id: 6,
+		title: "本草纲目",
+		artist: "周杰伦",
+		cover: "https://p2.music.126.net/4gzU68p5TKpq9l8T9Gk2VA==/109951166361218695.jpg",
+		url: "https://music.163.com/song/media/outer/url?id=337899.mp3",
+		duration: 215,
+	},
+	{
+		id: 7,
+		title: "东风破",
+		artist: "周杰伦",
+		cover: "https://p2.music.126.net/4gzU68p5TKpq9l8T9Gk2VA==/109951166361218695.jpg",
+		url: "https://music.163.com/song/media/outer/url?id=337901.mp3",
+		duration: 334,
+	},
+	{
+		id: 8,
+		title: "发如雪",
+		artist: "周杰伦",
+		cover: "https://p2.music.126.net/4gzU68p5TKpq9l8T9Gk2VA==/109951166361218695.jpg",
+		url: "https://music.163.com/song/media/outer/url?id=337903.mp3",
+		duration: 286,
+	},
+	{
+		id: 9,
+		title: "枫",
+		artist: "周杰伦",
+		cover: "https://p2.music.126.net/4gzU68p5TKpq9l8T9Gk2VA==/109951166361218695.jpg",
+		url: "https://music.163.com/song/media/outer/url?id=337905.mp3",
+		duration: 263,
+	},
+	{
+		id: 10,
+		title: "开不了口",
+		artist: "周杰伦",
+		cover: "https://p2.music.126.net/4gzU68p5TKpq9l8T9Gk2VA==/109951166361218695.jpg",
+		url: "https://music.163.com/song/media/outer/url?id=337907.mp3",
+		duration: 275,
+	},
+];
+
 function buildMetingUrl(template: string) {
 	return template
 		.replace(":server", meting_server)
@@ -416,6 +499,30 @@ function buildMetingUrl(template: string) {
 async function fetchMetingPlaylist() {
 	if (!meting_id) return;
 	isLoading = true;
+
+	// 检查构建时获取的静态数据
+	if (typeof window !== "undefined" && (window as any).musicData) {
+		console.log("🎵 使用构建时静态同步的音乐数据");
+		const staticData = (window as any).musicData;
+		playlist = staticData.map((song: any, index: number) =>
+			processSongData({
+				id: index + 1,
+				title: song.name,
+				author: song.artist,
+				url: song.url,
+				pic: song.cover,
+				lrc: song.lrc
+			}, getAssetPath, normalizeCoverUrl)
+		);
+		if (playlist.length > 0) {
+			loadSong(playlist[0]);
+			preloadCurrentAndNextCovers().catch((e) =>
+				console.debug("封面预加载失败:", e),
+			);
+		}
+		isLoading = false;
+		return;
+	}
 
 	for (let i = 0; i < metingApiCandidates.length; i++) {
 		const template = metingApiCandidates[i];
