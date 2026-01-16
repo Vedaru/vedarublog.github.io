@@ -1129,6 +1129,7 @@ if (document.readyState === 'loading') {
 }
 
 const setup = () => {
+	if (!window.swup || !window.swup.hooks) return;
 	// TODO: temp solution to change the height of the banner
 /*
 	window.swup.hooks.on('animation:out:start', () => {
@@ -1479,7 +1480,7 @@ import '../scripts/theme-optimizer.js';
 </script>
 
 <script>
-import * as Fancybox from "@fancyapps/ui";
+import { Fancybox } from "@fancyapps/ui";
 import "@fancyapps/ui/dist/fancybox/fancybox.css";
 
 // 存储 Fancybox 绑定的选择器
@@ -1540,7 +1541,7 @@ function initFancybox() {
 
   // 为相册图片添加 Fancybox 支持
   const albumImagesSelector = ".custom-md img, #post-cover img, .moment-images img";
-  (Fancybox as any).attach(albumImagesSelector, {
+  (Fancybox as any).bind(albumImagesSelector, {
     ...commonConfig,
     groupAll: true,
     Carousel: {
@@ -1552,7 +1553,7 @@ function initFancybox() {
 
   // 为相册中的链接添加 Fancybox 支持
   const albumLinksSelector = ".moment-images a[data-fancybox]";
-  (Fancybox as any).attach(albumLinksSelector, {
+  (Fancybox as any).bind(albumLinksSelector, {
     ...commonConfig,
     source: (el: any) => {
       return el.getAttribute("data-src") || el.getAttribute("href");
@@ -1562,14 +1563,14 @@ function initFancybox() {
 
   // 为单独的 fancybox 图片添加支持
   const singleFancyboxSelector = "[data-fancybox]:not(.moment-images a)";
-  (Fancybox as any).attach(singleFancyboxSelector, commonConfig as any);
+  (Fancybox as any).bind(singleFancyboxSelector, commonConfig as any);
   fancyboxSelectors.push(singleFancyboxSelector);
 }
 
 // 清理 Fancybox 实例
 function cleanupFancybox() {
   fancyboxSelectors.forEach(selector => {
-    (Fancybox as any).detach(selector);
+    (Fancybox as any).unbind(selector);
   });
   fancyboxSelectors = [];
 }
@@ -1611,7 +1612,7 @@ if (document.readyState === 'loading') {
   markImagesAsLoaded();
 }
 
-if (window.swup) {
+if (window?.swup?.hooks) {
   setup()
 } else {
   document.addEventListener("swup:enable", setup)
