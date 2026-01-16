@@ -857,7 +857,9 @@ async function initializePanelManager() {
 					const panel = document.getElementById(config.panel);
 					if (panel && !panel.classList.contains("float-panel-closed")) {
 						console.log('Closing panel via outside click:', config.panel);
-						await panelManager.closePanel(config.panel as any);
+						if (panelManager) {
+							await panelManager.closePanel(config.panel as any);
+						}
 					}
 				}
 			}
