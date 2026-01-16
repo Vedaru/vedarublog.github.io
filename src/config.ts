@@ -428,7 +428,8 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 	// 可选：为外部音频 URL 提供一个代理前缀（若不希望在配置中暴露，可保持 undefined）
 	proxyBase: "https://music-api.vedaru.cn/?url=",
 	// 选填：用于探测代理是否可用的短音频 URL（用于健康检查）
-	proxyPingUrl: "https://interactive-examples.mdn.mozilla.net/media/examples/t-rex-roar.mp3",
+	// NOTE: MDN's example t-rex URL sometimes returns 404; use a more reliable file-hosted MP3 or host a local test file.
+	proxyPingUrl: "https://file-examples.com/wp-content/uploads/2017/11/file_example_MP3_700KB.mp3",
 };
 
 export const footerConfig: FooterConfig = {
