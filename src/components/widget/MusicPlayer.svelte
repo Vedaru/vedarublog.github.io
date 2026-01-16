@@ -379,89 +379,6 @@ let prefetchedForIndex: number | null = null;
 // 当剩余时长小于该阈值（秒）时触发预取
 const PREFETCH_THRESHOLD = 15;
 
-const localPlaylist = [
-    {
-        "id": 1,
-        "title": "反乌托邦",
-        "artist": "Unknown",
-        "cover": "assets/music/cover/song_1.jpg",
-        "url": "assets/music/url/song_1.mp3",
-        "duration": 180
-    },
-    {
-        "id": 2,
-        "title": "8月31日",
-        "artist": "Unknown",
-        "cover": "assets/music/cover/song_2.jpg",
-        "url": "assets/music/url/song_2.mp3",
-        "duration": 180
-    },
-    {
-        "id": 3,
-        "title": "RIP",
-        "artist": "Unknown",
-        "cover": "assets/music/cover/song_3.jpg",
-        "url": "assets/music/url/song_3.mp3",
-        "duration": 180
-    },
-    {
-        "id": 4,
-        "title": "Last Night,Good Night",
-        "artist": "Unknown",
-        "cover": "assets/music/cover/song_4.jpg",
-        "url": "assets/music/url/song_4.mp3",
-        "duration": 180
-    },
-    {
-        "id": 5,
-        "title": "夢よ未来へ",
-        "artist": "Unknown",
-        "cover": "assets/music/cover/song_5.jpg",
-        "url": "assets/music/url/song_5.mp3",
-        "duration": 180
-    },
-    {
-        "id": 6,
-        "title": "一人行者",
-        "artist": "Unknown",
-        "cover": "assets/music/cover/song_6.jpg",
-        "url": "assets/music/url/song_6.mp3",
-        "duration": 180
-    },
-    {
-        "id": 7,
-        "title": "アイロニ",
-        "artist": "Unknown",
-        "cover": "assets/music/cover/song_7.jpg",
-        "url": "assets/music/url/song_7.mp3",
-        "duration": 180
-    },
-    {
-        "id": 8,
-        "title": "夜明けと蛍 arrange ver.",
-        "artist": "Unknown",
-        "cover": "assets/music/cover/song_8.jpg",
-        "url": "assets/music/url/song_8.mp3",
-        "duration": 180
-    },
-    {
-        "id": 9,
-        "title": "アスノヨゾラ哨戒班",
-        "artist": "Unknown",
-        "cover": "assets/music/cover/song_9.jpg",
-        "url": "assets/music/url/song_9.mp3",
-        "duration": 180
-    },
-    {
-        "id": 10,
-        "title": "もうじき夏が終わるから",
-        "artist": "Unknown",
-        "cover": "assets/music/cover/song_10.jpg",
-        "url": "assets/music/url/song_10.mp3",
-        "duration": 180
-    }
-];
-
 const staticPlaylist = [
 	{
 		id: 1,
@@ -588,20 +505,10 @@ async function fetchMetingPlaylist() {
 	isLoading = false;
 	console.warn("没有静态音乐数据，使用本地歌单");
 	showErrorMessage("在线歌单加载失败，正在使用本地歌单");
-	if (localPlaylist.length > 0) {
-		playlist = localPlaylist.map((s) =>
-			processSongData(s as SongData, getAssetPath, normalizeCoverUrl),
-		);
-		// 如果配置要求自动连播，设置为列表循环
-		if (shouldAutoplayContinuous) {
-			isRepeating = 2;
-		}
-		if (playlist.length > 0) {
-			loadSong(playlist[0]);
-			preloadCurrentAndNextCovers().catch((e) =>
-				console.debug("封面预加载失败:", e),
-			);
-		}
+	// 改为使用 meting API
+	if (mode === "meting") {
+		ensureMetingLoaded();
+		return;
 	}
 }
 
@@ -1751,36 +1658,6 @@ onMount(() => {
 		setTimeout(() => {
 			ensureMetingLoaded();
 		}, 100);
-	}
-	else {
-		// 本地歌单：立即加载（成本低），但不预加载所有资源
-		playlist = localPlaylist.map((s) => {
-			const rawCover = normalizeCoverUrl(s.cover);
-			const processedCover = rawCover ? getAssetPath(rawCover) : DEFAULT_COVER;
-			return {
-				...s,
-				cover: processedCover,
-				url: getAssetPath(s.url),
-			};
-		});
-		// 如果配置要求自动连播，设置为列表循环
-		if (shouldAutoplayContinuous) {
-			isRepeating = 2;
-		}
-		if (playlist.length > 0) {
-			loadSong(playlist[0]);
-			// 确保音频元素有正确的初始状态
-			setTimeout(() => {
-				if (audio && (!audio.src || audio.readyState === 0)) {
-					console.debug("Ensuring audio is loaded on mount");
-					loadSong(playlist[0]);
-				}
-			}, 200);
-			// 立即预加载当前+后续歌曲的封面，不等待空闲时刻
-			preloadCurrentAndNextCovers().catch(() => {});
-		} else {
-			showErrorMessage("本地播放列表为空");
-		}
 	}
 });
 
