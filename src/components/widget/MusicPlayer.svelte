@@ -472,43 +472,40 @@ function buildMetingUrl(template: string) {
 }
 
 async function fetchMetingPlaylist() {
-	if (!meting_id) return;
+	if (!meting_api || !meting_id) return;
 	isLoading = true;
-
-	// 检查构建时获取的静态数据
-	if (typeof window !== "undefined" && (window as any).musicData) {
-		console.log("🎵 使用构建时静态同步的音乐数据");
-		const staticData = (window as any).musicData;
-		if (staticData.length > 0) {
-			playlist = staticData.map((song: any, index: number) =>
-				processSongData({
-					id: index + 1,
-					title: song.name,
-					author: song.artist,
-					url: song.url,
-					pic: song.cover,
-					lrc: song.lrc
-				}, getAssetPath, normalizeCoverUrl)
-			);
-			if (playlist.length > 0) {
-				loadSong(playlist[0]);
-				preloadCurrentAndNextCovers().catch((e) =>
-					console.debug("封面预加载失败:", e),
-				);
-			}
-			isLoading = false;
-			return;
+	const apiUrl = meting_api
+		.replace(":server", meting_server)
+		.replace(":type", meting_type)
+		.replace(":id", meting_id)
+		.replace(":auth", meting_auth)
+		.replace(":r", Date.now().toString());
+	try {
+		const res = await fetch(apiUrl);
+		if (!res.ok) throw new Error("meting api error");
+		const list: any[] = await res.json();
+		playlist = list.map((song) => {
+			let title = song.name ?? song.title ?? "未知歌曲";
+			let artist = song.artist ?? song.author ?? "未知艺术家";
+			let dur = song.duration ?? 0;
+			if (dur > 10000) dur = Math.floor(dur / 1000);
+			if (!Number.isFinite(dur) || dur <= 0) dur = 0;
+			return {
+				id: song.id,
+				title,
+				artist,
+				cover: song.pic ?? "",
+				url: song.url ?? "",
+				duration: dur,
+			};
+		});
+		if (playlist.length > 0) {
+			loadSong(playlist[0]);
 		}
-	}
-
-	// 如果没有静态数据，使用本地歌单
-	isLoading = false;
-	console.warn("没有静态音乐数据，使用本地歌单");
-	showErrorMessage("在线歌单加载失败，正在使用本地歌单");
-	// 改为使用 meting API
-	if (mode === "meting") {
-		ensureMetingLoaded();
-		return;
+		isLoading = false;
+	} catch (e) {
+		showErrorMessage("Meting 歌单获取失败");
+		isLoading = false;
 	}
 }
 
