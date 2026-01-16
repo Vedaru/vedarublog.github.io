@@ -504,44 +504,17 @@ async function fetchMetingPlaylist() {
 	if (typeof window !== "undefined" && (window as any).musicData) {
 		console.log("🎵 使用构建时静态同步的音乐数据");
 		const staticData = (window as any).musicData;
-		playlist = staticData.map((song: any, index: number) =>
-			processSongData({
-				id: index + 1,
-				title: song.name,
-				author: song.artist,
-				url: song.url,
-				pic: song.cover,
-				lrc: song.lrc
-			}, getAssetPath, normalizeCoverUrl)
-		);
-		if (playlist.length > 0) {
-			loadSong(playlist[0]);
-			preloadCurrentAndNextCovers().catch((e) =>
-				console.debug("封面预加载失败:", e),
+		if (staticData.length > 0) {
+			playlist = staticData.map((song: any, index: number) =>
+				processSongData({
+					id: index + 1,
+					title: song.name,
+					author: song.artist,
+					url: song.url,
+					pic: song.cover,
+					lrc: song.lrc
+				}, getAssetPath, normalizeCoverUrl)
 			);
-		}
-		isLoading = false;
-		return;
-	}
-
-	for (let i = 0; i < metingApiCandidates.length; i++) {
-		const template = metingApiCandidates[i];
-		if (!template) continue;
-		const apiUrl = buildMetingUrl(template);
-		console.log(`尝试使用 Meting API 源 (${i + 1}/${metingApiCandidates.length}):`, apiUrl);
-		try {
-			const list = await fetchMetingAPI(apiUrl, 10000 + i * 3000, 3);
-			if (list.length > 0) {
-				console.log("🎵 Meting API 成功获取歌单，共", list.length, "首歌");
-				console.log("🎵 第一首歌数据:", list[0]);
-			}
-			playlist = list.map((song: SongData) =>
-				processSongData(song, getAssetPath, normalizeCoverUrl)
-			);
-			// 如果配置要求自动连播，设置为列表循环
-			if (shouldAutoplayContinuous) {
-				isRepeating = 2;
-			}
 			if (playlist.length > 0) {
 				loadSong(playlist[0]);
 				preloadCurrentAndNextCovers().catch((e) =>
@@ -549,16 +522,13 @@ async function fetchMetingPlaylist() {
 				);
 			}
 			isLoading = false;
-			return; // 成功后退出
-		} catch (e) {
-			console.warn(`Meting API 源失败 (${i + 1}/${metingApiCandidates.length}):`, e);
-			// 尝试下一个候选源
+			return;
 		}
 	}
 
-	// 所有候选源都失败，使用本地歌单
+	// 如果没有静态数据，使用本地歌单
 	isLoading = false;
-	console.warn("所有 Meting API 源均失败，使用本地歌单");
+	console.warn("没有静态音乐数据，使用本地歌单");
 	showErrorMessage("在线歌单加载失败，正在使用本地歌单");
 	if (localPlaylist.length > 0) {
 		playlist = localPlaylist.map((s) =>
