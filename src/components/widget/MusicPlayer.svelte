@@ -28,7 +28,7 @@ let mode = musicPlayerConfig.mode ?? "meting";
 // Meting API 地址，从配置中获取或使用默认地址
 let meting_api =
 	musicPlayerConfig.meting_api ??
-	"https://api.vedaru.cn/api?server=:server&type=:type&id=:id&auth=:auth&r=:r";
+	"https://musicapi.vedaru.cn/api?server=:server&type=:type&id=:id&auth=:auth&r=:r";
 
 // Meting API 候选列表：优先使用 `musicPlayerConfig.meting_api_candidates`（在 `src/config.ts` 中配置），
 // 若未配置则回退到单一的 `meting_api`。
@@ -36,9 +36,9 @@ const metingApiCandidates = (musicPlayerConfig.meting_api_candidates && musicPla
 	? musicPlayerConfig.meting_api_candidates
 	: [meting_api].filter(Boolean);
 // Meting API 的 ID，从配置中获取或使用默认值
-let meting_id = musicPlayerConfig.id ?? "9647979018";
+let meting_id = musicPlayerConfig.id ?? "17514570572";
 // Meting API 的服务器，从配置中获取或使用默认值,有的meting的api源支持更多平台,一般来说,netease=网易云音乐, tencent=QQ音乐, kugou=酷狗音乐, xiami=虾米音乐, baidu=百度音乐
-let meting_server = musicPlayerConfig.server ?? "tencent";
+let meting_server = musicPlayerConfig.server ?? "netease";
 // Meting API 的类型，从配置中获取或使用默认值
 let meting_type = musicPlayerConfig.type ?? "playlist";
 // Meting API 的认证信息（Cookie），从配置中获取
@@ -380,30 +380,86 @@ let prefetchedForIndex: number | null = null;
 const PREFETCH_THRESHOLD = 15;
 
 const localPlaylist = [
-	{
-		id: 1,
-		title: "ひとり上手",
-		artist: "Kaya",
-		cover: "assets/music/cover/hitori.webp",
-		url: "assets/music/url/hitori.mp3",
-		duration: 240,
-	},
-	{
-		id: 2,
-		title: "眩耀夜行",
-		artist: "スリーズブーケ",
-		cover: "assets/music/cover/xryx.webp",
-		url: "assets/music/url/xryx.mp3",
-		duration: 180,
-	},
-	{
-		id: 3,
-		title: "春雷の頃",
-		artist: "22/7",
-		cover: "assets/music/cover/cl.webp",
-		url: "assets/music/url/cl.mp3",
-		duration: 200,
-	},
+    {
+        "id": 1,
+        "title": "反乌托邦",
+        "artist": "Unknown",
+        "cover": "assets/music/cover/song_1.jpg",
+        "url": "assets/music/url/song_1.mp3",
+        "duration": 180
+    },
+    {
+        "id": 2,
+        "title": "8月31日",
+        "artist": "Unknown",
+        "cover": "assets/music/cover/song_2.jpg",
+        "url": "assets/music/url/song_2.mp3",
+        "duration": 180
+    },
+    {
+        "id": 3,
+        "title": "RIP",
+        "artist": "Unknown",
+        "cover": "assets/music/cover/song_3.jpg",
+        "url": "assets/music/url/song_3.mp3",
+        "duration": 180
+    },
+    {
+        "id": 4,
+        "title": "Last Night,Good Night",
+        "artist": "Unknown",
+        "cover": "assets/music/cover/song_4.jpg",
+        "url": "assets/music/url/song_4.mp3",
+        "duration": 180
+    },
+    {
+        "id": 5,
+        "title": "夢よ未来へ",
+        "artist": "Unknown",
+        "cover": "assets/music/cover/song_5.jpg",
+        "url": "assets/music/url/song_5.mp3",
+        "duration": 180
+    },
+    {
+        "id": 6,
+        "title": "一人行者",
+        "artist": "Unknown",
+        "cover": "assets/music/cover/song_6.jpg",
+        "url": "assets/music/url/song_6.mp3",
+        "duration": 180
+    },
+    {
+        "id": 7,
+        "title": "アイロニ",
+        "artist": "Unknown",
+        "cover": "assets/music/cover/song_7.jpg",
+        "url": "assets/music/url/song_7.mp3",
+        "duration": 180
+    },
+    {
+        "id": 8,
+        "title": "夜明けと蛍 arrange ver.",
+        "artist": "Unknown",
+        "cover": "assets/music/cover/song_8.jpg",
+        "url": "assets/music/url/song_8.mp3",
+        "duration": 180
+    },
+    {
+        "id": 9,
+        "title": "アスノヨゾラ哨戒班",
+        "artist": "Unknown",
+        "cover": "assets/music/cover/song_9.jpg",
+        "url": "assets/music/url/song_9.mp3",
+        "duration": 180
+    },
+    {
+        "id": 10,
+        "title": "もうじき夏が終わるから",
+        "artist": "Unknown",
+        "cover": "assets/music/cover/song_10.jpg",
+        "url": "assets/music/url/song_10.mp3",
+        "duration": 180
+    }
 ];
 
 const staticPlaylist = [
@@ -1030,26 +1086,6 @@ function getAssetPath(path: string): string {
 	const base = (import.meta.env?.BASE_URL || "/").replace(/\/$/, "");
 	if (!path) return base + "/";
 	if (path.startsWith("http://") || path.startsWith("https://")) return path;
-
-	// 如果是 Meting API 的代理路径（例如 "/api?server=..." 或 "api?server=..."），
-	// 优先将其转换为 Meting API 的 origin + path，避免变为站点根的相对请求（导致 404）。
-	try {
-		const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-		if (normalizedPath.startsWith("/api") || /server=[a-zA-Z0-9_\-]+/.test(path) && path.includes("type=")) {
-			// 从配置或模板推导 origin（尽量使用完整的 meting_api 模板）。
-			const sampleApi = meting_api
-				.replace(":server", meting_server)
-				.replace(":type", meting_type)
-				.replace(":id", meting_id)
-				.replace(":auth", meting_auth);
-			const origin = new URL(sampleApi).origin;
-			if (origin) return origin + normalizedPath;
-		}
-	} catch (e) {
-		// 忽略解析错误，回退到默认行为
-		console.debug('getAssetPath: failed to resolve API origin', e);
-	}
-
 	if (path.startsWith("/")) return `${base}${path}`;
 	return `${base}/${path}`;
 }
