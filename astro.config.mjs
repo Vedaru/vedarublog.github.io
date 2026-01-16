@@ -198,6 +198,14 @@ export default defineConfig({
 	vite: {
 		build: {
 			rollupOptions: {
+				output: {
+					manualChunks: {
+						// 将第三方库分离到单独的 chunk
+						vendor: ['svelte', '@astrojs/svelte', '@swup/astro'],
+						icons: ['@iconify/svelte', '@iconify-json/fa6-brands', '@iconify-json/fa6-solid'],
+						utils: ['dayjs', 'crypto-js', 'reading-time'],
+					},
+				},
 				onwarn(warning, warn) {
 					// temporarily suppress this warning
 					if (

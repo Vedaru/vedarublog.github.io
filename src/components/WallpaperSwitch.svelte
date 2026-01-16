@@ -10,13 +10,18 @@ import Icon from "@iconify/svelte";
 import { getStoredWallpaperMode, setWallpaperMode } from "../utils/setting-utils";
 import type { WALLPAPER_MODE } from "../types/config";
 import { panelManager } from "../utils/panel-manager";
+import { onMount } from "svelte";
 
 const seq: WALLPAPER_MODE[] = [
 	WALLPAPER_BANNER,
 	WALLPAPER_FULLSCREEN,
 	WALLPAPER_NONE,
 ];
-let mode: WALLPAPER_MODE = getStoredWallpaperMode();
+let mode: WALLPAPER_MODE = WALLPAPER_BANNER; // 默认值
+
+onMount(() => {
+	mode = getStoredWallpaperMode();
+});
 
 function switchWallpaperMode(newMode: WALLPAPER_MODE) {
 	mode = newMode;
