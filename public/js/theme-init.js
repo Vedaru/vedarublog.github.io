@@ -9,7 +9,7 @@ window.BANNER_HEIGHT_EXTEND = 30;
 window.BANNER_HEIGHT_HOME = 65;
 
 // 从 Astro 定义的变量获取配置
-const DEFAULT_THEME = window.DEFAULT_THEME || 'auto';
+const DEFAULT_THEME = 'auto';
 const LIGHT_MODE = window.LIGHT_MODE || 'light';
 const DARK_MODE = window.DARK_MODE || 'dark';
 const BANNER_HEIGHT_EXTEND = window.BANNER_HEIGHT_EXTEND || 30;
