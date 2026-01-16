@@ -472,7 +472,11 @@ function buildMetingUrl(template: string) {
 }
 
 async function fetchMetingPlaylist() {
-	if (!meting_api || !meting_id) return;
+	console.log("fetchMetingPlaylist called, meting_api:", meting_api, "meting_id:", meting_id);
+	if (!meting_api || !meting_id) {
+		console.log("Missing meting_api or meting_id, returning");
+		return;
+	}
 	isLoading = true;
 	const apiUrl = meting_api
 		.replace(":server", meting_server)
@@ -480,10 +484,13 @@ async function fetchMetingPlaylist() {
 		.replace(":id", meting_id)
 		.replace(":auth", meting_auth)
 		.replace(":r", Date.now().toString());
+	console.log("API URL:", apiUrl);
 	try {
 		const res = await fetch(apiUrl);
+		console.log("Fetch response:", res);
 		if (!res.ok) throw new Error("meting api error");
 		const list: any[] = await res.json();
+		console.log("API response:", list);
 		playlist = list.map((song) => {
 			let title = song.name ?? song.title ?? "未知歌曲";
 			let artist = song.artist ?? song.author ?? "未知艺术家";
