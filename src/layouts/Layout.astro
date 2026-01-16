@@ -499,7 +499,15 @@ n					// 为触控设备添加按下态处理：按下时添加 pressed 类，�
 					const pingTargetRuntime = (statusEl && statusEl.dataset && statusEl.dataset.proxyPingUrl) || 'https://interactive-examples.mdn.mozilla.net/media/examples/t-rex-roar.mp3';
 					const pingUrlLocal = base + encodeURIComponent(pingTargetRuntime);
 					// Use a lightweight GET with a small Range to validate availability
-					const res = await fetch(pingUrlLocal, { method: 'GET', mode: 'cors', headers: { 'Range': 'bytes=0-0' }, signal: controller.signal });
+					let res;
+				try {
+					res = await fetch(pingUrlLocal, { method: 'HEAD', mode: 'cors', signal: controller.signal });
+					if (!res || !res.ok) {
+						res = await fetch(pingUrlLocal, { method: 'GET', mode: 'cors', signal: controller.signal });
+					}
+				} catch (e) {
+					try { res = await fetch(pingUrlLocal); } catch (_) { throw e; }
+				}
 					ok = res && res.ok;
 					} finally { clearTimeout(id); }
 				// Set global proxy availability flag and notify listeners
