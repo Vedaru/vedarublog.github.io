@@ -390,9 +390,10 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 	// 当前使用：官方 Meting API（主源）。
 	// 可选：按优先级提供多个候选 Meting API 源，播放器会按顺序尝试备用源。
 	meting_api:
-		"https://api.i-meto.com/meting/api?server=netease&type=playlist&id=17514570572",
+		"https://api.vedaru.cn/api?server=netease&type=playlist&id=17514570572",
 	meting_api_candidates: [
-		"https://api.i-meto.com/meting/api?server=netease&type=playlist&id=17514570572",
+		"https://api.vedaru.cn/api?server=netease&type=playlist&id=17514570572",
+		"https://api.vedaru.cn/api?server=:server&type=:type&id=:id",
 		"https://api.wuenci.com/meting/api/?server=:server&type=:type&id=:id",
 		"https://meting.qjqq.cn/api?server=:server&type=:type&id=:id",
 		"https://api.injahow.cn/meting/?server=:server&type=:type&id=:id&auth=:auth&r=:r",
