@@ -23,7 +23,7 @@
 		"preinstall": "npx only-allow pnpm",
 		"compress-fonts": "node scripts/compress-fonts.js",
 		"test-font-compression": "node scripts/test-font-compression.js"
-	},
+		},
 	"dependencies": {
 		"@astrojs/check": "^0.9.6",
 		"@astrojs/cloudflare": "^12.6.12",
