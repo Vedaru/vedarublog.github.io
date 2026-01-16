@@ -218,21 +218,16 @@ if (siteConfig.font) {
 		<!-- 网易云音乐防盗链 -->
 		{musicPlayerConfig.enable && <meta name="referrer" content="no-referrer" />}
 		
-		<!-- Preload local fonts to reduce FOUT on loading screen -->
-		{siteConfig.font?.asciiFont?.localFonts?.map((f) => (
-			<link rel="preload" as="font" href={import.meta.env.BASE_URL + `assets/font/${f.replace('.ttf', '.woff2')}`} type="font/woff2" crossorigin />
+		<!-- 字体预加载优化：移除非关键字体预加载，避免阻塞渲染 -->
+		{/* 仅预加载关键 ASCII 字体，如果需要 */}
+		{siteConfig.font?.asciiFont?.localFonts?.slice(0, 1).map((f) => (
+			<link rel="preload" as="font" href={import.meta.env.BASE_URL + `assets/font/${f.replace('.ttf', '.woff2')}`} type="font/woff2" crossorigin fetchpriority="low" />
 		))}
-		{/* CJK 字体预加载已禁用以节省资源 */}
-		{/* {siteConfig.font?.cjkFont?.localFonts?.map((f) => (
-			<link rel="preload" as="font" href={import.meta.env.BASE_URL + `assets/font/${f.replace('.ttf', '.woff2')}`} type="font/woff2" crossorigin />
-		))} */}
+		{/* CJK 字体完全移除预加载，依赖 font-display: swap */}
 		<!-- 第三方分析脚本 - 延迟加载优化（移到外部文件） -->
-		<script src="/js/analytics-loader.js" defer></script>
-		<!-- 将构建时静态导入的 panelManager 暴露给运行时脚本，避免部分页面使用动态导入导致 404 -->
-		<script is:inline>
-			// panelManager 已在 frontmatter 中导入并在初始化脚本中暴露
-			// 这里只是确保它被正确设置
-		</script>
+		<script src="/js/analytics-loader.js" is:inline></script>
+		<!-- 主题初始化脚本 - 移到外部文件并延迟加载 -->
+		<script src="/js/theme-init.js" defer is:inline></script>
 
 		<title>{pageTitle}</title>
 
@@ -285,85 +280,7 @@ if (siteConfig.font) {
 			/>
 		))}
 
-		<!-- Set the theme before the page is rendered to avoid a flash -->
-		<script is:inline type="module" define:vars={{DEFAULT_THEME, LIGHT_MODE, DARK_MODE, BANNER_HEIGHT_EXTEND, PAGE_WIDTH, configHue}}>
-			// 全局注入BANNER_HEIGHT等变量，避免全局未定义
-			window.BANNER_HEIGHT = 35;
-			window.BANNER_HEIGHT_EXTEND = 30;
-			window.BANNER_HEIGHT_HOME = 65;
-
-			// Load the theme from local storage
-			const theme = localStorage.getItem('theme') || DEFAULT_THEME;
-			let isDark = false;
-			switch (theme) {
-				case LIGHT_MODE:
-					document.documentElement.classList.remove('dark');
-					isDark = false;
-					break
-				case DARK_MODE:
-					document.documentElement.classList.add('dark');
-					isDark = true;
-					break
-			}
-			// Set the theme for Expressive Code based on current mode
-			const expressiveTheme = isDark ? "github-dark" : "github-light";
-			const currentTheme = document.documentElement.getAttribute("data-theme");
-			if (currentTheme !== expressiveTheme) {
-				document.documentElement.setAttribute("data-theme", expressiveTheme);
-			}
-			// Load the hue from local storage
-			const hue = localStorage.getItem('hue') || configHue;
-			document.documentElement.style.setProperty('--hue', hue);
-			// calculate the --banner-height-extend, which needs to be a multiple of 4 to avoid blurry text
-			let offset = Math.floor(window.innerHeight * (BANNER_HEIGHT_EXTEND / 100));
-			offset = offset - offset % 4;
-			document.documentElement.style.setProperty('--banner-height-extend', `${offset}px`);
-
-			// 移动设备优化：标记并移除导航中按钮的 scale-animation 类，防止伪元素阴影在触控设备上残留（尽早执行）
-			try {
-				const isTouchDevice = (window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches) || ('ontouchstart' in window);
-				if (isTouchDevice) {
-					// 标记 HTML，使 CSS 能更早作用（针对某些浏览器媒体查询无法正确匹配的情况）
-					document.documentElement.classList.add('is-touch');
-					// 只移除导航栏内的按钮 scale-animation，保留桌面交互效果
-					document.querySelectorAll('#navbar-wrapper .btn-plain.scale-animation').forEach(el => {
-						el.classList.remove('scale-animation');
-					});
-
-n					// 为触控设备添加按下态处理：按下时添加 pressed 类，松开时移除并 blur，防止残留 focus 导致伪元素可见
-					document.querySelectorAll('#navbar-wrapper .btn-plain').forEach(el => {
-						try {
-							// pointerdown 在大多数设备都可用，使用它来添加 pressed 状态
-							el.addEventListener('pointerdown', () => {
-								el.classList.add('pressed');
-							});
-							// pointerup / pointercancel 移除 pressed，并 blur（短延迟以避免阻塞 click 处理）
-							el.addEventListener('pointerup', () => {
-								setTimeout(() => {
-									try { el.blur(); } catch (e) {}
-									el.classList.remove('pressed');
-								}, 10);
-							});
-							el.addEventListener('pointercancel', () => {
-								try { el.blur(); } catch (e) {}
-								el.classList.remove('pressed');
-							});
-							// 兼容性：部分旧手机只触发 touchend
-							el.addEventListener('touchend', () => {
-								setTimeout(() => {
-									try { el.blur(); } catch (e) {}
-									el.classList.remove('pressed');
-								}, 10);
-							}, { passive: true });
-						} catch (e) {
-							// ignore per-element errors
-						}
-					});
-				}
-			} catch (e) {
-				// ignore
-			}
-		</script>
+		<!-- 主题初始化脚本已移到外部文件 -->
 		<style define:vars={{
 			configHue,
 			'page-width': `${PAGE_WIDTH}rem`,
