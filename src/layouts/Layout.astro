@@ -15,7 +15,7 @@ import { umamiConfig } from "../config";
 interface MetingSong {
 	title: string;
 	author: string;
-	song_id: string;
+	url: string;
 	pic: string;
 	lrc: string;
 }
@@ -29,7 +29,7 @@ if (musicPlayerConfig.enable && musicPlayerConfig.mode === "meting") {
 		const audioList = data.map((song: any) => ({
 			name: song.title,
 			artist: song.author,
-			url: `https://music.163.com/song/media/outer/url?id=${song.song_id}.mp3`,
+			url: song.url, // 使用API返回的完整URL
 			cover: song.pic,
 			lrc: song.lrc
 		}));
