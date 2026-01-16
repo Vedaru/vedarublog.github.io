@@ -188,16 +188,16 @@ export const siteConfig: SiteConfig = {
 			fontFamily: "ZenMaruGothic-Medium",
 			fontWeight: "400",
 			localFonts: ["ZenMaruGothic-Medium.ttf"],
-			enableCompress: false,
+			enableCompress: true,
 		},
 		// CJK 字体已禁用以节省资源，使用浏览器默认字体
-		// cjkFont: {
-		// 	// 中日韩字体 - 作为回退字体
-		// 	fontFamily: "微软雅黑, Microsoft YaHei",
-		// 	fontWeight: "400",
-		// 	localFonts: ["微软雅黑.ttf"],
-		// 	enableCompress: false,
-		// },
+		cjkFont: {
+			// 中日韩字体 - 作为回退字体
+			fontFamily: "微软雅黑, Microsoft YaHei",
+			fontWeight: "400",
+			localFonts: ["微软雅黑.ttf"],
+			enableCompress: true,
+		},
 	},
 	showLastModified: true, // 控制“上次编辑”卡片显示的开关
 };
