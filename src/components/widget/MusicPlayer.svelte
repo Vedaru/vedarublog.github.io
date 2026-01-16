@@ -1030,6 +1030,26 @@ function getAssetPath(path: string): string {
 	const base = (import.meta.env?.BASE_URL || "/").replace(/\/$/, "");
 	if (!path) return base + "/";
 	if (path.startsWith("http://") || path.startsWith("https://")) return path;
+
+	// 如果是 Meting API 的代理路径（例如 "/api?server=..." 或 "api?server=..."），
+	// 优先将其转换为 Meting API 的 origin + path，避免变为站点根的相对请求（导致 404）。
+	try {
+		const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+		if (normalizedPath.startsWith("/api") || /server=[a-zA-Z0-9_\-]+/.test(path) && path.includes("type=")) {
+			// 从配置或模板推导 origin（尽量使用完整的 meting_api 模板）。
+			const sampleApi = meting_api
+				.replace(":server", meting_server)
+				.replace(":type", meting_type)
+				.replace(":id", meting_id)
+				.replace(":auth", meting_auth);
+			const origin = new URL(sampleApi).origin;
+			if (origin) return origin + normalizedPath;
+		}
+	} catch (e) {
+		// 忽略解析错误，回退到默认行为
+		console.debug('getAssetPath: failed to resolve API origin', e);
+	}
+
 	if (path.startsWith("/")) return `${base}${path}`;
 	return `${base}/${path}`;
 }
