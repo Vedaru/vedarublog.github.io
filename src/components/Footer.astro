@@ -90,14 +90,14 @@ if (footerConfig.enable) {
     // 预加载图片以提高响应速度
     (function preloadSeasonalImage() {
         const month = new Date().getMonth() + 1;
-        let imageName = "sakura.png";
+        let imageName = "sakura.webp";
         
         if (month >= 3 && month <= 5) {
-            imageName = "sakura.png";
+            imageName = "sakura.webp";
         } else if (month >= 9 && month <= 11) {
-            imageName = "mapleleaf.png";
+            imageName = "mapleleaf.webp";
         } else if (month === 12 || month === 1 || month === 2) {
-            imageName = "snowflake.png";
+            imageName = "snowflake.webp";
         }
         
         const img = new Image();

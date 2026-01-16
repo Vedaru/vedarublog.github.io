@@ -99,12 +99,7 @@ export const siteConfig: SiteConfig = {
 				"/assets/desktop-banner/be809be42311aa693fc459cf189339c36ca3ecbb.webp",
 				"/assets/desktop-banner/8b31043a430bb793c6bd2949adb5ae1bb0825f25.webp",
 			], // 桌面横幅图片
-			mobile: [
-				"/assets/mobile-banner/e72646f638b299c4aac3acf81932d2e8290750052.webp",
-				"/assets/mobile-banner/6ef052ba91921b0e396eee8f4cc264eddf86308d.webp",
-				"/assets/mobile-banner/270f1b9b9b0bb275802a3b20ac21672d33a6663c.webp",
-				"/assets/mobile-banner/5edec7a9d26759736603ad45e8e93241cd0dc735.webp",
-			], // 移动横幅图片
+			mobile: [], // 移动横幅图片
 		}, // 使用本地横幅图片
 
 		position: "center", // 等同于 object-position，仅支持 'top', 'center', 'bottom'。默认为 'center'
