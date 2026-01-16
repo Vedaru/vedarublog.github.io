@@ -425,11 +425,6 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 	// 可选：当浏览器支持 WebAudio 时，增益倍数用于放大输出（例如 2.0 表示最多放大 2 倍）
 	// 若音源受 CORS 限制而回退为非 WebAudio 模式，则此配置无效。
 	gainBoost: 1.0, // 设置增益倍数为1.0，避免放大导致的卡顿
-	// 可选：为外部音频 URL 提供一个代理前缀（若不希望在配置中暴露，可保持 undefined）
-	proxyBase: "https://music-api.vedaru.cn/?url=",
-	// 选填：用于探测代理是否可用的短音频 URL（用于健康检查）
-	// NOTE: MDN's example t-rex URL sometimes returns 404; use a more reliable file-hosted MP3 or host a local test file.
-	// proxyPingUrl: "https://file-examples.com/wp-content/uploads/2017/11/file_example_MP3_700KB.mp3",
 };
 
 export const footerConfig: FooterConfig = {

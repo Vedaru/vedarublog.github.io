@@ -298,10 +298,6 @@ export type MusicPlayerConfig = {
 	order?: "list" | "random"; // 播放顺序
 	mutex?: boolean; // 互斥模式，防止多个播放器同时播放
 	storageName?: string; // localStorage 缓存键名
-	// 可选：代理前缀，用于将外部音频 URL 包裹到你的 Worker（例："https://musicproxy.example.workers.dev/?url=")
-	proxyBase?: string;
-	// 可选：用于健康检查的测试音频 URL（仅用于探测代理是否可用，不作为默认播放）
-	proxyPingUrl?: string;
 };
 
 export type FooterConfig = {

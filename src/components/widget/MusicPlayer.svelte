@@ -208,6 +208,62 @@ function logAudioError(err: any, context = "") {
 	}
 }
 // 增强版：带重试与指数回退的封面预加载（使用新的工具函数）
+/**
+ * Handle image load error for the mini/compact cover.
+ * Moves inline handler into script to avoid Svelte parse issues.
+ */
+function handleMiniCoverError(event: Event) {
+	const img = event.currentTarget as HTMLImageElement;
+	if (img.src.endsWith('/favicon/favicon.ico')) return;
+	// 若首次失败，尝试使用原始 URL 重新加载一次；第二次失败才回退为 favicon
+	const retried = img.dataset.retry === '1';
+	try {
+		// 删除可能的坏缓存映射
+		for (const [key, val] of coverCache.entries()) {
+			if (val === img.src || key === currentSong.cover) {
+				coverCache.delete(key);
+			}
+		}
+		persistCoverCache();
+	} catch (e) {}
+	if (!retried) {
+		img.dataset.retry = '1';
+		img.src = currentSong.cover;
+	} else {
+		img.src = '/favicon/favicon.ico';
+	}
+	// 触发后台重试以便尽快补全缓存
+	preloadSingleCover(currentSong.cover, 8000, 2).catch(() => {});
+}
+
+/**
+ * Handle image load error for the expanded/full cover.
+ */
+function handleExpandedCoverError(event: Event) {
+	const img = event.currentTarget as HTMLImageElement;
+	if (img.src.endsWith('/favicon/favicon.ico')) return;
+	img.src = '/favicon/favicon.ico';
+}
+
+/**
+ * Handle image load error for items in the playlist.
+ */
+function handleListCoverError(event: Event, song: any) {
+	const img = event.currentTarget as HTMLImageElement;
+	if (img.src.endsWith('/favicon/favicon.ico')) return;
+	const attempt = Number(img.dataset.attempt || '0');
+	// 使用备用封面地址
+	const fallbacks = [song?.cover, DEFAULT_COVER, '/favicon/favicon.ico'].filter(Boolean) as string[];
+
+	const next = fallbacks[attempt];
+	if (next && attempt < fallbacks.length) {
+		img.dataset.attempt = String(attempt + 1);
+		img.src = next;
+	} else {
+		img.src = DEFAULT_COVER;
+	}
+}
+
 async function preloadSingleCover(coverUrl: string, timeout = 5000, maxRetries = 2): Promise<void> {
 	if (!coverUrl || coverCache.has(coverUrl) || loadingCovers.has(coverUrl)) return;
 
@@ -357,37 +413,8 @@ function buildMetingUrl(template: string) {
 		.replace(":r", Date.now().toString());
 }
 
-// Resolve a single song's direct streaming URL from Meting API when missing
-async function resolveSongUrl(songId: string | number, timeout = 8000) {
-	if (!songId) return null;
-	for (let i = 0; i < metingApiCandidates.length; i++) {
-		const template = metingApiCandidates[i];
-		if (!template) continue;
-		const url = template
-			.replace(':server', meting_server)
-			.replace(':type', 'song')
-			.replace(':id', String(songId))
-			.replace(':auth', '')
-			.replace(':r', Date.now().toString());
-		try {
-			const controller = new AbortController();
-			const id = setTimeout(() => controller.abort(), timeout + i * 2000);
-			const res = await fetch(url, { signal: controller.signal, headers: { 'Accept': 'application/json' } });
-			clearTimeout(id);
-			if (!res.ok) continue;
-			const data = await res.json();
-			if (Array.isArray(data) && data.length > 0 && data[0].url) {
-				return data[0].url;
-			}
-		} catch (e) {
-			console.debug('resolveSongUrl attempt failed for', url, e);
-		}
-	}
-	return null;
-}
-
 async function fetchMetingPlaylist() {
-	if (!meting_id) return; 
+	if (!meting_id) return;
 	isLoading = true;
 
 	for (let i = 0; i < metingApiCandidates.length; i++) {
@@ -404,11 +431,10 @@ async function fetchMetingPlaylist() {
 			playlist = list.map((song: SongData) =>
 				processSongData(song, getAssetPath, normalizeCoverUrl)
 			);
-				// 如果配置要求自动连播，设置为列表循环
+			// 如果配置要求自动连播，设置为列表循环
 			if (shouldAutoplayContinuous) {
 				isRepeating = 2;
 			}
-
 			if (playlist.length > 0) {
 				loadSong(playlist[0]);
 				preloadCurrentAndNextCovers().catch((e) =>
@@ -887,8 +913,8 @@ async function prefetchNext() {
 		preloadAudio.volume = 0; // 静音预加载
 		
 		const audioUrl = getAssetPath(next.url);
-	const finalAudioUrl = getProxiedAudioUrl(audioUrl);
-	preloadAudio.src = finalAudioUrl;
+		preloadAudio.src = audioUrl;
+		preloadAudio.load();
 		
 		// 强制预加载缓冲
 		setTimeout(() => {
@@ -929,50 +955,6 @@ function getAssetPath(path: string): string {
 	return `${base}/${path}`;
 }
 
-// Helper: decide whether to proxy this audio url (e.g. Netease CDN URLs)
-function isLikelyNeteaseUrl(u: string): boolean {
-	try {
-		if (!u) return false;
-		return /(?:music\.126\.net|music\.163\.com|\.163\.com|netease)/i.test(u);
-	} catch (e) { return false; }
-}
-
-function buildProxyUrl(original: string): string {
-	// Prefer runtime-configured base exposed by Layout: window.MUSIC_PROXY_BASE
-	try {
-		const runtimeBase = (typeof window !== 'undefined') ? (window as any).MUSIC_PROXY_BASE : undefined;
-		const defaultBase = 'https://music-api.vedaru.cn/?url='; // fallback
-		const base = runtimeBase || (musicPlayerConfig.proxyBase ?? defaultBase);
-		return base + encodeURIComponent(original);
-	} catch (e) {
-		return original;
-	}
-}
-
-function getProxiedAudioUrl(original: string): string {
-	if (!original) return original;
-	// Only proxy full http(s) urls
-	if (!(original.startsWith('http://') || original.startsWith('https://'))) return original;
-	// If it's not a likely netease link, keep as is
-	if (!isLikelyNeteaseUrl(original)) return original;
-	try {
-		// If runtime status indicates proxy available, use it; otherwise fallback to original
-		const available = (typeof window !== 'undefined') ? (window as any).MUSIC_PROXY_AVAILABLE : false;
-		if (available) {
-			const prox = buildProxyUrl(original);
-			console.debug('[MusicPlayer] Proxying audio URL:', original, '->', prox);
-			// Emit event for other components or analytics
-			if (typeof window !== 'undefined') {
-				window.dispatchEvent(new CustomEvent('musicproxy:proxyused', { detail: { original, prox } }));
-			}
-			return prox;
-		}
-	} catch (e) {
-		console.debug('[MusicPlayer] Proxy decision failed', e);
-	}
-	return original;
-}
-
 function normalizeCoverUrl(path: string): string {
 	if (!path) return "";
 	// 避免 https 页面加载 http 资源被阻止，尝试替换为 https
@@ -996,7 +978,7 @@ function cacheCoverVariants(raw: string) {
 	}
 }
 
-async function loadSong(song: typeof currentSong) {
+function loadSong(song: typeof currentSong) {
 	if (!song || !audio) {
 		console.warn("Cannot load song: missing song data or audio element");
 		return;
@@ -1009,28 +991,9 @@ async function loadSong(song: typeof currentSong) {
 	cacheCoverVariants(song.cover);
 	
 	if (!song.url) {
-		// Try to resolve URL from Meting API (sometimes playlist item lacks direct url)
-		console.debug('Song lacks direct URL, attempting to resolve via Meting API:', song);
-		if (mode === 'meting' && (song as any).id) {
-			try {
-				const resolved = await resolveSongUrl(String((song as any).id));
-				if (resolved) {
-					song.url = resolved;
-					console.debug('Resolved song url via Meting API:', resolved);
-				} else {
-					console.warn('Failed to resolve song URL via Meting API for', (song as any).id);
-				}
-			} catch (e) {
-				console.warn('Error while resolving song url:', e);
-			}
-		}
-		if (!song.url) {
-			console.warn("Song has no URL after resolution attempt:", song);
-			isLoading = false;
-			// Emit diagnostic event so frontend can surface to user/analytics
-			try { window.dispatchEvent(new CustomEvent('musicproxy:song-url-missing', { detail: { song } })); } catch (e) {}
-			return;
-		}
+		console.warn("Song has no URL:", song);
+		isLoading = false;
+		return;
 	}
 	
 	isLoading = true;
@@ -1057,11 +1020,10 @@ async function loadSong(song: typeof currentSong) {
 	audio.addEventListener("loadstart", handleLoadStart, { once: true });
 
 	const audioUrl = getAssetPath(song.url);
-	const finalAudioUrl = getProxiedAudioUrl(audioUrl);
-	console.debug("Loading audio:", audioUrl, "->", finalAudioUrl, "readyState:", audio.readyState);
+	console.debug("Loading audio:", audioUrl, "readyState:", audio.readyState);
 	
 	// 设置音频源并加载
-	audio.src = finalAudioUrl;
+	audio.src = audioUrl;
 	audio.load();
 	
 	// 强制预加载：尝试播放一小段时间然后暂停，以触发浏览器缓冲
@@ -1569,37 +1531,7 @@ function handleAudioEvents() {
 	});
 }
 
-let musicProxyAvailable = (typeof window !== 'undefined') ? !!(window as any).MUSIC_PROXY_AVAILABLE : false;
-function onMusicProxyStatus(e: any) {
-	try {
-		const available = !!(e?.detail?.available);
-		if (available === musicProxyAvailable) return;
-		musicProxyAvailable = available;
-		console.debug('[MusicPlayer] musicproxy:status changed ->', available);
-		// If we have a loaded song, re-evaluate the best source
-		if (!audio || !currentSong || !currentSong.url) return;
-		const nowTime = audio.currentTime || 0;
-		const wasPlaying = !audio.paused && !audio.ended;
-		const desired = getProxiedAudioUrl(getAssetPath(currentSong.url));
-		// If desired differs from current src, perform a gentle swap
-		if (desired && audio.src !== desired) {
-			console.debug('[MusicPlayer] Switching audio src due to proxy change:', audio.src, '->', desired);
-			try { audio.pause(); } catch (e) {}
-			audio.src = desired;
-			audio.load();
-			const restoreHandler = () => {
-				try { audio.currentTime = Math.min(nowTime, audio.duration || (currentSong.duration || 0)); } catch (e) {}
-				if (wasPlaying) audio.play().catch(() => {});
-				audio.removeEventListener('loadedmetadata', restoreHandler);
-			};
-			audio.addEventListener('loadedmetadata', restoreHandler);
-		}
-	} catch (e) {
-		console.debug('[MusicPlayer] onMusicProxyStatus failed', e);
-	}
-}
-
-onMount(() => { 
+onMount(() => {
 	// 尽早恢复缓存
 	restoreCoverCache();
 
@@ -1648,11 +1580,7 @@ onMount(() => {
 	}
 	
 	handleAudioEvents();
-
-	if (typeof window !== 'undefined') {
-		window.addEventListener('musicproxy:status', onMusicProxyStatus as EventListener);
-	}
-
+	
 	if (!musicPlayerConfig.enable) {
 		return;
 	}
@@ -1747,10 +1675,6 @@ onDestroy(() => {
 
 		// 清理 portal（如果已移动到 body）
 		try {
-			// 移除全局 musicproxy 事件监听
-			if (typeof window !== 'undefined' && (window as any).removeEventListener) {
-				window.removeEventListener('musicproxy:status', onMusicProxyStatus as EventListener);
-			}
 			if (isBrowser && portalAppended && rootEl && rootEl.parentElement === document.body) {
 				rootEl.remove();
 				portalAppended = false;
@@ -1869,29 +1793,7 @@ onDestroy(() => {
 					 class:spinning={isPlaying && !isLoading}
 					 class:animate-pulse={isLoading}
 					 loading="eager" decoding="sync" fetchpriority="high"
-						 on:error={(event) => {
-						const img = event.currentTarget as HTMLImageElement;
-						if (img.src.endsWith('/favicon/favicon.ico')) return;
-						// 若首次失败，尝试使用原始 URL 重新加载一次；第二次失败才回退为 favicon
-						const retried = img.dataset.retry === '1';
-						try {
-							// 删除可能的坏缓存映射
-							for (const [key, val] of coverCache.entries()) {
-								if (val === img.src || key === currentSong.cover) {
-									coverCache.delete(key);
-								}
-							}
-							persistCoverCache();
-						} catch (e) {}
-						if (!retried) {
-							img.dataset.retry = '1';
-							img.src = currentSong.cover;
-						} else {
-							img.src = '/favicon/favicon.ico';
-						}
-						// 触发后台重试以便尽快补全缓存
-						preloadSingleCover(currentSong.cover, 8000, 2).catch(() => {});
-						}} />
+ on:error={handleMiniCoverError} />
                 <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                     {#if isLoading}
                         <Icon icon="eos-icons:loading" class="text-white text-xl" />
