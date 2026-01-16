@@ -498,14 +498,15 @@ n					// 为触控设备添加按下态处理：按下时添加 pressed 类，�
 						const statusEl = document.getElementById('musicproxy-status');
 					const pingTargetRuntime = (statusEl && statusEl.dataset && statusEl.dataset.proxyPingUrl) || 'https://interactive-examples.mdn.mozilla.net/media/examples/t-rex-roar.mp3';
 					const pingUrlLocal = base + encodeURIComponent(pingTargetRuntime);
-					const res = await fetch(pingUrlLocal, { method: 'HEAD', mode: 'cors', signal: controller.signal });
-						ok = res && res.ok;
-						if (!ok && res && (res.status === 405 || res.status === 501)){
-							// Some servers don't support HEAD; fall back to GET with a small Range request
-								const res2 = await fetch(pingUrlLocal, { method: 'GET', mode: 'cors', headers: { 'Range': 'bytes=0-0' }, signal: controller.signal });
-							ok = res2 && res2.ok;
-						}
+					// Use a lightweight GET with a small Range to validate availability
+					const res = await fetch(pingUrlLocal, { method: 'GET', mode: 'cors', headers: { 'Range': 'bytes=0-0' }, signal: controller.signal });
+					ok = res && res.ok;
 					} finally { clearTimeout(id); }
+				// Set global proxy availability flag and notify listeners
+				window.MUSIC_PROXY_AVAILABLE = ok;
+				window.dispatchEvent(new CustomEvent('musicproxy:status', { detail: { available: ok } }));
+				updateUI(ok);
+				return ok;
 					} catch (e) {
 						window.MUSIC_PROXY_AVAILABLE = false;
 						window.dispatchEvent(new CustomEvent('musicproxy:status', { detail: { available: false } }));
