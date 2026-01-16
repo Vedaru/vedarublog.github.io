@@ -24,7 +24,13 @@ if (musicPlayerConfig.enable && musicPlayerConfig.mode === "meting") {
 	try {
 		const PLAYLIST_ID = musicPlayerConfig.id ?? '28364371';
 		const SERVER = musicPlayerConfig.server ?? 'netease';
-		const response = await fetch(`https://api.i-meto.com/meting/api?server=${SERVER}&type=playlist&id=${PLAYLIST_ID}`);
+		// 优先使用配置中的 meting_api；回退到候选列表或旧默认模板
+		const template = musicPlayerConfig.meting_api ?? (musicPlayerConfig.meting_api_candidates && musicPlayerConfig.meting_api_candidates[0]) ?? `https://api.i-meto.com/meting/api?server=:server&type=:type&id=:id`;
+		let apiUrl = template;
+		if (template.includes(':server') || template.includes(':type') || template.includes(':id')) {
+			apiUrl = template.replace(':server', SERVER).replace(':type', 'playlist').replace(':id', PLAYLIST_ID);
+		}
+		const response = await fetch(apiUrl);
 		const data: MetingSong[] = await response.json();
 		const audioList = data.map((song: any) => ({
 			name: song.title,
