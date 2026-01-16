@@ -33,14 +33,16 @@ let meting_api =
 // Meting API 候选列表：优先使用 `musicPlayerConfig.meting_api_candidates`（在 `src/config.ts` 中配置），
 // 若未配置则回退到单一的 `meting_api`。
 const metingApiCandidates = (musicPlayerConfig.meting_api_candidates && musicPlayerConfig.meting_api_candidates.length > 0)
-	? musicPlayerConfig.meting_api_candidates.map(s => s.replace(/:server|:type|:id|:auth|:r/g, (m) => m)) // template placeholders kept; replaced when building URL
+	? musicPlayerConfig.meting_api_candidates
 	: [meting_api].filter(Boolean);
 // Meting API 的 ID，从配置中获取或使用默认值
-let meting_id = musicPlayerConfig.id ?? "17514570572";
+let meting_id = musicPlayerConfig.id ?? "9647979018";
 // Meting API 的服务器，从配置中获取或使用默认值,有的meting的api源支持更多平台,一般来说,netease=网易云音乐, tencent=QQ音乐, kugou=酷狗音乐, xiami=虾米音乐, baidu=百度音乐
-let meting_server = musicPlayerConfig.server ?? "netease";
+let meting_server = musicPlayerConfig.server ?? "tencent";
 // Meting API 的类型，从配置中获取或使用默认值
 let meting_type = musicPlayerConfig.type ?? "playlist";
+// Meting API 的认证信息（Cookie），从配置中获取
+let meting_auth = musicPlayerConfig.auth ?? "";
 // 播放状态，默认为 false (未播放)
 let isPlaying = false;
 // 自动播放开关
@@ -492,7 +494,7 @@ function buildMetingUrl(template: string) {
 		.replace(":server", meting_server)
 		.replace(":type", meting_type)
 		.replace(":id", meting_id)
-		.replace(":auth", "")
+		.replace(":auth", meting_auth)
 		.replace(":r", Date.now().toString());
 }
 

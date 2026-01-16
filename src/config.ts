@@ -390,18 +390,19 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 	// 当前使用：官方 Meting API（主源）。
 	// 可选：按优先级提供多个候选 Meting API 源，播放器会按顺序尝试备用源。
 	meting_api:
-		"https://api.vedaru.cn/api?server=netease&type=playlist&id=17514570572",
+		"https://api.vedaru.cn/api?server=tencent&type=playlist&id=9647979018",
 	meting_api_candidates: [
-		"https://api.vedaru.cn/api?server=netease&type=playlist&id=17514570572",
+		"https://api.vedaru.cn/api?server=tencent&type=playlist&id=9647979018",
 		"https://api.vedaru.cn/api?server=:server&type=:type&id=:id",
 		"https://api.wuenci.com/meting/api/?server=:server&type=:type&id=:id",
 		"https://meting.qjqq.cn/api?server=:server&type=:type&id=:id",
 		"https://api.injahow.cn/meting/?server=:server&type=:type&id=:id&auth=:auth&r=:r",
 		"https://netease-cloud-music-api-gules-mu.vercel.app/api?server=:server&type=:type&id=:id",
 	],
-	id: "17514570572", // 歌单ID
-	server: "netease", // 音乐源服务器。有的meting的api源支持更多平台,一般来说,netease=网易云音乐, tencent=QQ音乐, kugou=酷狗音乐, xiami=虾米音乐, baidu=百度音乐
+	id: "9647979018", // 歌单ID
+	server: "tencent", // 音乐源服务器。有的meting的api源支持更多平台,一般来说,netease=网易云音乐, tencent=QQ音乐, kugou=酷狗音乐, xiami=虾米音乐, baidu=百度音乐
 	type: "playlist", // 播单类型
+	auth: "", // 网易云音乐Cookie，用于获取VIP歌曲，留空则不使用Cookie
 	
 	// === 性能优化配置 ===
 	preload: "auto", // 仅预加载元数据，不预加载完整音频，加快初始加载速度

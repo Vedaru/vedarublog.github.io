@@ -22,8 +22,8 @@ interface MetingSong {
 let audioListJson = "[]";
 if (musicPlayerConfig.enable && musicPlayerConfig.mode === "meting") {
 	try {
-		const PLAYLIST_ID = musicPlayerConfig.id ?? '28364371';
-		const SERVER = musicPlayerConfig.server ?? 'netease';
+		const PLAYLIST_ID = musicPlayerConfig.id ?? '9647979018';
+		const SERVER = musicPlayerConfig.server ?? 'tencent';
 		// 优先使用配置中的 meting_api；回退到候选列表或旧默认模板
 		const template = musicPlayerConfig.meting_api ?? (musicPlayerConfig.meting_api_candidates && musicPlayerConfig.meting_api_candidates[0]) ?? `https://api.i-meto.com/meting/api?server=:server&type=:type&id=:id`;
 		let apiUrl = template;

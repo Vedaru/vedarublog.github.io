@@ -287,6 +287,7 @@ export type MusicPlayerConfig = {
 	id: string; // 歌单ID
 	server: string; // 音乐源服务器
 	type: string; // 音乐类型
+	auth?: string; // 可选：网易云音乐Cookie，用于获取VIP歌曲
 	// 可选：当浏览器支持 WebAudio 时，增益倍数用于放大输出（例如 2.0 表示最多放大 2 倍）
 	gainBoost?: number;
 	// 可选性能/行为配置
