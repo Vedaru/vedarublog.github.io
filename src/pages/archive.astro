@@ -6,10 +6,12 @@ import MainGridLayout from "@layouts/MainGridLayout.astro";
 import { getSortedPostsList } from "../utils/content-utils";
 
 const sortedPostsList = await getSortedPostsList();
+const tags: string[] = [];
+const categories: string[] = [];
 ---
 
 <MainGridLayout title={i18n(I18nKey.archive)}>
     <h1 class="sr-only">{i18n(I18nKey.archive)}</h1>
-    <ArchivePanel sortedPosts={sortedPostsList} client:only="svelte"></ArchivePanel>
+    <ArchivePanel sortedPosts={sortedPostsList} tags={tags} categories={categories} client:only="svelte"></ArchivePanel>
 </MainGridLayout>
 

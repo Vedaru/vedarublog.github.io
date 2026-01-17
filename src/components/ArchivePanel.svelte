@@ -19,7 +19,7 @@ interface Post {
 	data: {
 		title: string;
 		tags: string[];
-        category?: string;
+        category?: string | null;
         published: string | Date;
 		permalink?: string; // 添加 permalink 字段
 	};
