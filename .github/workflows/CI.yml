@@ -56,17 +56,27 @@ jobs:
           node scripts/download-music.js
 
       - name: Commit and push downloaded music (if any)
-        if: github.event_name == 'workflow_dispatch'
         run: |
           # Stage all music changes (including deletions like .m4a)
-          git add -A public/assets/music || true
+          git add -A public/assets/music public/music || true
+
           # If no staged changes, skip
           if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            git -c author.name="Vedaru" -c author.email="Vedaru@users.noreply.github.com" commit -m "chore: add/update downloaded music (automated)"
-            git push
+            echo "No music changes to commit"
+            exit 0
           fi
+
+          # Prevent commit loops: if the latest commit message indicates an automated music update, skip
+          LATEST_MSG=$(git log -1 --pretty=%B 2>/dev/null || true)
+          echo "Latest commit message: $LATEST_MSG"
+          if echo "$LATEST_MSG" | grep -q -E '^chore:.*music'; then
+            echo "Skipping commit because latest commit is an automated music update"
+            exit 0
+          fi
+
+          # Commit and push
+          git -c user.name="Vedaru" -c user.email="Vedaru@users.noreply.github.com" commit -m "chore: update music — replace m4a with mp3 (automated)"
+          git push origin HEAD:main
 
   check:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
