@@ -1,6 +1,9 @@
+ignoredBuiltDependencies:
+
 onlyBuiltDependencies:
   - '@parcel/watcher'
   - esbuild
   - sharp
   - swup
   - ttf2woff2
+  - ffmpeg-static
