@@ -202,10 +202,17 @@ export default defineConfig({
 			{
 				name: 'add-crossorigin-to-preloads',
 				transformIndexHtml(html) {
-					return html.replace(
+					// First, add as="script" to preload links without as attribute
+					html = html.replace(
+						/<link rel="preload" href="([^"]*)"([^>]*)>/g,
+						'<link rel="preload" as="script" href="$1" crossorigin="anonymous"$2>'
+					);
+					// Then, ensure existing as="script" have crossorigin
+					html = html.replace(
 						/<link rel="preload" as="script" href="([^"]*)"([^>]*)>/g,
 						'<link rel="preload" as="script" href="$1" crossorigin="anonymous"$2>'
 					);
+					return html;
 				},
 			},
 		],

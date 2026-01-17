@@ -17,6 +17,7 @@ import {
 	batchPreloadCovers,
 	processSongData,
 	fetchMetingAPI,
+	loadSongInfo,
 	getFallbackCovers,
 	DEFAULT_COVER as UTILS_DEFAULT_COVER,
 	type SongData,
@@ -737,9 +738,9 @@ function togglePlaylist() {
 		if (mode === 'meting') {
 			ensureMetingLoaded();
 		}
-		// 异步触发全部封面预加载（不阻塞 UI）
+		// 异步触发全部歌曲信息加载（不阻塞 UI）
 		setTimeout(() => {
-			preloadAllPlaylistCovers().catch(() => {});
+			loadAllSongsSequentially().catch(() => {});
 		}, 50);
 	}
 }
@@ -770,6 +771,29 @@ async function preloadAllPlaylistCovers(concurrency = 6) {
 	}
 
 	await Promise.all(workers);
+}
+
+// 按顺序加载所有歌曲的信息（先封面后音频）
+async function loadAllSongsSequentially() {
+	if (!playlist || playlist.length === 0) return;
+	
+	console.log('🎵 开始按顺序加载所有歌曲信息');
+	
+	for (let i = 0; i < playlist.length; i++) {
+		const song = playlist[i];
+		try {
+			// 更新playlist中的歌曲信息
+			playlist[i] = await loadSongInfo(song);
+			console.debug(`✅ 已加载歌曲 ${i + 1}/${playlist.length}: ${song.title}`);
+		} catch (error) {
+			console.debug(`❌ 加载歌曲失败 ${song.title}:`, error);
+		}
+		
+		// 小延迟避免过度请求
+		await new Promise((r) => setTimeout(r, 100));
+	}
+	
+	console.log('🎵 所有歌曲信息加载完成');
 }
 
 function toggleShuffle() {

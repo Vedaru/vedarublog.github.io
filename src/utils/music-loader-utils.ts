@@ -301,4 +301,43 @@ export async function fetchMetingAPI(
 	throw lastError ?? new Error("Unknown error fetching Meting API");
 }
 
+/**
+ * 加载单个歌曲的完整信息（先封面后音频）
+ */
+export async function loadSongInfo(song: ProcessedSong): Promise<ProcessedSong> {
+	// 先加载封面
+	const loadedCover = await preloadImage(song.cover);
+	const updatedSong = { ...song, cover: loadedCover, coverLoaded: true };
+	
+	// 然后预加载音频（但不播放，只是加载到缓冲区）
+	if (song.url) {
+		try {
+			const audio = new Audio();
+			audio.preload = 'metadata'; // 只加载元数据，不加载完整音频
+			audio.src = song.url;
+			// 等待加载完成或超时
+			await new Promise<void>((resolve, reject) => {
+				const timeout = setTimeout(() => {
+					audio.src = '';
+					resolve(); // 超时也算完成，避免阻塞
+				}, 5000);
+				
+				audio.onloadedmetadata = () => {
+					clearTimeout(timeout);
+					resolve();
+				};
+				
+				audio.onerror = () => {
+					clearTimeout(timeout);
+					resolve(); // 错误也算完成
+				};
+			});
+		} catch (error) {
+			console.debug(`Failed to preload audio for ${song.title}:`, error);
+		}
+	}
+	
+	return updatedSong;
+}
+
 export { DEFAULT_COVER };
