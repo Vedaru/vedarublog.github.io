@@ -56,16 +56,17 @@ jobs:
           ffmpeg -version || true
           node scripts/download-music.js
 
-      - name: Commit downloaded music (if any)
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/assets/music || true
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "chore: add/update downloaded music (automated)"
-            git push
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create pull request for downloaded music (if any)
+        uses: peter-evans/create-pull-request@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: add/update downloaded music (automated)"
+          title: "chore: add/update downloaded music (automated)"
+          body: |
+            Automated music download update by workflow `download-music`.
+            Please review the downloaded files before merging.
+          branch: update/music-download
+          base: main
+          labels: automated
+          path: public/assets/music
+          delete-branch: true

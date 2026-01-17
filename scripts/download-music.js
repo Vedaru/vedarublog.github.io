@@ -447,6 +447,13 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
     const outJson = path.join(outDir, 'playlist.json');
     await fs.writeFile(outJson, JSON.stringify(result, null, 2), 'utf-8');
     console.log(`✓ Wrote ${outJson} with ${result.length} songs`);
+    // Also write a compatibility copy to /public/music/playlist.json so themes that
+    // expect the classic location (Mizuki) can find it via /music/playlist.json
+    const legacyMusicDir = path.join(projectRoot, 'public', 'music');
+    await fs.mkdir(legacyMusicDir, { recursive: true });
+    const legacyOut = path.join(legacyMusicDir, 'playlist.json');
+    await fs.writeFile(legacyOut, JSON.stringify(result, null, 2), 'utf-8');
+    console.log(`✓ Wrote compatibility copy ${legacyOut}`);
   } catch (e) {
     console.error('Error:', e && e.message ? e.message : e);
     process.exit(1);
