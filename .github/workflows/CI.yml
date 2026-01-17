@@ -43,6 +43,9 @@ jobs:
       - name: Disable bin links in pnpm (workaround for missing binary sources)
         run: |
           pnpm config set bin-links false
+      - name: Configure Git to use HTTPS for GitHub
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
       - name: Install dependencies
         run: |
           pnpm install --frozen-lockfile
