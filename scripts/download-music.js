@@ -254,24 +254,53 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
     if (enableConvert) console.log('ℹ Audio conversion enabled; ffmpeg binary (validated):', ffmpegBinary || 'using system ffmpeg in PATH');
     else console.log('ℹ Audio conversion disabled or no ffmpeg available');
 
+    // Try to load a transliteration helper to convert Unicode titles into ASCII-friendly text.
+    // If unavailable, fall back to a simple NFKD decomposition to strip diacritics.
+    let transliterateFn = (s) => (s && s.toString ? s.toString() : '');
+    try {
+      const mod = await import('transliteration');
+      if (mod && typeof mod.transliterate === 'function') transliterateFn = mod.transliterate;
+    } catch (e) {
+      transliterateFn = (s) => (s && s.toString ? s.toString().normalize('NFKD').replace(/[\u0300-\u036f]/g, '') : '');
+    }
+
     const result = [];
     for (let i = 0; i < playlist.length; i++) {
       const song = playlist[i];
       const title = (song.name || song.title || `song-${i}`).toString();
       const id = song.id ? song.id.toString() : String(i);
       const ext = (song.url && song.url.split('.').pop() && song.url.split('?')[0].endsWith('.mp3')) ? '.mp3' : '.mp3';
-      // Decode percent-encoded titles first, then strip non-ASCII and unsafe characters
+      // Decode percent-encoded titles first
       let decodedTitle = title;
       try {
         decodedTitle = decodeURIComponent(title);
       } catch (e) {
         // ignore if title is not percent-encoded
       }
-      let safeTitle = decodedTitle.replace(/[^\\x00-\\x7F]/g, '').replace(/[\\/:*?"<>|#%&]/g, '-');
+
+      // Transliterate unicode to ASCII where possible
+      let asciiTitle = transliterateFn(decodedTitle);
+
+      // Remove remaining non-ASCII and unsafe characters
+      let safeTitle = asciiTitle.replace(/[^\\x00-\\x7F]/g, '').replace(/[\\/:*?"<>|#%&]/g, '-');
       // Normalize dashes and trim
       safeTitle = safeTitle.replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 120);
-      // If the cleaned title is empty, avoid creating an extra hyphen (use `id.ext`)
-      if (!safeTitle) safeTitle = '';
+
+      // If still empty, try deriving a filename-safe name from the source URL
+      if (!safeTitle) {
+        try {
+          const urlPath = new URL(song.url).pathname;
+          const base = path.basename(urlPath);
+          const nameFromUrl = base.replace(/\.[^/.]+$/, '');
+          let decName = decodeURIComponent(nameFromUrl || '');
+          decName = transliterateFn(decName);
+          safeTitle = decName.replace(/[\\/:*?"<>|#%&]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 120);
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      if (!safeTitle) safeTitle = 'untitled';
       const namePart = safeTitle ? `-${safeTitle}` : '';
       const filename = `${id}${namePart}${ext}`;
       const filepath = path.join(urlDir, filename);
