@@ -269,7 +269,15 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
       const song = playlist[i];
       const title = (song.name || song.title || `song-${i}`).toString();
       const id = song.id ? song.id.toString() : String(i);
-      const ext = (song.url && song.url.split('.').pop() && song.url.split('?')[0].endsWith('.mp3')) ? '.mp3' : '.mp3';
+      const ext = (() => {
+        try {
+          const urlPath = new URL(song.url).pathname;
+          const e = path.extname(urlPath).toLowerCase();
+          return e || '.mp3';
+        } catch (e) {
+          return '.mp3';
+        }
+      })();
       // Decode percent-encoded titles first
       let decodedTitle = title;
       try {
@@ -335,66 +343,71 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
         console.log(`ℹ Skipping existing file ${filename}`);
       }
 
-      // Convert to m4a if ffmpeg is available
+      // Convert to m4a if ffmpeg is available (skip conversion for MP3 files)
       let usedFilename = filename;
       let targetUrl = `/assets/music/url/${filename}`;
       if (enableConvert) {
-        const m4aFilename = `${id}${namePart}.m4a`;
-        const m4aPath = path.join(urlDir, m4aFilename);
-        // Flag to indicate conversion succeeded so we can avoid running fallbacks and extra warnings
-        let conversionDone = false;
-        try {
-          // Ensure input file exists and has reasonable size
-          const stat = await fs.stat(filepath).catch(() => null);
-          if (!stat || stat.size < 1024) {
-            console.warn(`⚠ Skipping conversion for ${filename}: file missing or too small (${stat ? stat.size : 'n/a'} bytes)`);
-          } else {
-            const args = ['-hide_banner', '-loglevel', 'error', '-y', '-i', filepath, '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', m4aPath];
+        // Don't convert if the original file is already MP3
+        if (ext === '.mp3' || filepath.toLowerCase().endsWith('.mp3')) {
+          console.log(`ℹ Skipping conversion for ${filename}: source is MP3 and will be served as-is`);
+        } else {
+          const m4aFilename = `${id}${namePart}.m4a`;
+          const m4aPath = path.join(urlDir, m4aFilename);
+          // Flag to indicate conversion succeeded so we can avoid running fallbacks and extra warnings
+          let conversionDone = false;
+          try {
+            // Ensure input file exists and has reasonable size
+            const stat = await fs.stat(filepath).catch(() => null);
+            if (!stat || stat.size < 1024) {
+              console.warn(`⚠ Skipping conversion for ${filename}: file missing or too small (${stat ? stat.size : 'n/a'} bytes)`);
+            } else {
+              const args = ['-hide_banner', '-loglevel', 'error', '-y', '-i', filepath, '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', m4aPath];
 
-            // Prefer ffmpegBinary if provided, otherwise directly try system ffmpeg
-            let r = null;
-            if (ffmpegBinary) {
+              // Prefer ffmpegBinary if provided, otherwise directly try system ffmpeg
+              let r = null;
+              if (ffmpegBinary) {
+                try {
+                  r = spawnSync(ffmpegBinary, args, { encoding: 'utf-8' });
+                } catch (spawnErr) {
+                  r = { status: null, error: spawnErr, stderr: spawnErr && spawnErr.message };
+                }
+
+                if (r && r.status === 0) {
+                  console.log(`✓ Converted ${filename} -> ${m4aFilename} (via ffmpegBinary)`);
+                  try { await fs.unlink(filepath); } catch (e) {}
+                  usedFilename = m4aFilename;
+                  targetUrl = `/assets/music/url/${m4aFilename}`;
+                  conversionDone = true;
+                }
+
+                console.warn(`⚠ ffmpeg (preferred) failed to convert ${filename}. status=${r ? r.status : 'null'}, error=${r && r.error ? r.error.message : 'none'}, stderr='${(r && r.stderr ? r.stderr.toString() : '').slice(0,400)}'`);
+              }
+
+              // Try system ffmpeg in PATH
               try {
-                r = spawnSync(ffmpegBinary, args, { encoding: 'utf-8' });
-              } catch (spawnErr) {
-                r = { status: null, error: spawnErr, stderr: spawnErr && spawnErr.message };
-              }
+                let r2 = null;
+                try {
+                  r2 = spawnSync('ffmpeg', args, { encoding: 'utf-8' });
+                } catch (spawnErr2) {
+                  r2 = { status: null, error: spawnErr2, stderr: spawnErr2 && spawnErr2.message };
+                }
 
-              if (r && r.status === 0) {
-                console.log(`✓ Converted ${filename} -> ${m4aFilename} (via ffmpegBinary)`);
-                try { await fs.unlink(filepath); } catch (e) {}
-                usedFilename = m4aFilename;
-                targetUrl = `/assets/music/url/${m4aFilename}`;
-                conversionDone = true;
+                if (r2 && r2.status === 0) {
+                  console.log(`✓ Converted ${filename} -> ${m4aFilename} (via ffmpeg in PATH)`);
+                  try { await fs.unlink(filepath); } catch (e) {}
+                  usedFilename = m4aFilename;
+                  targetUrl = `/assets/music/url/${m4aFilename}`;
+                  conversionDone = true;
+                } else {
+                  console.warn(`⚠ ffmpeg (system) also failed for ${filename}. status=${r2 ? r2.status : 'null'}, error=${r2 && r2.error ? r2.error.message : 'none'}, stderr='${(r2 && r2.stderr ? r2.stderr.toString() : '').slice(0,400)}'`);
+                }
+              } catch (e2) {
+                console.warn(`⚠ Conversion fallback error for ${filename}: ${e2.message}`);
               }
-
-              console.warn(`⚠ ffmpeg (preferred) failed to convert ${filename}. status=${r ? r.status : 'null'}, error=${r && r.error ? r.error.message : 'none'}, stderr='${(r && r.stderr ? r.stderr.toString() : '').slice(0,400)}'`);
             }
-
-            // Try system ffmpeg in PATH
-            try {
-              let r2 = null;
-              try {
-                r2 = spawnSync('ffmpeg', args, { encoding: 'utf-8' });
-              } catch (spawnErr2) {
-                r2 = { status: null, error: spawnErr2, stderr: spawnErr2 && spawnErr2.message };
-              }
-
-              if (r2 && r2.status === 0) {
-                console.log(`✓ Converted ${filename} -> ${m4aFilename} (via ffmpeg in PATH)`);
-                try { await fs.unlink(filepath); } catch (e) {}
-                usedFilename = m4aFilename;
-                targetUrl = `/assets/music/url/${m4aFilename}`;
-                conversionDone = true;
-              } else {
-                console.warn(`⚠ ffmpeg (system) also failed for ${filename}. status=${r2 ? r2.status : 'null'}, error=${r2 && r2.error ? r2.error.message : 'none'}, stderr='${(r2 && r2.stderr ? r2.stderr.toString() : '').slice(0,400)}'`);
-              }
-            } catch (e2) {
-              console.warn(`⚠ Conversion fallback error for ${filename}: ${e2.message}`);
-            }
+          } catch (e) {
+            console.warn(`⚠ Conversion error for ${filename}: ${e.message}`);
           }
-        } catch (e) {
-          console.warn(`⚠ Conversion error for ${filename}: ${e.message}`);
         }
       }
 
