@@ -1753,16 +1753,31 @@ onMount(() => {
 		}, 100);
 	}
 	else {
-		// 本地歌单：立即加载（成本低），但不预加载所有资源
-		playlist = localPlaylist.map((s) => {
-			const rawCover = normalizeCoverUrl(s.cover);
-			const processedCover = rawCover ? getAssetPath(rawCover) : DEFAULT_COVER;
-			return {
-				...s,
-				cover: processedCover,
-				url: getAssetPath(s.url),
-			};
-		});
+		// 本地歌单：优先使用构建的 public/music/playlist.json（通过 window.musicData 注入），若不存在回退到内置 localPlaylist
+		if (typeof window !== "undefined" && (window as any).musicData && (window as any).musicData.length > 0) {
+			console.log("🎵 使用构建时静态同步的本地音乐数据");
+			const staticData = (window as any).musicData;
+			playlist = staticData.map((song: any, index: number) =>
+				processSongData({
+					id: index + 1,
+					title: song.name ?? song.title,
+					author: song.artist,
+					url: song.url,
+					pic: song.cover,
+					lrc: song.lrc
+				}, getAssetPath, normalizeCoverUrl)
+			);
+		} else {
+			playlist = localPlaylist.map((s) => {
+				const rawCover = normalizeCoverUrl(s.cover);
+				const processedCover = rawCover ? getAssetPath(rawCover) : DEFAULT_COVER;
+				return {
+					...s,
+					cover: processedCover,
+					url: getAssetPath(s.url),
+				};
+			});
+		}
 		// 如果配置要求自动连播，设置为列表循环
 		if (shouldAutoplayContinuous) {
 			isRepeating = 2;
