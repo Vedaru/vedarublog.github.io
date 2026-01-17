@@ -93,10 +93,10 @@ const configHue = siteConfig.themeColor.hue;
 	document.documentElement.style.setProperty('--hue', savedHue);
 	
 	// 设置主题（防止加载屏幕移除后主题闪回）
-	const DEFAULT_THEME = 'auto';
+	const DEFAULT_THEME_LOADING = 'auto';
 	const LIGHT_MODE = 'light';
 	const DARK_MODE = 'dark';
-	const theme = localStorage.getItem('theme') || DEFAULT_THEME;
+	const theme = localStorage.getItem('theme') || DEFAULT_THEME_LOADING;
 	let isDark = false;
 	switch (theme) {
 		case LIGHT_MODE:

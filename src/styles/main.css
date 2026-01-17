@@ -12,7 +12,8 @@
 /* 导入 ZenMaruGothic-Medium 字体 - 仅用于英文、数字和符号 */
 @font-face {
     font-family: 'ZenMaruGothic-Medium';
-    src: url('/assets/font/ZenMaruGothic-Medium.woff2') format('woff2');
+    src: url('/assets/font/ZenMaruGothic-Medium.woff2') format('woff2'),
+         url('/assets/font/ZenMaruGothic-Medium.ttf') format('truetype');
     font-weight: 400 500;
     font-style: normal;
     font-display: swap;
@@ -23,7 +24,8 @@
 /* 导入 微软雅黑 本地字体 - 用于中文 */
 @font-face {
     font-family: '微软雅黑';
-    src: url('/assets/font/微软雅黑.woff2') format('woff2');
+    src: url('/assets/font/微软雅黑.woff2') format('woff2'),
+         url('/assets/font/微软雅黑.ttf') format('truetype');
     font-weight: 400 700;
     font-style: normal;
     font-display: swap;

@@ -136,13 +136,12 @@ let currentSong = {
 };
 
 type Song = {
-	id: string | number;
+	id: string | number; // 修改为 string | number 以兼容 ProcessedSong
 	title: string;
 	artist: string;
 	cover: string;
 	url: string;
 	duration: number;
-	coverLoaded?: boolean;
 };
 
 // 封面加载缓存和状态
@@ -379,88 +378,27 @@ let prefetchedForIndex: number | null = null;
 // 当剩余时长小于该阈值（秒）时触发预取
 const PREFETCH_THRESHOLD = 15;
 
-const localPlaylist = [
-    {
-        "id": 1,
-        "title": "反乌托邦",
-        "artist": "Unknown",
-        "cover": "assets/music/cover/song_1.jpg",
-        "url": "assets/music/url/song_1.mp3",
-        "duration": 180
-    },
-    {
-        "id": 2,
-        "title": "8月31日",
-        "artist": "Unknown",
-        "cover": "assets/music/cover/song_2.jpg",
-        "url": "assets/music/url/song_2.mp3",
-        "duration": 180
-    },
-    {
-        "id": 3,
-        "title": "RIP",
-        "artist": "Unknown",
-        "cover": "assets/music/cover/song_3.jpg",
-        "url": "assets/music/url/song_3.mp3",
-        "duration": 180
-    },
-    {
-        "id": 4,
-        "title": "Last Night,Good Night",
-        "artist": "Unknown",
-        "cover": "assets/music/cover/song_4.jpg",
-        "url": "assets/music/url/song_4.mp3",
-        "duration": 180
-    },
-    {
-        "id": 5,
-        "title": "夢よ未来へ",
-        "artist": "Unknown",
-        "cover": "assets/music/cover/song_5.jpg",
-        "url": "assets/music/url/song_5.mp3",
-        "duration": 180
-    },
-    {
-        "id": 6,
-        "title": "一人行者",
-        "artist": "Unknown",
-        "cover": "assets/music/cover/song_6.jpg",
-        "url": "assets/music/url/song_6.mp3",
-        "duration": 180
-    },
-    {
-        "id": 7,
-        "title": "アイロニ",
-        "artist": "Unknown",
-        "cover": "assets/music/cover/song_7.jpg",
-        "url": "assets/music/url/song_7.mp3",
-        "duration": 180
-    },
-    {
-        "id": 8,
-        "title": "夜明けと蛍 arrange ver.",
-        "artist": "Unknown",
-        "cover": "assets/music/cover/song_8.jpg",
-        "url": "assets/music/url/song_8.mp3",
-        "duration": 180
-    },
-    {
-        "id": 9,
-        "title": "アスノヨゾラ哨戒班",
-        "artist": "Unknown",
-        "cover": "assets/music/cover/song_9.jpg",
-        "url": "assets/music/url/song_9.mp3",
-        "duration": 180
-    },
-    {
-        "id": 10,
-        "title": "もうじき夏が終わるから",
-        "artist": "Unknown",
-        "cover": "assets/music/cover/song_10.jpg",
-        "url": "assets/music/url/song_10.mp3",
-        "duration": 180
+let localPlaylist: Song[] = [];
+
+onMount(async () => {
+    try {
+        console.log('🎵 Loading playlist from /assets/music/playlist.json');
+        const response = await fetch(getAssetPath('/assets/music/playlist.json'));
+        console.log('🎵 Fetch response status:', response.status);
+        if (response.ok) {
+            localPlaylist = await response.json();
+            console.log('🎵 Loaded local playlist with', Array.isArray(localPlaylist) ? localPlaylist.length : 'non-array', 'songs', Array.isArray(localPlaylist) ? localPlaylist.slice(0,3) : localPlaylist);
+        } else {
+            console.error('Failed to load playlist.json:', response.status);
+            showErrorMessage('本地歌单加载失败：无法读取 /assets/music/playlist.json（状态 ' + response.status + '）');
+            localPlaylist = [];
+        }
+    } catch (error) {
+        console.error('Error loading playlist.json:', error);
+        showErrorMessage('本地歌单加载失败：无法读取 /assets/music/playlist.json，请检查文件是否存在并有效');
+        localPlaylist = [];
     }
-];
+});
 
 const staticPlaylist = [
 	{
@@ -1216,7 +1154,7 @@ function handleLoadError(event: Event | any) {
 }
 
 function requestAutoplay() {
-	// 已禁用自动播放以避免页面加载时自动开始播放音乐。
+	// 已禁用自动播放以避免页面加载时自动开始播放。
 	// 若希望通过配置启用自动播放，请在 `musicPlayerConfig.autoplay` 中开启并移除此早期返回。
 	autoplayAttempted = true;
 	return;
@@ -1754,47 +1692,66 @@ onMount(() => {
 	}
 	else {
 		// 本地歌单：优先使用构建的 public/music/playlist.json（通过 window.musicData 注入），若不存在回退到内置 localPlaylist
-		if (typeof window !== "undefined" && (window as any).musicData && (window as any).musicData.length > 0) {
-			console.log("🎵 使用构建时静态同步的本地音乐数据");
-			const staticData = (window as any).musicData;
-			playlist = staticData.map((song: any, index: number) =>
-				processSongData({
-					id: index + 1,
-					title: song.name ?? song.title,
-					author: song.artist,
-					url: song.url,
-					pic: song.cover,
-					lrc: song.lrc
-				}, getAssetPath, normalizeCoverUrl)
-			);
+		function initPlaylistFromLocalData() {
+			console.debug('initPlaylistFromLocalData: localPlaylist length=', localPlaylist.length, 'window.musicData length=', (typeof window !== 'undefined' && (window as any).musicData ? (window as any).musicData.length : 0), 'BASE_URL=', import.meta.env?.BASE_URL || '/');
+			if (localPlaylist.length > 0) console.debug('initPlaylistFromLocalData: first local item=', localPlaylist[0]);
+			if (typeof window !== "undefined" && (window as any).musicData && (window as any).musicData.length > 0) {
+				console.log("🎵 使用构建时静态同步的本地音乐数据");
+				const staticData = (window as any).musicData;
+				console.debug('initPlaylistFromLocalData: first static item=', staticData[0]);
+				playlist = staticData.map((song: any, index: number) =>
+					processSongData({
+						id: index + 1,
+						title: song.name ?? song.title,
+						author: song.artist,
+						url: song.url,
+						pic: song.cover,
+						lrc: song.lrc
+					}, getAssetPath, normalizeCoverUrl)
+				);
+			} else if (localPlaylist.length > 0) {
+				playlist = localPlaylist.map((s) =>
+					processSongData(s as SongData, getAssetPath, normalizeCoverUrl),
+				);
+			}
+
+			// 如果配置要求自动连播，设置为列表循环
+			if (shouldAutoplayContinuous) {
+				isRepeating = 2;
+			}
+
+			if (playlist.length > 0) {
+				loadSong(playlist[0]);
+				// 确保音频元素有正确的初始状态
+				setTimeout(() => {
+					if (audio && (!audio.src || audio.readyState === 0)) {
+						console.debug("Ensuring audio is loaded on mount");
+						loadSong(playlist[0]);
+					}
+				}, 200);
+				// 立即预加载当前+后续歌曲的封面，不等待空闲时刻
+				preloadCurrentAndNextCovers().catch(() => {});
+			} else {
+				showErrorMessage("本地播放列表为空");
+			}
+		}
+
+		// 如果本地列表尚未加载（fetch 异步），等待最多 2s 再初始化，避免竞态导致误报空列表
+		if (localPlaylist.length > 0 || (typeof window !== "undefined" && (window as any).musicData && (window as any).musicData.length > 0)) {
+			initPlaylistFromLocalData();
 		} else {
-			playlist = localPlaylist.map((s) => {
-				const rawCover = normalizeCoverUrl(s.cover);
-				const processedCover = rawCover ? getAssetPath(rawCover) : DEFAULT_COVER;
-				return {
-					...s,
-					cover: processedCover,
-					url: getAssetPath(s.url),
-				};
-			});
-		}
-		// 如果配置要求自动连播，设置为列表循环
-		if (shouldAutoplayContinuous) {
-			isRepeating = 2;
-		}
-		if (playlist.length > 0) {
-			loadSong(playlist[0]);
-			// 确保音频元素有正确的初始状态
-			setTimeout(() => {
-				if (audio && (!audio.src || audio.readyState === 0)) {
-					console.debug("Ensuring audio is loaded on mount");
-					loadSong(playlist[0]);
+			// 等待 localPlaylist 被 onMount 的 fetch 填充
+			(async () => {
+				let waited = 0;
+				while (waited < 2000 && localPlaylist.length === 0) {
+					await sleep(100);
+					waited += 100;
 				}
-			}, 200);
-			// 立即预加载当前+后续歌曲的封面，不等待空闲时刻
-			preloadCurrentAndNextCovers().catch(() => {});
-		} else {
-			showErrorMessage("本地播放列表为空");
+				initPlaylistFromLocalData();
+				if (playlist.length === 0) {
+					showErrorMessage("本地播放列表为空");
+				}
+			})();
 		}
 	}
 });
@@ -2260,7 +2217,7 @@ onDestroy(() => {
 }
 @keyframes rotate {
 	from { transform: rotate(0deg); }
-	to { transform: rotate(360deg); }
+	to   { transform: rotate(360deg); }
 }
 @keyframes musicWave {
 	0%, 100% { transform: scaleY(0.5); }

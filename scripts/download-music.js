@@ -132,35 +132,30 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
     const defaultTemplate = 'https://api.i-meto.com/meting/api?server=:server&type=:type&id=:id';
     if (candidates.length === 0) candidates.push(defaultTemplate);
 
-    // Force using Meting API: staticPlaylist parsing intentionally disabled.
     let response;
     let lastErr;
+    for (const templateCandidate of candidates) {
+      const candidateUrl = (templateCandidate.includes(':server') || templateCandidate.includes(':type') || templateCandidate.includes(':id'))
+        ? templateCandidate.replace(':server', meting_server).replace(':type', meting_type).replace(':id', meting_id)
+        : templateCandidate;
 
-    // If static playlist wasn't found, fall back to Meting API candidate list
-    if (!response) {
-      for (const templateCandidate of candidates) {
-        const candidateUrl = (templateCandidate.includes(':server') || templateCandidate.includes(':type') || templateCandidate.includes(':id'))
-          ? templateCandidate.replace(':server', meting_server).replace(':type', meting_type).replace(':id', meting_id)
-          : templateCandidate;
-
-        console.log('ℹ Fetching playlist from', candidateUrl);
-        try {
-          response = await fetchWithRetry(candidateUrl, {
-            timeout: 20000,
-            retries: 2,
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (compatible; VedaruMusicDownloader/1.0; +https://vedaru.cn)',
-              'Accept': 'application/json, text/plain, */*',
-              'Referer': 'https://vedaru.cn'
-            }
-          });
-          if (response.ok) break;
-          lastErr = new Error('Meting API request failed: ' + response.status);
-          console.warn(`⚠ Meting API ${candidateUrl} returned ${response.status}`);
-        } catch (e) {
-          console.warn(`⚠ Error fetching ${candidateUrl}: ${e.message}`);
-          lastErr = e;
-        }
+      console.log('ℹ Fetching playlist from', candidateUrl);
+      try {
+        response = await fetchWithRetry(candidateUrl, {
+          timeout: 20000,
+          retries: 2,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; VedaruMusicDownloader/1.0; +https://vedaru.cn)',
+            'Accept': 'application/json, text/plain, */*',
+            'Referer': 'https://vedaru.cn'
+          }
+        });
+        if (response.ok) break;
+        lastErr = new Error('Meting API request failed: ' + response.status);
+        console.warn(`⚠ Meting API ${candidateUrl} returned ${response.status}`);
+      } catch (e) {
+        console.warn(`⚠ Error fetching ${candidateUrl}: ${e.message}`);
+        lastErr = e;
       }
     }
 
@@ -171,15 +166,11 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
       return;
     }
 
-    // Temporary download directory (used during conversion/moves)
-    const outDir = path.join(projectRoot, 'public', 'music');
-    await fs.mkdir(outDir, { recursive: true });
-
-    // Player's expected asset paths
-    const audioOutDir = path.join(projectRoot, 'public', 'assets', 'music', 'url');
-    const coverOutDir = path.join(projectRoot, 'public', 'assets', 'music', 'cover');
-    await fs.mkdir(audioOutDir, { recursive: true });
-    await fs.mkdir(coverOutDir, { recursive: true });
+    const outDir = path.join(projectRoot, 'public', 'assets', 'music');
+    const urlDir = path.join(outDir, 'url');
+    const coverDir = path.join(outDir, 'cover');
+    await fs.mkdir(urlDir, { recursive: true });
+    await fs.mkdir(coverDir, { recursive: true });
 
     const ffmpegBinaryRaw = await getFfmpegBinary();
     // Verify the binary exists and is executable (some environments may return unrelated paths)
@@ -245,16 +236,15 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
     if (enableConvert) console.log('ℹ Audio conversion enabled; ffmpeg binary (validated):', ffmpegBinary || 'using system ffmpeg in PATH');
     else console.log('ℹ Audio conversion disabled or no ffmpeg available');
 
-    let downloadedCount = 0;
+    const result = [];
     for (let i = 0; i < playlist.length; i++) {
       const song = playlist[i];
-      const baseName = `song_${i + 1}`;
       const title = (song.name || song.title || `song-${i}`).toString();
       const id = song.id ? song.id.toString() : String(i);
       const ext = (song.url && song.url.split('.').pop() && song.url.split('?')[0].endsWith('.mp3')) ? '.mp3' : '.mp3';
       const safeTitle = title.replace(/[\\/:*?"<>|#%&]/g, '-').slice(0, 120);
-      const filename = `${baseName}${ext}`; // use safe base name to avoid filesystem issues
-      const filepath = path.join(outDir, filename);
+      const filename = `${id}-${safeTitle}${ext}`;
+      const filepath = path.join(urlDir, filename);
 
       if (!song.url) {
         console.warn(`⚠ Song ${title} has no URL, skipping`);
@@ -288,10 +278,10 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
 
       // Convert to m4a if ffmpeg is available
       let usedFilename = filename;
-      let targetUrl = `/music/${filename}`;
+      let targetUrl = `/assets/music/url/${filename}`;
       if (enableConvert) {
-        const m4aFilename = `${baseName}.m4a`;
-        const m4aPath = path.join(outDir, m4aFilename);
+        const m4aFilename = `${id}-${safeTitle}.m4a`;
+        const m4aPath = path.join(urlDir, m4aFilename);
         // Flag to indicate conversion succeeded so we can avoid running fallbacks and extra warnings
         let conversionDone = false;
         try {
@@ -315,33 +305,33 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
                 console.log(`✓ Converted ${filename} -> ${m4aFilename} (via ffmpegBinary)`);
                 try { await fs.unlink(filepath); } catch (e) {}
                 usedFilename = m4aFilename;
+                targetUrl = `/assets/music/url/${m4aFilename}`;
                 conversionDone = true;
-              } else {
-                console.warn(`⚠ ffmpeg (preferred) failed to convert ${filename}. status=${r ? r.status : 'null'}, error=${r && r.error ? r.error.message : 'none'}, stderr='${(r && r.stderr ? r.stderr.toString() : '').slice(0,400)}'`);
               }
+
+              console.warn(`⚠ ffmpeg (preferred) failed to convert ${filename}. status=${r ? r.status : 'null'}, error=${r && r.error ? r.error.message : 'none'}, stderr='${(r && r.stderr ? r.stderr.toString() : '').slice(0,400)}'`);
             }
 
-            // Try system ffmpeg in PATH if not already converted
-            if (!conversionDone) {
+            // Try system ffmpeg in PATH
+            try {
+              let r2 = null;
               try {
-                let r2 = null;
-                try {
-                  r2 = spawnSync('ffmpeg', args, { encoding: 'utf-8' });
-                } catch (spawnErr2) {
-                  r2 = { status: null, error: spawnErr2, stderr: spawnErr2 && spawnErr2.message };
-                }
-
-                if (r2 && r2.status === 0) {
-                  console.log(`✓ Converted ${filename} -> ${m4aFilename} (via ffmpeg in PATH)`);
-                  try { await fs.unlink(filepath); } catch (e) {}
-                  usedFilename = m4aFilename;
-                  conversionDone = true;
-                } else {
-                  console.warn(`⚠ ffmpeg (system) also failed for ${filename}. status=${r2 ? r2.status : 'null'}, error=${r2 && r2.error ? r2.error.message : 'none'}, stderr='${(r2 && r2.stderr ? r2.stderr.toString() : '').slice(0,400)}'`);
-                }
-              } catch (e2) {
-                console.warn(`⚠ Conversion fallback error for ${filename}: ${e2.message}`);
+                r2 = spawnSync('ffmpeg', args, { encoding: 'utf-8' });
+              } catch (spawnErr2) {
+                r2 = { status: null, error: spawnErr2, stderr: spawnErr2 && spawnErr2.message };
               }
+
+              if (r2 && r2.status === 0) {
+                console.log(`✓ Converted ${filename} -> ${m4aFilename} (via ffmpeg in PATH)`);
+                try { await fs.unlink(filepath); } catch (e) {}
+                usedFilename = m4aFilename;
+                targetUrl = `/assets/music/url/${m4aFilename}`;
+                conversionDone = true;
+              } else {
+                console.warn(`⚠ ffmpeg (system) also failed for ${filename}. status=${r2 ? r2.status : 'null'}, error=${r2 && r2.error ? r2.error.message : 'none'}, stderr='${(r2 && r2.stderr ? r2.stderr.toString() : '').slice(0,400)}'`);
+              }
+            } catch (e2) {
+              console.warn(`⚠ Conversion fallback error for ${filename}: ${e2.message}`);
             }
           }
         } catch (e) {
@@ -349,71 +339,55 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
         }
       }
 
-      // Move audio to player's expected path and set target URL
-      try {
-        const baseName = `song_${i + 1}`;
-        const sourcePath = path.join(outDir, usedFilename);
-        const destExt = path.extname(usedFilename) || '.mp3';
-        const destFilename = `${baseName}${destExt}`;
-        const destPath = path.join(audioOutDir, destFilename);
-        if (!fssync.existsSync(destPath)) {
-          // Move (rename) the file into place
-          try { await fs.rename(sourcePath, destPath); }
-          catch (e) {
-            // If rename fails (cross-device), fallback to copy+unlink
-            try { const buf = await fs.readFile(sourcePath); await fs.writeFile(destPath, buf); await fs.unlink(sourcePath); }
-            catch (e2) { console.warn('⚠ Failed to move audio to asset dir:', e2 && e2.message ? e2.message : e2); }
-          }
-          console.log(`✓ Moved audio to ${destFilename}`);
-          // Count successful move as a completed download
-          downloadedCount++;
-        } else {
-          console.log(`ℹ Audio target already exists: ${destFilename}`);
-        }
-        targetUrl = `/assets/music/url/${destFilename}`;
-      } catch (e) {
-        console.warn('⚠ Error relocating audio file:', e && e.message ? e.message : e);
-      }
-
-      // Try to download cover image (if any) and save next to audio files
-      let coverLocal = '';
-      const coverUrl = song.pic || song.cover || song.albumPic || '';
-      if (coverUrl) {
-        try {
-          const coverRes = await fetchWithRetry(coverUrl, {
-            timeout: 15000,
-            retries: 1,
-            headers: {
-              'User-Agent': 'Mozilla/5.0 (compatible; VedaruMusicDownloader/1.0; +https://vedaru.cn)',
-              'Referer': 'https://vedaru.cn'
-            }
-          });
-          if (coverRes && coverRes.ok) {
-            const arrayBuf = await coverRes.arrayBuffer();
-            const extMatch = (coverUrl.split('?')[0].split('.').pop() || 'jpg').toLowerCase();
-            const allowed = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
-            const coverExt = allowed.includes(extMatch) ? `.${extMatch}` : '.jpg';
-            const coverFilename = `${baseName}${coverExt}`;
-            const coverPath = path.join(coverOutDir, coverFilename);
-            if (!fssync.existsSync(coverPath)) {
+      // Download cover image if available
+      let coverUrl = '';
+      if (song.pic) {
+        const coverFilename = `${id}-${safeTitle}.jpg`; // Assume jpg for covers
+        const coverPath = path.join(coverDir, coverFilename);
+        if (!fssync.existsSync(coverPath)) {
+          try {
+            console.log(`ℹ Downloading cover for ${title} from ${song.pic}`);
+            const r = await fetchWithRetry(song.pic, {
+              timeout: 30000,
+              retries: 2,
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; VedaruMusicDownloader/1.0; +https://vedaru.cn)',
+                'Accept': 'image/*',
+                'Referer': 'https://vedaru.cn'
+              }
+            });
+            if (r.ok) {
+              const arrayBuf = await r.arrayBuffer();
               await fs.writeFile(coverPath, Buffer.from(arrayBuf));
               console.log(`✓ Saved cover ${coverFilename}`);
+              coverUrl = `/assets/music/cover/${coverFilename}`;
             } else {
-              console.log(`ℹ Cover already exists: ${coverFilename}`);
+              console.warn(`⚠ Failed to download cover ${song.pic}: ${r.status}`);
+              coverUrl = song.pic; // fallback to original URL
             }
-            coverLocal = `/assets/music/cover/${coverFilename}`;
-          } else {
-            console.warn(`⚠ Failed to download cover ${coverUrl}: ${coverRes && coverRes.status}`);
+          } catch (e) {
+            console.warn(`⚠ Error downloading cover ${song.pic}: ${e.message}`);
+            coverUrl = song.pic; // fallback to original URL
           }
-        } catch (e) {
-          console.warn(`⚠ Error downloading cover ${coverUrl}: ${e.message}`);
+        } else {
+          console.log(`ℹ Skipping existing cover ${coverFilename}`);
+          coverUrl = `/assets/music/cover/${coverFilename}`;
         }
       }
 
-      // not generating playlist.json by request; we only download files into assets.
+      result.push({
+        name: title,
+        artist: song.artist || song.author || '',
+        url: targetUrl,
+        cover: coverUrl,
+        lrc: song.lrc || '',
+        id: song.id || ''
+      });
     }
 
-    console.log(`✓ Downloaded ${downloadedCount} song(s) into '/public/assets/music/' (audio + cover saved where available)`);
+    const outJson = path.join(outDir, 'playlist.json');
+    await fs.writeFile(outJson, JSON.stringify(result, null, 2), 'utf-8');
+    console.log(`✓ Wrote ${outJson} with ${result.length} songs`);
   } catch (e) {
     console.error('Error:', e && e.message ? e.message : e);
     process.exit(1);
