@@ -198,6 +198,17 @@ export default defineConfig({
 		],
 	},
 	vite: {
+		plugins: [
+			{
+				name: 'add-crossorigin-to-preloads',
+				transformIndexHtml(html) {
+					return html.replace(
+						/<link rel="preload" as="script" href="([^"]*)"([^>]*)>/g,
+						'<link rel="preload" as="script" href="$1" crossorigin="anonymous"$2>'
+					);
+				},
+			},
+		],
 		build: {
 			// 静态资源处理优化，防止小图片转 base64 导致 HTML 体积过大（可选，根据需要调整）
 			assetsInlineLimit: 4096,

@@ -15,7 +15,7 @@ import fs from 'fs/promises';
 import fssync from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-// import { spawnSync } from 'child_process';
+import { spawnSync } from 'child_process';
 
 async function clearDirectory(dirPath) {
   try {
@@ -26,6 +26,33 @@ async function clearDirectory(dirPath) {
     }
   } catch (e) {
     // ignore if directory doesn't exist or other errors
+  }
+}
+
+async function transcodeAudio(inputPath, outputPath, codec = 'libopus', bitrate = '64k') {
+  // 使用ffmpeg转码音频到指定的编码和码率
+  const args = [
+    '-i', inputPath,
+    '-c:a', codec,
+    '-b:a', bitrate,
+    '-y', // 覆盖输出文件
+    outputPath
+  ];
+
+  try {
+    const result = spawnSync('ffmpeg', args, { stdio: 'inherit' });
+    if (result.error) {
+      throw result.error;
+    }
+    if (result.status !== 0) {
+      throw new Error(`ffmpeg exited with code ${result.status}`);
+    }
+    return true;
+  } catch (e) {
+    console.warn(`⚠ ffmpeg not available or failed: ${e.message}`);
+    // 如果ffmpeg不可用，直接复制文件
+    await fs.copyFile(inputPath, outputPath);
+    return false;
   }
 }
 
@@ -192,15 +219,7 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
       const song = playlist[i];
       const title = (song.name || song.title || `song-${i}`).toString();
       const id = song.id ? song.id.toString() : String(i);
-      const ext = (() => {
-        try {
-          const urlPath = new URL(song.url).pathname;
-          const e = path.extname(urlPath).toLowerCase();
-          return e || '.mp3';
-        } catch (e) {
-          return '.mp3';
-        }
-      })();
+      const ext = '.opus'; // 转码后统一使用Opus格式
       // Decode percent-encoded titles first
       let decodedTitle = title;
       try {
@@ -266,7 +285,19 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
         console.log(`ℹ Skipping existing file ${filename}`);
       }
 
-      // 直接下载MP3，无需转码
+      // 转码音频文件到Opus编码，64kbps码率
+      const tempFile = filepath + '.temp';
+      const transcodeSuccess = await transcodeAudio(filepath, tempFile, 'libopus', '64k');
+      if (transcodeSuccess) {
+        // 转码成功，使用转码后的文件
+        await fs.rename(tempFile, filepath);
+        console.log(`✓ Transcoded ${filename} to Opus 64kbps`);
+      } else {
+        // 转码失败，删除临时文件
+        try { await fs.unlink(tempFile); } catch (e) {}
+      }
+
+      // 直接使用转码后的文件，无需额外处理
       let usedFilename = filename;
       let targetUrl = `/assets/music/url/${filename}`;
 
