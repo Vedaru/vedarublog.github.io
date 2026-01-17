@@ -220,15 +220,39 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
         const m4aFilename = `${id}-${safeTitle}.m4a`;
         const m4aPath = path.join(outDir, m4aFilename);
         try {
-          const args = ['-hide_banner', '-loglevel', 'error', '-y', '-i', filepath, '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', m4aPath];
-          const r = spawnSync(ffmpegBinary, args, { encoding: 'utf-8' });
-          if (r.status === 0) {
-            console.log(`✓ Converted ${filename} -> ${m4aFilename}`);
-            try { await fs.unlink(filepath); } catch (e) {}
-            usedFilename = m4aFilename;
-            targetUrl = `/music/${m4aFilename}`;
+          // Ensure input file exists and has reasonable size
+          const stat = await fs.stat(filepath).catch(() => null);
+          if (!stat || stat.size < 1024) {
+            console.warn(`⚠ Skipping conversion for ${filename}: file missing or too small (${stat ? stat.size : 'n/a'} bytes)`);
           } else {
-            console.warn(`⚠ ffmpeg failed to convert ${filename}: ${r.stderr || r.stdout || r.status}`);
+            const args = ['-hide_banner', '-loglevel', 'error', '-y', '-i', filepath, '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', m4aPath];
+
+            // Try using preferred binary first (ffmpeg-static or detected binary)
+            let r = spawnSync(ffmpegBinary, args, { encoding: 'utf-8' });
+            if (r.status === 0) {
+              console.log(`✓ Converted ${filename} -> ${m4aFilename} (via ffmpegBinary)`);
+              try { await fs.unlink(filepath); } catch (e) {}
+              usedFilename = m4aFilename;
+              targetUrl = `/music/${m4aFilename}`;
+            } else {
+              // Log detailed info for debugging
+              console.warn(`⚠ ffmpeg (preferred) failed to convert ${filename}. status=${r.status}, error=${r.error ? r.error.message : 'none'}, stderr='${(r.stderr||'').toString().slice(0,400)}'`);
+
+              // Fallback to system ffmpeg in PATH
+              try {
+                const r2 = spawnSync('ffmpeg', args, { encoding: 'utf-8' });
+                if (r2.status === 0) {
+                  console.log(`✓ Converted ${filename} -> ${m4aFilename} (via ffmpeg in PATH)`);
+                  try { await fs.unlink(filepath); } catch (e) {}
+                  usedFilename = m4aFilename;
+                  targetUrl = `/music/${m4aFilename}`;
+                } else {
+                  console.warn(`⚠ ffmpeg (system) also failed for ${filename}. status=${r2.status}, stderr='${(r2.stderr||'').toString().slice(0,400)}'`);
+                }
+              } catch (e2) {
+                console.warn(`⚠ Conversion fallback error for ${filename}: ${e2.message}`);
+              }
+            }
           }
         } catch (e) {
           console.warn(`⚠ Conversion error for ${filename}: ${e.message}`);
