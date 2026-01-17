@@ -9,6 +9,7 @@ on:
 # Allow this workflow to push back to the repository
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   download:
