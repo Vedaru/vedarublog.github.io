@@ -233,7 +233,7 @@ if (siteConfig.font) {
 		<!-- 第三方分析脚本 - 延迟加载优化（移到外部文件） -->
 		<script src="/js/analytics-loader.js" is:inline></script>
 		<!-- 主题初始化脚本 - 移到外部文件并延迟加载 -->
-		<script src="/js/theme-init.js" defer is:inline></script>
+		<script src="/js/theme-init.js" defer></script>
 
 		<title>{pageTitle}</title>
 
@@ -360,67 +360,18 @@ if (siteConfig.font) {
 			</div>
 		</div>
 
-		<script is:inline>
-			(function(){
-				const el = document.getElementById('global-loading');
-				if(!el) return;
-				function show(){
-					// 标记加载开始，添加根级控制类以隐藏 Pio UI
-					try { window.__loadingScreenDone = false; } catch {}
-					try { document.documentElement.classList.add('loading-active'); } catch {}
-					el.style.display = 'flex';
-					el.classList.remove('opacity-0');
-					el.setAttribute('aria-hidden','false');
-					// 广播自定义事件供组件监听
-					try { window.dispatchEvent(new CustomEvent('mizuki:loading:start')); } catch {}
-				}
-				function hide(){
-					el.classList.add('opacity-0');
-					el.setAttribute('aria-hidden','true');
-					setTimeout(()=>{ el.style.display = 'none'; }, 300);
-					// 移除控制类并标记加载完成
-					try { document.documentElement.classList.remove('loading-active'); } catch {}
-					try { window.__loadingScreenDone = true; } catch {}
-					// 广播加载结束事件
-					try { window.dispatchEvent(new CustomEvent('mizuki:loading:end')); } catch {}
-				}
-				// 仅在初次页面加载时显示，Swup 页面切换时不显示
-				if (document.readyState === 'complete') {
-					// 页面已经加载完成（例如通过快速切换或返回），直接隐藏
-					hide();
-				} else {
-					show();
-					window.addEventListener('load', hide, { once: true });
-				}
-
-				// Swup 页面切换时不显示加载界面，由页面过渡动画处理
-			})();
-		</script>
+		<script src="/js/global-loading.js" defer></script>
 		
 		<!-- 设置构建时获取的音乐数据 -->
 		{musicPlayerConfig.enable && musicPlayerConfig.mode === "meting" && (
-			<script define:vars={{ audioListJson }}>
-				window.musicData = JSON.parse(audioListJson);
-			</script>
+			<script src="/js/music-init.js" defer></script>
 		)}
 		
 		<ConfigCarrier></ConfigCarrier>
 		<slot />
 		
 		<!-- Lazy-load KaTeX CSS 仅在页面包含数学(KaTeX)元素时加载，减少首屏 CSS 体积 -->
-		<script is:inline>
-			(function(){
-				try{
-					if (typeof document !== 'undefined' && document.querySelector('.katex')) {
-						const l = document.createElement('link');
-						l.rel = 'stylesheet';
-						l.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.25/dist/katex.min.css';
-						l.crossOrigin = 'anonymous';
-						document.head.appendChild(l);
-					}
-				} catch(e){}
-			})();
-		</script>
+		<script src="/js/katex-loader.js" defer></script>
 
 		<!-- Music Player - 延迟加载以减少首屏 JS（从 client:load -> client:idle） -->
 		{musicPlayerConfig.enable && (
@@ -439,170 +390,7 @@ if (siteConfig.font) {
 		<div id="page-height-extend" class="hidden h-[300vh]"></div>
 
 		<!-- 日记目录数据注入脚本 -->
-		<script is:inline>
-			// 使用 window 对象存储数据，避免重复声明
-			window.diaryGroupedMoments = window.diaryGroupedMoments || null;
-			
-			// 等待自定义元素注册
-			async function waitForCustomElement(tagName, timeout = 5000) {
-				const startTime = Date.now();
-				while (Date.now() - startTime < timeout) {
-					if (customElements.get(tagName)) {
-						console.log('[Layout] Custom element registered:', tagName);
-						return true;
-					}
-					await new Promise(resolve => setTimeout(resolve, 50));
-				}
-				console.warn('[Layout] Custom element not registered within timeout:', tagName);
-				return false;
-			}
-
-			// 从页面读取日记数据
-			function loadDiaryDataFromPage() {
-				console.log('[Layout] Looking for diary-page-data...');
-				const dataElement = document.getElementById('diary-page-data');
-				console.log('[Layout] diary-page-data element:', dataElement);
-				if (!dataElement) {
-					console.log('[Layout] No diary-page-data element found');
-					// 尝试查找所有带 data-page-type 的元素
-					const allDataElements = document.querySelectorAll('[data-page-type="diary"]');
-					console.log('[Layout] Found elements with data-page-type="diary":', allDataElements.length);
-					if (allDataElements.length > 0) {
-						console.log('[Layout] First element:', allDataElements[0]);
-					}
-					return null;
-				}
-				
-				const dataAttr = dataElement.getAttribute('data-grouped-moments');
-				console.log('[Layout] data-grouped-moments length:', dataAttr ? dataAttr.length : 0);
-				if (!dataAttr) {
-					console.warn('[Layout] data-grouped-moments attribute is empty');
-					return null;
-				}
-				
-				try {
-					const data = JSON.parse(dataAttr);
-					console.log('[Layout] Loaded diary data from page, years:', data.length);
-					return data;
-				} catch (e) {
-					console.error('[Layout] Failed to parse diary data:', e);
-					return null;
-				}
-			}
-
-			// 注入日记目录数据
-			// 使用全局变量避免重复声明错误
-			if (typeof window.isInjecting === 'undefined') {
-				window.isInjecting = false;
-			}
-			async function injectDiaryTOC() {
-				console.log('[Layout] injectDiaryTOC called');
-				
-				// 防止重复注入
-				if (window.isInjecting) {
-					console.log('[Layout] Already injecting, skipping...');
-					return;
-				}
-				window.isInjecting = true;
-				
-				const diaryTocWrapper = document.getElementById('diary-toc-wrapper');
-				const diaryTocContainer = document.getElementById('diary-toc');
-				
-				if (!diaryTocContainer || !diaryTocWrapper) {
-					console.warn('[Layout] TOC containers not found');
-					window.isInjecting = false;
-					return;
-				}
-				
-				// 等待自定义元素注册
-				await waitForCustomElement('diary-table-of-contents');
-				
-				// 从页面加载数据
-				const groupedMoments = loadDiaryDataFromPage();
-				if (!groupedMoments || !Array.isArray(groupedMoments) || groupedMoments.length === 0) {
-					console.log('[Layout] No diary data available');
-					window.isInjecting = false;
-					return;
-				}
-				
-				window.diaryGroupedMoments = groupedMoments;
-				const groupedMomentsJSON = JSON.stringify(groupedMoments);
-				console.log('[Layout] Found diary data, years:', groupedMoments.length, 'JSON length:', groupedMomentsJSON.length);
-				
-				// 创建或更新 diary-table-of-contents 元素
-				let diaryToc = diaryTocContainer.querySelector('diary-table-of-contents');
-				
-				if (!diaryToc) {
-					diaryToc = document.createElement('diary-table-of-contents');
-					diaryToc.className = 'group';
-					diaryTocContainer.appendChild(diaryToc);
-					console.log('[Layout] Created new diary-table-of-contents element');
-				}
-				
-				// 设置数据属性(此时wrapper还是hidden状态,元素在后台渲染)
-				diaryToc.setAttribute('data-grouped-moments', groupedMomentsJSON);
-				console.log('[Layout] Diary TOC data injected successfully');
-				
-				// 等待两帧确保自定义元素完全初始化和渲染完成
-				requestAnimationFrame(() => {
-					requestAnimationFrame(() => {
-						// 先显示但保持透明
-						diaryTocWrapper.classList.remove('hidden');
-						diaryTocWrapper.classList.add('lg:block');
-						
-						// 再等一帧后开始淡入,确保display:block已生效
-						requestAnimationFrame(() => {
-							diaryTocWrapper.classList.remove('opacity-0');
-							diaryTocWrapper.classList.add('opacity-100');
-							console.log('[Layout] Diary TOC fade in complete');
-							window.isInjecting = false;
-						});
-					});
-				});
-			}
-			
-			// 隐藏日记目录（非日记页面）
-			function hideDiaryTOC() {
-				// 清除数据
-				window.diaryGroupedMoments = null;
-				
-				const diaryTocWrapper = document.getElementById('diary-toc-wrapper');
-				if (diaryTocWrapper) {
-					// 先淡出
-					diaryTocWrapper.classList.remove('opacity-100');
-					diaryTocWrapper.classList.add('opacity-0');
-					// 等待过渡完成后隐藏
-					setTimeout(() => {
-						diaryTocWrapper.classList.add('hidden');
-						diaryTocWrapper.classList.remove('lg:block');
-					}, 300); // 与 transition duration 匹配
-					console.log('[Layout] Diary TOC hidden');
-				}
-			}
-			
-			// 初始加载
-			if (document.readyState === 'loading') {
-				document.addEventListener('DOMContentLoaded', () => {
-					if (window.location.pathname.includes('/diary')) {
-						injectDiaryTOC();
-					}
-				});
-			} else {
-				if (window.location.pathname.includes('/diary')) {
-					injectDiaryTOC();
-				}
-			}
-			
-			// Swup 页面切换 - 使用 page:view 事件确保 DOM 完全加载
-			document.addEventListener('swup:page:view', () => {
-				console.log('[Layout] swup:page:view fired, pathname:', window.location.pathname);
-				if (window.location.pathname.includes('/diary')) {
-					injectDiaryTOC();
-				} else {
-					hideDiaryTOC();
-				}
-			});
-		</script>
+		<script src="/js/diary-toc.js" defer></script>
 	</body>
 </html>
 
