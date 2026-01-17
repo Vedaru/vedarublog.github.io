@@ -173,18 +173,55 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
     let ffmpegBinary = null;
     try {
       if (ffmpegBinaryRaw) {
-        // If path seems absolute, check existence
-        if (fssync.existsSync(ffmpegBinaryRaw)) {
-          try {
-            // Check execute permission where possible
-            fssync.accessSync(ffmpegBinaryRaw, fssync.constants.X_OK);
-            ffmpegBinary = ffmpegBinaryRaw;
-          } catch (e) {
-            // Not necessarily fatal on Windows; try using in PATH as fallback
-            console.warn('⚠ ffmpeg binary found but not executable or access denied:', ffmpegBinaryRaw);
+        const looksLikePath = path.isAbsolute(ffmpegBinaryRaw) || ffmpegBinaryRaw.includes(path.sep) || /^[A-Za-z]:\\/.test(ffmpegBinaryRaw);
+        if (looksLikePath) {
+          // Treat as file path: check existence and execute permission
+          if (fssync.existsSync(ffmpegBinaryRaw)) {
+            try {
+              fssync.accessSync(ffmpegBinaryRaw, fssync.constants.X_OK);
+              ffmpegBinary = ffmpegBinaryRaw;
+            } catch (e) {
+              console.warn('⚠ ffmpeg binary path found but not executable or access denied:', ffmpegBinaryRaw);
+            }
+          } else {
+            // Try to rebuild ffmpeg-static (pnpm) to obtain binary if possible
+            if (!process.env.SKIP_FFMPEG_STATIC_REBUILD) {
+              try {
+                console.log('ℹ ffmpeg-static path missing; attempting `pnpm rebuild ffmpeg-static` to restore binary...');
+                const rebuild = spawnSync('pnpm', ['rebuild', 'ffmpeg-static'], { encoding: 'utf-8' });
+                if (rebuild && rebuild.status === 0) {
+                  if (fssync.existsSync(ffmpegBinaryRaw)) {
+                    try { fssync.accessSync(ffmpegBinaryRaw, fssync.constants.X_OK); ffmpegBinary = ffmpegBinaryRaw; }
+                    catch (e) { /* fallthrough */ }
+                  }
+                } else {
+                  console.log(`ℹ pnpm rebuild ffmpeg-static failed or returned non-zero. stdout='${(rebuild && rebuild.stdout)||''}', stderr='${(rebuild && rebuild.stderr)||''}'`);
+                }
+              } catch (rebuildErr) {
+                console.log('⚠ Failed to run pnpm rebuild ffmpeg-static:', rebuildErr && rebuildErr.message ? rebuildErr.message : rebuildErr);
+              }
+            }
+
+            if (!ffmpegBinary) {
+              if (!process.env.QUIET_FFMPEG_STATIC_WARN) {
+                console.info('⚠ ffmpeg-static returned a non-existing path:', ffmpegBinaryRaw, '\nHint: run `pnpm approve-builds` and `pnpm rebuild ffmpeg-static` locally, or install system ffmpeg and set $env:FORCE_SYSTEM_FFMPEG=1 to use it instead.');
+              } else {
+                console.log('ℹ ffmpeg-static path missing (suppressed warning). Set $env:QUIET_FFMPEG_STATIC_WARN=0 to re-enable the hint.');
+              }
+            }
           }
         } else {
-          console.warn('⚠ ffmpeg-static returned a non-existing path:', ffmpegBinaryRaw);
+          // Treat as command name (e.g., 'ffmpeg'): validate by running it
+          try {
+            const check = spawnSync(ffmpegBinaryRaw, ['-version']);
+            if (check && check.status === 0) {
+              ffmpegBinary = ffmpegBinaryRaw; // command is usable
+            } else {
+              console.warn('⚠ ffmpeg command returned non-zero when checking version:', ffmpegBinaryRaw, check && check.stderr ? check.stderr.toString().slice(0,200) : null);
+            }
+          } catch (e) {
+            console.warn('⚠ Error while checking ffmpeg command:', e && e.message ? e.message : e);
+          }
         }
       }
     } catch (e) {
@@ -249,42 +286,45 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
           } else {
             const args = ['-hide_banner', '-loglevel', 'error', '-y', '-i', filepath, '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', m4aPath];
 
-            // Try using preferred binary first (ffmpeg-static or detected binary)
+            // Prefer ffmpegBinary if provided, otherwise directly try system ffmpeg
             let r = null;
-            try {
-              r = spawnSync(ffmpegBinary, args, { encoding: 'utf-8' });
-            } catch (spawnErr) {
-              r = { status: null, error: spawnErr, stderr: spawnErr && spawnErr.message };
+            if (ffmpegBinary) {
+              try {
+                r = spawnSync(ffmpegBinary, args, { encoding: 'utf-8' });
+              } catch (spawnErr) {
+                r = { status: null, error: spawnErr, stderr: spawnErr && spawnErr.message };
+              }
+
+              if (r && r.status === 0) {
+                console.log(`✓ Converted ${filename} -> ${m4aFilename} (via ffmpegBinary)`);
+                try { await fs.unlink(filepath); } catch (e) {}
+                usedFilename = m4aFilename;
+                targetUrl = `/music/${m4aFilename}`;
+                continue; // done
+              }
+
+              console.warn(`⚠ ffmpeg (preferred) failed to convert ${filename}. status=${r ? r.status : 'null'}, error=${r && r.error ? r.error.message : 'none'}, stderr='${(r && r.stderr ? r.stderr.toString() : '').slice(0,400)}'`);
             }
 
-            if (r && r.status === 0) {
-              console.log(`✓ Converted ${filename} -> ${m4aFilename} (via ffmpegBinary)`);
-              try { await fs.unlink(filepath); } catch (e) {}
-              usedFilename = m4aFilename;
-              targetUrl = `/music/${m4aFilename}`;
-            } else {
-              console.warn(`⚠ ffmpeg (preferred) failed to convert ${filename}. status=${r ? r.status : 'null'}, error=${r && r.error ? r.error.message : 'none'}, stderr='${(r && r.stderr ? r.stderr.toString() : '').slice(0,400)}'`);
-
-              // Fallback to system ffmpeg in PATH
+            // Try system ffmpeg in PATH
+            try {
+              let r2 = null;
               try {
-                let r2 = null;
-                try {
-                  r2 = spawnSync('ffmpeg', args, { encoding: 'utf-8' });
-                } catch (spawnErr2) {
-                  r2 = { status: null, error: spawnErr2, stderr: spawnErr2 && spawnErr2.message };
-                }
-
-                if (r2 && r2.status === 0) {
-                  console.log(`✓ Converted ${filename} -> ${m4aFilename} (via ffmpeg in PATH)`);
-                  try { await fs.unlink(filepath); } catch (e) {}
-                  usedFilename = m4aFilename;
-                  targetUrl = `/music/${m4aFilename}`;
-                } else {
-                  console.warn(`⚠ ffmpeg (system) also failed for ${filename}. status=${r2 ? r2.status : 'null'}, error=${r2 && r2.error ? r2.error.message : 'none'}, stderr='${(r2 && r2.stderr ? r2.stderr.toString() : '').slice(0,400)}'`);
-                }
-              } catch (e2) {
-                console.warn(`⚠ Conversion fallback error for ${filename}: ${e2.message}`);
+                r2 = spawnSync('ffmpeg', args, { encoding: 'utf-8' });
+              } catch (spawnErr2) {
+                r2 = { status: null, error: spawnErr2, stderr: spawnErr2 && spawnErr2.message };
               }
+
+              if (r2 && r2.status === 0) {
+                console.log(`✓ Converted ${filename} -> ${m4aFilename} (via ffmpeg in PATH)`);
+                try { await fs.unlink(filepath); } catch (e) {}
+                usedFilename = m4aFilename;
+                targetUrl = `/music/${m4aFilename}`;
+              } else {
+                console.warn(`⚠ ffmpeg (system) also failed for ${filename}. status=${r2 ? r2.status : 'null'}, error=${r2 && r2.error ? r2.error.message : 'none'}, stderr='${(r2 && r2.stderr ? r2.stderr.toString() : '').slice(0,400)}'`);
+              }
+            } catch (e2) {
+              console.warn(`⚠ Conversion fallback error for ${filename}: ${e2.message}`);
             }
           }
         } catch (e) {
