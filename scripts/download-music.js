@@ -326,6 +326,21 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
     const legacyOut = path.join(legacyMusicDir, 'playlist.json');
     await fs.writeFile(legacyOut, JSON.stringify(result, null, 2), 'utf-8');
     console.log(`✓ Wrote compatibility copy ${legacyOut}`);
+
+    // 删除所有遗留的 .m4a 文件
+    try {
+      const m4aFiles = (await fs.readdir(urlDir)).filter(f => f.endsWith('.m4a'));
+      for (const f of m4aFiles) {
+        try {
+          await fs.unlink(path.join(urlDir, f));
+          console.log(`已删除遗留 m4a 文件: ${f}`);
+        } catch (e) {
+          console.warn(`删除 m4a 文件失败: ${f}，原因: ${e.message}`);
+        }
+      }
+    } catch (e) {
+      console.warn('清理 m4a 文件时出错:', e.message);
+    }
   } catch (e) {
     console.error('Error:', e && e.message ? e.message : e);
     process.exit(1);
