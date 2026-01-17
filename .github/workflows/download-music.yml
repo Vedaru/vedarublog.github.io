@@ -60,7 +60,7 @@ jobs:
       - name: Create pull request for downloaded music (if any)
         uses: peter-evans/create-pull-request@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_PAT }}
           commit-message: "chore: add/update downloaded music (automated)"
           title: "chore: add/update downloaded music (automated)"
           body: |
