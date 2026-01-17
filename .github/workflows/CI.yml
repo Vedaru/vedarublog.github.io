@@ -26,6 +26,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GH_PAT }}
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -53,6 +54,19 @@ jobs:
           node --version
           ffmpeg -version || true
           node scripts/download-music.js
+
+      - name: Commit and push downloaded music (if any)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          # Stage all music changes (including deletions like .m4a)
+          git add -A public/assets/music || true
+          # If no staged changes, skip
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git -c author.name="Vedaru" -c author.email="Vedaru@users.noreply.github.com" commit -m "chore: add/update downloaded music (automated)"
+            git push
+          fi
 
   check:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
