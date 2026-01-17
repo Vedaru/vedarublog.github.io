@@ -9,7 +9,7 @@ on:
     types: [completed]
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -40,9 +40,6 @@ jobs:
           if ! command -v ffmpeg >/dev/null 2>&1; then
             sudo apt-get update && sudo apt-get install -y ffmpeg
           fi
-      - name: Configure Git to use HTTPS for GitHub
-        run: |
-          git config --global url."https://github.com/".insteadOf "git@github.com:"
       - name: Disable bin links in pnpm (workaround for missing binary sources)
         run: |
           pnpm config set bin-links false
@@ -59,6 +56,9 @@ jobs:
         run: |
           # Stage all music changes (including deletions like .m4a)
           git add -A public/assets/music public/music || true
+
+          # Set remote to HTTPS for pushing
+          git remote set-url origin https://github.com/Vedaru/vedarublog.github.io.git
 
           # If no staged changes, skip
           if git diff --staged --quiet; then
