@@ -42,6 +42,10 @@ jobs:
           # Use HTTPS clone instead so public repos can be fetched without SSH auth.
           git config --global url."https://github.com/".insteadOf "git@github.com:"
 
+      - name: Disable bin links in pnpm (workaround for missing binary sources)
+        run: |
+          pnpm config set bin-links false
+
       - name: Install dependencies
         run: |
           pnpm install --frozen-lockfile
