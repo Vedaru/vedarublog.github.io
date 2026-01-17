@@ -36,6 +36,12 @@ jobs:
             sudo apt-get update && sudo apt-get install -y ffmpeg
           fi
 
+      - name: Configure Git to use HTTPS for GitHub
+        run: |
+          # Some dependencies may reference git@github.com:... which fails without SSH keys in runners.
+          # Use HTTPS clone instead so public repos can be fetched without SSH auth.
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+
       - name: Install dependencies
         run: |
           pnpm install --frozen-lockfile
