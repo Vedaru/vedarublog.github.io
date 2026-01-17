@@ -49,6 +49,25 @@ async function safeFetch(url, opts = {}) {
   }
 }
 
+async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, backoff = 1000 } = {}) {
+  // Simple exponential-backoff retry wrapper around safeFetch
+  let attempt = 0;
+  let lastErr;
+  while (attempt <= retries) {
+    try {
+      const res = await safeFetch(url, { timeout, headers });
+      return res;
+    } catch (e) {
+      lastErr = e;
+      if (attempt === retries) break;
+    }
+    const wait = backoff * Math.pow(2, attempt);
+    await new Promise((r) => setTimeout(r, wait));
+    attempt++;
+  }
+  throw lastErr || new Error('fetchWithRetry: unknown error');
+}
+
 (async function main() {
   try {
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -81,13 +100,47 @@ async function safeFetch(url, opts = {}) {
     const meting_type = typeMatch ? typeMatch[1] : 'playlist';
 
     const template = meting_api || 'https://api.i-meto.com/meting/api?server=:server&type=:type&id=:id';
-    const apiUrl = (template.includes(':server') || template.includes(':type') || template.includes(':id'))
-      ? template.replace(':server', meting_server).replace(':type', meting_type).replace(':id', meting_id)
-      : template;
 
-    console.log('ℹ Fetching playlist from', apiUrl);
-    const response = await safeFetch(apiUrl, { timeout: 20000 });
-    if (!response.ok) throw new Error('Meting API request failed: ' + response.status);
+    // Build candidate list: meting_api_candidates (if present) -> meting_api -> default
+    const candidates = [];
+    const candMatch = cfgStr.match(/meting_api_candidates:\s*\[([\s\S]*?)\]/);
+    if (candMatch) {
+      const inner = candMatch[1];
+      const urls = Array.from(inner.matchAll(/["']([^"']+)["']/g)).map((m) => m[1]).filter(Boolean);
+      urls.forEach((u) => candidates.push(u));
+    }
+    if (meting_api) candidates.push(meting_api);
+    const defaultTemplate = 'https://api.i-meto.com/meting/api?server=:server&type=:type&id=:id';
+    if (candidates.length === 0) candidates.push(defaultTemplate);
+
+    let response;
+    let lastErr;
+    for (const templateCandidate of candidates) {
+      const candidateUrl = (templateCandidate.includes(':server') || templateCandidate.includes(':type') || templateCandidate.includes(':id'))
+        ? templateCandidate.replace(':server', meting_server).replace(':type', meting_type).replace(':id', meting_id)
+        : templateCandidate;
+
+      console.log('ℹ Fetching playlist from', candidateUrl);
+      try {
+        response = await fetchWithRetry(candidateUrl, {
+          timeout: 20000,
+          retries: 2,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; VedaruMusicDownloader/1.0; +https://vedaru.cn)',
+            'Accept': 'application/json, text/plain, */*',
+            'Referer': 'https://vedaru.cn'
+          }
+        });
+        if (response.ok) break;
+        lastErr = new Error('Meting API request failed: ' + response.status);
+        console.warn(`⚠ Meting API ${candidateUrl} returned ${response.status}`);
+      } catch (e) {
+        console.warn(`⚠ Error fetching ${candidateUrl}: ${e.message}`);
+        lastErr = e;
+      }
+    }
+
+    if (!response || !response.ok) throw lastErr || new Error('Meting API request failed');
     const playlist = await response.json();
     if (!Array.isArray(playlist) || playlist.length === 0) {
       console.log('⚠ Empty playlist, nothing to download');
@@ -116,7 +169,15 @@ async function safeFetch(url, opts = {}) {
       if (!fssync.existsSync(filepath)) {
         try {
           console.log(`ℹ Downloading ${title} from ${song.url}`);
-          const r = await safeFetch(song.url);
+          const r = await fetchWithRetry(song.url, {
+            timeout: 30000,
+            retries: 2,
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (compatible; VedaruMusicDownloader/1.0; +https://vedaru.cn)',
+              'Accept': '*/*',
+              'Referer': 'https://vedaru.cn'
+            }
+          });
           if (!r.ok) { console.warn(`⚠ Failed to download ${song.url}: ${r.status}`); continue; }
           const arrayBuf = await r.arrayBuffer();
           await fs.writeFile(filepath, Buffer.from(arrayBuf));
