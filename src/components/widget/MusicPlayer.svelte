@@ -1327,8 +1327,12 @@ function stopProgressDrag() {
 			if (actualDuration > 0 && finalTime >= actualDuration) {
 				finalTime = Math.max(0, actualDuration - 0.15);
 			}
+			console.log('Progress drag ended. Setting audio.currentTime to:', finalTime, 'audio exists:', !!audio, 'currentTime was:', currentTime);
 			audio.currentTime = finalTime;
 			currentTime = finalTime;
+			console.log('After setting: audio.currentTime is:', audio.currentTime, 'currentTime is:', currentTime);
+		} else {
+			console.warn('Audio element not found when stopping progress drag');
 		}
 	} catch (e) {
 		console.debug('Error applying final seek after drag:', e);
