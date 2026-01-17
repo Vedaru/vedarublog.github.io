@@ -15,6 +15,24 @@ import fs from 'fs/promises';
 import fssync from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { spawnSync } from 'child_process';
+
+async function getFfmpegBinary() {
+  // Try ffmpeg-static first
+  try {
+    const mod = await import('ffmpeg-static');
+    const ff = mod?.default || mod;
+    if (ff) return ff;
+  } catch (e) {}
+
+  // Fallback to system ffmpeg
+  try {
+    const r = spawnSync('ffmpeg', ['-version']);
+    if (r.status === 0) return 'ffmpeg';
+  } catch (e) {}
+
+  return null;
+}
 
 async function safeFetch(url, opts = {}) {
   // Implement a simple timeout-aware fetch that prefers global fetch (Node 18+)
@@ -84,8 +102,8 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
     const cfgStr = mpMatch[1];
     const modeMatch = cfgStr.match(/mode:\s*["']([^"']+)["']/);
     const mode = modeMatch ? modeMatch[1] : 'meting';
-    if (mode !== 'meting') {
-      console.log('ℹ Music player mode is not "meting"; skipping download');
+    if (mode !== 'meting' && process.env.FORCE_MUSIC_DOWNLOAD !== '1') {
+      console.log('ℹ Music player mode is not "meting"; skipping download (set FORCE_MUSIC_DOWNLOAD=1 to override)');
       return;
     }
 
@@ -150,6 +168,11 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
     const outDir = path.join(projectRoot, 'public', 'music');
     await fs.mkdir(outDir, { recursive: true });
 
+    const ffmpegBinary = await getFfmpegBinary();
+    const enableConvert = !!ffmpegBinary && process.env.SKIP_AUDIO_CONVERT !== '1';
+    if (enableConvert) console.log('ℹ Audio conversion enabled; ffmpeg binary:', ffmpegBinary);
+    else console.log('ℹ Audio conversion disabled or no ffmpeg available');
+
     const result = [];
     for (let i = 0; i < playlist.length; i++) {
       const song = playlist[i];
@@ -190,10 +213,32 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
         console.log(`ℹ Skipping existing file ${filename}`);
       }
 
+      // Convert to m4a if ffmpeg is available
+      let usedFilename = filename;
+      let targetUrl = `/music/${filename}`;
+      if (enableConvert) {
+        const m4aFilename = `${id}-${safeTitle}.m4a`;
+        const m4aPath = path.join(outDir, m4aFilename);
+        try {
+          const args = ['-hide_banner', '-loglevel', 'error', '-y', '-i', filepath, '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', m4aPath];
+          const r = spawnSync(ffmpegBinary, args, { encoding: 'utf-8' });
+          if (r.status === 0) {
+            console.log(`✓ Converted ${filename} -> ${m4aFilename}`);
+            try { await fs.unlink(filepath); } catch (e) {}
+            usedFilename = m4aFilename;
+            targetUrl = `/music/${m4aFilename}`;
+          } else {
+            console.warn(`⚠ ffmpeg failed to convert ${filename}: ${r.stderr || r.stdout || r.status}`);
+          }
+        } catch (e) {
+          console.warn(`⚠ Conversion error for ${filename}: ${e.message}`);
+        }
+      }
+
       result.push({
         name: title,
         artist: song.artist || song.author || '',
-        url: `/music/${filename}`,
+        url: targetUrl,
         cover: song.pic || '',
         lrc: song.lrc || '',
         id: song.id || ''
