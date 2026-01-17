@@ -101,9 +101,10 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
     }
     const cfgStr = mpMatch[1];
     const modeMatch = cfgStr.match(/mode:\s*["']([^"']+)["']/);
-    const mode = modeMatch ? modeMatch[1] : 'meting';
-    if (mode !== 'meting' && process.env.FORCE_MUSIC_DOWNLOAD !== '1') {
-      console.log('ℹ Music player mode is not "meting"; skipping download (set FORCE_MUSIC_DOWNLOAD=1 to override)');
+    const mode = modeMatch ? modeMatch[1] : 'local';
+    // Allow download when mode is either 'meting' (legacy) or 'local' (preferred).
+    if (!(mode === 'meting' || mode === 'local') && process.env.FORCE_MUSIC_DOWNLOAD !== '1') {
+      console.log('ℹ Music player mode is not "meting" or "local"; skipping download (set FORCE_MUSIC_DOWNLOAD=1 to override)');
       return;
     }
 
@@ -278,6 +279,8 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
       if (enableConvert) {
         const m4aFilename = `${id}-${safeTitle}.m4a`;
         const m4aPath = path.join(outDir, m4aFilename);
+        // Flag to indicate conversion succeeded so we can avoid running fallbacks and extra warnings
+        let conversionDone = false;
         try {
           // Ensure input file exists and has reasonable size
           const stat = await fs.stat(filepath).catch(() => null);
@@ -300,7 +303,7 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
                 try { await fs.unlink(filepath); } catch (e) {}
                 usedFilename = m4aFilename;
                 targetUrl = `/music/${m4aFilename}`;
-                continue; // done
+                conversionDone = true;
               }
 
               console.warn(`⚠ ffmpeg (preferred) failed to convert ${filename}. status=${r ? r.status : 'null'}, error=${r && r.error ? r.error.message : 'none'}, stderr='${(r && r.stderr ? r.stderr.toString() : '').slice(0,400)}'`);
@@ -320,6 +323,7 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
                 try { await fs.unlink(filepath); } catch (e) {}
                 usedFilename = m4aFilename;
                 targetUrl = `/music/${m4aFilename}`;
+                conversionDone = true;
               } else {
                 console.warn(`⚠ ffmpeg (system) also failed for ${filename}. status=${r2 ? r2.status : 'null'}, error=${r2 && r2.error ? r2.error.message : 'none'}, stderr='${(r2 && r2.stderr ? r2.stderr.toString() : '').slice(0,400)}'`);
               }

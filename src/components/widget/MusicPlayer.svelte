@@ -23,8 +23,8 @@ import {
 	type ProcessedSong,
 } from "../../utils/music-loader-utils";
 
-// 音乐播放器模式，可选 "local" 或 "meting"，从本地配置中获取或使用默认值 "meting"
-let mode = musicPlayerConfig.mode ?? "meting";
+// 音乐播放器模式：运行时仅保留 "local"（使用本地歌单）。Meting 仅在静态构建/下载阶段使用。
+let mode = musicPlayerConfig.mode ?? "local";
 // Meting API 地址，从配置中获取或使用默认地址
 let meting_api =
 	musicPlayerConfig.meting_api ??

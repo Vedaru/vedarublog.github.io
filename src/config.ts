@@ -386,9 +386,9 @@ export const announcementConfig: AnnouncementConfig = {
 
 export const musicPlayerConfig: MusicPlayerConfig = {
 	enable: true, // 启用音乐播放器功能
-	mode: "local", // 音乐播放器模式：设置为 "local" 以在运行时使用本地歌单，避免请求 Meting API
-	// 当前使用：官方 Meting API（主源）。
-	// 可选：按优先级提供多个候选 Meting API 源，播放器会按顺序尝试备用源（仅当 mode === "meting" 时生效）。
+	mode: "local", // 音乐播放器模式：运行时仅支持 "local"（使用本地歌单）；Meting 仅在静态构建时用于下载并生成本地歌单
+	// 当前使用：官方 Meting API（主源），仅用于构建脚本下载音乐。
+	// 可选：按优先级提供多个候选 Meting API 源，构建时会按顺序尝试备用源（仅用于构建/下载阶段）。
 	meting_api:
 		"https://api.i-meto.com/meting/api?server=netease&type=playlist&id=17514570572",
 	// 推荐：配置多个候选 API 源以在主源不可用（403/限流/超时）时自动回退
