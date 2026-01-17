@@ -56,7 +56,28 @@ jobs:
           ffmpeg -version || true
           node scripts/download-music.js
 
+      - name: Debug: list music directory and git info
+        run: |
+          echo "PWD: $(pwd)"
+          echo "--- public/assets ---"
+          ls -la public/assets || true
+          echo "--- public/assets/music ---"
+          ls -la public/assets/music || true
+          echo "Git top-level: $(git rev-parse --show-toplevel || echo 'none')"
+          echo "Git status (porcelain):"
+          git status --porcelain public/assets/music || true
+
+      - name: Check for changes in music directory
+        id: check-changes
+        run: |
+          if [ -n "$(git status --porcelain public/assets/music)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Create pull request for downloaded music (if any)
+        if: ${{ steps.check-changes.outputs.changed == 'true' }}
         uses: peter-evans/create-pull-request@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -68,5 +89,5 @@ jobs:
           branch: update/music-download
           base: main
           labels: automated
-          path: public/assets/music
+          path: ./public/assets/music
           delete-branch: true
