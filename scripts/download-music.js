@@ -168,9 +168,31 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
     const outDir = path.join(projectRoot, 'public', 'music');
     await fs.mkdir(outDir, { recursive: true });
 
-    const ffmpegBinary = await getFfmpegBinary();
-    const enableConvert = !!ffmpegBinary && process.env.SKIP_AUDIO_CONVERT !== '1';
-    if (enableConvert) console.log('ℹ Audio conversion enabled; ffmpeg binary:', ffmpegBinary);
+    const ffmpegBinaryRaw = await getFfmpegBinary();
+    // Verify the binary exists and is executable (some environments may return unrelated paths)
+    let ffmpegBinary = null;
+    try {
+      if (ffmpegBinaryRaw) {
+        // If path seems absolute, check existence
+        if (fssync.existsSync(ffmpegBinaryRaw)) {
+          try {
+            // Check execute permission where possible
+            fssync.accessSync(ffmpegBinaryRaw, fssync.constants.X_OK);
+            ffmpegBinary = ffmpegBinaryRaw;
+          } catch (e) {
+            // Not necessarily fatal on Windows; try using in PATH as fallback
+            console.warn('⚠ ffmpeg binary found but not executable or access denied:', ffmpegBinaryRaw);
+          }
+        } else {
+          console.warn('⚠ ffmpeg-static returned a non-existing path:', ffmpegBinaryRaw);
+        }
+      }
+    } catch (e) {
+      console.warn('⚠ Error while validating ffmpeg binary:', e && e.message ? e.message : e);
+    }
+
+    const enableConvert = (ffmpegBinary || process.env.FORCE_SYSTEM_FFMPEG === '1') && process.env.SKIP_AUDIO_CONVERT !== '1';
+    if (enableConvert) console.log('ℹ Audio conversion enabled; ffmpeg binary (validated):', ffmpegBinary || 'using system ffmpeg in PATH');
     else console.log('ℹ Audio conversion disabled or no ffmpeg available');
 
     const result = [];
@@ -228,26 +250,37 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
             const args = ['-hide_banner', '-loglevel', 'error', '-y', '-i', filepath, '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', m4aPath];
 
             // Try using preferred binary first (ffmpeg-static or detected binary)
-            let r = spawnSync(ffmpegBinary, args, { encoding: 'utf-8' });
-            if (r.status === 0) {
+            let r = null;
+            try {
+              r = spawnSync(ffmpegBinary, args, { encoding: 'utf-8' });
+            } catch (spawnErr) {
+              r = { status: null, error: spawnErr, stderr: spawnErr && spawnErr.message };
+            }
+
+            if (r && r.status === 0) {
               console.log(`✓ Converted ${filename} -> ${m4aFilename} (via ffmpegBinary)`);
               try { await fs.unlink(filepath); } catch (e) {}
               usedFilename = m4aFilename;
               targetUrl = `/music/${m4aFilename}`;
             } else {
-              // Log detailed info for debugging
-              console.warn(`⚠ ffmpeg (preferred) failed to convert ${filename}. status=${r.status}, error=${r.error ? r.error.message : 'none'}, stderr='${(r.stderr||'').toString().slice(0,400)}'`);
+              console.warn(`⚠ ffmpeg (preferred) failed to convert ${filename}. status=${r ? r.status : 'null'}, error=${r && r.error ? r.error.message : 'none'}, stderr='${(r && r.stderr ? r.stderr.toString() : '').slice(0,400)}'`);
 
               // Fallback to system ffmpeg in PATH
               try {
-                const r2 = spawnSync('ffmpeg', args, { encoding: 'utf-8' });
-                if (r2.status === 0) {
+                let r2 = null;
+                try {
+                  r2 = spawnSync('ffmpeg', args, { encoding: 'utf-8' });
+                } catch (spawnErr2) {
+                  r2 = { status: null, error: spawnErr2, stderr: spawnErr2 && spawnErr2.message };
+                }
+
+                if (r2 && r2.status === 0) {
                   console.log(`✓ Converted ${filename} -> ${m4aFilename} (via ffmpeg in PATH)`);
                   try { await fs.unlink(filepath); } catch (e) {}
                   usedFilename = m4aFilename;
                   targetUrl = `/music/${m4aFilename}`;
                 } else {
-                  console.warn(`⚠ ffmpeg (system) also failed for ${filename}. status=${r2.status}, stderr='${(r2.stderr||'').toString().slice(0,400)}'`);
+                  console.warn(`⚠ ffmpeg (system) also failed for ${filename}. status=${r2 ? r2.status : 'null'}, error=${r2 && r2.error ? r2.error.message : 'none'}, stderr='${(r2 && r2.stderr ? r2.stderr.toString() : '').slice(0,400)}'`);
                 }
               } catch (e2) {
                 console.warn(`⚠ Conversion fallback error for ${filename}: ${e2.message}`);
