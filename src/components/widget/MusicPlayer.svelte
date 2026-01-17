@@ -1120,6 +1120,7 @@ function loadSong(song: typeof currentSong) {
 	console.debug("Loading audio:", audioUrl, "readyState:", audio.readyState);
 	
 	// 设置音频源并加载
+	audio.preload = 'none';
 	audio.src = audioUrl;
 	audio.load();
 	
