@@ -1,1 +1,82 @@
-[]
+[
+  {
+    "id": 1,
+    "name": "反乌托邦",
+    "artist": "Unknown",
+    "url": "/music/0-反乌托邦.m4a",
+    "cover": "",
+    "lrc": ""
+  },
+  {
+    "id": 2,
+    "name": "8月31日",
+    "artist": "Unknown",
+    "url": "/music/1-8月31日.m4a",
+    "cover": "",
+    "lrc": ""
+  },
+  {
+    "id": 3,
+    "name": "RIP",
+    "artist": "Unknown",
+    "url": "/music/2-RIP.m4a",
+    "cover": "",
+    "lrc": ""
+  },
+  {
+    "id": 4,
+    "name": "Last Night,Good Night",
+    "artist": "Unknown",
+    "url": "/music/3-Last Night,Good Night.m4a",
+    "cover": "",
+    "lrc": ""
+  },
+  {
+    "id": 5,
+    "name": "夢よ未来へ",
+    "artist": "Unknown",
+    "url": "/music/4-夢よ未来へ.m4a",
+    "cover": "",
+    "lrc": ""
+  },
+  {
+    "id": 6,
+    "name": "一人行者",
+    "artist": "Unknown",
+    "url": "/music/5-一人行者.m4a",
+    "cover": "",
+    "lrc": ""
+  },
+  {
+    "id": 7,
+    "name": "アイロニ",
+    "artist": "Unknown",
+    "url": "/music/6-アイロニ.m4a",
+    "cover": "",
+    "lrc": ""
+  },
+  {
+    "id": 8,
+    "name": "夜明けと蛍 arrange ver.",
+    "artist": "Unknown",
+    "url": "/music/7-夜明けと蛍 arrange ver..m4a",
+    "cover": "",
+    "lrc": ""
+  },
+  {
+    "id": 9,
+    "name": "アスノヨゾラ哨戒班",
+    "artist": "Unknown",
+    "url": "/music/8-アスノヨゾラ哨戒班.m4a",
+    "cover": "",
+    "lrc": ""
+  },
+  {
+    "id": 10,
+    "name": "もうじき夏が終わるから",
+    "artist": "Unknown",
+    "url": "/music/9-もうじき夏が終わるから.m4a",
+    "cover": "",
+    "lrc": ""
+  }
+]
