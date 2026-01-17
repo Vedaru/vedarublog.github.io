@@ -270,8 +270,10 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
       let safeTitle = decodedTitle.replace(/[^\\x00-\\x7F]/g, '').replace(/[\\/:*?"<>|#%&]/g, '-');
       // Normalize dashes and trim
       safeTitle = safeTitle.replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 120);
-      if (!safeTitle) safeTitle = 'untitled';
-      const filename = `${id}-${safeTitle}${ext}`;
+      // If the cleaned title is empty, avoid creating an extra hyphen (use `id.ext`)
+      if (!safeTitle) safeTitle = '';
+      const namePart = safeTitle ? `-${safeTitle}` : '';
+      const filename = `${id}${namePart}${ext}`;
       const filepath = path.join(urlDir, filename);
 
       if (!song.url) {
@@ -308,7 +310,7 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
       let usedFilename = filename;
       let targetUrl = `/assets/music/url/${filename}`;
       if (enableConvert) {
-        const m4aFilename = `${id}-${safeTitle}.m4a`;
+        const m4aFilename = `${id}${namePart}.m4a`;
         const m4aPath = path.join(urlDir, m4aFilename);
         // Flag to indicate conversion succeeded so we can avoid running fallbacks and extra warnings
         let conversionDone = false;
