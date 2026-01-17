@@ -868,8 +868,11 @@ function playSong(index: number) {
 	console.debug("playSong called:", { index, wasPlaying, shouldAutoplayContinuous, title: playlist[index]?.title });
 	currentIndex = index;
 	
+	// 重置播放状态，因为我们要切换歌曲
+	isPlaying = false;
+	
 	// 检查是否可以直接使用预加载的音频
-	if (preloadAudio && prefetchedForIndex === index && preloadAudio.readyState >= 2) {
+	if (preloadAudio && prefetchedForIndex === index && preloadAudio.readyState >= 2 && preloadAudio.src) {
 		console.debug("Using preloaded audio for:", playlist[index].title);
 		// 暂停当前音频
 		if (audio) {
@@ -887,7 +890,9 @@ function playSong(index: number) {
 		prefetchedForIndex = null;
 		// 不要重复处理cover，playlist中的cover已经是完整路径
 		currentSong = { ...playlist[currentIndex] };
+		// 恢复正确的音量（预加载时设置为0）
 		audio.volume = audioVolumeCurrent;
+		audio.muted = false;
 		handleAudioEvents(); // 重新绑定事件监听器
 
 		// 同步时长与当前时间：若预加载音频已准备好则立即更新，否则在 loadeddata 时更新
@@ -1112,9 +1117,10 @@ function loadSong(song: typeof currentSong) {
 	
 	isLoading = true;
 	
-	// 暂停当前播放
+	// 暂停当前播放并重置播放状态
 	try {
 		audio.pause();
+		isPlaying = false;
 	} catch (e) {
 		console.debug("Pause failed:", e);
 	}
