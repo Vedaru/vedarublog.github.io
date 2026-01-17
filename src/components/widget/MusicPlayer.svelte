@@ -1268,7 +1268,8 @@ function scheduleProgressUpdate(clientX: number) {
 			// 避免不必要的重复设置，特别是当拖动超出边界时
 			if (Math.abs(currentTime - newTime) > 0.01) { // 只有当时间变化超过10ms时才更新
 				currentTime = newTime;
-				audio.currentTime = newTime;
+				// 注意：在拖拽过程中不设置 audio.currentTime，只更新 UI 显示
+				// audio.currentTime 只在拖拽结束时设置，避免音频跳跃
 			}
 			tooltipTime = newTime;
 			progressTooltipPercent = percent * 100;
@@ -1603,7 +1604,9 @@ function handleAudioEvents() {
 		isPlaying = false;
 	});
 	audio.addEventListener("timeupdate", () => {
-		currentTime = audio.currentTime;
+		if (!isProgressDragging) {
+			currentTime = audio.currentTime;
+		}
 		// 当快要播放完当前曲目时，预取下一首以减少切换等待（仅在尚未预取时触发）
 		try {
 			const nextIdx = currentIndex + 1;
