@@ -2,8 +2,8 @@
   {
     "name": "反乌托邦",
     "artist": "乌托邦P",
-    "url": "/assets/music/url/0-.m4a",
-    "cover": "/assets/music/cover/0-.jpg",
+    "url": "/assets/music/url/0-untitled.m4a",
+    "cover": "/assets/music/cover/0-untitled.jpg",
     "lrc": "https://api.injahow.cn/meting/?server=netease&type=lrc&id=2671812705",
     "id": ""
   },
@@ -26,56 +26,56 @@
   {
     "name": "Last Night,Good Night",
     "artist": "livetune/初音ミク",
-    "url": "/assets/music/url/3-Last Night,Good Night.m4a",
-    "cover": "/assets/music/cover/3-Last Night,Good Night.jpg",
+    "url": "/assets/music/url/3-LNGN.m4a",
+    "cover": "/assets/music/cover/3-LNGN.jpg",
     "lrc": "https://api.injahow.cn/meting/?server=netease&type=lrc&id=22677560",
     "id": ""
   },
   {
     "name": "夢よ未来へ",
     "artist": "はりーP/初音ミク",
-    "url": "/assets/music/url/4-.m4a",
-    "cover": "/assets/music/cover/4-.jpg",
+    "url": "/assets/music/url/4-untitled.m4a",
+    "cover": "/assets/music/cover/4-untitled.jpg",
     "lrc": "https://api.injahow.cn/meting/?server=netease&type=lrc&id=1372315794",
     "id": ""
   },
   {
     "name": "一人行者",
     "artist": "心华",
-    "url": "/assets/music/url/5-.m4a",
-    "cover": "/assets/music/cover/5-.jpg",
+    "url": "/assets/music/url/5-untitled.m4a",
+    "cover": "/assets/music/cover/5-untitled.jpg",
     "lrc": "https://api.injahow.cn/meting/?server=netease&type=lrc&id=526116050",
     "id": ""
   },
   {
     "name": "アイロニ",
     "artist": "すこっぷ/初音ミク",
-    "url": "/assets/music/url/6-.m4a",
-    "cover": "/assets/music/cover/6-.jpg",
+    "url": "/assets/music/url/6-untitled.m4a",
+    "cover": "/assets/music/cover/6-untitled.jpg",
     "lrc": "https://api.injahow.cn/meting/?server=netease&type=lrc&id=28411815",
     "id": ""
   },
   {
     "name": "夜明けと蛍 arrange ver.",
     "artist": "n-buna",
-    "url": "/assets/music/url/7- arrange ver..m4a",
-    "cover": "/assets/music/cover/7- arrange ver..jpg",
+    "url": "/assets/music/url/7-untitled.m4a",
+    "cover": "/assets/music/cover/7-untitled.jpg",
     "lrc": "https://api.injahow.cn/meting/?server=netease&type=lrc&id=1966112058",
     "id": ""
   },
   {
     "name": "アスノヨゾラ哨戒班",
     "artist": "Orangestar/IA",
-    "url": "/assets/music/url/8-.m4a",
-    "cover": "/assets/music/cover/8-.jpg",
+    "url": "/assets/music/url/8-untitled.m4a",
+    "cover": "/assets/music/cover/8-untitled.jpg",
     "lrc": "https://api.injahow.cn/meting/?server=netease&type=lrc&id=31830623",
     "id": ""
   },
   {
     "name": "もうじき夏が終わるから",
     "artist": "n-buna/初音ミク",
-    "url": "/assets/music/url/9-.m4a",
-    "cover": "/assets/music/cover/9-.jpg",
+    "url": "/assets/music/url/9-untitled.m4a",
+    "cover": "/assets/music/cover/9-untitled.jpg",
     "lrc": "https://api.injahow.cn/meting/?server=netease&type=lrc&id=33367332",
     "id": ""
   }
