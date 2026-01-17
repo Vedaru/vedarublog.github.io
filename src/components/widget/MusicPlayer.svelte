@@ -1327,10 +1327,31 @@ function stopProgressDrag() {
 			if (actualDuration > 0 && finalTime >= actualDuration) {
 				finalTime = Math.max(0, actualDuration - 0.15);
 			}
-			console.log('Progress drag ended. Setting audio.currentTime to:', finalTime, 'audio exists:', !!audio, 'currentTime was:', currentTime);
-			audio.currentTime = finalTime;
-			currentTime = finalTime;
-			console.log('After setting: audio.currentTime is:', audio.currentTime, 'currentTime is:', currentTime);
+
+			// 检查音频是否可以seek
+			if (audio.readyState >= 1 && audio.duration > 0 && !audio.error) {
+				const originalTime = audio.currentTime;
+				audio.currentTime = finalTime;
+
+				// 验证设置是否成功
+				setTimeout(() => {
+					if (Math.abs(audio.currentTime - finalTime) > 0.5) {
+						console.warn('Seek failed, currentTime reset to:', audio.currentTime, 'expected:', finalTime);
+						// 如果seek失败，尝试更保守的方法
+						if (audio.readyState >= 2) {
+							audio.currentTime = Math.min(finalTime, audio.duration * 0.95);
+						}
+					} else {
+						console.log('Seek successful: currentTime =', audio.currentTime);
+					}
+				}, 10);
+			} else {
+				console.warn('Audio not ready for seeking:', {
+					readyState: audio.readyState,
+					duration: audio.duration,
+					error: audio.error
+				});
+			}
 		} else {
 			console.warn('Audio element not found when stopping progress drag');
 		}
