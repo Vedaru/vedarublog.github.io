@@ -19,43 +19,29 @@ interface MetingSong {
 	pic: string;
 	lrc: string;
 }
-
 let audioListJson = "[]";
 if (musicPlayerConfig.enable && musicPlayerConfig.mode === "meting") {
 	try {
-		// 优先尝试通过静态导入使用仓库内的本地播放列表（public/music/playlist.json）。
-		// 使用动态 import 可以避免在不同构建环境中依赖 Node 专用 API（如 fs 或 __dirname）。
-		try {
-			const localPlaylist = await import('../../public/music/playlist.json', { assert: { type: 'json' } });
-			audioListJson = JSON.stringify(localPlaylist?.default ?? localPlaylist);
-		} catch (e) {
-			// 若本地 JSON 不存在或无法导入，则根据环境决定是否回退到 Meting API
-			const isDev = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.MODE === 'development') || process.env.NODE_ENV === 'development';
-			if (isDev) {
-				console.log('ℹ Dev mode: skipping Meting API fetch; enable local playlist or run the download script to populate public/music');
-			} else {
-				const PLAYLIST_ID = musicPlayerConfig.id ?? '28364371';
-				const SERVER = musicPlayerConfig.server ?? 'netease';
-				// 优先使用配置中的 meting_api；回退到候选列表或旧默认模板
-				const template = musicPlayerConfig.meting_api ?? (musicPlayerConfig.meting_api_candidates && musicPlayerConfig.meting_api_candidates[0]) ?? `https://api.i-meto.com/meting/api?server=:server&type=:type&id=:id`;
-				let apiUrl = template;
-				if (template.includes(':server') || template.includes(':type') || template.includes(':id')) {
-					apiUrl = template.replace(':server', SERVER).replace(':type', 'playlist').replace(':id', PLAYLIST_ID);
-				}
-				const response = await fetch(apiUrl);
-				const data: MetingSong[] = await response.json();
-				const audioList = data.map((song: any) => ({
-					name: song.title,
-					artist: song.author,
-					url: song.url, // 使用API返回的完整URL
-					cover: song.pic,
-					lrc: song.lrc
-				}));
-				audioListJson = JSON.stringify(audioList);
-			}
+		const PLAYLIST_ID = musicPlayerConfig.id ?? '28364371';
+		const SERVER = musicPlayerConfig.server ?? 'netease';
+		// 优先使用配置中的 meting_api；回退到候选列表或旧默认模板
+		const template = musicPlayerConfig.meting_api ?? (musicPlayerConfig.meting_api_candidates && musicPlayerConfig.meting_api_candidates[0]) ?? `https://api.i-meto.com/meting/api?server=:server&type=:type&id=:id`;
+		let apiUrl = template;
+		if (template.includes(':server') || template.includes(':type') || template.includes(':id')) {
+			apiUrl = template.replace(':server', SERVER).replace(':type', 'playlist').replace(':id', PLAYLIST_ID);
 		}
+		const response = await fetch(apiUrl);
+		const data: MetingSong[] = await response.json();
+		const audioList = data.map((song: any) => ({
+			name: song.title,
+			artist: song.author,
+			url: song.url, // 使用API返回的完整URL
+			cover: song.pic,
+			lrc: song.lrc
+		}));
+		audioListJson = JSON.stringify(audioList);
 	} catch (e) {
-		console.warn("Failed to fetch or load music data:", e);
+		console.warn("Failed to fetch music data:", e);
 	}
 }
 
