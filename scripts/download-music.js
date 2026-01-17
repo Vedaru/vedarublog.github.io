@@ -11,19 +11,39 @@
  * musicPlayerConfig.mode !== 'meting'.
  */
 
-const fs = require('fs/promises');
-const fssync = require('fs');
-const path = require('path');
-const { fileURLToPath } = require('url');
+import fs from 'fs/promises';
+import fssync from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-async function safeFetch(url, opts) {
-  if (global.fetch) {
-    return global.fetch(url, opts);
+async function safeFetch(url, opts = {}) {
+  // Implement a simple timeout-aware fetch that prefers global fetch (Node 18+)
+  const timeout = typeof opts.timeout === 'number' ? opts.timeout : 0;
+
+  if (typeof globalThis.fetch === 'function') {
+    const controller = new AbortController();
+    let timer;
+    if (timeout > 0) timer = setTimeout(() => controller.abort(), timeout);
+    try {
+      return await fetch(url, { ...opts, signal: controller.signal });
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
-  // Fallback to node-fetch if running on older Node
+
+  // Fallback to node-fetch ESM
   try {
     const nf = await import('node-fetch');
-    return nf.default(url, opts);
+    const { default: fetchFn, AbortController: NFAbortController } = nf;
+    const controller = new NFAbortController();
+    let timer;
+    if (timeout > 0) timer = setTimeout(() => controller.abort(), timeout);
+    try {
+      const res = await fetchFn(url, { ...opts, signal: controller.signal });
+      return res;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   } catch (e) {
     throw new Error('No fetch available: ' + e.message);
   }
@@ -31,6 +51,7 @@ async function safeFetch(url, opts) {
 
 (async function main() {
   try {
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
     const projectRoot = path.resolve(__dirname, '..');
     const configPath = path.join(projectRoot, 'src', 'config.ts');
     const configContent = await fs.readFile(configPath, 'utf-8');
