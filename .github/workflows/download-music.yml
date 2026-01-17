@@ -25,6 +25,11 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: '10'
+
       - name: Install ffmpeg (if missing)
         run: |
           if ! command -v ffmpeg >/dev/null 2>&1; then
