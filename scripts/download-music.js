@@ -260,7 +260,17 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
       const title = (song.name || song.title || `song-${i}`).toString();
       const id = song.id ? song.id.toString() : String(i);
       const ext = (song.url && song.url.split('.').pop() && song.url.split('?')[0].endsWith('.mp3')) ? '.mp3' : '.mp3';
-      const safeTitle = title.replace(/[^\x00-\x7F]/g, '').replace(/[\\/:*?"<>|#%&]/g, '-').slice(0, 120);
+      // Decode percent-encoded titles first, then strip non-ASCII and unsafe characters
+      let decodedTitle = title;
+      try {
+        decodedTitle = decodeURIComponent(title);
+      } catch (e) {
+        // ignore if title is not percent-encoded
+      }
+      let safeTitle = decodedTitle.replace(/[^\\x00-\\x7F]/g, '').replace(/[\\/:*?"<>|#%&]/g, '-');
+      // Normalize dashes and trim
+      safeTitle = safeTitle.replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 120);
+      if (!safeTitle) safeTitle = 'untitled';
       const filename = `${id}-${safeTitle}${ext}`;
       const filepath = path.join(urlDir, filename);
 
