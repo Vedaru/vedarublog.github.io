@@ -18,10 +18,47 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  download-music:
+    name: Download Music
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '10.22.0'
+      - name: Install ffmpeg (if missing)
+        run: |
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y ffmpeg
+          fi
+      - name: Configure Git to use HTTPS for GitHub
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+      - name: Disable bin links in pnpm (workaround for missing binary sources)
+        run: |
+          pnpm config set bin-links false
+      - name: Install dependencies
+        run: |
+          pnpm install --frozen-lockfile
+      - name: Run download script
+        run: |
+          node --version
+          ffmpeg -version || true
+          node scripts/download-music.js
+
   check:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     name: Astro Check
     runs-on: ubuntu-latest
+    needs: download-music
     steps:
       - name: Checkout
         uses: actions/checkout@v4
