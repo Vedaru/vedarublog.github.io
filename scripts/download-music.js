@@ -17,6 +17,18 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawnSync } from 'child_process';
 
+async function clearDirectory(dirPath) {
+  try {
+    const files = await fs.readdir(dirPath);
+    for (const file of files) {
+      const filePath = path.join(dirPath, file);
+      await fs.unlink(filePath);
+    }
+  } catch (e) {
+    // ignore if directory doesn't exist or other errors
+  }
+}
+
 async function getFfmpegBinary() {
   // Try ffmpeg-static first
   try {
@@ -172,6 +184,12 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
     await fs.mkdir(urlDir, { recursive: true });
     await fs.mkdir(coverDir, { recursive: true });
 
+    // Clear existing files in url and cover directories, and remove playlist.json
+    await clearDirectory(urlDir);
+    await clearDirectory(coverDir);
+    const playlistPath = path.join(outDir, 'playlist.json');
+    try { await fs.unlink(playlistPath); } catch (e) {} // ignore if not exists
+
     const ffmpegBinaryRaw = await getFfmpegBinary();
     // Verify the binary exists and is executable (some environments may return unrelated paths)
     let ffmpegBinary = null;
@@ -242,7 +260,7 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
       const title = (song.name || song.title || `song-${i}`).toString();
       const id = song.id ? song.id.toString() : String(i);
       const ext = (song.url && song.url.split('.').pop() && song.url.split('?')[0].endsWith('.mp3')) ? '.mp3' : '.mp3';
-      const safeTitle = title.replace(/[\\/:*?"<>|#%&]/g, '-').slice(0, 120);
+      const safeTitle = title.replace(/[^\x00-\x7F]/g, '').replace(/[\\/:*?"<>|#%&]/g, '-').slice(0, 120);
       const filename = `${id}-${safeTitle}${ext}`;
       const filepath = path.join(urlDir, filename);
 
