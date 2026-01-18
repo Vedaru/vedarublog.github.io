@@ -1282,11 +1282,86 @@ function handleLoadSuccess() {
 
 function handleLoadError(event: Event | any) {
 	isLoading = false;
-	// 打印详尽的上下文以便排查（networkState/readyState/mediaError）
+
+	// 详细诊断音频加载失败原因
+	let errorDetails = "";
+	let errorCode = "";
+	let shouldRetry = false;
+
+	try {
+		const audioError = audio?.error;
+		if (audioError) {
+			switch (audioError.code) {
+				case MediaError.MEDIA_ERR_ABORTED:
+					errorDetails = "播放被用户取消";
+					break;
+				case MediaError.MEDIA_ERR_NETWORK:
+					errorDetails = "网络错误，无法加载音频文件";
+					shouldRetry = true;
+					break;
+				case MediaError.MEDIA_ERR_DECODE:
+					errorDetails = "音频文件解码失败，可能文件损坏或格式不支持";
+					break;
+				case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+					errorDetails = "音频格式不支持或资源不可用";
+					break;
+				default:
+					errorDetails = `未知错误 (代码: ${audioError.code})`;
+			}
+			errorCode = `错误代码: ${audioError.code}`;
+		} else {
+			errorDetails = "音频加载失败，可能是网络问题或文件不存在";
+			shouldRetry = true;
+		}
+
+		// 检查网络状态
+		const networkState = audio?.networkState;
+		if (networkState === HTMLMediaElement.NETWORK_NO_SOURCE) {
+			errorDetails += " (无音频源)";
+		} else if (networkState === HTMLMediaElement.NETWORK_LOADING) {
+			errorDetails += " (正在加载中...)";
+		}
+
+		console.error("[MusicPlayer] 音频加载失败详情:", {
+			song: currentSong?.title,
+			url: currentSong?.url,
+			audioSrc: audio?.src,
+			errorDetails,
+			errorCode,
+			networkState: audio?.networkState,
+			readyState: audio?.readyState,
+			shouldRetry
+		});
+
+	} catch (e) {
+		console.error("[MusicPlayer] 错误诊断失败:", e);
+		errorDetails = "未知错误";
+	}
+
+	// 记录错误日志
 	try { logAudioError(event?.error || event, 'handleLoadError'); } catch (e) {}
-	showErrorMessage(`无法播放 "${currentSong.title}"，正在尝试下一首...`);
-	if (playlist.length > 1) setTimeout(() => nextSong(), 1000);
-	else showErrorMessage("播放列表中没有可用的歌曲");
+
+	// 显示用户友好的错误消息
+	const errorMessage = `"${currentSong?.title || '未知歌曲'}" 播放失败: ${errorDetails}`;
+	showErrorMessage(errorMessage);
+
+	// 处理播放失败的逻辑
+	if (playlist.length > 1) {
+		if (shouldRetry) {
+			// 网络错误可以重试一次
+			showErrorMessage(`${errorMessage}，3秒后重试...`);
+			setTimeout(() => {
+				console.log("[MusicPlayer] 重试播放:", currentSong?.title);
+				loadSong(playlist[currentIndex]);
+			}, 3000);
+		} else {
+			// 其他错误直接跳到下一首
+			showErrorMessage(`${errorMessage}，正在播放下一首...`);
+			setTimeout(() => nextSong(), 2000);
+		}
+	} else {
+		showErrorMessage(`${errorMessage}。播放列表中没有其他歌曲。`);
+	}
 }
 
 function requestAutoplay() {
@@ -2541,7 +2616,7 @@ onDestroy(() => {
                  aria-valuemax="100"
                  aria-valuenow={duration > 0 ? (currentTime / duration * 100) : 0}>
                  <div class="h-full bg-[var(--primary)] rounded-full"
-                     style="width: {duration > 0 ? (currentTime / duration) * 100 : 0}%; transition: {isProgressDragging ? 'none' : 'width 200ms ease'}"></div>
+                     style="width: {duration > 0 ? (currentTime / duration) * 100 : 0}%; transition: {isProgressDragging ? 'none' : (isPlaying ? 'none' : 'width 200ms ease')}"></div>
 								 {#if showProgressTooltip}
 									 <div class="progress-tooltip" style="left: {progressTooltipPercent}%">
 										 {formatTime(isProgressDragging ? currentTime : tooltipTime)} / {formatTime(duration)}
