@@ -712,6 +712,13 @@ function togglePlay() {
 	const playPromise = audio.play();
 	if (playPromise !== undefined) {
 		playPromise.catch((err) => {
+			// 区分不同类型的播放错误
+			if (err.name === 'AbortError') {
+				// AbortError 表示播放被中断，通常是正常的
+				console.debug('Play aborted:', err.message);
+				return;
+			}
+			
 			logAudioError(err, 'togglePlay -> audio.play direct');
 			// 如果播放失败，尝试重新加载
 			if (err.name === 'NotAllowedError') {
@@ -847,7 +854,11 @@ function nextSong() {
 					audio.currentTime = 0;
 					const playPromise = audio.play();
 					if (playPromise !== undefined) {
-						playPromise.catch((e) => { logAudioError(e, 'nextSong -> single-track replay'); });
+						playPromise.catch((e) => { 
+							if (e.name !== 'AbortError') {
+								logAudioError(e, 'nextSong -> single-track replay'); 
+							}
+						});
 					}
 				} catch (e) {}
 			return;
@@ -877,7 +888,9 @@ function nextSong() {
 					const playPromise = audio.play();
 					if (playPromise !== undefined) {
 						playPromise.catch((e) => {
-							logAudioError(e, 'nextSong -> auto-play after nextSong');
+							if (e.name !== 'AbortError') {
+								logAudioError(e, 'nextSong -> auto-play after nextSong');
+							}
 						}).finally(() => {
 							playAttemptLock = false;
 						});
@@ -961,6 +974,11 @@ function playSong(index: number, autoPlay = true) {
 					playPromise.then(() => {
 						isPlaying = true;
 					}).catch((err) => {
+						if (err.name === 'AbortError') {
+							// AbortError 表示播放被中断，通常是正常的
+							console.debug('Preloaded audio play aborted:', err.message);
+							return;
+						}
 						logAudioError(err, 'playSong -> play preloaded audio');
 						// 保持 willAutoPlay 为 true，以便在后续事件中重试
 					});
@@ -1024,10 +1042,18 @@ function playSong(index: number, autoPlay = true) {
 						playPromise.then(() => {
 							willAutoPlay = false;
 						}).catch((err) => {
+							// 区分不同类型的播放错误
+							if (err.name === 'AbortError') {
+								// AbortError 表示播放被新请求中断，通常是正常的（比如快速切换歌曲）
+								console.debug('Play aborted (likely due to song change):', err.message);
+								playAttemptLock = false;
+								return;
+							}
+							
 							logAudioError(err, 'playSong -> attemptPlay after song change');
 							playAttemptLock = false;
 							// 如果播放失败，尝试再次加载（同时保留 willAutoPlay 以便后续重试）
-							if (err.name === 'NotSupportedError' || err.name === 'AbortError') {
+							if (err.name === 'NotSupportedError') {
 								setTimeout(() => {
 									if (audio && audio.readyState < 2) {
 										console.debug("Reloading audio after play failure");
@@ -1035,7 +1061,11 @@ function playSong(index: number, autoPlay = true) {
 										audio.addEventListener("canplay", () => {
 											const innerPlayPromise = audio.play();
 											if (innerPlayPromise !== undefined) {
-												innerPlayPromise.catch((e) => { logAudioError(e, 'playSong -> reload canplay inner play'); });
+												innerPlayPromise.catch((e) => { 
+													if (e.name !== 'AbortError') {
+														logAudioError(e, 'playSong -> reload canplay inner play'); 
+													}
+												});
 											}
 										}, { once: true });
 									}
@@ -1366,13 +1396,22 @@ function tryApplyPendingSeek() {
 	if (!audio || pendingSeekTarget == null) return false;
 	const target = pendingSeekTarget;
 	// 确保目标仍然针对同一音源
-	if (pendingSeekSrc && audio.src !== pendingSeekSrc) return false;
+	if (pendingSeekSrc && audio.src !== pendingSeekSrc) {
+		console.debug('tryApplyPendingSeek: audio src changed, aborting seek');
+		return false;
+	}
+	// 确保音频已准备好进行 seek
+	if (audio.readyState < 1) {
+		console.debug('tryApplyPendingSeek: audio not ready for seek, readyState:', audio.readyState);
+		return false;
+	}
 	try {
 		if (audio.seekable && audio.seekable.length > 0) {
 			for (let i = 0; i < audio.seekable.length; i++) {
 				const s = audio.seekable.start(i);
 				const e = audio.seekable.end(i);
 				if (target >= s && target <= e) {
+					console.debug('tryApplyPendingSeek: applying seek to', target, 'in range [', s, ',', e, ']');
 					audio.currentTime = target;
 					currentTime = target;
 					const was = wasPlayingDuringDrag;
@@ -1380,16 +1419,24 @@ function tryApplyPendingSeek() {
 					if (was && audio && !isPlaying) {
 						const playPromise = audio.play();
 						if (playPromise !== undefined) {
-							playPromise.catch((err) => { logAudioError(err, 'tryApplyPendingSeek -> resume'); });
+							playPromise.catch((err) => { 
+								if (err.name !== 'AbortError') {
+									logAudioError(err, 'tryApplyPendingSeek -> resume'); 
+								}
+							});
 						}
 					}
 					return true;
 				}
 			}
+			console.debug('tryApplyPendingSeek: target', target, 'not in any seekable range');
+		} else {
+			console.debug('tryApplyPendingSeek: no seekable ranges available');
 		}
 		if (audio.buffered && audio.buffered.length > 0) {
 			const bufferedEnd = audio.buffered.end(audio.buffered.length - 1);
 			if (target <= bufferedEnd) {
+				console.debug('tryApplyPendingSeek: applying buffered seek to', target, 'buffered end:', bufferedEnd);
 				audio.currentTime = target;
 				currentTime = target;
 				const was2 = wasPlayingDuringDrag;
@@ -1397,7 +1444,7 @@ function tryApplyPendingSeek() {
 				// 验证读回
 				setTimeout(async () => {
 					try {
-						if (!audio) return;
+						if (!audio || pendingSeekSrc !== audio.src) return;
 						if (Math.abs((audio.currentTime || 0) - target) > 0.5) {
 							console.debug('tryApplyPendingSeek(buffered): verification mismatch, performing forced seek for', target);
 							const ok = await performForcedSeek(target, was2);
@@ -1408,11 +1455,18 @@ function tryApplyPendingSeek() {
 				if (was2 && audio && !isPlaying) {
 					const playPromise = audio.play();
 					if (playPromise !== undefined) {
-						playPromise.catch((err) => { logAudioError(err, 'tryApplyPendingSeek -> resume'); });
+						playPromise.catch((err) => { 
+							if (err.name !== 'AbortError') {
+								logAudioError(err, 'tryApplyPendingSeek -> resume'); 
+							}
+						});
 					}
 				}
 				return true;
 			}
+			console.debug('tryApplyPendingSeek: target', target, 'beyond buffered end', bufferedEnd);
+		} else {
+			console.debug('tryApplyPendingSeek: no buffered ranges available');
 		}
 	} catch (e) {
 		console.debug('tryApplyPendingSeek error:', e);
@@ -1433,6 +1487,11 @@ async function performForcedSeek(target: number, wasPlaying: boolean) {
 	try {
 		// If user restarted drag, abort
 		if (isProgressDragging) return false;
+		// Check if audio is ready for seeking
+		if (audio.readyState < 1) {
+			console.debug('performForcedSeek: audio not ready, readyState:', audio.readyState);
+			return false;
+		}
 		const prevPaused = audio.paused;
 		// Only pause if audio is currently playing and the caller expects resume
 		const shouldPause = !prevPaused && wasPlaying;
@@ -1440,6 +1499,7 @@ async function performForcedSeek(target: number, wasPlaying: boolean) {
 			audio.pause();
 		}
 		// Attempt seek + verify, abort early if generation changed or drag restarted
+		console.debug('performForcedSeek: setting currentTime to', target);
 		audio.currentTime = target;
 		await sleep(150);
 		if (forcedSeekGeneration !== myGen || isProgressDragging) {
@@ -1452,12 +1512,17 @@ async function performForcedSeek(target: number, wasPlaying: boolean) {
 			if (wasPlaying && shouldPause && audio.paused) {
 				const playPromise = audio.play();
 				if (playPromise !== undefined) {
-					playPromise.catch((e) => logAudioError(e, 'performForcedSeek -> resume'));
+					playPromise.catch((e) => {
+						if (e.name !== 'AbortError') {
+							logAudioError(e, 'performForcedSeek -> resume');
+						}
+					});
 				}
 			}
 			return true;
 		}
 		// second attempt
+		console.debug('performForcedSeek: second attempt to set currentTime to', target);
 		audio.currentTime = target;
 		await sleep(300);
 		if (forcedSeekGeneration !== myGen || isProgressDragging) {
@@ -1470,11 +1535,16 @@ async function performForcedSeek(target: number, wasPlaying: boolean) {
 			if (wasPlaying && shouldPause && audio.paused) {
 				const playPromise = audio.play();
 				if (playPromise !== undefined) {
-					playPromise.catch((e) => logAudioError(e, 'performForcedSeek -> resume'));
+					playPromise.catch((e) => {
+						if (e.name !== 'AbortError') {
+							logAudioError(e, 'performForcedSeek -> resume');
+						}
+					});
 				}
 			}
 			return true;
 		}
+		console.debug('performForcedSeek: seek failed after two attempts');
 	} catch (e) {
 		console.debug('performForcedSeek error:', e);
 	} finally {
@@ -1585,7 +1655,12 @@ function stopProgressDrag() {
 					seekable: Array.from({length: audio.seekable.length}).map((_, i) => [audio.seekable.start(i), audio.seekable.end(i)]),
 				});
 			} catch (e) { console.debug('Error dumping audio state:', e); }
-			// Attach short-lived listeners to log events that might affect seek
+			// Check if audio is ready for seeking
+			if (audio.readyState < 1) {
+				console.debug('Audio not ready for seek in stopProgressDrag, readyState:', audio.readyState, 'scheduling retry');
+				scheduleSeekRetry(finalTime, wasPlayingDuringDrag);
+				return;
+			}
 			const onSeekedLog = () => { console.log('audio.seeked event fired, audio.currentTime:', audio.currentTime); audio.removeEventListener('seeked', onSeekedLog); };
 			const onLoadedMetaLog = () => { console.log('audio.loadedmetadata event fired, audio.currentTime:', audio.currentTime); audio.removeEventListener('loadedmetadata', onLoadedMetaLog); };
 			const onCanPlayLog = () => { console.log('audio.canplay event fired, audio.currentTime:', audio.currentTime); audio.removeEventListener('canplay', onCanPlayLog); };
@@ -1603,13 +1678,18 @@ function stopProgressDrag() {
 						const s = audio.seekable.start(i);
 						const e = audio.seekable.end(i);
 						if (finalTime >= s && finalTime <= e) {
+							console.debug('stopProgressDrag: applying seek to', finalTime, 'in seekable range [', s, ',', e, ']');
 							audio.currentTime = finalTime;
 							currentTime = finalTime;
 							// 如果先前正在播放，则在设置成功后尝试恢复播放
 							if (wasPlayingDuringDrag && audio && !isPlaying) {
 								const playPromise = audio.play();
 								if (playPromise !== undefined) {
-									playPromise.catch((e) => { logAudioError(e, 'stopProgressDrag -> resume after immediate seek'); });
+									playPromise.catch((e) => { 
+										if (e.name !== 'AbortError') {
+											logAudioError(e, 'stopProgressDrag -> resume after immediate seek'); 
+										}
+									});
 								}
 							}
 							applied = true;
@@ -1620,12 +1700,17 @@ function stopProgressDrag() {
 				if (!applied && audio.buffered && audio.buffered.length > 0) {
 					const bufferedEnd = audio.buffered.end(audio.buffered.length - 1);
 					if (finalTime <= bufferedEnd) {
+						console.debug('stopProgressDrag: applying buffered seek to', finalTime, 'buffered end:', bufferedEnd);
 						audio.currentTime = finalTime;
 						currentTime = finalTime;
 						if (wasPlayingDuringDrag && audio && !isPlaying) {
 							const playPromise = audio.play();
 							if (playPromise !== undefined) {
-								playPromise.catch((e) => { logAudioError(e, 'stopProgressDrag -> resume after immediate seek'); });
+								playPromise.catch((e) => { 
+									if (e.name !== 'AbortError') {
+										logAudioError(e, 'stopProgressDrag -> resume after immediate seek'); 
+									}
+								});
 							}
 						}
 						applied = true;
@@ -1694,7 +1779,11 @@ function stopProgressDrag() {
 					audio.currentTime = 0;
 					const playPromise = audio.play();
 					if (playPromise !== undefined) {
-						playPromise.catch((e) => { logAudioError(e, 'stopProgressDrag -> near-end single-loop replay'); });
+						playPromise.catch((e) => { 
+							if (e.name !== 'AbortError') {
+								logAudioError(e, 'stopProgressDrag -> near-end single-loop replay'); 
+							}
+						});
 					}
 				}
 			} else if (isRepeating === 2 || currentIndex < playlist.length - 1 || isShuffled) {
@@ -1995,7 +2084,11 @@ function handleAudioEvents() {
 			audio.currentTime = 0;
 			const playPromise = audio.play();
 			if (playPromise !== undefined) {
-				playPromise.catch((e) => { logAudioError(e, 'audio ended -> single-loop replay'); });
+				playPromise.catch((e) => { 
+					if (e.name !== 'AbortError') {
+						logAudioError(e, 'audio ended -> single-loop replay'); 
+					}
+				});
 			}
 		} else if (
 			isRepeating === 2 ||
