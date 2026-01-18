@@ -1611,7 +1611,11 @@ function scheduleSeekRetry(target: number, wasPlaying = false) {
 
 function stopProgressDrag() {
 	if (!isProgressDragging) return;
-	isProgressDragging = false;
+	
+	// 1. 核心修复：先锁定要跳转的时间，不要立刻重置 isProgressDragging
+	// 此时 currentTime 应该是用户拖动到的位置（例如 50s）
+	const finalTime = currentTime; 
+	
 	showProgressTooltip = isProgressHovering;
 	if (!isBrowser) return;
 	document.removeEventListener("pointermove", onProgressPointerMove);
@@ -1626,35 +1630,32 @@ function stopProgressDrag() {
 		lastProgressClientX = null;
 	}
 
-	// 核心修复逻辑：直接设置 audio.currentTime，不进行复杂的范围检查
 	if (audio) {
 		const actualDuration = (audio.duration && Number.isFinite(audio.duration)) ? audio.duration : (Number.isFinite(duration) ? duration : 0);
 		
-		// 1. 获取目标时间（使用在拖动过程中已更新的 currentTime 变量）
-		let targetTime = currentTime;
+		let targetTime = finalTime;
 		
 		// 2. 边界检查
 		if (actualDuration > 0 && targetTime >= actualDuration) {
 			targetTime = Math.max(0, actualDuration - 0.15);
 		}
 
-		console.log('Progress drag ended. Setting audio.currentTime to:', targetTime);
+		console.log('Progress drag ended. Seeking to:', targetTime);
 
-		// 3. 强制设置时间 (Trust the browser to handle buffering)
+		// 3. 强制设置时间
 		try {
-			// 在拖动结束时，直接将音频进度跳转到 UI 显示的位置
-			audio.currentTime = targetTime;
+			if (Number.isFinite(targetTime)) {
+				audio.currentTime = targetTime;
+			}
 		} catch (e) {
 			console.error("Seek failed:", e);
 		}
 
 		// 4. 如果拖动前在播放，则恢复播放
 		if (wasPlayingDuringDrag) {
-			// 某些浏览器在设置 currentTime 后可能会自动暂停，这里确保恢复
 			const playPromise = audio.play();
 			if (playPromise !== undefined) {
 				playPromise.catch((e) => {
-					// 忽略 AbortError (通常发生在快速连续操作时)
 					if (e.name !== 'AbortError') {
 						logAudioError(e, 'stopProgressDrag -> resume after drag');
 					}
@@ -1665,8 +1666,12 @@ function stopProgressDrag() {
 		console.warn('Audio element not found when stopping progress drag');
 	}
 
-	// 重置标志位
-	wasPlayingDuringDrag = false;
+	// 5. 延迟重置拖拽标志
+	// 这防止了浏览器在音频跳转完成前触发 timeupdate 事件，导致进度条被拉回旧位置（通常是0）
+	setTimeout(() => {
+		isProgressDragging = false;
+		wasPlayingDuringDrag = false;
+	}, 50);
 	
 	// 额外检查：如果拖到了末尾附近，处理自动切歌逻辑
 	try {
