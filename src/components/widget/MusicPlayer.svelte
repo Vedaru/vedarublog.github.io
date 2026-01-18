@@ -359,6 +359,7 @@ onDestroy(() => {
 <audio
 	bind:this={audio}
 	src={getAssetPath(currentSong.url)}
+	crossorigin="anonymous"
 	bind:volume
 	bind:muted={isMuted}
 	on:play={() => isPlaying = true}
