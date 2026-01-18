@@ -1303,6 +1303,10 @@ function hideError() {
 
 function setProgress(event: MouseEvent) {
 	if (!audio || !progressBar) return;
+
+	// 1. 核心修复：临时锁定状态，防止 timeupdate 事件将 UI 重置回旧时间
+	isProgressDragging = true;
+
 	const rect = progressBar.getBoundingClientRect();
 	const percent = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
 	// 使用实际 audio.duration 优先，回退到组件维护的 duration
@@ -1316,11 +1320,21 @@ function setProgress(event: MouseEvent) {
 	if (actualDuration > 0 && newTime >= actualDuration) {
 		newTime = Math.max(0, actualDuration - 0.15);
 	}
-	// 避免不必要的重复设置
-	if (Math.abs(currentTime - newTime) > 0.01) {
-		audio.currentTime = newTime;
-		currentTime = newTime;
+	
+	// 2. 立即更新 UI，并尝试设置 audio
+	currentTime = newTime;
+	try {
+		if (Number.isFinite(newTime)) {
+			audio.currentTime = newTime;
+		}
+	} catch (e) {
+		console.error("Seek failed in setProgress:", e);
 	}
+
+	// 3. 延迟释放锁定，等待浏览器音频引擎追上
+	setTimeout(() => {
+		isProgressDragging = false;
+	}, 200);
 }
 
 function scheduleProgressUpdate(clientX: number) {
