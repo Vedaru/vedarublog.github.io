@@ -58,6 +58,8 @@ let isHidden = true;
 let showPlaylist = false;
 // 自动播放是否已触发
 let autoplayAttempted = false;
+// 记录点击歌单后是否应当自动播放（用于 load 成功后的自动恢复）
+let willAutoPlay = false;
 // 标记用户是否已与页面交互（仅在交互后允许程序性播放）
 let userInteracted = false;
 // 是否因自动播放而处于静音状态（等待用户交互后恢复）
@@ -870,6 +872,9 @@ function playSong(index: number, autoPlay = true) {
 	if (index < 0 || index >= playlist.length) return;
 	// 重置播放尝试锁
 	playAttemptLock = false;
+	// 记录为即将播放的意图（供加载完成后自动播放判断使用）
+	willAutoPlay = autoPlay;
+	if (autoPlay) userInteracted = true; // 点击事件应被视为用户交互，放宽浏览器自动播放限制
 	// 点击播放时传入 autoPlay=true 会覆盖之前的播放状态意图，确保点击项后可以立即尝试播放
 	const wasPlaying = (autoPlay || isPlaying);
 	console.debug("playSong called:", { index, wasPlaying, autoPlay, shouldAutoplayContinuous, title: playlist[index]?.title });
@@ -925,10 +930,13 @@ function playSong(index: number, autoPlay = true) {
 			console.debug('Failed to sync duration from preloaded audio:', e);
 		}
 		
-		// 如果之前在播放，立即开始播放
-			if (wasPlaying) {
-				audio.play().catch((err) => {
+		// 如果点击意图或之前在播放，立即开始播放（预加载场景）
+			if (willAutoPlay || wasPlaying) {
+				audio.play().then(() => {
+					isPlaying = true;
+				}).catch((err) => {
 					logAudioError(err, 'playSong -> play preloaded audio');
+					// 保持 willAutoPlay 为 true，以便在后续事件中重试
 				});
 			}
 		
@@ -973,8 +981,8 @@ function playSong(index: number, autoPlay = true) {
 	
 	// 如果之前在播放，或者启用了自动连播（列表循环），则自动开始播放
 	// 仅在用户已交互或配置允许自动播放时才启动自动播放（放宽条件：只要用户已交互或配置允许，就可因“正在播放”而自动续播）
-	const shouldAutoPlay = (wasPlaying || shouldAutoplayContinuous) && (userInteracted || shouldAutoplay) && !playAttemptLock;
-	console.debug("Should auto-play next track:", shouldAutoPlay, { wasPlaying, shouldAutoplayContinuous, playAttemptLock });
+	const shouldAutoPlay = (wasPlaying || shouldAutoplayContinuous) && (userInteracted || shouldAutoplay || willAutoPlay) && !playAttemptLock;
+	console.debug("Should auto-play next track:", shouldAutoPlay, { wasPlaying, shouldAutoplayContinuous, playAttemptLock, willAutoPlay });
 	if (shouldAutoPlay) {
 		playAttemptLock = true;
 		setTimeout(() => {
@@ -984,10 +992,12 @@ function playSong(index: number, autoPlay = true) {
 			}
 			
 				const attemptPlay = () => {
-					audio.play().catch((err) => {
+					audio.play().then(() => {
+						willAutoPlay = false;
+					}).catch((err) => {
 						logAudioError(err, 'playSong -> attemptPlay after song change');
 						playAttemptLock = false;
-						// 如果播放失败，尝试再次加载
+						// 如果播放失败，尝试再次加载（同时保留 willAutoPlay 以便后续重试）
 						if (err.name === 'NotSupportedError' || err.name === 'AbortError') {
 							setTimeout(() => {
 								if (audio && audio.readyState < 2) {
@@ -1003,8 +1013,10 @@ function playSong(index: number, autoPlay = true) {
 						playAttemptLock = false;
 					});
 				};
-
-			if (audio.readyState >= 2) {
+			// 增加针对点击播放的立即尝试以减少“切歌后暂停”的感受
+			if (willAutoPlay && audio.readyState >= 2 && !isPlaying && !playAttemptLock) {
+				attemptPlay();
+			} else if (audio.readyState >= 2) {
 				attemptPlay();
 			} else {
 				audio.addEventListener("canplay", attemptPlay, { once: true });
