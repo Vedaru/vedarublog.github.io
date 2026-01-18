@@ -380,10 +380,12 @@ let useAudioContext = true; // 如果因 CORS 或错误无法使用 WebAudio，�
 let prefetchedForIndex: number | null = null;
 // 当剩余时长小于该阈值（秒）时触发预取
 const PREFETCH_THRESHOLD = 15;
-// 在目标 seek 尚未生效时保存待应用的位置并重试
+// pending seek 状态：用于在音频未准备好时延迟应用 seek
 let pendingSeekTarget: number | null = null;
 let pendingSeekTimeout: number | null = null;
-let pendingSeekRetryId: number | null = null; // 定时重试 ID
+let pendingSeekRetryId: number | null = null;
+let pendingSeekSrc: string | null = null;
+
 
 let localPlaylist: Song[] = [];
 
@@ -888,6 +890,8 @@ function playSong(index: number) {
 		}
 		// 清理当前音频的事件监听器
 		clearAudioEventListeners();
+		// 清理任何挂起的 seek，防止预加载音频被旧的 seek 覆盖
+		cleanupPendingSeekHandlers();
 		// 切换到预加载音频
 		audio = preloadAudio;
 		preloadAudio = null;
@@ -1121,6 +1125,8 @@ function loadSong(song: typeof currentSong) {
 	
 	isLoading = true;
 	
+	// 清理任何挂起的 seek（以免切歌后未生效的 seek 仍然触发）
+	cleanupPendingSeekHandlers();
 	// 暂停当前播放并重置播放状态
 	try {
 		audio.pause();
@@ -1310,6 +1316,8 @@ function onProgressPointerMove(e: PointerEvent) {
 // 尝试应用挂起的 seek（在 audio 开始缓冲/可播放后重试）
 function tryApplyPendingSeek() {
 	if (!audio || pendingSeekTarget == null) return false;
+	// 确保目标仍然针对同一音源
+	if (pendingSeekSrc && audio.src !== pendingSeekSrc) return false;
 	try {
 		if (audio.seekable && audio.seekable.length > 0) {
 			for (let i = 0; i < audio.seekable.length; i++) {
@@ -1318,12 +1326,10 @@ function tryApplyPendingSeek() {
 				if (pendingSeekTarget >= s && pendingSeekTarget <= e) {
 					audio.currentTime = pendingSeekTarget;
 					currentTime = pendingSeekTarget;
-					const wasPlaying = wasPlayingDuringDrag;
-					pendingSeekTarget = null;
-					// 清理监听并在必要时恢复播放
+					const was = wasPlayingDuringDrag;
 					cleanupPendingSeekHandlers();
-					if (wasPlaying && audio && !isPlaying) {
-						audio.play().catch((e) => { logAudioError(e, 'tryApplyPendingSeek -> resume'); });
+					if (was && audio && !isPlaying) {
+						audio.play().catch((err) => { logAudioError(err, 'tryApplyPendingSeek -> resume'); });
 					}
 					return true;
 				}
@@ -1334,11 +1340,10 @@ function tryApplyPendingSeek() {
 			if (pendingSeekTarget <= bufferedEnd) {
 				audio.currentTime = pendingSeekTarget;
 				currentTime = pendingSeekTarget;
-				const wasPlaying2 = wasPlayingDuringDrag;
-				pendingSeekTarget = null;
+				const was2 = wasPlayingDuringDrag;
 				cleanupPendingSeekHandlers();
-				if (wasPlaying2 && audio && !isPlaying) {
-					audio.play().catch((e) => { logAudioError(e, 'tryApplyPendingSeek -> resume'); });
+				if (was2 && audio && !isPlaying) {
+					audio.play().catch((err) => { logAudioError(err, 'tryApplyPendingSeek -> resume'); });
 				}
 				return true;
 			}
@@ -1351,6 +1356,7 @@ function tryApplyPendingSeek() {
 
 function cleanupPendingSeekHandlers() {
 	pendingSeekTarget = null;
+	pendingSeekSrc = null;
 	if (pendingSeekTimeout != null) {
 		clearTimeout(pendingSeekTimeout);
 		pendingSeekTimeout = null;
@@ -1368,33 +1374,33 @@ function cleanupPendingSeekHandlers() {
 
 // 在未能立即设置 seek 时安排重试，直到成功或超时
 function scheduleSeekRetry(target: number) {
-	// 先清理老的 handler
 	cleanupPendingSeekHandlers();
 	pendingSeekTarget = target;
-	// 先尝试一次立即应用（快速通道）
+	pendingSeekSrc = audio?.src ?? null;
+	// 先尝试一次立即应用
 	if (tryApplyPendingSeek()) return;
 	if (audio) {
 		audio.addEventListener('progress', tryApplyPendingSeek);
 		audio.addEventListener('canplay', tryApplyPendingSeek);
 		audio.addEventListener('loadedmetadata', tryApplyPendingSeek);
 	}
-	// 周期性重试（每 250ms）直到成功
+	// 周期性重试（每250ms）直到成功
 	pendingSeekRetryId = window.setInterval(() => {
 		try {
-			if (tryApplyPendingSeek()) {
-				// 成功时 cleanupPendingSeekHandlers 会被调用
-			}
-		} catch (e) {
-			console.debug('scheduleSeekRetry interval error:', e);
-		}
+			tryApplyPendingSeek();
+		} catch (e) { console.debug('scheduleSeekRetry interval error:', e); }
 	}, 250);
 	// 3s 后放弃并做最后一次尝试
 	pendingSeekTimeout = window.setTimeout(() => {
 		tryApplyPendingSeek();
 		cleanupPendingSeekHandlers();
 	}, 3000);
-	console.debug('scheduleSeekRetry set for target:', target);
+	console.debug('scheduleSeekRetry set for target:', target, 'src:', pendingSeekSrc);
 }
+
+
+
+
 
 function stopProgressDrag() {
 	if (!isProgressDragging) return;
