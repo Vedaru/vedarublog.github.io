@@ -8,18 +8,8 @@ import { musicPlayerConfig } from "../../config";
 import Key from "../../i18n/i18nKey";
 import { i18n } from "../../i18n/translation";
 
-// 音乐播放器模式，可选 "local" 或 "meting"，从本地配置中获取或使用默认值 "meting"
-let mode = musicPlayerConfig.mode ?? "meting";
-// Meting API 地址，从配置中获取或使用默认地址(bilibili.uno(由哔哩哔哩松坂有希公益管理)),服务器在海外,部分音乐平台可能不支持并且速度可能慢,也可以自建Meting API
-let meting_api =
-	musicPlayerConfig.meting_api ??
-	"https://www.bilibili.uno/api?server=:server&type=:type&id=:id&auth=:auth&r=:r";
-// Meting API 的 ID，从配置中获取或使用默认值
-let meting_id = musicPlayerConfig.id ?? "14164869977";
-// Meting API 的服务器，从配置中获取或使用默认值,有的meting的api源支持更多平台,一般来说,netease=网易云音乐, tencent=QQ音乐, kugou=酷狗音乐, xiami=虾米音乐, baidu=百度音乐
-let meting_server = musicPlayerConfig.server ?? "netease";
-// Meting API 的类型，从配置中获取或使用默认值
-let meting_type = musicPlayerConfig.type ?? "playlist";
+// 音乐播放器模式，固定为 "local"，使用本地播放列表
+let mode = "local";
 
 // 播放状态，默认为 false (未播放)
 let isPlaying = false;
@@ -72,58 +62,24 @@ let audio: HTMLAudioElement;
 let progressBar: HTMLElement;
 let volumeBar: HTMLElement;
 
-const localPlaylist = [
-	{
-		id: 1,
-		title: "ひとり上手",
-		artist: "Kaya",
-		cover: "assets/music/cover/hitori.jpg",
-		url: "assets/music/url/hitori.mp3",
-		duration: 240,
-	},
-	{
-		id: 2,
-		title: "眩耀夜行",
-		artist: "スリーズブーケ",
-		cover: "assets/music/cover/xryx.jpg",
-		url: "assets/music/url/xryx.mp3",
-		duration: 180,
-	},
-	{
-		id: 3,
-		title: "春雷の頃",
-		artist: "22/7",
-		cover: "assets/music/cover/cl.jpg",
-		url: "assets/music/url/cl.mp3",
-		duration: 200,
-	},
-];
-
 async function fetchMetingPlaylist() {
-	if (!meting_api || !meting_id) return;
 	isLoading = true;
-	const apiUrl = meting_api
-		.replace(":server", meting_server)
-		.replace(":type", meting_type)
-		.replace(":id", meting_id)
-		.replace(":auth", "")
-		.replace(":r", Date.now().toString());
 	try {
-		const res = await fetch(apiUrl);
-		if (!res.ok) throw new Error("meting api error");
-		const list = await res.json() as MetingSong[];
-		playlist = list.map((song: any) => {
+		const res = await fetch('/assets/music/playlist.json');
+		if (!res.ok) throw new Error("playlist.json not found");
+		const list: any[] = await res.json();
+		playlist = list.map((song: any, index: number) => {
 			let title = song.name ?? song.title ?? i18n(Key.unknownSong);
-		let artist = song.artist ?? song.author ?? i18n(Key.unknownArtist);
+			let artist = song.artist ?? song.author ?? i18n(Key.unknownArtist);
 			let dur = song.duration ?? 0;
 			if (dur > 10000) dur = Math.floor(dur / 1000);
 			if (!Number.isFinite(dur) || dur <= 0) dur = 0;
 			return {
-				id: song.id,
+				id: index,
 				title,
 				artist,
-				cover: song.pic ?? "",
-				url: song.url ?? "",
+				cover: song.cover ?? `/assets/music/cover/${index}-default.jpg`,
+				url: song.url ?? `/assets/music/url/${index}-meting.opus`,
 				duration: dur,
 			};
 		});
@@ -387,17 +343,8 @@ onMount(() => {
 	if (!musicPlayerConfig.enable) {
 		return;
 	}
-	if (mode === "meting") {
-		fetchMetingPlaylist();
-	} else {
-		// 使用本地播放列表，不发送任何API请求
-		playlist = [...localPlaylist];
-		if (playlist.length > 0) {
-			loadSong(playlist[0]);
-		} else {
-			showErrorMessage("本地播放列表为空");
-		}
-	}
+	// 直接从本地playlist.json文件加载播放列表
+	fetchMetingPlaylist();
 });
 
 onDestroy(() => {
