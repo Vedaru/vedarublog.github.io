@@ -68,6 +68,10 @@ let mutedForAutoplay = false;
 let currentTime = 0;
 // 歌曲总时长，默认为 0
 let duration = 0;
+// 新增：专门用于进度条显示的变量，与 currentTime 分离
+let sliderValue = 0;
+// 新增：标记是否正在拖拽进度条
+let isDragging = false;
 // 音量，默认为 0.7
 let volume = 0.5;
 // 正在拖动音量条
@@ -172,6 +176,12 @@ function restoreCoverCache() {
 	} catch (e) {
 		console.debug('Failed to restore cover cache', e);
 	}
+}
+
+// 2. 关键逻辑：同步 Audio 时间到进度条
+// 只有当用户 **没有** 在拖拽时，才让播放进度自动更新进度条
+$: if (!isDragging) {
+	sliderValue = currentTime;
 }
 
 // 持久化缓存到 SessionStorage
@@ -372,7 +382,7 @@ let playlist: Song[] = [];
 let currentIndex = 0;
 let audio: HTMLAudioElement;
 let preloadAudio: HTMLAudioElement | null = null; // 预加载下一首歌的音频元素
-let progressBar: HTMLElement;
+let progressBar: HTMLInputElement;
 let volumeBar: HTMLElement;
 let audioContext: AudioContext | null = null;
 let audioSource: MediaElementAudioSourceNode | null = null;
@@ -1403,6 +1413,30 @@ function setProgress(event: MouseEvent) {
 	if (Math.abs(currentTime - newTime) > 0.01) {
 		audio.currentTime = newTime;
 		currentTime = newTime;
+	}
+}
+
+// 3. 处理拖拽开始/过程 (on:input)
+function handleSeekInput(e: Event) {
+	isDragging = true;
+	const target = e.target as HTMLInputElement;
+	sliderValue = parseFloat(target.value); // 只更新视觉上的进度条，不改变 audio
+}
+
+// 4. 处理拖拽松开 (on:change)
+function handleSeekChange(e: Event) {
+	isDragging = false;
+	const target = e.target as HTMLInputElement;
+	const seekTime = parseFloat(target.value);
+
+	// 将实际音频跳转到拖拽的位置
+	currentTime = seekTime;
+
+	// 强制播放 (实现"松开之后直接播放"的要求)
+	if (!isPlaying && audio) {
+		audio.play().catch((e) => {
+			logAudioError(e, 'handleSeekChange -> force play');
+		});
 	}
 }
 
@@ -2576,53 +2610,29 @@ onDestroy(() => {
             </div>
         </div>
         <div class="progress-section mb-4">
-						<div class="progress-bar relative flex-1 h-2 bg-[var(--btn-regular-bg)] rounded-full cursor-pointer"
-                 bind:this={progressBar}
-                 style="touch-action: none;"
-                 on:click={setProgress}
-                 on:pointerdown={startProgressDrag}
-								 on:mousemove={(e) => { isProgressHovering = true; showProgressTooltip = true; scheduleHoverUpdate(e.clientX); }}
-								 on:mouseenter={(e) => { isProgressHovering = true; showProgressTooltip = true; scheduleHoverUpdate(e.clientX); }}
-								 on:mouseleave={() => { isProgressHovering = false; if (!isProgressDragging) showProgressTooltip = false; }}
-                 on:keydown={(e) => {
-                     if (e.key === 'Enter' || e.key === ' ') {
-                         e.preventDefault();
-                         const percent = 0.5;
-                         const newTime = percent * duration;
-                         if (audio) {
-                             audio.currentTime = newTime;
-                             currentTime = newTime;
-                         }
-                     } else if (e.key === 'ArrowLeft') {
-                         e.preventDefault();
-                         if (duration > 0 && audio) {
-                             const newTime = Math.max(0, currentTime - 5);
-                             audio.currentTime = newTime;
-                             currentTime = newTime;
-                         }
-                     } else if (e.key === 'ArrowRight') {
-                         e.preventDefault();
-                         if (duration > 0 && audio) {
-                             const newTime = Math.min(duration, currentTime + 5);
-                             audio.currentTime = newTime;
-                             currentTime = newTime;
-                         }
-                     }
-                 }}
-                 role="slider"
-                 tabindex="0"
-                 aria-label="播放进度"
-                 aria-valuemin="0"
-                 aria-valuemax="100"
-                 aria-valuenow={duration > 0 ? (currentTime / duration * 100) : 0}>
-                 <div class="h-full bg-[var(--primary)] rounded-full"
-                     style="width: {duration > 0 ? (currentTime / duration) * 100 : 0}%; transition: {isProgressDragging ? 'none' : (isPlaying ? 'none' : 'width 200ms ease')}"></div>
-								 {#if showProgressTooltip}
-									 <div class="progress-tooltip" style="left: {progressTooltipPercent}%">
-										 {formatTime(isProgressDragging ? currentTime : tooltipTime)} / {formatTime(duration)}
-									 </div>
-								 {/if}
-            </div>
+            <!-- 显示的时间使用 sliderValue 以便拖拽时数字实时变化 -->
+            <span class="text-xs text-30">{formatTime(sliderValue)}</span>
+
+            <!--
+               注意这里的修改：
+               1. 移除 bind:value={currentTime}
+               2. 使用 value={sliderValue} (单向绑定)
+               3. 添加 on:input (拖拽中)
+               4. 添加 on:change (松开/提交)
+            -->
+            <input
+                type="range"
+                min="0"
+                max={duration || 0}
+                value={sliderValue}
+                on:input={handleSeekInput}
+                on:change={handleSeekChange}
+                bind:this={progressBar}
+                class="seek-slider flex-1 mx-2 h-2 bg-[var(--btn-regular-bg)] rounded-full cursor-pointer appearance-none slider"
+                style="touch-action: none; --progress-percent: {duration ? (sliderValue / duration * 100) + '%' : '0%'}"
+            />
+
+            <span class="text-xs text-30">{formatTime(duration)}</span>
         </div>
         <div class="controls flex items-center justify-center gap-2 mb-4">
             <!-- 随机按钮高亮 -->
@@ -3016,6 +3026,60 @@ onDestroy(() => {
 /* 让主题色按钮更有视觉反馈 */
 button.bg-\[var\(--primary\)\] {
     box-shadow: 0 0 0 2px var(--primary);
+    border: none;
+}
+
+/* 自定义进度条滑块样式 */
+.seek-slider {
+    /* 轨道样式 */
+    background: linear-gradient(to right, var(--primary) 0%, var(--primary) var(--progress-percent, 0%), var(--btn-regular-bg) var(--progress-percent, 0%), var(--btn-regular-bg) 100%);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: 4px;
+    height: 8px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.seek-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    border: 2px solid var(--bg-color);
+    transition: all 0.2s ease;
+}
+
+.seek-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.seek-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    border: 2px solid var(--bg-color);
+    transition: all 0.2s ease;
+}
+
+.seek-slider::-moz-range-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.seek-slider::-moz-range-track {
+    background: var(--btn-regular-bg);
+    border-radius: 4px;
+    height: 8px;
     border: none;
 }
 
