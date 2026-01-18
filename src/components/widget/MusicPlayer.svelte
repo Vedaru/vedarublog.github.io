@@ -1427,6 +1427,29 @@ function stopProgressDrag() {
 				finalTime = Math.max(0, actualDuration - 0.15);
 			}
 			console.log('Progress drag ended. Attempting to set audio.currentTime to:', finalTime, 'audio exists:', !!audio, 'currentTime was:', currentTime);
+			// Diagnostic: dump audio state for debugging seek failures
+			try {
+				console.debug('Audio state dump:', {
+					src: audio.src,
+					readyState: audio.readyState,
+					paused: audio.paused,
+					networkState: audio.networkState,
+					duration: audio.duration,
+					currentTimeBefore: audio.currentTime,
+					buffered: Array.from({length: audio.buffered.length}).map((_, i) => [audio.buffered.start(i), audio.buffered.end(i)]),
+					seekable: Array.from({length: audio.seekable.length}).map((_, i) => [audio.seekable.start(i), audio.seekable.end(i)]),
+				});
+			} catch (e) { console.debug('Error dumping audio state:', e); }
+			// Attach short-lived listeners to log events that might affect seek
+			const onSeekedLog = () => { console.log('audio.seeked event fired, audio.currentTime:', audio.currentTime); audio.removeEventListener('seeked', onSeekedLog); };
+			const onLoadedMetaLog = () => { console.log('audio.loadedmetadata event fired, audio.currentTime:', audio.currentTime); audio.removeEventListener('loadedmetadata', onLoadedMetaLog); };
+			const onCanPlayLog = () => { console.log('audio.canplay event fired, audio.currentTime:', audio.currentTime); audio.removeEventListener('canplay', onCanPlayLog); };
+			const onProgressLog = () => { console.log('audio.progress event fired, buffered:', Array.from({length: audio.buffered.length}).map((_, i) => [audio.buffered.start(i), audio.buffered.end(i)])); };
+			audio.addEventListener('seeked', onSeekedLog);
+			audio.addEventListener('loadedmetadata', onLoadedMetaLog);
+			audio.addEventListener('canplay', onCanPlayLog);
+			audio.addEventListener('progress', onProgressLog);
+
 			// 立即尝试应用
 			let applied = false;
 			try {
@@ -1463,9 +1486,22 @@ function stopProgressDrag() {
 			if (!applied) {
 				// 延迟应用：使用统一的调度器并重试，直到成功或超时
 				scheduleSeekRetry(finalTime);
-				console.debug('Seek deferred until buffered/canplay. pendingSeekTarget:', pendingSeekTarget);
+				console.debug('Seek deferred until buffered/canplay. pendingSeekTarget:', pendingSeekTarget, 'audio.currentTime now:', audio.currentTime);
 			} else {
 				console.log('After setting: audio.currentTime is:', audio.currentTime, 'currentTime is:', currentTime);
+				// Verification readback after slight delay to catch non-immediate seek behavior
+				setTimeout(() => {
+					try {
+						console.log('Verification readback after setTimeout: audio.currentTime:', audio.currentTime, 'audio.paused:', audio.paused, 'audio.src:', audio.src);
+					} catch (e) { console.debug('Verification readback failed:', e); }
+				}, 120);
+				// Clean up temporary listeners
+				try {
+					audio.removeEventListener('progress', onProgressLog);
+					audio.removeEventListener('canplay', onCanPlayLog);
+					audio.removeEventListener('loadedmetadata', onLoadedMetaLog);
+					audio.removeEventListener('seeked', onSeekedLog);
+				} catch (e) { }
 			}
 		} else {
 			console.warn('Audio element not found when stopping progress drag');
