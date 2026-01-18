@@ -387,6 +387,8 @@ let pendingSeekTarget: number | null = null;
 let pendingSeekTimeout: number | null = null;
 let pendingSeekRetryId: number | null = null;
 let pendingSeekSrc: string | null = null;
+// 记录在拖拽时播放器是否处于播放状态，以便挂起的 seek 成功后可靠恢复播放
+let pendingSeekWasPlaying: boolean | null = null;
 
 
 let localPlaylist: Song[] = [];
@@ -1340,7 +1342,8 @@ function tryApplyPendingSeek() {
 				if (target >= s && target <= e) {
 					audio.currentTime = target;
 					currentTime = target;
-					const was = wasPlayingDuringDrag;
+					// 使用在调度时捕获的播放意图（优先）以决定是否恢复播放
+					const was = pendingSeekWasPlaying ?? wasPlayingDuringDrag;
 					cleanupPendingSeekHandlers();
 					if (was && audio && !isPlaying) {
 						audio.play().catch((err) => { logAudioError(err, 'tryApplyPendingSeek -> resume'); });
@@ -1354,7 +1357,7 @@ function tryApplyPendingSeek() {
 			if (target <= bufferedEnd) {
 				audio.currentTime = target;
 				currentTime = target;
-				const was2 = wasPlayingDuringDrag;
+				const was2 = pendingSeekWasPlaying ?? wasPlayingDuringDrag;
 				cleanupPendingSeekHandlers();
 				// 验证读回
 				setTimeout(async () => {
@@ -1449,6 +1452,8 @@ function cleanupPendingSeekHandlers() {
 		clearInterval(pendingSeekRetryId);
 		pendingSeekRetryId = null;
 	}
+	// 清理挂起 seek 的播放意图标志
+	pendingSeekWasPlaying = null;
 	if (audio) {
 		audio.removeEventListener('progress', tryApplyPendingSeek);
 		audio.removeEventListener('canplay', tryApplyPendingSeek);
@@ -1461,6 +1466,8 @@ function scheduleSeekRetry(target: number) {
 	cleanupPendingSeekHandlers();
 	pendingSeekTarget = target;
 	pendingSeekSrc = audio?.src ?? null;
+	// 记录当前拖拽时的播放意图，以便稍后成功 seek 时恢复播放
+	pendingSeekWasPlaying = wasPlayingDuringDrag ?? false;
 	// 先尝试一次立即应用
 	if (tryApplyPendingSeek()) return;
 	if (audio) {
@@ -1479,7 +1486,7 @@ function scheduleSeekRetry(target: number) {
 		tryApplyPendingSeek();
 		cleanupPendingSeekHandlers();
 	}, 3000);
-	console.debug('scheduleSeekRetry set for target:', target, 'src:', pendingSeekSrc);
+	console.debug('scheduleSeekRetry set for target:', target, 'src:', pendingSeekSrc, 'wasPlaying:', pendingSeekWasPlaying);
 }
 
 
