@@ -58,7 +58,7 @@ export default defineConfig({
 			// when the Tailwind class `transition-all` is used
 			containers: ["main"],
 			smoothScrolling: false, // 禁用平滑滚动以提升性能，避免与锚点导航冲突
-			cache: true,
+			cache: false, // 禁用缓存，因为 Cloudflare Pages 已提供缓存
 			preload: true, // 启用预加载以提升页面切换速度
 			accessibility: true,
 			updateHead: true,

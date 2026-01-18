@@ -866,12 +866,13 @@ function nextSong() {
 	}, 200);
 }
 
-function playSong(index: number) {
+function playSong(index: number, autoPlay = true) {
 	if (index < 0 || index >= playlist.length) return;
 	// 重置播放尝试锁
 	playAttemptLock = false;
-	const wasPlaying = isPlaying;
-	console.debug("playSong called:", { index, wasPlaying, shouldAutoplayContinuous, title: playlist[index]?.title });
+	// 点击播放时传入 autoPlay=true 会覆盖之前的播放状态意图，确保点击项后可以立即尝试播放
+	const wasPlaying = (autoPlay || isPlaying);
+	console.debug("playSong called:", { index, wasPlaying, autoPlay, shouldAutoplayContinuous, title: playlist[index]?.title });
 	currentIndex = index;
 	
 	// 重置播放状态，因为我们要切换歌曲
@@ -1316,6 +1317,7 @@ function onProgressPointerMove(e: PointerEvent) {
 // 尝试应用挂起的 seek（在 audio 开始缓冲/可播放后重试）
 function tryApplyPendingSeek() {
 	if (!audio || pendingSeekTarget == null) return false;
+	const target = pendingSeekTarget;
 	// 确保目标仍然针对同一音源
 	if (pendingSeekSrc && audio.src !== pendingSeekSrc) return false;
 	try {
@@ -1323,9 +1325,9 @@ function tryApplyPendingSeek() {
 			for (let i = 0; i < audio.seekable.length; i++) {
 				const s = audio.seekable.start(i);
 				const e = audio.seekable.end(i);
-				if (pendingSeekTarget >= s && pendingSeekTarget <= e) {
-					audio.currentTime = pendingSeekTarget;
-					currentTime = pendingSeekTarget;
+				if (target >= s && target <= e) {
+					audio.currentTime = target;
+					currentTime = target;
 					const was = wasPlayingDuringDrag;
 					cleanupPendingSeekHandlers();
 					if (was && audio && !isPlaying) {
@@ -1337,11 +1339,22 @@ function tryApplyPendingSeek() {
 		}
 		if (audio.buffered && audio.buffered.length > 0) {
 			const bufferedEnd = audio.buffered.end(audio.buffered.length - 1);
-			if (pendingSeekTarget <= bufferedEnd) {
-				audio.currentTime = pendingSeekTarget;
-				currentTime = pendingSeekTarget;
+			if (target <= bufferedEnd) {
+				audio.currentTime = target;
+				currentTime = target;
 				const was2 = wasPlayingDuringDrag;
 				cleanupPendingSeekHandlers();
+				// 验证读回
+				setTimeout(async () => {
+					try {
+						if (!audio) return;
+						if (Math.abs((audio.currentTime || 0) - target) > 0.5) {
+							console.debug('tryApplyPendingSeek(buffered): verification mismatch, performing forced seek for', target);
+							const ok = await performForcedSeek(target, was2);
+							console.log('tryApplyPendingSeek(buffered) performForcedSeek result:', ok, 'audio.currentTime now:', audio.currentTime);
+						}
+					} catch (e) { console.debug('tryApplyPendingSeek(buffered) verification error:', e); }
+				}, 120);
 				if (was2 && audio && !isPlaying) {
 					audio.play().catch((err) => { logAudioError(err, 'tryApplyPendingSeek -> resume'); });
 				}
@@ -1354,9 +1367,68 @@ function tryApplyPendingSeek() {
 	return false;
 }
 
+let forcedSeekInProgress = false;
+let forcedSeekGeneration = 0;
+
+async function performForcedSeek(target: number, wasPlaying: boolean) {
+	if (!audio) return false;
+	// generation-based cancellation and concurrency guard
+	if (forcedSeekInProgress) return false;
+	forcedSeekInProgress = true;
+	const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+	const myGen = ++forcedSeekGeneration;
+	try {
+		// If user restarted drag, abort
+		if (isProgressDragging) return false;
+		const prevPaused = audio.paused;
+		// Only pause if audio is currently playing and the caller expects resume
+		const shouldPause = !prevPaused && wasPlaying;
+		if (shouldPause) {
+			audio.pause();
+		}
+		// Attempt seek + verify, abort early if generation changed or drag restarted
+		audio.currentTime = target;
+		await sleep(150);
+		if (forcedSeekGeneration !== myGen || isProgressDragging) {
+			console.debug('performForcedSeek aborted (stale or new drag)', target);
+			return false;
+		}
+		console.debug('performForcedSeek verification 1 readback:', audio.currentTime, 'target:', target);
+		if (Math.abs((audio.currentTime || 0) - target) <= 0.5) {
+			currentTime = audio.currentTime;
+			if (wasPlaying && shouldPause && audio.paused) {
+				audio.play().catch((e) => logAudioError(e, 'performForcedSeek -> resume'));
+			}
+			return true;
+		}
+		// second attempt
+		audio.currentTime = target;
+		await sleep(300);
+		if (forcedSeekGeneration !== myGen || isProgressDragging) {
+			console.debug('performForcedSeek aborted after second attempt (stale or new drag)', target);
+			return false;
+		}
+		console.debug('performForcedSeek verification 2 readback:', audio.currentTime, 'target:', target);
+		if (Math.abs((audio.currentTime || 0) - target) <= 0.5) {
+			currentTime = audio.currentTime;
+			if (wasPlaying && shouldPause && audio.paused) {
+				audio.play().catch((e) => logAudioError(e, 'performForcedSeek -> resume'));
+			}
+			return true;
+		}
+	} catch (e) {
+		console.debug('performForcedSeek error:', e);
+	} finally {
+		forcedSeekInProgress = false;
+	}
+	return false;
+}
+
 function cleanupPendingSeekHandlers() {
 	pendingSeekTarget = null;
 	pendingSeekSrc = null;
+	// Bump generation to cancel any in-flight forced seeks
+	forcedSeekGeneration++;
 	if (pendingSeekTimeout != null) {
 		clearTimeout(pendingSeekTimeout);
 		pendingSeekTimeout = null;
@@ -1490,9 +1562,14 @@ function stopProgressDrag() {
 			} else {
 				console.log('After setting: audio.currentTime is:', audio.currentTime, 'currentTime is:', currentTime);
 				// Verification readback after slight delay to catch non-immediate seek behavior
-				setTimeout(() => {
+				setTimeout(async () => {
 					try {
 						console.log('Verification readback after setTimeout: audio.currentTime:', audio.currentTime, 'audio.paused:', audio.paused, 'audio.src:', audio.src);
+						if (Math.abs((audio.currentTime || 0) - finalTime) > 0.5) {
+							console.debug('Verification mismatch: initiating forced seek to', finalTime);
+							const ok = await performForcedSeek(finalTime, wasPlayingDuringDrag);
+							console.log('performForcedSeek result:', ok, 'audio.currentTime now:', audio.currentTime);
+						}
 					} catch (e) { console.debug('Verification readback failed:', e); }
 				}, 120);
 				// Clean up temporary listeners
@@ -1546,6 +1623,8 @@ function stopProgressDrag() {
 
 function startProgressDrag(e: PointerEvent) {
 	if (!audio || !progressBar) return;
+	// 清理任何挂起的 seek 操作，以避免快速拖拽时的冲突
+	cleanupPendingSeekHandlers();
 	// 记录拖动开始前的播放状态，以便拖动结束后恢复
 	wasPlayingDuringDrag = Boolean(isPlaying);
 	isProgressDragging = true;
@@ -2374,11 +2453,11 @@ onDestroy(() => {
                     <div class="playlist-item flex items-center gap-3 p-3 cursor-pointer transition-colors"
                          class:bg-[var(--btn-plain-bg)]={index === currentIndex}
                          class:text-[var(--primary)]={index === currentIndex}
-                         on:click={() => playSong(index)}
+                         on:click={() => playSong(index, true)}
                          on:keydown={(e) => {
                              if (e.key === 'Enter' || e.key === ' ') {
                                  e.preventDefault();
-                                 playSong(index);
+                                 playSong(index, true);
                              }
                          }}
                          role="button"
