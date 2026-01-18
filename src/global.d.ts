@@ -31,6 +31,20 @@ declare global {
 		sub_results?: SearchResult[];
 	}
 
+	// Meting API response types
+	interface MetingSong {
+		id?: number | string;
+		name?: string;
+		title?: string;
+		artist?: string;
+		author?: string;
+		pic?: string;
+		cover?: string;
+		url?: string;
+		duration?: number;
+		[key: string]: unknown;
+	}
+
 	interface Window {
 		// Define swup type directly since @swup/astro doesn't export AstroIntegration
 		swup: {
@@ -66,6 +80,7 @@ declare global {
 				depth?: number;
 			};
 		};
+		musicData?: MetingSong[];
 	}
 }
 

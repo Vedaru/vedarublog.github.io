@@ -58,7 +58,7 @@ let currentSong = {
 };
 
 type Song = {
-	id: string | number;
+	id: number;
 	title: string;
 	artist: string;
 	cover: string;
@@ -72,6 +72,33 @@ let audio: HTMLAudioElement;
 let progressBar: HTMLElement;
 let volumeBar: HTMLElement;
 
+const localPlaylist = [
+	{
+		id: 1,
+		title: "ひとり上手",
+		artist: "Kaya",
+		cover: "assets/music/cover/hitori.jpg",
+		url: "assets/music/url/hitori.mp3",
+		duration: 240,
+	},
+	{
+		id: 2,
+		title: "眩耀夜行",
+		artist: "スリーズブーケ",
+		cover: "assets/music/cover/xryx.jpg",
+		url: "assets/music/url/xryx.mp3",
+		duration: 180,
+	},
+	{
+		id: 3,
+		title: "春雷の頃",
+		artist: "22/7",
+		cover: "assets/music/cover/cl.jpg",
+		url: "assets/music/url/cl.mp3",
+		duration: 200,
+	},
+];
+
 async function fetchMetingPlaylist() {
 	if (!meting_api || !meting_id) return;
 	isLoading = true;
@@ -84,7 +111,7 @@ async function fetchMetingPlaylist() {
 	try {
 		const res = await fetch(apiUrl);
 		if (!res.ok) throw new Error("meting api error");
-		const list: any[] = await res.json();
+		const list = await res.json() as MetingSong[];
 		playlist = list.map((song: any) => {
 			let title = song.name ?? song.title ?? i18n(Key.unknownSong);
 		let artist = song.artist ?? song.author ?? i18n(Key.unknownArtist);
@@ -107,29 +134,6 @@ async function fetchMetingPlaylist() {
 	} catch (e) {
 		showErrorMessage(i18n(Key.musicPlayerErrorPlaylist));
 		isLoading = false;
-	}
-}
-
-async function loadLocalPlaylist() {
-	try {
-		const res = await fetch('/assets/music/playlist.json');
-		if (!res.ok) throw new Error('Failed to load playlist');
-		const list: any[] = await res.json();
-		playlist = list.map((song: any, index: number) => {
-			return {
-				id: song.id || index,
-				title: song.name,
-				artist: song.artist,
-				cover: song.cover,
-				url: song.url,
-				duration: 0,
-			};
-		});
-		if (playlist.length > 0) {
-			loadSong(playlist[0]);
-		}
-	} catch (e) {
-		showErrorMessage('Failed to load local playlist');
 	}
 }
 
@@ -386,8 +390,13 @@ onMount(() => {
 	if (mode === "meting") {
 		fetchMetingPlaylist();
 	} else {
-		// 使用本地播放列表，从 playlist.json 加载
-		loadLocalPlaylist();
+		// 使用本地播放列表，不发送任何API请求
+		playlist = [...localPlaylist];
+		if (playlist.length > 0) {
+			loadSong(playlist[0]);
+		} else {
+			showErrorMessage("本地播放列表为空");
+		}
 	}
 });
 
