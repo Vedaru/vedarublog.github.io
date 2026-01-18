@@ -68,10 +68,6 @@ let mutedForAutoplay = false;
 let currentTime = 0;
 // 歌曲总时长，默认为 0
 let duration = 0;
-// 新增：专门用于进度条显示的变量，与 currentTime 分离
-let sliderValue = 0;
-// 新增：标记是否正在拖拽进度条
-let isDragging = false;
 // 音量，默认为 0.7
 let volume = 0.5;
 // 正在拖动音量条
@@ -176,12 +172,6 @@ function restoreCoverCache() {
 	} catch (e) {
 		console.debug('Failed to restore cover cache', e);
 	}
-}
-
-// 2. 关键逻辑：同步 Audio 时间到进度条
-// 只有当用户 **没有** 在拖拽时，才让播放进度自动更新进度条
-$: if (!isDragging) {
-	sliderValue = currentTime;
 }
 
 // 持久化缓存到 SessionStorage
@@ -382,7 +372,7 @@ let playlist: Song[] = [];
 let currentIndex = 0;
 let audio: HTMLAudioElement;
 let preloadAudio: HTMLAudioElement | null = null; // 预加载下一首歌的音频元素
-let progressBar: HTMLInputElement;
+let progressBar: HTMLElement;
 let volumeBar: HTMLElement;
 let audioContext: AudioContext | null = null;
 let audioSource: MediaElementAudioSourceNode | null = null;
@@ -421,89 +411,6 @@ onMount(async () => {
         localPlaylist = [];
     }
 });
-
-const staticPlaylist = [
-	{
-		id: 1,
-		title: "夜曲",
-		artist: "周杰伦",
-		cover: "https://p2.music.126.net/4gzU68p5TKpq9l8T9Gk2VA==/109951166361218695.jpg",
-		url: "https://music.163.com/song/media/outer/url?id=211653.mp3",
-		duration: 240,
-	},
-	{
-		id: 2,
-		title: "稻香",
-		artist: "周杰伦",
-		cover: "https://p2.music.126.net/4gzU68p5TKpq9l8T9Gk2VA==/109951166361218695.jpg",
-		url: "https://music.163.com/song/media/outer/url?id=337891.mp3",
-		duration: 223,
-	},
-	{
-		id: 3,
-		title: "青花瓷",
-		artist: "周杰伦",
-		cover: "https://p2.music.126.net/4gzU68p5TKpq9l8T9Gk2VA==/109951166361218695.jpg",
-		url: "https://music.163.com/song/media/outer/url?id=337893.mp3",
-		duration: 154,
-	},
-	{
-		id: 4,
-		title: "七里香",
-		artist: "周杰伦",
-		cover: "https://p2.music.126.net/4gzU68p5TKpq9l8T9Gk2VA==/109951166361218695.jpg",
-		url: "https://music.163.com/song/media/outer/url?id=337895.mp3",
-		duration: 297,
-	},
-	{
-		id: 5,
-		title: "给我一首歌的时间",
-		artist: "周杰伦",
-		cover: "https://p2.music.126.net/4gzU68p5TKpq9l8T9Gk2VA==/109951166361218695.jpg",
-		url: "https://music.163.com/song/media/outer/url?id=337897.mp3",
-		duration: 278,
-	},
-	{
-		id: 6,
-		title: "本草纲目",
-		artist: "周杰伦",
-		cover: "https://p2.music.126.net/4gzU68p5TKpq9l8T9Gk2VA==/109951166361218695.jpg",
-		url: "https://music.163.com/song/media/outer/url?id=337899.mp3",
-		duration: 215,
-	},
-	{
-		id: 7,
-		title: "东风破",
-		artist: "周杰伦",
-		cover: "https://p2.music.126.net/4gzU68p5TKpq9l8T9Gk2VA==/109951166361218695.jpg",
-		url: "https://music.163.com/song/media/outer/url?id=337901.mp3",
-		duration: 334,
-	},
-	{
-		id: 8,
-		title: "发如雪",
-		artist: "周杰伦",
-		cover: "https://p2.music.126.net/4gzU68p5TKpq9l8T9Gk2VA==/109951166361218695.jpg",
-		url: "https://music.163.com/song/media/outer/url?id=337903.mp3",
-		duration: 286,
-	},
-	{
-		id: 9,
-		title: "枫",
-		artist: "周杰伦",
-		cover: "https://p2.music.126.net/4gzU68p5TKpq9l8T9Gk2VA==/109951166361218695.jpg",
-		url: "https://music.163.com/song/media/outer/url?id=337905.mp3",
-		duration: 263,
-	},
-	{
-		id: 10,
-		title: "开不了口",
-		artist: "周杰伦",
-		cover: "https://p2.music.126.net/4gzU68p5TKpq9l8T9Gk2VA==/109951166361218695.jpg",
-		url: "https://music.163.com/song/media/outer/url?id=337907.mp3",
-		duration: 275,
-	},
-];
 
 function buildMetingUrl(template: string) {
 	return template
@@ -1416,30 +1323,6 @@ function setProgress(event: MouseEvent) {
 	}
 }
 
-// 3. 处理拖拽开始/过程 (on:input)
-function handleSeekInput(e: Event) {
-	isDragging = true;
-	const target = e.target as HTMLInputElement;
-	sliderValue = parseFloat(target.value); // 只更新视觉上的进度条，不改变 audio
-}
-
-// 4. 处理拖拽松开 (on:change)
-function handleSeekChange(e: Event) {
-	isDragging = false;
-	const target = e.target as HTMLInputElement;
-	const seekTime = parseFloat(target.value);
-
-	// 将实际音频跳转到拖拽的位置
-	currentTime = seekTime;
-
-	// 强制播放 (实现"松开之后直接播放"的要求)
-	if (!isPlaying && audio) {
-		audio.play().catch((e) => {
-			logAudioError(e, 'handleSeekChange -> force play');
-		});
-	}
-}
-
 function scheduleProgressUpdate(clientX: number) {
 	lastProgressClientX = clientX;
 	if (!isBrowser) return;
@@ -1742,183 +1625,68 @@ function stopProgressDrag() {
 		progRafId = null;
 		lastProgressClientX = null;
 	}
-	// 确保最终位置已应用到 audio.currentTime（再次截断防止触发 ended）
-	try {
-		if (audio) {
-			const actualDuration = (audio.duration && Number.isFinite(audio.duration)) ? audio.duration : (Number.isFinite(duration) ? duration : 0);
-			let finalTime = currentTime;
-			if (actualDuration > 0 && finalTime >= actualDuration) {
-				finalTime = Math.max(0, actualDuration - 0.15);
-			}
-			console.log('Progress drag ended. Attempting to set audio.currentTime to:', finalTime, 'audio exists:', !!audio, 'currentTime was:', currentTime);
-			// Diagnostic: dump audio state for debugging seek failures
-			try {
-				console.debug('Audio state dump:', {
-					src: audio.src,
-					readyState: audio.readyState,
-					paused: audio.paused,
-					networkState: audio.networkState,
-					duration: audio.duration,
-					currentTimeBefore: audio.currentTime,
-					buffered: Array.from({length: audio.buffered.length}).map((_, i) => [audio.buffered.start(i), audio.buffered.end(i)]),
-					seekable: Array.from({length: audio.seekable.length}).map((_, i) => [audio.seekable.start(i), audio.seekable.end(i)]),
-				});
-			} catch (e) { console.debug('Error dumping audio state:', e); }
-			// Check if audio is ready for seeking
-			if (audio.readyState < 1) {
-				console.debug('Audio not ready for seek in stopProgressDrag, readyState:', audio.readyState, 'scheduling retry');
-				scheduleSeekRetry(finalTime, wasPlayingDuringDrag);
-				return;
-			}
-			const onSeekedLog = () => { console.log('audio.seeked event fired, audio.currentTime:', audio.currentTime); audio.removeEventListener('seeked', onSeekedLog); };
-			const onLoadedMetaLog = () => { console.log('audio.loadedmetadata event fired, audio.currentTime:', audio.currentTime); audio.removeEventListener('loadedmetadata', onLoadedMetaLog); };
-			const onCanPlayLog = () => { console.log('audio.canplay event fired, audio.currentTime:', audio.currentTime); audio.removeEventListener('canplay', onCanPlayLog); };
-			const onProgressLog = () => { console.log('audio.progress event fired, buffered:', Array.from({length: audio.buffered.length}).map((_, i) => [audio.buffered.start(i), audio.buffered.end(i)])); };
-			audio.addEventListener('seeked', onSeekedLog);
-			audio.addEventListener('loadedmetadata', onLoadedMetaLog);
-			audio.addEventListener('canplay', onCanPlayLog);
-			audio.addEventListener('progress', onProgressLog);
 
-			// 立即尝试应用
-			let applied = false;
-			try {
-				if (audio.seekable && audio.seekable.length > 0) {
-					for (let i = 0; i < audio.seekable.length; i++) {
-						const s = audio.seekable.start(i);
-						const e = audio.seekable.end(i);
-						if (finalTime >= s && finalTime <= e) {
-							console.debug('stopProgressDrag: applying seek to', finalTime, 'in seekable range [', s, ',', e, ']');
-							audio.currentTime = finalTime;
-							currentTime = finalTime;
-							// 如果先前正在播放，则在设置成功后尝试恢复播放
-							if (wasPlayingDuringDrag && audio && !isPlaying) {
-								const playPromise = audio.play();
-								if (playPromise !== undefined) {
-									playPromise.catch((e) => { 
-										if (e.name !== 'AbortError') {
-											logAudioError(e, 'stopProgressDrag -> resume after immediate seek'); 
-										}
-									});
-								}
-							}
-							applied = true;
-							break;
-						}
-					}
-				}
-				if (!applied && audio.buffered && audio.buffered.length > 0) {
-					const bufferedEnd = audio.buffered.end(audio.buffered.length - 1);
-					if (finalTime <= bufferedEnd) {
-						console.debug('stopProgressDrag: applying buffered seek to', finalTime, 'buffered end:', bufferedEnd);
-						audio.currentTime = finalTime;
-						currentTime = finalTime;
-						if (wasPlayingDuringDrag && audio && !isPlaying) {
-							const playPromise = audio.play();
-							if (playPromise !== undefined) {
-								playPromise.catch((e) => { 
-									if (e.name !== 'AbortError') {
-										logAudioError(e, 'stopProgressDrag -> resume after immediate seek'); 
-									}
-								});
-							}
-						}
-						applied = true;
-					}
-				}
-			} catch (e) {
-				console.debug('Immediate seek attempt failed:', e);
-			}
-			if (!applied) {
-				// 若音频已具备一定就绪度，先尝试立即进行强制 seek（pause -> set -> verify），以减少用户等待
-				if (audio && audio.readyState >= 2) {
-					console.debug('Attempting performForcedSeek immediately for', finalTime);
-					performForcedSeek(finalTime, wasPlayingDuringDrag).then((ok) => {
-						if (ok) {
-							console.log('performForcedSeek succeeded immediately:', finalTime, 'audio.currentTime:', audio.currentTime);
-							cleanupPendingSeekHandlers();
-							try { audio.removeEventListener('progress', onProgressLog); audio.removeEventListener('canplay', onCanPlayLog); audio.removeEventListener('loadedmetadata', onLoadedMetaLog); audio.removeEventListener('seeked', onSeekedLog); } catch (e) {}
-							return;
-						} else {
-							// 立即强制 seek 尝试失败，回退到延迟重试机制
-							scheduleSeekRetry(finalTime);
-							console.debug('performForcedSeek failed, Seek deferred until buffered/canplay. pendingSeekTarget:', pendingSeekTarget, 'audio.currentTime now:', audio.currentTime);
-						}
-					}).catch((e) => { scheduleSeekRetry(finalTime); console.debug('performForcedSeek threw:', e); });
-				} else {
-					// 延迟应用：使用统一的调度器并重试，直到成功或超时
-					scheduleSeekRetry(finalTime);
-					console.debug('Seek deferred until buffered/canplay. pendingSeekTarget:', pendingSeekTarget, 'audio.currentTime now:', audio.currentTime);
-				}
-			} else {
-				console.log('After setting: audio.currentTime is:', audio.currentTime, 'currentTime is:', currentTime);
-				// Verification readback after slight delay to catch non-immediate seek behavior
-				setTimeout(async () => {
-					try {
-						console.log('Verification readback after setTimeout: audio.currentTime:', audio.currentTime, 'audio.paused:', audio.paused, 'audio.src:', audio.src);
-						if (Math.abs((audio.currentTime || 0) - finalTime) > 0.5) {
-							console.debug('Verification mismatch: initiating forced seek to', finalTime);
-							const ok = await performForcedSeek(finalTime, wasPlayingDuringDrag);
-							console.log('performForcedSeek result:', ok, 'audio.currentTime now:', audio.currentTime);
-						}
-					} catch (e) { console.debug('Verification readback failed:', e); }
-				}, 120);
-				// Clean up temporary listeners
-				try {
-					audio.removeEventListener('progress', onProgressLog);
-					audio.removeEventListener('canplay', onCanPlayLog);
-					audio.removeEventListener('loadedmetadata', onLoadedMetaLog);
-					audio.removeEventListener('seeked', onSeekedLog);
-				} catch (e) { }
-			}
-		} else {
-			console.warn('Audio element not found when stopping progress drag');
+	// 核心修复逻辑：直接设置 audio.currentTime，不进行复杂的范围检查
+	if (audio) {
+		const actualDuration = (audio.duration && Number.isFinite(audio.duration)) ? audio.duration : (Number.isFinite(duration) ? duration : 0);
+		
+		// 1. 获取目标时间（使用在拖动过程中已更新的 currentTime 变量）
+		let targetTime = currentTime;
+		
+		// 2. 边界检查
+		if (actualDuration > 0 && targetTime >= actualDuration) {
+			targetTime = Math.max(0, actualDuration - 0.15);
 		}
-	} catch (e) {
-		console.debug('Error applying final seek after drag:', e);
+
+		console.log('Progress drag ended. Setting audio.currentTime to:', targetTime);
+
+		// 3. 强制设置时间 (Trust the browser to handle buffering)
+		try {
+			// 在拖动结束时，直接将音频进度跳转到 UI 显示的位置
+			audio.currentTime = targetTime;
+		} catch (e) {
+			console.error("Seek failed:", e);
+		}
+
+		// 4. 如果拖动前在播放，则恢复播放
+		if (wasPlayingDuringDrag) {
+			// 某些浏览器在设置 currentTime 后可能会自动暂停，这里确保恢复
+			const playPromise = audio.play();
+			if (playPromise !== undefined) {
+				playPromise.catch((e) => {
+					// 忽略 AbortError (通常发生在快速连续操作时)
+					if (e.name !== 'AbortError') {
+						logAudioError(e, 'stopProgressDrag -> resume after drag');
+					}
+				});
+			}
+		}
+	} else {
+		console.warn('Audio element not found when stopping progress drag');
 	}
-	// 释放拖动时恢复自动连播：如果当前已接近末尾，则在释放后触发下一首或单曲循环
+
+	// 重置标志位
+	wasPlayingDuringDrag = false;
+	
+	// 额外检查：如果拖到了末尾附近，处理自动切歌逻辑
 	try {
 		const actualDuration2 = (audio?.duration && Number.isFinite(audio.duration)) ? audio.duration : (Number.isFinite(duration) ? duration : 0);
 		const nearEnd = actualDuration2 > 0 && currentTime >= actualDuration2 - 0.15;
 		if (nearEnd) {
-			// 与 ended 处理逻辑一致
 			if (isRepeating === 1) {
-				// 单曲循环：重置并播放
 				if (audio) {
 					audio.currentTime = 0;
-					const playPromise = audio.play();
-					if (playPromise !== undefined) {
-						playPromise.catch((e) => { 
-							if (e.name !== 'AbortError') {
-								logAudioError(e, 'stopProgressDrag -> near-end single-loop replay'); 
-							}
-						});
-					}
+					audio.play().catch(()=>{});
 				}
 			} else if (isRepeating === 2 || currentIndex < playlist.length - 1 || isShuffled) {
 				setTimeout(() => {
-					try { nextSong(); } catch (e) { console.debug('nextSong after drag failed', e); }
+					try { nextSong(); } catch (e) {}
 				}, 150);
 			} else {
 				isPlaying = false;
 			}
 		}
-	} catch (e) {
-		console.debug('Error while handling near-end after drag:', e);
-	}
-	// 如果拖动前正在播放，尝试恢复播放（某些浏览器在设置 currentTime 后会自动暂停）
-	try {
-		if (wasPlayingDuringDrag && audio && !isPlaying) {
-			const playPromise = audio.play();
-			if (playPromise !== undefined) {
-				playPromise.catch((e) => { logAudioError(e, 'stopProgressDrag -> resume after drag'); });
-			}
-		}
-	} catch (e) {
-		console.debug('Error while trying to resume after drag:', e);
-	} finally {
-		wasPlayingDuringDrag = false;
-	}
+	} catch (e) {}
 }
 
 function startProgressDrag(e: PointerEvent) {
@@ -2610,29 +2378,53 @@ onDestroy(() => {
             </div>
         </div>
         <div class="progress-section mb-4">
-            <!-- 显示的时间使用 sliderValue 以便拖拽时数字实时变化 -->
-            <span class="text-xs text-30">{formatTime(sliderValue)}</span>
-
-            <!--
-               注意这里的修改：
-               1. 移除 bind:value={currentTime}
-               2. 使用 value={sliderValue} (单向绑定)
-               3. 添加 on:input (拖拽中)
-               4. 添加 on:change (松开/提交)
-            -->
-            <input
-                type="range"
-                min="0"
-                max={duration || 0}
-                value={sliderValue}
-                on:input={handleSeekInput}
-                on:change={handleSeekChange}
-                bind:this={progressBar}
-                class="seek-slider flex-1 mx-2 h-2 bg-[var(--btn-regular-bg)] rounded-full cursor-pointer appearance-none slider"
-                style="touch-action: none; --progress-percent: {duration ? (sliderValue / duration * 100) + '%' : '0%'}"
-            />
-
-            <span class="text-xs text-30">{formatTime(duration)}</span>
+						<div class="progress-bar relative flex-1 h-2 bg-[var(--btn-regular-bg)] rounded-full cursor-pointer"
+                 bind:this={progressBar}
+                 style="touch-action: none;"
+                 on:click={setProgress}
+                 on:pointerdown={startProgressDrag}
+								 on:mousemove={(e) => { isProgressHovering = true; showProgressTooltip = true; scheduleHoverUpdate(e.clientX); }}
+								 on:mouseenter={(e) => { isProgressHovering = true; showProgressTooltip = true; scheduleHoverUpdate(e.clientX); }}
+								 on:mouseleave={() => { isProgressHovering = false; if (!isProgressDragging) showProgressTooltip = false; }}
+                 on:keydown={(e) => {
+                     if (e.key === 'Enter' || e.key === ' ') {
+                         e.preventDefault();
+                         const percent = 0.5;
+                         const newTime = percent * duration;
+                         if (audio) {
+                             audio.currentTime = newTime;
+                             currentTime = newTime;
+                         }
+                     } else if (e.key === 'ArrowLeft') {
+                         e.preventDefault();
+                         if (duration > 0 && audio) {
+                             const newTime = Math.max(0, currentTime - 5);
+                             audio.currentTime = newTime;
+                             currentTime = newTime;
+                         }
+                     } else if (e.key === 'ArrowRight') {
+                         e.preventDefault();
+                         if (duration > 0 && audio) {
+                             const newTime = Math.min(duration, currentTime + 5);
+                             audio.currentTime = newTime;
+                             currentTime = newTime;
+                         }
+                     }
+                 }}
+                 role="slider"
+                 tabindex="0"
+                 aria-label="播放进度"
+                 aria-valuemin="0"
+                 aria-valuemax="100"
+                 aria-valuenow={duration > 0 ? (currentTime / duration * 100) : 0}>
+                 <div class="h-full bg-[var(--primary)] rounded-full"
+                     style="width: {duration > 0 ? (currentTime / duration) * 100 : 0}%; transition: {isProgressDragging ? 'none' : (isPlaying ? 'none' : 'width 200ms ease')}"></div>
+								 {#if showProgressTooltip}
+									 <div class="progress-tooltip" style="left: {progressTooltipPercent}%">
+										 {formatTime(isProgressDragging ? currentTime : tooltipTime)} / {formatTime(duration)}
+									 </div>
+								 {/if}
+            </div>
         </div>
         <div class="controls flex items-center justify-center gap-2 mb-4">
             <!-- 随机按钮高亮 -->
@@ -3026,60 +2818,6 @@ onDestroy(() => {
 /* 让主题色按钮更有视觉反馈 */
 button.bg-\[var\(--primary\)\] {
     box-shadow: 0 0 0 2px var(--primary);
-    border: none;
-}
-
-/* 自定义进度条滑块样式 */
-.seek-slider {
-    /* 轨道样式 */
-    background: linear-gradient(to right, var(--primary) 0%, var(--primary) var(--progress-percent, 0%), var(--btn-regular-bg) var(--progress-percent, 0%), var(--btn-regular-bg) 100%);
-    outline: none;
-    -webkit-appearance: none;
-    appearance: none;
-    border-radius: 4px;
-    height: 8px;
-    cursor: pointer;
-    transition: background 0.2s ease;
-}
-
-.seek-slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--primary);
-    cursor: pointer;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-    border: 2px solid var(--bg-color);
-    transition: all 0.2s ease;
-}
-
-.seek-slider::-webkit-slider-thumb:hover {
-    transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.seek-slider::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--primary);
-    cursor: pointer;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-    border: 2px solid var(--bg-color);
-    transition: all 0.2s ease;
-}
-
-.seek-slider::-moz-range-thumb:hover {
-    transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-
-.seek-slider::-moz-range-track {
-    background: var(--btn-regular-bg);
-    border-radius: 4px;
-    height: 8px;
     border: none;
 }
 
