@@ -380,6 +380,9 @@ let useAudioContext = true; // 如果因 CORS 或错误无法使用 WebAudio，�
 let prefetchedForIndex: number | null = null;
 // 当剩余时长小于该阈值（秒）时触发预取
 const PREFETCH_THRESHOLD = 15;
+// 在目标 seek 尚未生效时保存待应用的位置并重试
+let pendingSeekTarget: number | null = null;
+let pendingSeekTimeout: number | null = null;
 
 let localPlaylist: Song[] = [];
 
@@ -1303,6 +1306,61 @@ function onProgressPointerMove(e: PointerEvent) {
 	scheduleProgressUpdate(e.clientX);
 }
 
+// 尝试应用挂起的 seek（在 audio 开始缓冲/可播放后重试）
+function tryApplyPendingSeek() {
+	if (!audio || pendingSeekTarget == null) return false;
+	try {
+		if (audio.seekable && audio.seekable.length > 0) {
+			for (let i = 0; i < audio.seekable.length; i++) {
+				const s = audio.seekable.start(i);
+				const e = audio.seekable.end(i);
+				if (pendingSeekTarget >= s && pendingSeekTarget <= e) {
+					audio.currentTime = pendingSeekTarget;
+					currentTime = pendingSeekTarget;
+					const wasPlaying = wasPlayingDuringDrag;
+					pendingSeekTarget = null;
+					// 清理监听并在必要时恢复播放
+					cleanupPendingSeekHandlers();
+					if (wasPlaying && audio && !isPlaying) {
+						audio.play().catch((e) => { logAudioError(e, 'tryApplyPendingSeek -> resume'); });
+					}
+					return true;
+				}
+			}
+		}
+		if (audio.buffered && audio.buffered.length > 0) {
+			const bufferedEnd = audio.buffered.end(audio.buffered.length - 1);
+			if (pendingSeekTarget <= bufferedEnd) {
+				audio.currentTime = pendingSeekTarget;
+				currentTime = pendingSeekTarget;
+				const wasPlaying2 = wasPlayingDuringDrag;
+				pendingSeekTarget = null;
+				cleanupPendingSeekHandlers();
+				if (wasPlaying2 && audio && !isPlaying) {
+					audio.play().catch((e) => { logAudioError(e, 'tryApplyPendingSeek -> resume'); });
+				}
+				return true;
+			}
+		}
+	} catch (e) {
+		console.debug('tryApplyPendingSeek error:', e);
+	}
+	return false;
+}
+
+function cleanupPendingSeekHandlers() {
+	pendingSeekTarget = null;
+	if (pendingSeekTimeout != null) {
+		clearTimeout(pendingSeekTimeout);
+		pendingSeekTimeout = null;
+	}
+	if (audio) {
+		audio.removeEventListener('progress', tryApplyPendingSeek);
+		audio.removeEventListener('canplay', tryApplyPendingSeek);
+		audio.removeEventListener('loadedmetadata', tryApplyPendingSeek);
+	}
+}
+
 function stopProgressDrag() {
 	if (!isProgressDragging) return;
 	isProgressDragging = false;
@@ -1327,30 +1385,47 @@ function stopProgressDrag() {
 			if (actualDuration > 0 && finalTime >= actualDuration) {
 				finalTime = Math.max(0, actualDuration - 0.15);
 			}
-
-			// 检查音频是否可以seek
-			if (audio.readyState >= 1 && audio.duration > 0 && !audio.error) {
-				const originalTime = audio.currentTime;
-				audio.currentTime = finalTime;
-
-				// 验证设置是否成功
-				setTimeout(() => {
-					if (Math.abs(audio.currentTime - finalTime) > 0.5) {
-						console.warn('Seek failed, currentTime reset to:', audio.currentTime, 'expected:', finalTime);
-						// 如果seek失败，尝试更保守的方法
-						if (audio.readyState >= 2) {
-							audio.currentTime = Math.min(finalTime, audio.duration * 0.95);
+			console.log('Progress drag ended. Attempting to set audio.currentTime to:', finalTime, 'audio exists:', !!audio, 'currentTime was:', currentTime);
+			// 立即尝试应用
+			let applied = false;
+			try {
+				if (audio.seekable && audio.seekable.length > 0) {
+					for (let i = 0; i < audio.seekable.length; i++) {
+						const s = audio.seekable.start(i);
+						const e = audio.seekable.end(i);
+						if (finalTime >= s && finalTime <= e) {
+							audio.currentTime = finalTime;
+							currentTime = finalTime;
+							applied = true;
+							break;
 						}
-					} else {
-						console.log('Seek successful: currentTime =', audio.currentTime);
 					}
-				}, 10);
+				}
+				if (!applied && audio.buffered && audio.buffered.length > 0) {
+					const bufferedEnd = audio.buffered.end(audio.buffered.length - 1);
+					if (finalTime <= bufferedEnd) {
+						audio.currentTime = finalTime;
+						currentTime = finalTime;
+						applied = true;
+					}
+				}
+			} catch (e) {
+				console.debug('Immediate seek attempt failed:', e);
+			}
+			if (!applied) {
+				// 延迟应用：注册监听在缓冲/可播放时重试
+				pendingSeekTarget = finalTime;
+				audio.addEventListener('progress', tryApplyPendingSeek);
+				audio.addEventListener('canplay', tryApplyPendingSeek);
+				audio.addEventListener('loadedmetadata', tryApplyPendingSeek);
+				// 在 3s 后放弃或做最后一次尝试
+				pendingSeekTimeout = window.setTimeout(() => {
+					tryApplyPendingSeek();
+					cleanupPendingSeekHandlers();
+				}, 3000);
+				console.debug('Seek deferred until buffered/canplay. pendingSeekTarget:', pendingSeekTarget);
 			} else {
-				console.warn('Audio not ready for seeking:', {
-					readyState: audio.readyState,
-					duration: audio.duration,
-					error: audio.error
-				});
+				console.log('After setting: audio.currentTime is:', audio.currentTime, 'currentTime is:', currentTime);
 			}
 		} else {
 			console.warn('Audio element not found when stopping progress drag');
