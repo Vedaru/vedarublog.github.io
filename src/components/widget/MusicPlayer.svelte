@@ -387,8 +387,7 @@ let pendingSeekTarget: number | null = null;
 let pendingSeekTimeout: number | null = null;
 let pendingSeekRetryId: number | null = null;
 let pendingSeekSrc: string | null = null;
-// 记录在拖拽时播放器是否处于播放状态，以便挂起的 seek 成功后可靠恢复播放
-let pendingSeekWasPlaying: boolean | null = null;
+let pendingSeekWasPlaying = false; // 记录调度时是否正在播放，以便在强制 seek 后恢复播放
 
 
 let localPlaylist: Song[] = [];
@@ -640,10 +639,13 @@ function togglePlay() {
 				setTimeout(() => {
 					if (playlist.length > 0 && audio) {
 						loadSong(playlist[0]);
-						audio.play().catch((err) => {
-							logAudioError(err, 'togglePlay -> meting load fallback play');
-							showErrorMessage("播放失败，请重试");
-						});
+						const playPromise = audio.play();
+						if (playPromise !== undefined) {
+							playPromise.catch((err) => {
+								logAudioError(err, 'togglePlay -> meting load fallback play');
+								showErrorMessage("播放失败，请重试");
+							});
+						}
 					}
 				}, 500);
 				return;
@@ -656,16 +658,22 @@ function togglePlay() {
 			// 等待加载完成后播放
 			const playWhenReady = () => {
 				if (audio.readyState >= 2) {
-					audio.play().catch((err) => {
-						logAudioError(err, 'togglePlay -> playWhenReady (readyState>=2)');
-						showErrorMessage("播放失败，请重试");
-					});
-				} else {
-					audio.addEventListener("canplay", () => {
-						audio.play().catch((err) => {
-							logAudioError(err, 'togglePlay -> playWhenReady (canplay)');
+					const playPromise = audio.play();
+					if (playPromise !== undefined) {
+						playPromise.catch((err) => {
+							logAudioError(err, 'togglePlay -> playWhenReady (readyState>=2)');
 							showErrorMessage("播放失败，请重试");
 						});
+					}
+				} else {
+					audio.addEventListener("canplay", () => {
+						const playPromise = audio.play();
+						if (playPromise !== undefined) {
+							playPromise.catch((err) => {
+								logAudioError(err, 'togglePlay -> playWhenReady (canplay)');
+								showErrorMessage("播放失败，请重试");
+							});
+						}
 					}, { once: true });
 				}
 			};
@@ -675,10 +683,13 @@ function togglePlay() {
 			loadSong(playlist[0]);
 			setTimeout(() => {
 					if (audio && audio.readyState >= 2) {
-						audio.play().catch((err) => {
-							logAudioError(err, 'togglePlay -> playlist first load play');
-							showErrorMessage("播放失败，请重试");
-						});
+						const playPromise = audio.play();
+						if (playPromise !== undefined) {
+							playPromise.catch((err) => {
+								logAudioError(err, 'togglePlay -> playlist first load play');
+								showErrorMessage("播放失败，请重试");
+							});
+						}
 					}
 			}, 200);
 		} else {
@@ -698,23 +709,26 @@ function togglePlay() {
 	});
 	
 	// 直接播放
-	audio.play().catch((err) => {
-		logAudioError(err, 'togglePlay -> audio.play direct');
-		// 如果播放失败，尝试重新加载
-		if (err.name === 'NotAllowedError') {
-			showErrorMessage("播放被浏览器阻止，请先点击页面任意位置");
-		} else if (err.name === 'NotSupportedError') {
-			showErrorMessage("音频格式不支持或资源不可用");
-			// 尝试重新加载
-			setTimeout(() => {
-				if (audio && currentSong.url) {
-					loadSong(currentSong);
-				}
-			}, 100);
-		} else {
-			showErrorMessage("播放失败，请重试");
-		}
-	});
+	const playPromise = audio.play();
+	if (playPromise !== undefined) {
+		playPromise.catch((err) => {
+			logAudioError(err, 'togglePlay -> audio.play direct');
+			// 如果播放失败，尝试重新加载
+			if (err.name === 'NotAllowedError') {
+				showErrorMessage("播放被浏览器阻止，请先点击页面任意位置");
+			} else if (err.name === 'NotSupportedError') {
+				showErrorMessage("音频格式不支持或资源不可用");
+				// 尝试重新加载
+				setTimeout(() => {
+					if (audio && currentSong.url) {
+						loadSong(currentSong);
+					}
+				}, 100);
+			} else {
+				showErrorMessage("播放失败，请重试");
+			}
+		});
+	}
 }
 
 function toggleExpanded() {
@@ -831,7 +845,10 @@ function nextSong() {
 		if (isRepeating === 1) {
 				try {
 					audio.currentTime = 0;
-					audio.play().catch((e) => { logAudioError(e, 'nextSong -> single-track replay'); });
+					const playPromise = audio.play();
+					if (playPromise !== undefined) {
+						playPromise.catch((e) => { logAudioError(e, 'nextSong -> single-track replay'); });
+					}
 				} catch (e) {}
 			return;
 		}
@@ -857,11 +874,16 @@ function nextSong() {
 		try {
 				if (audio && !isPlaying && !playAttemptLock) {
 					playAttemptLock = true;
-					audio.play().catch((e) => {
-						logAudioError(e, 'nextSong -> auto-play after nextSong');
-					}).finally(() => {
+					const playPromise = audio.play();
+					if (playPromise !== undefined) {
+						playPromise.catch((e) => {
+							logAudioError(e, 'nextSong -> auto-play after nextSong');
+						}).finally(() => {
+							playAttemptLock = false;
+						});
+					} else {
 						playAttemptLock = false;
-					});
+					}
 				}
 		} catch (e) {
 			console.debug('Auto-play attempt threw:', e);
@@ -934,12 +956,15 @@ function playSong(index: number, autoPlay = true) {
 		
 		// 如果点击意图或之前在播放，立即开始播放（预加载场景）
 			if (willAutoPlay || wasPlaying) {
-				audio.play().then(() => {
-					isPlaying = true;
-				}).catch((err) => {
-					logAudioError(err, 'playSong -> play preloaded audio');
-					// 保持 willAutoPlay 为 true，以便在后续事件中重试
-				});
+				const playPromise = audio.play();
+				if (playPromise !== undefined) {
+					playPromise.then(() => {
+						isPlaying = true;
+					}).catch((err) => {
+						logAudioError(err, 'playSong -> play preloaded audio');
+						// 保持 willAutoPlay 为 true，以便在后续事件中重试
+					});
+				}
 			}
 		
 		// 预加载下一首
@@ -994,26 +1019,34 @@ function playSong(index: number, autoPlay = true) {
 			}
 			
 				const attemptPlay = () => {
-					audio.play().then(() => {
-						willAutoPlay = false;
-					}).catch((err) => {
-						logAudioError(err, 'playSong -> attemptPlay after song change');
+					const playPromise = audio.play();
+					if (playPromise !== undefined) {
+						playPromise.then(() => {
+							willAutoPlay = false;
+						}).catch((err) => {
+							logAudioError(err, 'playSong -> attemptPlay after song change');
+							playAttemptLock = false;
+							// 如果播放失败，尝试再次加载（同时保留 willAutoPlay 以便后续重试）
+							if (err.name === 'NotSupportedError' || err.name === 'AbortError') {
+								setTimeout(() => {
+									if (audio && audio.readyState < 2) {
+										console.debug("Reloading audio after play failure");
+										audio.load();
+										audio.addEventListener("canplay", () => {
+											const innerPlayPromise = audio.play();
+											if (innerPlayPromise !== undefined) {
+												innerPlayPromise.catch((e) => { logAudioError(e, 'playSong -> reload canplay inner play'); });
+											}
+										}, { once: true });
+									}
+								}, 200);
+							}
+						}).finally(() => {
+							playAttemptLock = false;
+						});
+					} else {
 						playAttemptLock = false;
-						// 如果播放失败，尝试再次加载（同时保留 willAutoPlay 以便后续重试）
-						if (err.name === 'NotSupportedError' || err.name === 'AbortError') {
-							setTimeout(() => {
-								if (audio && audio.readyState < 2) {
-									console.debug("Reloading audio after play failure");
-									audio.load();
-									audio.addEventListener("canplay", () => {
-										audio.play().catch((e) => { logAudioError(e, 'playSong -> reload canplay inner play'); });
-									}, { once: true });
-								}
-							}, 200);
-						}
-					}).finally(() => {
-						playAttemptLock = false;
-					});
+					}
 				};
 			// 增加针对点击播放的立即尝试以减少“切歌后暂停”的感受
 			if (willAutoPlay && audio.readyState >= 2 && !isPlaying && !playAttemptLock) {
@@ -1342,11 +1375,13 @@ function tryApplyPendingSeek() {
 				if (target >= s && target <= e) {
 					audio.currentTime = target;
 					currentTime = target;
-					// 使用在调度时捕获的播放意图（优先）以决定是否恢复播放
-					const was = pendingSeekWasPlaying ?? wasPlayingDuringDrag;
+					const was = wasPlayingDuringDrag;
 					cleanupPendingSeekHandlers();
 					if (was && audio && !isPlaying) {
-						audio.play().catch((err) => { logAudioError(err, 'tryApplyPendingSeek -> resume'); });
+						const playPromise = audio.play();
+						if (playPromise !== undefined) {
+							playPromise.catch((err) => { logAudioError(err, 'tryApplyPendingSeek -> resume'); });
+						}
 					}
 					return true;
 				}
@@ -1357,7 +1392,7 @@ function tryApplyPendingSeek() {
 			if (target <= bufferedEnd) {
 				audio.currentTime = target;
 				currentTime = target;
-				const was2 = pendingSeekWasPlaying ?? wasPlayingDuringDrag;
+				const was2 = wasPlayingDuringDrag;
 				cleanupPendingSeekHandlers();
 				// 验证读回
 				setTimeout(async () => {
@@ -1371,7 +1406,10 @@ function tryApplyPendingSeek() {
 					} catch (e) { console.debug('tryApplyPendingSeek(buffered) verification error:', e); }
 				}, 120);
 				if (was2 && audio && !isPlaying) {
-					audio.play().catch((err) => { logAudioError(err, 'tryApplyPendingSeek -> resume'); });
+					const playPromise = audio.play();
+					if (playPromise !== undefined) {
+						playPromise.catch((err) => { logAudioError(err, 'tryApplyPendingSeek -> resume'); });
+					}
 				}
 				return true;
 			}
@@ -1412,7 +1450,10 @@ async function performForcedSeek(target: number, wasPlaying: boolean) {
 		if (Math.abs((audio.currentTime || 0) - target) <= 0.5) {
 			currentTime = audio.currentTime;
 			if (wasPlaying && shouldPause && audio.paused) {
-				audio.play().catch((e) => logAudioError(e, 'performForcedSeek -> resume'));
+				const playPromise = audio.play();
+				if (playPromise !== undefined) {
+					playPromise.catch((e) => logAudioError(e, 'performForcedSeek -> resume'));
+				}
 			}
 			return true;
 		}
@@ -1427,7 +1468,10 @@ async function performForcedSeek(target: number, wasPlaying: boolean) {
 		if (Math.abs((audio.currentTime || 0) - target) <= 0.5) {
 			currentTime = audio.currentTime;
 			if (wasPlaying && shouldPause && audio.paused) {
-				audio.play().catch((e) => logAudioError(e, 'performForcedSeek -> resume'));
+				const playPromise = audio.play();
+				if (playPromise !== undefined) {
+					playPromise.catch((e) => logAudioError(e, 'performForcedSeek -> resume'));
+				}
 			}
 			return true;
 		}
@@ -1452,8 +1496,6 @@ function cleanupPendingSeekHandlers() {
 		clearInterval(pendingSeekRetryId);
 		pendingSeekRetryId = null;
 	}
-	// 清理挂起 seek 的播放意图标志
-	pendingSeekWasPlaying = null;
 	if (audio) {
 		audio.removeEventListener('progress', tryApplyPendingSeek);
 		audio.removeEventListener('canplay', tryApplyPendingSeek);
@@ -1462,12 +1504,11 @@ function cleanupPendingSeekHandlers() {
 }
 
 // 在未能立即设置 seek 时安排重试，直到成功或超时
-function scheduleSeekRetry(target: number) {
+function scheduleSeekRetry(target: number, wasPlaying = false) {
 	cleanupPendingSeekHandlers();
 	pendingSeekTarget = target;
+	pendingSeekWasPlaying = wasPlaying;
 	pendingSeekSrc = audio?.src ?? null;
-	// 记录当前拖拽时的播放意图，以便稍后成功 seek 时恢复播放
-	pendingSeekWasPlaying = wasPlayingDuringDrag ?? false;
 	// 先尝试一次立即应用
 	if (tryApplyPendingSeek()) return;
 	if (audio) {
@@ -1475,15 +1516,28 @@ function scheduleSeekRetry(target: number) {
 		audio.addEventListener('canplay', tryApplyPendingSeek);
 		audio.addEventListener('loadedmetadata', tryApplyPendingSeek);
 	}
-	// 周期性重试（每250ms）直到成功
+	// 周期性重试（每250ms）直到成功。若 tryApplyPendingSeek 一直失败，额外尝试 performForcedSeek
 	pendingSeekRetryId = window.setInterval(() => {
 		try {
-			tryApplyPendingSeek();
+			const applied = tryApplyPendingSeek();
+			if (!applied && audio && audio.readyState >= 2) {
+				// 在可播放状态下尝试强制 seek
+				performForcedSeek(target, pendingSeekWasPlaying).then((ok) => {
+					if (ok) {
+						console.log('scheduleSeekRetry: performForcedSeek succeeded for', target);
+						cleanupPendingSeekHandlers();
+					}
+				}).catch((e) => { console.debug('scheduleSeekRetry performForcedSeek error:', e); });
+			}
 		} catch (e) { console.debug('scheduleSeekRetry interval error:', e); }
 	}, 250);
-	// 3s 后放弃并做最后一次尝试
+	// 3s 后放弃并做最后一次尝试（包含强制 seek）
 	pendingSeekTimeout = window.setTimeout(() => {
-		tryApplyPendingSeek();
+		if (!tryApplyPendingSeek() && audio && audio.readyState >= 2) {
+			performForcedSeek(target, pendingSeekWasPlaying).then((ok) => {
+				console.debug('scheduleSeekRetry final performForcedSeek:', ok);
+			}).catch((e) => { console.debug('scheduleSeekRetry final performForcedSeek error:', e); });
+		}
 		cleanupPendingSeekHandlers();
 	}, 3000);
 	console.debug('scheduleSeekRetry set for target:', target, 'src:', pendingSeekSrc, 'wasPlaying:', pendingSeekWasPlaying);
@@ -1553,7 +1607,10 @@ function stopProgressDrag() {
 							currentTime = finalTime;
 							// 如果先前正在播放，则在设置成功后尝试恢复播放
 							if (wasPlayingDuringDrag && audio && !isPlaying) {
-								audio.play().catch((e) => { logAudioError(e, 'stopProgressDrag -> resume after immediate seek'); });
+								const playPromise = audio.play();
+								if (playPromise !== undefined) {
+									playPromise.catch((e) => { logAudioError(e, 'stopProgressDrag -> resume after immediate seek'); });
+								}
 							}
 							applied = true;
 							break;
@@ -1566,7 +1623,10 @@ function stopProgressDrag() {
 						audio.currentTime = finalTime;
 						currentTime = finalTime;
 						if (wasPlayingDuringDrag && audio && !isPlaying) {
-							audio.play().catch((e) => { logAudioError(e, 'stopProgressDrag -> resume after immediate seek'); });
+							const playPromise = audio.play();
+							if (playPromise !== undefined) {
+								playPromise.catch((e) => { logAudioError(e, 'stopProgressDrag -> resume after immediate seek'); });
+							}
 						}
 						applied = true;
 					}
@@ -1575,9 +1635,26 @@ function stopProgressDrag() {
 				console.debug('Immediate seek attempt failed:', e);
 			}
 			if (!applied) {
-				// 延迟应用：使用统一的调度器并重试，直到成功或超时
-				scheduleSeekRetry(finalTime);
-				console.debug('Seek deferred until buffered/canplay. pendingSeekTarget:', pendingSeekTarget, 'audio.currentTime now:', audio.currentTime);
+				// 若音频已具备一定就绪度，先尝试立即进行强制 seek（pause -> set -> verify），以减少用户等待
+				if (audio && audio.readyState >= 2) {
+					console.debug('Attempting performForcedSeek immediately for', finalTime);
+					performForcedSeek(finalTime, wasPlayingDuringDrag).then((ok) => {
+						if (ok) {
+							console.log('performForcedSeek succeeded immediately:', finalTime, 'audio.currentTime:', audio.currentTime);
+							cleanupPendingSeekHandlers();
+							try { audio.removeEventListener('progress', onProgressLog); audio.removeEventListener('canplay', onCanPlayLog); audio.removeEventListener('loadedmetadata', onLoadedMetaLog); audio.removeEventListener('seeked', onSeekedLog); } catch (e) {}
+							return;
+						} else {
+							// 立即强制 seek 尝试失败，回退到延迟重试机制
+							scheduleSeekRetry(finalTime);
+							console.debug('performForcedSeek failed, Seek deferred until buffered/canplay. pendingSeekTarget:', pendingSeekTarget, 'audio.currentTime now:', audio.currentTime);
+						}
+					}).catch((e) => { scheduleSeekRetry(finalTime); console.debug('performForcedSeek threw:', e); });
+				} else {
+					// 延迟应用：使用统一的调度器并重试，直到成功或超时
+					scheduleSeekRetry(finalTime);
+					console.debug('Seek deferred until buffered/canplay. pendingSeekTarget:', pendingSeekTarget, 'audio.currentTime now:', audio.currentTime);
+				}
 			} else {
 				console.log('After setting: audio.currentTime is:', audio.currentTime, 'currentTime is:', currentTime);
 				// Verification readback after slight delay to catch non-immediate seek behavior
@@ -1615,7 +1692,10 @@ function stopProgressDrag() {
 				// 单曲循环：重置并播放
 				if (audio) {
 					audio.currentTime = 0;
-					audio.play().catch((e) => { logAudioError(e, 'stopProgressDrag -> near-end single-loop replay'); });
+					const playPromise = audio.play();
+					if (playPromise !== undefined) {
+						playPromise.catch((e) => { logAudioError(e, 'stopProgressDrag -> near-end single-loop replay'); });
+					}
 				}
 			} else if (isRepeating === 2 || currentIndex < playlist.length - 1 || isShuffled) {
 				setTimeout(() => {
@@ -1631,7 +1711,10 @@ function stopProgressDrag() {
 	// 如果拖动前正在播放，尝试恢复播放（某些浏览器在设置 currentTime 后会自动暂停）
 	try {
 		if (wasPlayingDuringDrag && audio && !isPlaying) {
-			audio.play().catch((e) => { logAudioError(e, 'stopProgressDrag -> resume after drag'); });
+			const playPromise = audio.play();
+			if (playPromise !== undefined) {
+				playPromise.catch((e) => { logAudioError(e, 'stopProgressDrag -> resume after drag'); });
+			}
 		}
 	} catch (e) {
 		console.debug('Error while trying to resume after drag:', e);
@@ -1910,7 +1993,10 @@ function handleAudioEvents() {
 		if (isRepeating === 1) {
 			// 单曲循环
 			audio.currentTime = 0;
-			audio.play().catch((e) => { logAudioError(e, 'audio ended -> single-loop replay'); });
+			const playPromise = audio.play();
+			if (playPromise !== undefined) {
+				playPromise.catch((e) => { logAudioError(e, 'audio ended -> single-loop replay'); });
+			}
 		} else if (
 			isRepeating === 2 ||
 			currentIndex < playlist.length - 1 ||
