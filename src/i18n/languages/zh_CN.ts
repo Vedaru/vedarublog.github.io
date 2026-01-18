@@ -286,4 +286,21 @@ export const zh_CN: Translation = {
 	[Key.calendarOctober]: "10月",
 	[Key.calendarNovember]: "11月",
 	[Key.calendarDecember]: "12月",
+
+	// Music Player
+	[Key.unknownSong]: "未知歌曲",
+	[Key.unknownArtist]: "未知艺术家",
+	[Key.musicPlayerErrorPlaylist]: "加载播放列表失败",
+	[Key.musicPlayerErrorSong]: "加载歌曲失败",
+	[Key.musicPlayerErrorEmpty]: "播放列表为空",
+	[Key.musicPlayerShow]: "显示音乐播放器",
+	[Key.musicPlayerPause]: "暂停",
+	[Key.musicPlayerPlay]: "播放",
+	[Key.musicPlayerCover]: "专辑封面",
+	[Key.musicPlayerExpand]: "展开播放器",
+	[Key.musicPlayerHide]: "隐藏播放器",
+	[Key.musicPlayerPlaylist]: "播放列表",
+	[Key.musicPlayerProgress]: "播放进度",
+	[Key.musicPlayerVolume]: "音量",
+	[Key.musicPlayerCollapse]: "折叠播放器",
 };

@@ -300,4 +300,21 @@ export const ja: Translation = {
 	[Key.calendarOctober]: "10月",
 	[Key.calendarNovember]: "11月",
 	[Key.calendarDecember]: "12月",
+
+	// ミュージックプレイヤー
+	[Key.unknownSong]: "不明な曲",
+	[Key.unknownArtist]: "不明なアーティスト",
+	[Key.musicPlayerErrorPlaylist]: "プレイリストの読み込みに失敗しました",
+	[Key.musicPlayerErrorSong]: "曲の読み込みに失敗しました",
+	[Key.musicPlayerErrorEmpty]: "プレイリストが空です",
+	[Key.musicPlayerShow]: "ミュージックプレイヤーを表示",
+	[Key.musicPlayerPause]: "一時停止",
+	[Key.musicPlayerPlay]: "再生",
+	[Key.musicPlayerCover]: "アルバムカバー",
+	[Key.musicPlayerExpand]: "プレイヤーを展開",
+	[Key.musicPlayerHide]: "プレイヤーを隠す",
+	[Key.musicPlayerPlaylist]: "プレイリスト",
+	[Key.musicPlayerProgress]: "再生進捗",
+	[Key.musicPlayerVolume]: "音量",
+	[Key.musicPlayerCollapse]: "プレイヤーを折りたたむ",
 };

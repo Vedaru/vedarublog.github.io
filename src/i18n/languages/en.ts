@@ -297,4 +297,21 @@ export const en: Translation = {
 	[Key.calendarOctober]: "Oct",
 	[Key.calendarNovember]: "Nov",
 	[Key.calendarDecember]: "Dec",
+
+	// Music Player
+	[Key.unknownSong]: "Unknown Song",
+	[Key.unknownArtist]: "Unknown Artist",
+	[Key.musicPlayerErrorPlaylist]: "Failed to load playlist",
+	[Key.musicPlayerErrorSong]: "Failed to load song",
+	[Key.musicPlayerErrorEmpty]: "Playlist is empty",
+	[Key.musicPlayerShow]: "Show music player",
+	[Key.musicPlayerPause]: "Pause",
+	[Key.musicPlayerPlay]: "Play",
+	[Key.musicPlayerCover]: "Album cover",
+	[Key.musicPlayerExpand]: "Expand player",
+	[Key.musicPlayerHide]: "Hide player",
+	[Key.musicPlayerPlaylist]: "Playlist",
+	[Key.musicPlayerProgress]: "Playback progress",
+	[Key.musicPlayerVolume]: "Volume",
+	[Key.musicPlayerCollapse]: "Collapse player",
 };

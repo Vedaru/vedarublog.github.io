@@ -280,6 +280,23 @@ enum I18nKey {
 	calendarOctober = "calendarOctober",
 	calendarNovember = "calendarNovember",
 	calendarDecember = "calendarDecember",
+
+	// Music Player
+	unknownSong = "unknownSong",
+	unknownArtist = "unknownArtist",
+	musicPlayerErrorPlaylist = "musicPlayerErrorPlaylist",
+	musicPlayerErrorSong = "musicPlayerErrorSong",
+	musicPlayerErrorEmpty = "musicPlayerErrorEmpty",
+	musicPlayerShow = "musicPlayerShow",
+	musicPlayerPause = "musicPlayerPause",
+	musicPlayerPlay = "musicPlayerPlay",
+	musicPlayerCover = "musicPlayerCover",
+	musicPlayerExpand = "musicPlayerExpand",
+	musicPlayerHide = "musicPlayerHide",
+	musicPlayerPlaylist = "musicPlayerPlaylist",
+	musicPlayerProgress = "musicPlayerProgress",
+	musicPlayerVolume = "musicPlayerVolume",
+	musicPlayerCollapse = "musicPlayerCollapse",
 }
 
 export default I18nKey;
