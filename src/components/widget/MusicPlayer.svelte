@@ -1304,34 +1304,35 @@ function hideError() {
 function setProgress(event: MouseEvent) {
 	if (!audio || !progressBar) return;
 
-	// 1. 核心修复：临时锁定状态，防止 timeupdate 事件将 UI 重置回旧时间
+	// 关键修复：点击时也暂时视为“正在拖动”，防止 timeupdate 事件立即将进度重置回旧位置
 	isProgressDragging = true;
 
 	const rect = progressBar.getBoundingClientRect();
 	const percent = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
 	// 使用实际 audio.duration 优先，回退到组件维护的 duration
 	const actualDuration = (audio.duration && Number.isFinite(audio.duration)) ? audio.duration : (Number.isFinite(duration) ? duration : 0);
+	
 	// 同步组件的 duration，保证模板渲染时进度条基于最新时长
 	if (actualDuration > 0 && duration !== actualDuration) {
 		duration = actualDuration;
 	}
+
 	let newTime = percent * (actualDuration || duration || 0);
-	// 避免设置到音频末尾触发 ended 事件：如果接近末尾则降回一个更保守的阈值
+	
+	// 避免设置到音频末尾触发 ended 事件
 	if (actualDuration > 0 && newTime >= actualDuration) {
 		newTime = Math.max(0, actualDuration - 0.15);
 	}
 	
-	// 2. 立即更新 UI，并尝试设置 audio
+	// 立即更新 UI 和 Audio
 	currentTime = newTime;
 	try {
-		if (Number.isFinite(newTime)) {
-			audio.currentTime = newTime;
-		}
+		audio.currentTime = newTime;
 	} catch (e) {
-		console.error("Seek failed in setProgress:", e);
+		console.error("Click seek failed:", e);
 	}
 
-	// 3. 延迟释放锁定，等待浏览器音频引擎追上
+	// 延迟释放锁，给浏览器足够的时间处理跳转，防止旧的 timeupdate 事件覆盖
 	setTimeout(() => {
 		isProgressDragging = false;
 	}, 200);
