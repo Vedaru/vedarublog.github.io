@@ -383,6 +383,7 @@ const PREFETCH_THRESHOLD = 15;
 // 在目标 seek 尚未生效时保存待应用的位置并重试
 let pendingSeekTarget: number | null = null;
 let pendingSeekTimeout: number | null = null;
+let pendingSeekRetryId: number | null = null; // 定时重试 ID
 
 let localPlaylist: Song[] = [];
 
@@ -1354,11 +1355,45 @@ function cleanupPendingSeekHandlers() {
 		clearTimeout(pendingSeekTimeout);
 		pendingSeekTimeout = null;
 	}
+	if (pendingSeekRetryId != null) {
+		clearInterval(pendingSeekRetryId);
+		pendingSeekRetryId = null;
+	}
 	if (audio) {
 		audio.removeEventListener('progress', tryApplyPendingSeek);
 		audio.removeEventListener('canplay', tryApplyPendingSeek);
 		audio.removeEventListener('loadedmetadata', tryApplyPendingSeek);
 	}
+}
+
+// 在未能立即设置 seek 时安排重试，直到成功或超时
+function scheduleSeekRetry(target: number) {
+	// 先清理老的 handler
+	cleanupPendingSeekHandlers();
+	pendingSeekTarget = target;
+	// 先尝试一次立即应用（快速通道）
+	if (tryApplyPendingSeek()) return;
+	if (audio) {
+		audio.addEventListener('progress', tryApplyPendingSeek);
+		audio.addEventListener('canplay', tryApplyPendingSeek);
+		audio.addEventListener('loadedmetadata', tryApplyPendingSeek);
+	}
+	// 周期性重试（每 250ms）直到成功
+	pendingSeekRetryId = window.setInterval(() => {
+		try {
+			if (tryApplyPendingSeek()) {
+				// 成功时 cleanupPendingSeekHandlers 会被调用
+			}
+		} catch (e) {
+			console.debug('scheduleSeekRetry interval error:', e);
+		}
+	}, 250);
+	// 3s 后放弃并做最后一次尝试
+	pendingSeekTimeout = window.setTimeout(() => {
+		tryApplyPendingSeek();
+		cleanupPendingSeekHandlers();
+	}, 3000);
+	console.debug('scheduleSeekRetry set for target:', target);
 }
 
 function stopProgressDrag() {
@@ -1396,6 +1431,10 @@ function stopProgressDrag() {
 						if (finalTime >= s && finalTime <= e) {
 							audio.currentTime = finalTime;
 							currentTime = finalTime;
+							// 如果先前正在播放，则在设置成功后尝试恢复播放
+							if (wasPlayingDuringDrag && audio && !isPlaying) {
+								audio.play().catch((e) => { logAudioError(e, 'stopProgressDrag -> resume after immediate seek'); });
+							}
 							applied = true;
 							break;
 						}
@@ -1406,6 +1445,9 @@ function stopProgressDrag() {
 					if (finalTime <= bufferedEnd) {
 						audio.currentTime = finalTime;
 						currentTime = finalTime;
+						if (wasPlayingDuringDrag && audio && !isPlaying) {
+							audio.play().catch((e) => { logAudioError(e, 'stopProgressDrag -> resume after immediate seek'); });
+						}
 						applied = true;
 					}
 				}
@@ -1413,16 +1455,8 @@ function stopProgressDrag() {
 				console.debug('Immediate seek attempt failed:', e);
 			}
 			if (!applied) {
-				// 延迟应用：注册监听在缓冲/可播放时重试
-				pendingSeekTarget = finalTime;
-				audio.addEventListener('progress', tryApplyPendingSeek);
-				audio.addEventListener('canplay', tryApplyPendingSeek);
-				audio.addEventListener('loadedmetadata', tryApplyPendingSeek);
-				// 在 3s 后放弃或做最后一次尝试
-				pendingSeekTimeout = window.setTimeout(() => {
-					tryApplyPendingSeek();
-					cleanupPendingSeekHandlers();
-				}, 3000);
+				// 延迟应用：使用统一的调度器并重试，直到成功或超时
+				scheduleSeekRetry(finalTime);
 				console.debug('Seek deferred until buffered/canplay. pendingSeekTarget:', pendingSeekTarget);
 			} else {
 				console.log('After setting: audio.currentTime is:', audio.currentTime, 'currentTime is:', currentTime);
