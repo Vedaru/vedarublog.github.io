@@ -19,6 +19,8 @@ let isExpanded = false;
 let isHidden = false;
 // 是否显示播放列表，默认为 false
 let showPlaylist = false;
+// 是否显示进度提示框，默认为 false
+let showProgressTooltip = true;
 // 当前播放时间，默认为 0
 let currentTime = 0;
 // 歌曲总时长，默认为 0
@@ -584,6 +586,16 @@ onDestroy(() => {
                             transition: {isProgressDragging ? 'none' : (isPlaying ? 'none' : 'width 200ms ease')}">
                 </div>
             </div>
+            {#if showProgressTooltip}
+                <div class="progress-tooltip" style="left: {progressTooltipPercent}%">
+                    <!-- 
+                       逻辑判断：
+                       如果是拖拽中 (isProgressDragging)，显示 currentTime (跟随鼠标变化的那个值)
+                       如果是悬停 (Hover)，显示 tooltipTime (计算出的悬停位置时间)
+                    -->
+                    {formatTime(isProgressDragging ? currentTime : tooltipTime)} / {formatTime(duration)}
+                </div>
+            {/if}
         </div>
         <div class="controls flex items-center justify-center gap-2 mb-4">
             <button class="w-10 h-10 rounded-lg"
