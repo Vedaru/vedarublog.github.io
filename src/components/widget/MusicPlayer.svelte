@@ -62,6 +62,15 @@ let audio: HTMLAudioElement;
 let progressBar: HTMLElement;
 let volumeBar: HTMLElement;
 
+// 新增变量用于进度条拖拽
+let lastProgressClientX: number | null = null;
+let isBrowser = typeof window !== 'undefined';
+let progRafId: number | null = null;
+let actualDuration = 0;
+let tooltipTime = 0;
+let progressTooltipPercent = 0;
+let isProgressDragging = false;
+
 async function fetchMetingPlaylist() {
 	isLoading = true;
 	try {
@@ -266,6 +275,41 @@ function setProgress(event: MouseEvent) {
 	const newTime = percent * duration;
 	audio.currentTime = newTime;
 	currentTime = newTime;
+}
+
+// 1. 拖拽时调用的更新函数
+function scheduleProgressUpdate(clientX: number) {
+    lastProgressClientX = clientX;
+    if (!isBrowser) return;
+    // 使用 requestAnimationFrame 保证动画流畅度跟屏幕刷新率同步
+    if (progRafId == null) {
+        progRafId = window.requestAnimationFrame(() => {
+            progRafId = null;
+            if (!progressBar || lastProgressClientX == null || !audio) return;
+            // ... 计算百分比逻辑 ...
+            const rect = progressBar.getBoundingClientRect();
+            const percent = Math.max(0, Math.min(1, (lastProgressClientX - rect.left) / rect.width));
+            let newTime = percent * (actualDuration || duration || 0);
+            
+            // ... 边界检查 ...
+
+            // 实时更新 currentTime 变量，这会立即触发 Svelte 的 UI 更新
+            if (Math.abs(currentTime - newTime) > 0.01) { 
+                currentTime = newTime; 
+            }
+            // 更新提示框的位置和时间
+            tooltipTime = newTime;
+            progressTooltipPercent = percent * 100;
+            lastProgressClientX = null;
+        });
+    }
+}
+
+// 2. 鼠标移动事件监听
+function onProgressPointerMove(e: PointerEvent) {
+    if (!isProgressDragging) return;
+    e.preventDefault();
+    scheduleProgressUpdate(e.clientX); // 触发上面的更新
 }
 
 let isVolumeDragging = false;
@@ -534,8 +578,11 @@ onDestroy(() => {
                  aria-valuemin="0"
                  aria-valuemax="100"
                  aria-valuenow={duration > 0 ? (currentTime / duration * 100) : 0}>
-                <div class="h-full bg-[var(--primary)] rounded-full transition-all duration-100"
-                     style="width: {duration > 0 ? (currentTime / duration) * 100 : 0}%"></div>
+                <!-- 这里的 style 绑定是平滑的关键 -->
+                <div class="h-full bg-[var(--primary)] rounded-full"
+                     style="width: {duration > 0 ? (currentTime / duration) * 100 : 0}%; 
+                            transition: {isProgressDragging ? 'none' : (isPlaying ? 'none' : 'width 200ms ease')}">
+                </div>
             </div>
         </div>
         <div class="controls flex items-center justify-center gap-2 mb-4">
