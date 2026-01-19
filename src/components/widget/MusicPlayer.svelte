@@ -19,8 +19,6 @@ let isExpanded = false;
 let isHidden = false;
 // 是否显示播放列表，默认为 false
 let showPlaylist = false;
-// 是否显示进度提示框，默认为 false
-let showProgressTooltip = true;
 // 当前播放时间，默认为 0
 let currentTime = 0;
 // 歌曲总时长，默认为 0
@@ -63,15 +61,6 @@ let currentIndex = 0;
 let audio: HTMLAudioElement;
 let progressBar: HTMLElement;
 let volumeBar: HTMLElement;
-
-// 新增变量用于进度条拖拽
-let lastProgressClientX: number | null = null;
-let isBrowser = typeof window !== 'undefined';
-let progRafId: number | null = null;
-let actualDuration = 0;
-let tooltipTime = 0;
-let progressTooltipPercent = 0;
-let isProgressDragging = false;
 
 async function fetchMetingPlaylist() {
 	isLoading = true;
@@ -279,6 +268,21 @@ function setProgress(event: MouseEvent) {
 	currentTime = newTime;
 }
 
+let isVolumeDragging = false;
+let isBrowser = typeof window !== 'undefined';
+let lastProgressClientX: number | null = null;
+let progRafId: number | null = null;
+let actualDuration = 0;
+let tooltipTime = 0;
+let progressTooltipPercent = 0;
+let isProgressDragging = false;
+let showProgressTooltip = false;
+let volHoverRafId: number | null = null;
+let lastVolumeHoverClientX: number | null = null;
+let volumeHoverValue = 0;
+let volumeTooltipPercent = 0;
+let showVolumeTooltip = false;
+
 // 1. 拖拽时调用的更新函数
 function scheduleProgressUpdate(clientX: number) {
     lastProgressClientX = clientX;
@@ -288,13 +292,11 @@ function scheduleProgressUpdate(clientX: number) {
         progRafId = window.requestAnimationFrame(() => {
             progRafId = null;
             if (!progressBar || lastProgressClientX == null || !audio) return;
-            // ... 计算百分比逻辑 ...
             const rect = progressBar.getBoundingClientRect();
             const percent = Math.max(0, Math.min(1, (lastProgressClientX - rect.left) / rect.width));
             let newTime = percent * (actualDuration || duration || 0);
+            newTime = Math.max(0, Math.min(actualDuration || duration || 0, newTime));
             
-            // ... 边界检查 ...
-
             // 实时更新 currentTime 变量，这会立即触发 Svelte 的 UI 更新
             if (Math.abs(currentTime - newTime) > 0.01) { 
                 currentTime = newTime; 
@@ -313,8 +315,6 @@ function onProgressPointerMove(e: PointerEvent) {
     e.preventDefault();
     scheduleProgressUpdate(e.clientX); // 触发上面的更新
 }
-
-let isVolumeDragging = false;
 let isPointerDown = false;
 let volumeBarRect: DOMRect | null = null;
 let rafId: number | null = null;
@@ -367,6 +367,23 @@ function updateVolumeLogic(clientX: number) {
         Math.min(1, (clientX - rect.left) / rect.width),
     );
 	volume = percent;
+}
+
+function scheduleVolumeHoverUpdate(clientX: number) {
+    lastVolumeHoverClientX = clientX;
+    // ...
+    if (volHoverRafId == null) {
+        volHoverRafId = window.requestAnimationFrame(() => {
+            if (!volumeBar || lastVolumeHoverClientX == null) return;
+            const rect = volumeBar.getBoundingClientRect();
+            const percent = Math.max(0, Math.min(1, (lastVolumeHoverClientX - rect.left) / rect.width));
+            
+            // 更新用于显示的变量
+            volumeHoverValue = percent;
+            volumeTooltipPercent = percent * 100;
+            // ...
+        });
+    }
 }
 
 function toggleMute() {
@@ -580,22 +597,23 @@ onDestroy(() => {
                  aria-valuemin="0"
                  aria-valuemax="100"
                  aria-valuenow={duration > 0 ? (currentTime / duration * 100) : 0}>
-                <!-- 这里的 style 绑定是平滑的关键 -->
                 <div class="h-full bg-[var(--primary)] rounded-full"
                      style="width: {duration > 0 ? (currentTime / duration) * 100 : 0}%; 
                             transition: {isProgressDragging ? 'none' : (isPlaying ? 'none' : 'width 200ms ease')}">
                 </div>
+
+
+                {#if showProgressTooltip}
+                    <div class="progress-tooltip" style="left: {progressTooltipPercent}%">
+                        <!-- 
+                           逻辑判断：
+                           如果是拖拽中 (isProgressDragging)，显示 currentTime (跟随鼠标变化的那个值)
+                           如果是悬停 (Hover)，显示 tooltipTime (计算出的悬停位置时间)
+                        -->
+                        {formatTime(isProgressDragging ? currentTime : tooltipTime)} / {formatTime(duration)}
+                    </div>
+                {/if}
             </div>
-            {#if showProgressTooltip}
-                <div class="progress-tooltip" style="left: {progressTooltipPercent}%">
-                    <!-- 
-                       逻辑判断：
-                       如果是拖拽中 (isProgressDragging)，显示 currentTime (跟随鼠标变化的那个值)
-                       如果是悬停 (Hover)，显示 tooltipTime (计算出的悬停位置时间)
-                    -->
-                    {formatTime(isProgressDragging ? currentTime : tooltipTime)} / {formatTime(duration)}
-                </div>
-            {/if}
         </div>
         <div class="controls flex items-center justify-center gap-2 mb-4">
             <button class="w-10 h-10 rounded-lg"
@@ -667,6 +685,17 @@ onDestroy(() => {
                      class:duration-100={!isVolumeDragging}
                      class:duration-0={isVolumeDragging}
                      style="width: {volume * 100}%"></div>
+
+
+                {#if showVolumeTooltip}
+                    <div class="progress-tooltip" style="left: {volumeTooltipPercent}%">
+                        <!-- 
+                           将 0-1 的小数乘以 100 并取整，显示百分比 
+                           同样区分了拖拽中(volume)和悬停(volumeHoverValue)
+                        -->
+                        {Math.round((isVolumeDragging ? volume : volumeHoverValue) * 100)}%
+                    </div>
+                {/if}
             </div>
             <button class="btn-plain w-8 h-8 rounded-lg flex items-center justify-center"
                     on:click={toggleExpanded}
