@@ -582,12 +582,13 @@ onDestroy(() => {
                  bind:this={progressBar}
                  on:click={setProgress}
                  on:pointerenter={() => showProgressTooltip = true}
-                 on:pointerleave={() => showProgressTooltip = false}
+                 on:pointerleave={() => { if (!isProgressDragging) showProgressTooltip = false; }}
                  on:pointerdown={(e) => {
                      if (!progressBar) return;
                      e.preventDefault();
                      isProgressDragging = true;
                      showProgressTooltip = true;
+                     if (audio && isPlaying) audio.pause(); // 暂停音频以便拖拽
                      const rect = progressBar.getBoundingClientRect();
                      const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
                      let newTime = percent * (actualDuration || duration || 0);
@@ -597,7 +598,10 @@ onDestroy(() => {
                  }}
                  on:pointerup={() => {
                      isProgressDragging = false;
-                     if (audio) audio.currentTime = currentTime;
+                     if (audio) {
+                         audio.currentTime = currentTime;
+                         if (isPlaying) audio.play().catch(() => {}); // 如果原来在播放，恢复播放
+                     }
                  }}
                  on:pointermove={(e) => {
                      if (!progressBar || isProgressDragging) return;
@@ -624,8 +628,7 @@ onDestroy(() => {
                  aria-valuemax="100"
                  aria-valuenow={duration > 0 ? (currentTime / duration * 100) : 0}>
                 <div class="h-full bg-[var(--primary)] rounded-full"
-                     style="width: {duration > 0 ? (currentTime / duration) * 100 : 0}%; 
-                            transition: {isProgressDragging ? 'none' : (isPlaying ? 'none' : 'width 200ms ease')}">
+                     style="width: {duration > 0 ? (currentTime / duration) * 100 : 0}%">
                 </div>
 
 
@@ -716,9 +719,7 @@ onDestroy(() => {
                  aria-valuemin="0"
                  aria-valuemax="100"
                  aria-valuenow={volume * 100}>
-                <div class="h-full bg-[var(--primary)] rounded-full transition-all"
-                     class:duration-100={!isVolumeDragging}
-                     class:duration-0={isVolumeDragging}
+                <div class="h-full bg-[var(--primary)] rounded-full"
                      style="width: {volume * 100}%"></div>
 
 
