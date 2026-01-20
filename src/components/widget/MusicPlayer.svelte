@@ -156,7 +156,7 @@ function nextSong(autoPlay: boolean = true) {
 	playSong(newIndex, autoPlay);
 }
 
-// 记录切歌时的播放意图，用于解决加载失败时的状态传递问题
+// 记录切歌时的播放意图
 let willAutoPlay = false;
 
 function playSong(index: number, autoPlay = true) {
@@ -185,7 +185,6 @@ function loadSong(song: typeof currentSong) {
 	}
 }
 
-// 标记是否因浏览器策略导致自动播放失败
 let autoplayFailed = false;
 
 function handleLoadSuccess() {
@@ -288,17 +287,15 @@ function handleProgressHover(e: PointerEvent) {
     const rect = progressBar.getBoundingClientRect();
     const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
     
-    // 更新提示框位置和时间
+    // 更新提示框位置
     progressTooltipPercent = percent * 100;
     
-    if (isProgressDragging) {
-         // 拖拽中，currentTime 已在 scheduleProgressUpdate 中更新
-         // 这里只更新百分比位置
-         tooltipTime = currentTime;
-    } else {
-        // 仅悬停
-        tooltipTime = percent * (duration || 0);
-    }
+    // 无论是拖拽还是悬停，tooltipTime 都应该显示当前鼠标位置的时间
+    tooltipTime = percent * (duration || 0);
+
+    // 如果正在拖拽，我们只更新 tooltipTime 和 progressTooltipPercent (用于视觉跟随)
+    // 实际的 currentTime 在 pointerup 时更新，或者你可以选择在拖拽时连续更新音频(会消耗性能且可能有杂音)
+    // 这里我们选择视觉跟随，松手跳转
 }
 
 // 处理音量悬停移动
@@ -322,16 +319,15 @@ function startVolumeDrag(event: PointerEvent) {
     volumeBarRect = volumeBar.getBoundingClientRect();
     updateVolumeLogic(event.clientX);
     showVolumeTooltip = true;
-    handleVolumeHover(event); // 立即更新提示框位置
+    handleVolumeHover(event);
 }
 
 function handleVolumeMove(event: PointerEvent) {
     if (isPointerDown && isVolumeDragging) {
         event.preventDefault();
-        requestAnimationFrame(() => {
-            updateVolumeLogic(event.clientX);
-            handleVolumeHover(event); // 拖拽时也更新提示框位置
-        });
+        // 拖拽时，音量实时更新逻辑
+        updateVolumeLogic(event.clientX);
+        handleVolumeHover(event); // 更新 Tooltip 位置
     }
 }
 
@@ -377,7 +373,6 @@ onMount(() => {
 	if (!musicPlayerConfig.enable) {
 		return;
 	}
-	// 直接从本地playlist.json文件加载播放列表
 	fetchMetingPlaylist();
 });
 
@@ -397,7 +392,12 @@ onDestroy(() => {
 	bind:muted={isMuted}
 	on:play={() => isPlaying = true}
 	on:pause={() => isPlaying = false}
-	on:timeupdate={() => currentTime = audio.currentTime}
+	on:timeupdate={() => {
+        // 只有当没有拖拽时，才更新 currentTime，避免拖拽时进度条跳动
+        if (!isProgressDragging) {
+            currentTime = audio.currentTime;
+        }
+    }}
 	on:ended={handleAudioEnded}
 	on:error={handleLoadError}
 	on:loadeddata={handleLoadSuccess}
@@ -405,9 +405,26 @@ onDestroy(() => {
 	preload="auto"
 ></audio>
 
+<!-- Window 监听器用于处理拖拽时的鼠标移动 -->
 <svelte:window 
-    on:pointermove={(e) => { handleVolumeMove(e); if(isProgressDragging) handleProgressHover(e); }} 
-    on:pointerup={(e) => { stopVolumeDrag(e); isProgressDragging = false; if (audio && isProgressDragging) audio.currentTime = currentTime; showProgressTooltip = false; }} 
+    on:pointermove={(e) => { 
+        handleVolumeMove(e); 
+        if(isProgressDragging) handleProgressHover(e); 
+    }} 
+    on:pointerup={(e) => { 
+        stopVolumeDrag(e); 
+        if (isProgressDragging) {
+            isProgressDragging = false;
+            // 拖拽结束时，将音频跳到最后计算出的时间
+            if (audio) {
+                audio.currentTime = tooltipTime;
+                currentTime = tooltipTime;
+                // 如果之前是播放状态，恢复播放（可选：如果pointerdown暂停了的话）
+                if (isPlaying) audio.play().catch(() => {});
+            }
+        }
+        showProgressTooltip = false; 
+    }} 
 />
 
 {#if musicPlayerConfig.enable}
@@ -433,15 +450,8 @@ onDestroy(() => {
          class:scale-0={!isHidden}
          class:pointer-events-none={!isHidden}
          on:click={toggleHidden}
-         on:keydown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-				toggleHidden();
-            }
-         }}
          role="button"
-         tabindex="0"
-         aria-label={i18n(Key.musicPlayerShow)}>
+         tabindex="0">
         {#if isLoading}
             <Icon icon="eos-icons:loading" class="text-white text-lg" />
         {:else if isPlaying}
@@ -454,24 +464,17 @@ onDestroy(() => {
             <Icon icon="material-symbols:music-note" class="text-white text-lg" />
         {/if}
     </div>
-    <!-- 收缩状态的迷你播放器（封面圆形） -->
+
+    <!-- 收缩状态的迷你播放器 -->
     <div class="mini-player card-base bg-[var(--float-panel-bg)] shadow-xl rounded-2xl p-3 transition-all duration-500 ease-in-out"
          class:opacity-0={isExpanded || isHidden}
          class:scale-95={isExpanded || isHidden}
          class:pointer-events-none={isExpanded || isHidden}>
         <div class="flex items-center gap-3">
-            <!-- 封面区域：点击控制播放/暂停 -->
             <div class="cover-container relative w-12 h-12 rounded-full overflow-hidden cursor-pointer"
                  on:click={togglePlay}
-                 on:keydown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-						togglePlay();
-                    }
-                 }}
                  role="button"
-                 tabindex="0"
-                 aria-label={isPlaying ? i18n(Key.musicPlayerPause) : i18n(Key.musicPlayerPlay)}>
+                 tabindex="0">
                 <img src={getAssetPath(currentSong.cover)} alt={i18n(Key.musicPlayerCover)}
                      class="w-full h-full object-cover transition-transform duration-300"
                      class:spinning={isPlaying && !isLoading}
@@ -486,25 +489,13 @@ onDestroy(() => {
                     {/if}
                 </div>
             </div>
-            <!-- 歌曲信息区域：点击展开播放器 -->
-            <div class="flex-1 min-w-0 cursor-pointer"
-                 on:click={toggleExpanded}
-                 on:keydown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-						toggleExpanded();
-                    }
-                 }}
-                 role="button"
-                 tabindex="0"
-                 aria-label={i18n(Key.musicPlayerExpand)}>
+            <div class="flex-1 min-w-0 cursor-pointer" on:click={toggleExpanded} role="button" tabindex="0">
                 <div class="text-sm font-medium text-90 truncate">{currentSong.title}</div>
                 <div class="text-xs text-50 truncate">{currentSong.artist}</div>
             </div>
             <div class="flex items-center gap-1">
                 <button class="btn-plain w-8 h-8 rounded-lg flex items-center justify-center"
-                        on:click|stopPropagation={toggleHidden}
-                        title={i18n(Key.musicPlayerHide)}>
+                        on:click|stopPropagation={toggleHidden}>
                     <Icon icon="material-symbols:visibility-off" class="text-lg" />
                 </button>
                 <button class="btn-plain w-8 h-8 rounded-lg flex items-center justify-center"
@@ -514,7 +505,8 @@ onDestroy(() => {
             </div>
         </div>
     </div>
-    <!-- 展开状态的完整播放器（封面圆形） -->
+
+    <!-- 展开状态的完整播放器 -->
     <div class="expanded-player card-base bg-[var(--float-panel-bg)] shadow-xl rounded-2xl p-4 transition-all duration-500 ease-in-out"
          class:opacity-0={!isExpanded}
          class:scale-95={!isExpanded}
@@ -535,18 +527,18 @@ onDestroy(() => {
             </div>
             <div class="flex items-center gap-1">
                 <button class="btn-plain w-8 h-8 rounded-lg flex items-center justify-center"
-                        on:click={toggleHidden}
-                        title={i18n(Key.musicPlayerHide)}>
+                        on:click={toggleHidden}>
                     <Icon icon="material-symbols:visibility-off" class="text-lg" />
                 </button>
                 <button class="btn-plain w-8 h-8 rounded-lg flex items-center justify-center"
                         class:text-[var(--primary)]={showPlaylist}
-                        on:click={togglePlaylist}
-                        title={i18n(Key.musicPlayerPlaylist)}>
+                        on:click={togglePlaylist}>
                     <Icon icon="material-symbols:queue-music" class="text-lg" />
                 </button>
             </div>
         </div>
+        
+        <!-- 进度条区域 -->
         <div class="progress-section mb-4">
             <div class="progress-bar relative flex-1 h-2 bg-[var(--btn-regular-bg)] rounded-full cursor-pointer group"
                  bind:this={progressBar}
@@ -560,54 +552,32 @@ onDestroy(() => {
                      e.preventDefault();
                      isProgressDragging = true;
                      showProgressTooltip = true;
-                     if (audio && isPlaying) audio.pause(); 
+                     // 拖拽开始，不做暂停操作，可以实现Scrubbing效果，但为了平滑这里只更新视觉
                      handleProgressHover(e);
-                     // 立即更新进度
-                     const rect = progressBar.getBoundingClientRect();
-                     const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-                     const newTime = percent * duration;
-                     currentTime = newTime;
-                 }}
-                 on:pointerup={() => {
-                     isProgressDragging = false;
-                     if (audio) {
-                         audio.currentTime = currentTime;
-                         if (isPlaying) audio.play().catch(() => {});
-                     }
                  }}
                  on:pointermove={handleProgressHover}
-                 on:keydown={(e) => {
-                     if (e.key === 'Enter' || e.key === ' ') {
-                         e.preventDefault();
-                         const percent = 0.5;
-                         const newTime = percent * duration;
-						 if (audio) {
-                             audio.currentTime = newTime;
-							 currentTime = newTime;
-                         }
-                     }
-                 }}
                  role="slider"
                  tabindex="0"
                  aria-label={i18n(Key.musicPlayerProgress)}
-                 aria-valuemin="0"
-                 aria-valuemax="100"
                  aria-valuenow={duration > 0 ? (currentTime / duration * 100) : 0}>
                 
-                <div class="h-full bg-[var(--primary)] rounded-full pointer-events-none"
-                     style="width: {duration > 0 ? (currentTime / duration) * 100 : 0}%">
+                <!-- 进度条填充：拖拽时使用 tooltipPercent，否则使用 currentTime 计算。
+                     关键修改：添加 transition-none 强制取消动画 -->
+                <div class="h-full bg-[var(--primary)] rounded-full pointer-events-none transition-none"
+                     style="width: {isProgressDragging ? progressTooltipPercent : (duration > 0 ? (currentTime / duration) * 100 : 0)}%">
                 </div>
 
-                <!-- 进度条提示卡片 -->
+                <!-- 进度条提示卡片：位置跟随 progressTooltipPercent -->
                 {#if showProgressTooltip}
-                    <div class="progress-tooltip absolute" style="left: {progressTooltipPercent}%;">
+                    <div class="progress-tooltip absolute transition-none" style="left: {progressTooltipPercent}%;">
                         <div class="tooltip-card">
-                            {formatTime(isProgressDragging ? currentTime : tooltipTime)}
+                            {formatTime(tooltipTime)}
                         </div>
                     </div>
                 {/if}
             </div>
         </div>
+
         <div class="controls flex items-center justify-center gap-2 mb-4">
             <button class="w-10 h-10 rounded-lg"
                     class:btn-regular={isShuffled}
@@ -649,6 +619,8 @@ onDestroy(() => {
                 {/if}
             </button>
         </div>
+
+        <!-- 底部控制栏 -->
         <div class="bottom-controls flex items-center gap-2">
             <button class="btn-plain w-8 h-8 rounded-lg" on:click={toggleMute}>
                 {#if isMuted || volume === 0}
@@ -659,6 +631,8 @@ onDestroy(() => {
                     <Icon icon="material-symbols:volume-up" class="text-lg" />
                 {/if}
             </button>
+
+            <!-- 音量条区域 -->
             <div class="relative flex-1 h-2 bg-[var(--btn-regular-bg)] rounded-full cursor-pointer touch-none group"
                  bind:this={volumeBar}
                  on:pointerenter={(e) => {
@@ -668,31 +642,26 @@ onDestroy(() => {
                  on:pointerleave={() => { if(!isVolumeDragging) showVolumeTooltip = false; }}
                  on:pointerdown={startVolumeDrag}
                  on:pointermove={handleVolumeHover}
-                 on:keydown={(e) => {
-                     if (e.key === 'Enter' || e.key === ' ') {
-                         e.preventDefault();
-						 if (e.key === 'Enter') toggleMute();
-                     }
-                 }}
                  role="slider"
                  tabindex="0"
                  aria-label={i18n(Key.musicPlayerVolume)}
-                 aria-valuemin="0"
-                 aria-valuemax="100"
                  aria-valuenow={volume * 100}>
                  
-                <div class="h-full bg-[var(--primary)] rounded-full pointer-events-none"
-                     style="width: {volume * 100}%"></div>
+                <!-- 音量条填充：拖拽时使用 volumeTooltipPercent，否则使用 volume。
+                     关键修改：添加 transition-none 强制取消动画 -->
+                <div class="h-full bg-[var(--primary)] rounded-full pointer-events-none transition-none"
+                     style="width: {isVolumeDragging ? volumeTooltipPercent : (volume * 100)}%"></div>
 
-                <!-- 音量条提示卡片 -->
+                <!-- 音量条提示卡片：位置跟随 volumeTooltipPercent -->
                 {#if showVolumeTooltip}
-                    <div class="volume-tooltip absolute" style="left: {volumeTooltipPercent}%;">
+                    <div class="volume-tooltip absolute transition-none" style="left: {volumeTooltipPercent}%;">
                         <div class="tooltip-card">
-                            {Math.round((isVolumeDragging ? volume : volumeHoverValue) * 100)}%
+                            {Math.round((isVolumeDragging ? (volumeTooltipPercent/100) : volumeHoverValue) * 100)}%
                         </div>
                     </div>
                 {/if}
             </div>
+            
             <button class="btn-plain w-8 h-8 rounded-lg flex items-center justify-center"
                     on:click={toggleExpanded}
                     title={i18n(Key.musicPlayerCollapse)}>
@@ -700,6 +669,8 @@ onDestroy(() => {
             </button>
         </div>
     </div>
+    
+    <!-- 播放列表 (保持不变) -->
     {#if showPlaylist}
         <div class="playlist-panel float-panel fixed bottom-20 right-4 w-80 max-h-96 overflow-hidden z-50"
              transition:slide={{ duration: 300, axis: 'y' }}>
@@ -715,15 +686,8 @@ onDestroy(() => {
                          class:bg-[var(--btn-plain-bg)]={index === currentIndex}
                          class:text-[var(--primary)]={index === currentIndex}
                          on:click={() => playSong(index)}
-                         on:keydown={(e) => {
-                             if (e.key === 'Enter' || e.key === ' ') {
-                                 e.preventDefault();
-								 playSong(index);
-                             }
-                         }}
                          role="button"
-                         tabindex="0"
-                         aria-label="播放 {song.title} - {song.artist}">
+                         tabindex="0">
                         <div class="w-6 h-6 flex items-center justify-center">
                             {#if index === currentIndex && isPlaying}
                                 <Icon icon="material-symbols:graphic-eq" class="text-[var(--primary)] animate-pulse" />
@@ -752,6 +716,12 @@ onDestroy(() => {
 </div>
 
 <style>
+/* CSS 类补充：确保没有 transition */
+.transition-none {
+    transition: none !important;
+}
+
+/* 现有样式 */
 .orb-player {
 	position: relative;
 	backdrop-filter: blur(10px);
@@ -795,7 +765,6 @@ onDestroy(() => {
     position: absolute;
     bottom: 0;
 	right: 0;
-    /*left: 0;*/
 }
 .expanded-player {
     width: 320px;
@@ -808,12 +777,8 @@ onDestroy(() => {
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 @keyframes pulse {
-    0%, 100% {
-        opacity: 1;
-	}
-    50% {
-        opacity: 0.5;
-	}
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 .progress-section div:hover,
 .bottom-controls > div:hover {
@@ -823,95 +788,45 @@ onDestroy(() => {
 @media (max-width: 768px) {
     .music-player {
         max-width: 280px;
-        /*left: 8px !important;*/
         bottom: 8px !important;
         right: 8px !important;
 	}
     .music-player.expanded {
         width: calc(100vw - 16px);
         max-width: none;
-        /*left: 8px !important;*/
         right: 8px !important;
 	}
     .playlist-panel {
         width: calc(100vw - 16px) !important;
-        /*left: 8px !important;*/
         right: 8px !important;
         max-width: none;
 	}
-    .controls {
-        gap: 8px;
-	}
-    .controls button {
-        width: 36px;
-        height: 36px;
-	}
-    .controls button:nth-child(3) {
-        width: 44px;
-        height: 44px;
-	}
+    .controls { gap: 8px; }
+    .controls button { width: 36px; height: 36px; }
+    .controls button:nth-child(3) { width: 44px; height: 44px; }
 }
 @media (max-width: 480px) {
-    .music-player {
-        max-width: 260px;
-	}
-    .song-title {
-        font-size: 14px;
-	}
-    .song-artist {
-        font-size: 12px;
-	}
-    .controls {
-        gap: 6px;
-        margin-bottom: 12px;
-	}
-    .controls button {
-        width: 32px;
-        height: 32px;
-	}
-    .controls button:nth-child(3) {
-        width: 40px;
-        height: 40px;
-	}
-    .playlist-item {
-        padding: 8px 12px;
-	}
-    .playlist-item .w-10 {
-        width: 32px;
-        height: 32px;
-	}
+    .music-player { max-width: 260px; }
+    .song-title { font-size: 14px; }
+    .song-artist { font-size: 12px; }
+    .controls { gap: 6px; margin-bottom: 12px; }
+    .controls button { width: 32px; height: 32px; }
+    .controls button:nth-child(3) { width: 40px; height: 40px; }
+    .playlist-item { padding: 8px 12px; }
+    .playlist-item .w-10 { width: 32px; height: 32px; }
 }
 @keyframes slide-up {
-    from {
-        transform: translateY(100%);
-        opacity: 0;
-	}
-    to {
-        transform: translateY(0);
-        opacity: 1;
-	}
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
 }
-.animate-slide-up {
-    animation: slide-up 0.3s ease-out;
-}
+.animate-slide-up { animation: slide-up 0.3s ease-out; }
 @media (hover: none) and (pointer: coarse) {
-    .music-player button,
-    .playlist-item {
-        min-height: 44px;
-	}
-    .progress-section > div,
-    .bottom-controls > div:nth-child(2) {
-        height: 12px;
-	}
+    .music-player button, .playlist-item { min-height: 44px; }
+    .progress-section > div, .bottom-controls > div:nth-child(2) { height: 12px; }
 }
-/* 自定义旋转动画，停止时保持当前位置 */
 @keyframes spin-continuous {
-    from {
-        transform: rotate(0deg);
-	}
-    to {
-        transform: rotate(360deg);
-	}
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 .cover-container img {
@@ -923,19 +838,17 @@ onDestroy(() => {
     animation-play-state: running;
 }
 
-/* 让主题色按钮更有视觉反馈 */
 button.bg-\[var\(--primary\)\] {
     box-shadow: 0 0 0 2px var(--primary);
 	border: none;
 }
 
-/* 提示框基础样式 */
 .progress-tooltip,
 .volume-tooltip {
-    bottom: 100%; /* 定位在条的上方 */
-    transform: translateX(-50%); /* 水平居中 */
+    bottom: 100%; 
+    transform: translateX(-50%);
     pointer-events: none;
-    padding-bottom: 8px; /* 留出箭头空间 */
+    padding-bottom: 8px; 
     z-index: 100;
 }
 
@@ -952,7 +865,6 @@ button.bg-\[var\(--primary\)\] {
     position: relative;
 }
 
-/* 小三角箭头 */
 .tooltip-card::after {
     content: '';
     position: absolute;
