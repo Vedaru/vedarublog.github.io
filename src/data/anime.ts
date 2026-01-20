@@ -8,7 +8,8 @@ export type AnimeItem = {
 	year: string;
 	genre: string[];
 	studio: string;
-	postUrl?: string; // 关联的帖子路径
+	link: string; // 外部链接或站内帖子链接
+	postUrl?: string; // 关联的帖子路径（旧字段，建议使用 link）
 	progress: number;
 	totalEpisodes: number;
 	startDate?: string; // 添加 startDate 属性
@@ -25,6 +26,7 @@ const localAnimeList: AnimeItem[] = [
 		year: "2024",
 		genre: ["日常", "公路番"],
 		studio: "Passione",
+		link: "/posts/spice-and-wolf/",
 		postUrl: "/posts/spice-and-wolf/",
 		progress: 12,
 		totalEpisodes: 12,
@@ -38,6 +40,7 @@ const localAnimeList: AnimeItem[] = [
 		year: "2021",
 		genre: ["战斗", "公路", "群像"],
 		studio: "A-1 Pictures",
+		link: "",
 		progress: 8,
 		totalEpisodes: 12,
 	},
