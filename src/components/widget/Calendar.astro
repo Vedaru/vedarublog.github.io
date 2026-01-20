@@ -3,6 +3,7 @@ import { siteConfig } from "../../config";
 import I18nKey from "../../i18n/i18nKey";
 import { i18n } from "../../i18n/translation";
 import { getSortedPosts } from "../../utils/content-utils";
+import { getPostUrl } from "../../utils/url-utils";
 import WidgetLayout from "./WidgetLayout.astro";
 
 interface Props {
@@ -33,6 +34,7 @@ const allPostsData = posts.map((post) => ({
   id: post.id,
   title: post.data.title,
     published: new Date(post.data.published).toISOString(),
+    url: getPostUrl(post),
 }));
 
 // 月份名称（使用 i18n）
@@ -190,7 +192,7 @@ const yearSuffix = isChinese ? "年" : " ";
     
     if (postsList) {
       postsList.innerHTML = currentMonthPosts.map(post => `
-        <a href="/posts/${post.id}/" class="block text-sm text-neutral-700 dark:text-neutral-300 hover:text-[var(--primary)] dark:hover:text-[var(--primary)] transition-colors truncate px-2 py-1 rounded hover:bg-[var(--btn-plain-bg-hover)]">
+        <a href="${post.url}" class="block text-sm text-neutral-700 dark:text-neutral-300 hover:text-[var(--primary)] dark:hover:text-[var(--primary)] transition-colors truncate px-2 py-1 rounded hover:bg-[var(--btn-plain-bg-hover)]">
           ${post.title}
         </a>
       `).join('');
@@ -241,7 +243,7 @@ const yearSuffix = isChinese ? "年" : " ";
         if (posts.length > 0 && postsList) {
           // 渲染文章列表
           postsList.innerHTML = posts.map(post => `
-            <a href="/posts/${post.id}/" class="block text-sm text-neutral-700 dark:text-neutral-300 hover:text-[var(--primary)] dark:hover:text-[var(--primary)] transition-colors truncate px-2 py-1 rounded hover:bg-[var(--btn-plain-bg-hover)]">
+            <a href="${post.url}" class="block text-sm text-neutral-700 dark:text-neutral-300 hover:text-[var(--primary)] dark:hover:text-[var(--primary)] transition-colors truncate px-2 py-1 rounded hover:bg-[var(--btn-plain-bg-hover)]">
               ${post.title}
             </a>
           `).join('');

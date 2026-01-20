@@ -11,6 +11,7 @@ import type {
 	SakuraConfig,
 	SidebarLayoutConfig,
 	SiteConfig,
+	PermalinkConfig,
 } from "./types/config";
 import { LinkPreset } from "./types/config";
 
@@ -178,6 +179,9 @@ export const siteConfig: SiteConfig = {
 			sizes: "192x192",
 		},
 	],
+
+	// 控制文章内容页是否显示封面
+	showCoverInContent: true,
 
 	// 字体配置
 	font: {
@@ -352,6 +356,12 @@ export const licenseConfig: LicenseConfig = {
 	enable: true,
 	name: "CC BY-NC-SA 4.0",
 	url: "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+};
+
+// Permalink 固定链接配置
+export const permalinkConfig: PermalinkConfig = {
+	enable: false, // 是否启用全局 permalink 功能，关闭时使用默认的文件名作为链接
+	format: "%postname%", // 格式模板。支持占位符：%year%, %monthnum%, %day%, %hour%, %minute%, %second%, %post_id%, %postname%, %category%
 };
 
 export const expressiveCodeConfig: ExpressiveCodeConfig = {

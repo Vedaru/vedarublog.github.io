@@ -170,6 +170,8 @@ export type SiteConfig = {
 	generateOgImages: boolean;
 	favicon: Favicon[];
 	showLastModified: boolean; // 控制“上次编辑”卡片显示的开关
+	/** 控制文章内容页是否显示文章封面 */
+	showCoverInContent?: boolean;
 };
 
 export type Favicon = {
@@ -228,6 +230,12 @@ export type LicenseConfig = {
 export type CommentConfig = {
 	enable: boolean; // 是否启用评论功能
 	twikoo?: TwikooConfig;
+};
+
+// Permalink 配置
+export type PermalinkConfig = {
+	enable: boolean; // 是否启用全局 permalink 功能
+	format: string; // permalink 格式模板，例如 "%year%-%postname%" 或 "%post_id%"
 };
 
 type TwikooConfig = {

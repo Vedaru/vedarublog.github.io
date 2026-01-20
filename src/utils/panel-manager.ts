@@ -21,9 +21,10 @@ class PanelManager {
 	private animateIn(panel: HTMLElement): Promise<void> {
 		return new Promise((resolve) => {
 			// 检查是否正在主题切换，如果是则跳过动画
-			const isThemeTransitioning = document.documentElement.classList.contains(
-				"is-theme-transitioning",
-			);
+			const isThemeTransitioning =
+				document.documentElement.classList.contains(
+					"is-theme-transitioning",
+				);
 
 			if (isThemeTransitioning) {
 				// 主题切换期间，直接显示面板，不设置pointer-events: none
@@ -62,9 +63,10 @@ class PanelManager {
 	private animateOut(panel: HTMLElement): Promise<void> {
 		return new Promise((resolve) => {
 			// 检查是否正在主题切换
-			const isThemeTransitioning = document.documentElement.classList.contains(
-				"is-theme-transitioning",
-			);
+			const isThemeTransitioning =
+				document.documentElement.classList.contains(
+					"is-theme-transitioning",
+				);
 
 			if (isThemeTransitioning) {
 				// 主题切换期间，直接关闭面板，不设置pointer-events: none
@@ -97,32 +99,20 @@ class PanelManager {
 	 * @param forceState 强制设置状态 (可选)
 	 * @returns 浮窗最终状态 (true: 打开, false: 关闭)
 	 */
-	async togglePanel(panelId: PanelId, forceState?: boolean): Promise<boolean> {
-		console.log(`Toggling panel: ${panelId}, Force state: ${forceState}`);
+	async togglePanel(
+		panelId: PanelId,
+		forceState?: boolean,
+	): Promise<boolean> {
 		const panel = document.getElementById(panelId);
-		console.log("Panel element:", panel);
 		if (!panel) {
 			console.warn(`Panel ${panelId} not found`);
 			return false;
 		}
 
 		const isClosed = panel.classList.contains("float-panel-closed");
-		console.log(`Panel ${panelId} is currently closed: ${isClosed}`);
-
-		// 如果指定了 forceState，直接根据它决定是否打开
-		// 否则，根据当前状态决定是否切换
-		let shouldOpen: boolean;
-		if (forceState !== undefined) {
-			shouldOpen = forceState;
-		} else {
-			// 如果菜单已打开，则关闭；如果已关闭，则打开
-			shouldOpen = isClosed;
-		}
-
-		console.log(`Panel ${panelId} should open: ${shouldOpen}`);
+		const shouldOpen = forceState !== undefined ? forceState : isClosed;
 
 		if (shouldOpen) {
-			// 打开菜单前，关闭其他菜单
 			await this.closeAllPanelsExcept(panelId);
 			await this.animateIn(panel);
 			this.activePanels.add(panelId);
@@ -130,8 +120,6 @@ class PanelManager {
 			this.panelStack.push(panelId);
 			return true;
 		}
-
-		// 关闭菜单
 		await this.closePanel(panelId);
 		return false;
 	}
@@ -143,22 +131,6 @@ class PanelManager {
 	async closePanel(panelId: PanelId): Promise<void> {
 		const panel = document.getElementById(panelId);
 		if (panel && !panel.classList.contains("float-panel-closed")) {
-			// 如果关闭的是 nav-menu-panel，重置所有子菜单的展开状态
-			if (panelId === "nav-menu-panel") {
-				const mobileDropdowns = panel.querySelectorAll(
-					"[data-mobile-dropdown]",
-				);
-				mobileDropdowns.forEach((dropdown) => {
-					dropdown.setAttribute("data-expanded", "false");
-					const trigger = dropdown.querySelector(
-						"[data-mobile-dropdown-trigger]",
-					);
-					if (trigger) {
-						trigger.setAttribute("aria-expanded", "false");
-					}
-				});
-			}
-
 			await this.animateOut(panel);
 			this.activePanels.delete(panelId);
 			this.panelStack = this.panelStack.filter((id) => id !== panelId);
@@ -183,8 +155,7 @@ export const panelManager = new PanelManager();
 
 // 将浮窗管理器暴露到全局，方便在其他地方使用
 if (typeof window !== "undefined") {
-	(window as unknown as { panelManager?: typeof panelManager }).panelManager =
-		panelManager;
+	(window as any).panelManager = panelManager;
 }
 
 export default panelManager;

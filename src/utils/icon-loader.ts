@@ -101,6 +101,7 @@ class IconLoader {
 			const script = document.createElement("script");
 			script.src =
 				"https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js";
+			script.async = true;
 			script.defer = true;
 
 			const timeoutId = setTimeout(() => {

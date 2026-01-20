@@ -36,9 +36,10 @@ export async function getSortedPosts() {
 
 	return sorted;
 }
-import type { Post } from "@/types/post";
-
-export type PostForList = Post;
+export type PostForList = {
+	id: string;
+	data: CollectionEntry<"posts">["data"];
+};
 export async function getSortedPostsList(): Promise<PostForList[]> {
 	const sortedFullPosts = await getRawSortedPosts();
 

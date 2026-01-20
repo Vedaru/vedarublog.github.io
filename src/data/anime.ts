@@ -5,6 +5,8 @@ export type AnimeItem = {
 	rating: number;
 	cover: string;
 	description: string;
+	/** 可选的字符串形式的集数描述，例如 "12 episodes" */
+	episodes?: string;
 	year: string;
 	genre: string[];
 	studio: string;

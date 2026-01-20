@@ -1,6 +1,8 @@
 import type { CollectionEntry } from "astro:content";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
+import { permalinkConfig } from "@/config";
+import { generatePermalinkSlug, getPermalinkPath } from "./permalink-utils";
 
 /**
  * 移除文件扩展名（.md, .mdx, .markdown）
@@ -28,19 +30,31 @@ export function getPostUrlBySlug(slug: string): string {
 }
 
 export function getPostUrlByPermalink(permalink: string): string {
-	// 移除开头的斜杠并确保固定链接在 /posts/ 路径下
-	const cleanPermalink = permalink.replace(/^\/+/, "");
+	// 保持向后兼容：如果未启用全局 permalink，仍然使用 /posts/{permalink}/
+	const cleanPermalink = String(permalink).replace(/^\/+/, "").replace(/\/+$/, "");
 	return url(`/posts/${cleanPermalink}/`);
 }
 
 export function getPostUrl(post: CollectionEntry<"posts">): string;
 export function getPostUrl(post: { id: string; data: { permalink?: string } }): string;
 export function getPostUrl(post: any): string {
-	// 如果文章有自定义固定链接，优先使用固定链接
-	if (post.data.permalink) {
+	// 如果文章有自定义固定链接
+	if (post.data?.permalink) {
+		// 当启用全局 permalink 功能时，自定义 permalink 视为根目录下的路径
+		if (permalinkConfig.enable) {
+			return url(getPermalinkPath(post));
+		}
+		// 否则保持兼容性，返回 /posts/{permalink}/
 		return getPostUrlByPermalink(post.data.permalink);
 	}
-	// 否则使用默认的 slug 路径
+
+	// 当启用全局 permalink 功能时，使用生成的 permalink（根目录）
+	if (permalinkConfig.enable) {
+		const slug = generatePermalinkSlug(post);
+		return url(`/${slug}/`);
+	}
+
+	// 默认：使用 /posts/{slug}/
 	return getPostUrlBySlug(post.id);
 }
 

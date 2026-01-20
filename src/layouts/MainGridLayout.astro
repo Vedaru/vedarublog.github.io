@@ -9,8 +9,6 @@ import type { MarkdownHeading } from "astro";
 import { Icon } from "astro-icon/components";
 import FullscreenWallpaper from "../components/misc/FullscreenWallpaper.astro";
 import IconifyLoader from "../components/misc/IconifyLoader.astro";
-import ImageWrapper from "../components/misc/ImageWrapper.astro";
-import TypewriterText from "../components/TypewriterText.astro";
 import TOC from "../components/widget/TOC.astro";
 import {
 	fullscreenWallpaperConfig,
@@ -19,7 +17,6 @@ import {
 } from "../config";
 import {
 	BANNER_HEIGHT,
-	BANNER_HEIGHT_EXTEND,
 	// BANNER_HEIGHT_HOME,
 	// MAIN_PANEL_OVERLAPS_BANNER_HEIGHT,
 } from "../constants/constants";
@@ -57,7 +54,7 @@ interface Props {
 // };
 
 // 获取banner图片的辅助函数
-const getBannerImages = async () => {
+const getBannerImages = async (): Promise<{ desktop: string | string[]; mobile: string | string[] }> => {
 	let bannerSrc = siteConfig.banner.src;
 
 	// 如果启用了图片API，获取API图片
@@ -92,12 +89,12 @@ const getBannerImages = async () => {
 	}
 	// 如果是字符串或字符串数组，同时用于桌面端和移动端
 	return {
-		desktop: bannerSrc,
-		mobile: bannerSrc,
+		desktop: (bannerSrc as string | string[]) || "",
+		mobile: (bannerSrc as string | string[]) || "",
 	};
 };
 
-const bannerImages = await getBannerImages();
+const _bannerImages = await getBannerImages();
 
 const {
 	title,
@@ -112,8 +109,9 @@ const hasBannerCredit = siteConfig.banner.credit.enable;
 const hasBannerLink = !!siteConfig.banner.credit.url;
 
 // 检查是否为首页
-const isHomePage = Astro.url.pathname === "/" || Astro.url.pathname === "";
-const showHomeText = siteConfig.banner.homeText?.enable && isHomePage;
+const baseURL = import.meta.env.BASE_URL;
+const normalizedPathname = Astro.url.pathname.replace(new RegExp(`^${baseURL.replace(/\/$/, '')}`), '');
+const isHomePage = normalizedPathname === "/" || normalizedPathname === "";
 // 手机端非首页不显示banner的CSS类
 const mobileNonHomeBannerClass = !isHomePage ? "mobile-hide-banner" : "";
 
@@ -139,61 +137,82 @@ const desktopShowSidebar = widgetManager.shouldShowSidebar("desktop");
 // 检查是否为双侧边栏模式
 const isBothSidebarMode = sidebarLayoutConfig.position === "both";
 
-// 检查右侧边栏是否有组件
+// 检查右侧边栏是否有组件（不再依赖于双侧模式）
 const hasRightSidebarComponents =
-	isBothSidebarMode &&
-	(widgetManager.getComponentsByPosition("top", "right").length > 0 ||
-		widgetManager.getComponentsByPosition("sticky", "right").length > 0);
+	widgetManager.getComponentsByPosition("top", "right").length > 0 ||
+	widgetManager.getComponentsByPosition("sticky", "right").length > 0;
 
-// 检查默认布局模式，如果是 grid 模式，右侧边栏初始就应该隐藏
+// 检查默认布局模式，如果是 grid 模式，右侧边栏初始应该保持显示
 const defaultPostListLayout = siteConfig.postListLayout?.defaultMode || "list";
-const initialRightSidebarHidden = defaultPostListLayout === "grid";
+const initialRightSidebarHidden = false; // 改为始终不隐藏，由right-sidebar-layout.js动态控制
 
 // 动态网格布局类名 - 根据侧边栏模式调整列宽
-const gridCols = `
-	${mobileShowSidebar ? "grid-cols-1" : "grid-cols-1"}
-	${tabletShowSidebar ? "grid-cols-1" : "grid-cols-1"}
-	${desktopShowSidebar ? "lg:grid-cols-[17.5rem_1fr]" : "lg:grid-cols-1"}
-	${isBothSidebarMode ? "lg:grid-cols-[17.5rem_1fr_17.5rem]" : ""}
-`
-	.trim()
-	.replace(/\s+/g, " ");
+// 保证网格模式下也能显示右侧栏（JavaScript 会动态调整列宽比例）
+// Helper: merge and dedupe class tokens while preserving order
+function mergeClasses(...parts: Array<string | undefined | null>) {
+    const tokens: string[] = parts
+        .filter(Boolean)
+        .map((p) => String(p))
+        .join(' ')
+        .split(/\s+/)
+        .filter(Boolean);
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const t of tokens) {
+        if (!seen.has(t)) {
+            seen.add(t);
+            out.push(t);
+        }
+    }
+    return out.join(' ');
+}
 
-// 侧边栏容器类名 - 始终在左侧
-const sidebarClass = `
-	mb-4 row-start-2 row-end-3 col-span-1 onload-animation
-	${mobileShowSidebar ? "block" : "hidden"}
-	${tabletShowSidebar ? "block row-start-2 row-end-3 col-span-1" : "hidden"}
-	${desktopShowSidebar ? "lg:block lg:row-start-1 lg:row-end-2 lg:max-w-[17.5rem] lg:col-start-1 lg:col-end-2" : "lg:hidden"}
-`
-	.trim()
-	.replace(/\s+/g, " ");
+const gridCols = mergeClasses(
+    mobileShowSidebar ? 'grid-cols-1' : 'grid-cols-1',
+    tabletShowSidebar ? 'grid-cols-1' : 'grid-cols-1',
+    desktopShowSidebar ? 'lg:grid-cols-[17.5rem_1fr_17.5rem]' : 'lg:grid-cols-1',
+    isBothSidebarMode ? 'lg:grid-cols-[17.5rem_1fr_17.5rem]' : '',
+);
+
+// 侧边栏容器类名 - 始终在左侧（移除 max-w 约束，让网格控制）
+const sidebarClass = mergeClasses(
+    'mb-4',
+    'row-start-2',
+    'row-end-3',
+    'col-span-1',
+    'onload-animation',
+    mobileShowSidebar ? 'block' : 'hidden',
+    tabletShowSidebar ? 'block row-start-2 row-end-3 col-span-1' : 'hidden',
+    desktopShowSidebar ? 'lg:block lg:row-start-1 lg:row-end-2 lg:col-start-1 lg:col-end-2' : 'lg:hidden',
+);
 
 // 右侧边栏容器类名
-// 手机端：显示在左侧栏下方（row-start-3），全宽
-// 桌面端：定位到网格第3列（右侧）
-// 如果默认是 grid 模式，初始就隐藏
-const rightSidebarClass = `
-	mb-4 col-span-1 onload-animation
-	${isBothSidebarMode && mobileShowSidebar ? "block row-start-3 row-end-4" : "hidden"}
-	${isBothSidebarMode ? "lg:block lg:row-start-1 lg:row-end-2 lg:max-w-[17.5rem] lg:col-start-3 lg:col-end-4" : "lg:hidden"}
-	${initialRightSidebarHidden ? "hidden-in-grid-mode" : ""}
-`
-	.trim()
-	.replace(/\s+/g, " ");
+// 手机端：显示在左侧栏下方（row-start-3），全宽（仅在 both 模式）
+// 桌面端：定位到网格第3列（右侧）（总是显示）
+const rightSidebarClass = mergeClasses(
+    'mb-4',
+    'col-span-1',
+    'onload-animation',
+    isBothSidebarMode && mobileShowSidebar ? 'block row-start-3 row-end-4' : 'hidden',
+    'lg:block lg:row-start-1 lg:row-end-2 lg:col-start-3 lg:col-end-4',
+    initialRightSidebarHidden ? 'hidden-in-grid-mode' : '',
+);
 
 // 主内容区域类名 - 根据侧边栏模式调整grid-column
 // 平板设备和手机端：主内容在最上方row-1，侧边栏在下方
 // 桌面端：主内容和侧边栏并排显示
-const mainContentClass = `
-	transition-swup-fade overflow-hidden w-full
-	col-span-1 row-start-1 row-end-2
-	${tabletShowSidebar ? "col-span-1 row-start-1 row-end-2" : "col-span-1"}
-	${desktopShowSidebar ? "lg:col-start-2 lg:col-end-3" : "lg:col-span-1"}
-	${isBothSidebarMode ? "lg:col-start-2 lg:col-end-3" : ""}
-`
-	.trim()
-	.replace(/\s+/g, " ");
+// 网格模式下也保持中间列（col-start-2 col-end-3）
+const mainContentClass = mergeClasses(
+    'transition-swup-fade',
+    'overflow-hidden',
+    'w-full',
+    'col-span-1',
+    'row-start-1',
+    'row-end-2',
+    tabletShowSidebar ? 'col-span-1 row-start-1 row-end-2' : 'col-span-1',
+    desktopShowSidebar ? 'lg:col-start-2 lg:col-end-3' : 'lg:col-start-2 lg:col-end-3',
+    isBothSidebarMode ? 'lg:col-start-2 lg:col-end-3' : '',
+);
 
 // 检查是否应该启用半透明效果（当默认模式为 fullscreen 时）
 const shouldEnableTransparency =
@@ -209,9 +228,25 @@ const transparentClass = shouldEnableTransparency
 
 <script is:inline define:vars={{navbarTransparentMode: siteConfig.banner?.navbar?.transparentMode || "semi", defaultWallpaperMode: siteConfig.wallpaperMode.defaultMode, defaultPostListLayout: siteConfig.postListLayout?.defaultMode || "list"}}>
 	// 立即执行，在页面渲染前应用壁纸模式和布局模式，避免闪烁
-	(function() {
-		const wallpaperMode = localStorage.getItem('wallpaperMode') || defaultWallpaperMode;
-		const body = document.body;
+    (function() {
+        function getEffectiveWallpaperMode() {
+            var saved = null;
+            try {
+                saved = localStorage.getItem('wallpaperMode');
+            } catch (e) {
+                saved = null;
+            }
+            if (saved) return saved;
+            try {
+                if (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) {
+                    return 'none';
+                }
+            } catch (e) {}
+            return defaultWallpaperMode;
+        }
+
+        const wallpaperMode = getEffectiveWallpaperMode();
+        const body = document.body;
 		
 		// 定义 banner 高度常量（与 constants.ts 保持一致）
 		// const BANNER_HEIGHT = 35;
@@ -296,7 +331,14 @@ const transparentClass = shouldEnableTransparency
 	}
 	
 	function applyWallpaperMode() {
-		var wallpaperMode = localStorage.getItem('wallpaperMode') || defaultWallpaperMode;
+        var wallpaperMode;
+        try { wallpaperMode = localStorage.getItem('wallpaperMode'); } catch (e) { wallpaperMode = null; }
+        try {
+            if (!wallpaperMode && window.matchMedia && window.matchMedia('(max-width: 767px)').matches) {
+                wallpaperMode = 'none';
+            }
+        } catch (e) {}
+        wallpaperMode = wallpaperMode || defaultWallpaperMode;
 		var bannerWrapper = document.getElementById('banner-wrapper');
 		var fullscreenWallpaper = document.querySelector('[data-fullscreen-wallpaper]');
 		var navbar = document.getElementById('navbar');
@@ -405,6 +447,26 @@ const transparentClass = shouldEnableTransparency
 	// 监听壁纸模式变化，立即应用（不重载页面）
 	window.addEventListener('wallpaper-mode-change', function(_event) {
 		applyWallpaperMode();
+	});
+	
+	// 监听布局模式变化，隐藏/显示右侧边栏
+	window.addEventListener('layoutChange', function(event) {
+		const mainGrid = document.getElementById('main-grid');
+		const newLayout = event.detail?.layout || localStorage.getItem('postListLayout') || defaultPostListLayout;
+		
+		if (mainGrid) {
+			mainGrid.setAttribute('data-layout-mode', newLayout);
+		}
+		
+		// 根据布局模式显示或隐藏右侧边栏
+		const rightSidebar = document.querySelector('.right-sidebar-container');
+		if (rightSidebar) {
+			if (newLayout === 'grid') {
+				rightSidebar.classList.add('hidden-in-grid-mode');
+			} else {
+				rightSidebar.classList.remove('hidden-in-grid-mode');
+			}
+		}
 	});
 	
 	// 支持 Swup 页面过渡 - 在内容替换之前就应用布局，避免闪烁
@@ -542,169 +604,14 @@ const transparentClass = shouldEnableTransparency
 </div>
 
 <!-- Banner - 始终渲染，通过 JS 控制显示隐藏 -->
-<div id="banner-wrapper" class={`absolute z-10 w-full transition duration-700 overflow-hidden ${mobileNonHomeBannerClass}`} style={`top: -${BANNER_HEIGHT_EXTEND}vh`}>
+<!-- Banner 已删除 -->
+<!-- 原 banner-wrapper 已移除，如需恢复请参考 commit 历史或 siteConfig.banner 设置 -->
 
-    {(bannerImages.desktop && Array.isArray(bannerImages.desktop) && bannerImages.desktop.length > 1) || (bannerImages.mobile && Array.isArray(bannerImages.mobile) && bannerImages.mobile.length > 1) ? (
-        <!-- Carousel mode for multiple images -->
-        <div id="banner-carousel" class="relative h-full w-full">
-            <ul class="carousel-list h-full w-full">
-                {Math.max(
-                    Array.isArray(bannerImages.desktop) ? bannerImages.desktop.length : 0,
-                    Array.isArray(bannerImages.mobile) ? bannerImages.mobile.length : 0
-                ) && Array.from({ length: Math.max(
-                    Array.isArray(bannerImages.desktop) ? bannerImages.desktop.length : 0,
-                    Array.isArray(bannerImages.mobile) ? bannerImages.mobile.length : 0
-                ) }).map((_, index) => {
-                    // 确保至少有一个平台有对应索引的图片
-                    const hasDesktopImage = Array.isArray(bannerImages.desktop) && bannerImages.desktop[index];
-                    const hasMobileImage = Array.isArray(bannerImages.mobile) && bannerImages.mobile[index];
-                    
-                    // 如果两个平台都没有对应索引的图片，跳过这个轮播项
-                    if (!hasDesktopImage && !hasMobileImage) {
-                        return null;
-                    }
-                    
-                    return (
-                        <li class={`carousel-item absolute inset-0 transition-all duration-500 ${index === 0 ? 'opacity-100 scale-100' : 'opacity-0 scale-110'}`}>
-                            <!-- Mobile: use mobile-specific images with same logic as desktop -->
-                            {hasMobileImage && (
-                                <ImageWrapper 
-                                    alt={`Mobile banner image ${index + 1}`} 
-                                    class:list={["block lg:hidden object-cover h-full w-full transition-transform duration-500 ease-out"]}
-                                    src={Array.isArray(bannerImages.mobile) ? bannerImages.mobile[index] : (typeof bannerImages.mobile === 'string' ? bannerImages.mobile : '')} 
-                                    position={siteConfig.banner.position}
-                                    loading={index === 0 ? "eager" : "lazy"}
-                                />
-                            )}
-                            <!-- Desktop: use desktop-specific images -->
-                            {hasDesktopImage && (
-                                <ImageWrapper 
-                                    alt={`Desktop banner image ${index + 1}`} 
-                                    class:list={["hidden lg:block object-cover h-full w-full transition-transform duration-500 ease-out"]}
-                                    src={Array.isArray(bannerImages.desktop) ? bannerImages.desktop[index] : (typeof bannerImages.desktop === 'string' ? bannerImages.desktop : '')} 
-                                    position={siteConfig.banner.position}
-                                    loading={index === 0 ? "eager" : "lazy"}
-                                />
-                            )}
-                        </li>
-                    );
-                }).filter(Boolean)}
-            </ul>
-        </div>
-    ) : (
-        <!-- Single image mode -->
-            <div class="relative h-full w-full">
-                <!-- Mobile: use mobile-specific image with same logic as desktop -->
-                <ImageWrapper 
-                    alt="Mobile banner image of the blog" 
-                    class:list={["block lg:hidden object-cover h-full w-full transition duration-700 opacity-100"]}
-                    src={(Array.isArray(bannerImages.mobile) ? bannerImages.mobile[0] : (typeof bannerImages.mobile === 'string' ? bannerImages.mobile : '')) || (Array.isArray(bannerImages.desktop) ? bannerImages.desktop[0] : (typeof bannerImages.desktop === 'string' ? bannerImages.desktop : '')) || ''} 
-                    position={siteConfig.banner.position}
-                    loading="eager"
-                />
-                <!-- Desktop: use desktop-specific image -->
-                <ImageWrapper 
-                    id="banner" 
-                    alt="Desktop banner image of the blog" 
-                    class:list={["hidden lg:block object-cover h-full transition duration-700 opacity-100"]}
-                    src={(Array.isArray(bannerImages.desktop) ? bannerImages.desktop[0] : (typeof bannerImages.desktop === 'string' ? bannerImages.desktop : '')) || (Array.isArray(bannerImages.mobile) ? bannerImages.mobile[0] : (typeof bannerImages.mobile === 'string' ? bannerImages.mobile : '')) || ''} 
-                    position={siteConfig.banner.position}
-                    loading="eager"
-                />
-            </div>
-    )}
-    
-    <!-- Home page text overlay -->
-    {siteConfig.banner.homeText?.enable && (
-        <div class={`banner-text-overlay absolute inset-0 z-20 flex items-center justify-center ${!showHomeText ? 'hidden' : ''}`}>
-            <div class="w-4/5 lg:w-3/4 text-center mb-0">
-                <div class="flex flex-col">
-                    {siteConfig.banner.homeText?.title && (
-                        <h1 class="banner-title text-6xl lg:text-8xl text-white drop-shadow-lg mb-2 lg:mb-4">
-                            {siteConfig.banner.homeText.title}
-                        </h1>
-                    )}
-                    {siteConfig.banner.homeText?.subtitle && (
-                        <h2 class="banner-subtitle text-xl lg:text-3xl text-white/90 drop-shadow-md">
-                            <span class="inline-block min-h-[1.2em]">
-                                {siteConfig.banner.homeText.typewriter?.enable ? (
-                                    <TypewriterText 
-                                        text={siteConfig.banner.homeText.subtitle}
-                                        speed={siteConfig.banner.homeText.typewriter.speed}
-                                        deleteSpeed={siteConfig.banner.homeText.typewriter.deleteSpeed}
-                                        pauseTime={siteConfig.banner.homeText.typewriter.pauseTime}
-                                    />
-                                ) : (
-                                    Array.isArray(siteConfig.banner.homeText.subtitle) 
-                                        ? siteConfig.banner.homeText.subtitle[0] 
-                                        : siteConfig.banner.homeText.subtitle
-                                )}
-                            </span>
-                        </h2>
-                    )}
-                </div>
-            </div>
-        </div>
-    )}
-    
-    <!-- Water waves effect -->
-    {siteConfig.banner.waves?.enable && (
-        <div class="waves absolute -bottom-[1px] h-[10vh] max-h-[9.375rem] min-h-[3.125rem] w-full md:h-[15vh]" id="header-waves" style="transform: translateZ(0); will-change: fill;">
-            <svg
-                class="waves"
-                xmlns="http://www.w3.org/2000/svg"
-                xmlns:xlink="http://www.w3.org/1999/xlink"
-                viewBox="0 20 150 32"
-                preserveAspectRatio="none"
-                shape-rendering="auto"
-                style="transform: translateZ(0); backface-visibility: hidden;"
-            >
-                <defs>
-                    <path
-                        id="gentle-wave"
-                        d="M-160 44c30 0 58-18 88-18s 58 18 88 18 58-18 88-18 58 18 88 18 v48h-352z"
-                    >
-                    </path>
-                </defs>
-                <g class="parallax" style="transform: translateZ(0);">
-                    <use
-                        xlink:href="#gentle-wave"
-                        x="48"
-                        y="0"
-                        class="opacity-25 fill-[var(--page-bg)]"
-                        style="animation-delay: -2s; animation-duration: 7s; will-change: transform;"
-                    ></use>
-                    <use
-                        xlink:href="#gentle-wave"
-                        x="48"
-                        y="3"
-                        class="opacity-50 fill-[var(--page-bg)]"
-                        style="animation-delay: -3s; animation-duration: 10s; will-change: transform;"
-                    ></use>
-                    <use
-                        xlink:href="#gentle-wave"
-                        x="48"
-                        y="5"
-                        class="opacity-75 fill-[var(--page-bg)]"
-                        style="animation-delay: -4s; animation-duration: 13s; will-change: transform;"
-                    ></use>
-                    <use
-                        xlink:href="#gentle-wave"
-                        x="48"
-                        y="7"
-                        class="fill-[var(--page-bg)]"
-                        style="animation-delay: -5s; animation-duration: 20s; will-change: transform;"
-                    ></use>
-                </g>
-            </svg>
-        </div>
-    )}
-    
-
-</div>
-
-<!-- Main content -->
-<div class={`absolute w-full z-30 pointer-events-none ${mobileNonHomeBannerClass ? 'mobile-main-no-banner' : ''} ${siteConfig.wallpaperMode.defaultMode === 'none' ? 'no-banner-layout' : ''} ${transparentClass}`} style={`top: ${finalMainPanelTop}`}>
+<!-- Main content - 使用固定定位减少 CLS -->
+<div 
+    class={`w-full z-30 pointer-events-none main-content-stable ${mobileNonHomeBannerClass ? 'mobile-main-no-banner' : ''} ${siteConfig.wallpaperMode.defaultMode === 'none' ? 'no-banner-layout' : ''} ${transparentClass}`} 
+    style={`margin-top: ${finalMainPanelTop};`}
+>
     <!-- The pointer-events-none here prevent blocking the click event of the TOC -->
     <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto">
         <div id="main-grid" class={`transition duration-700 w-full left-0 right-0 grid ${gridCols} grid-rows-[auto_1fr_auto] lg:grid-rows-[auto] mx-auto gap-4 px-2 md:px-4 ${!mobileShowSidebar ? 'mobile-no-sidebar' : ''} ${isBothSidebarMode ? 'mobile-both-sidebar' : ''}`}
@@ -726,8 +633,8 @@ const transparentClass = shouldEnableTransparency
 
             {(mobileShowSidebar || tabletShowSidebar || desktopShowSidebar) && <SideBar class={`${sidebarClass} ${transparentClass}`} headings={headings} isBothSidebarMode={isBothSidebarMode}></SideBar>}
             
-            {/* 右侧边栏 - 在双侧边栏模式下渲染，CSS控制显示隐藏 */}
-            {isBothSidebarMode && hasRightSidebarComponents && <div class={`right-sidebar-container ${rightSidebarClass} ${transparentClass}`}><RightSideBar headings={headings}></RightSideBar></div>}
+            {/* 右侧边栏 - 在双侧模式或有组件时渲染，网格模式下也显示*/}
+            {(isBothSidebarMode || hasRightSidebarComponents) && <RightSideBar class={`right-sidebar-container ${rightSidebarClass} ${transparentClass}`} headings={headings}></RightSideBar>}
 
             <main id="swup-container" class={`${mainContentClass} transition-main`}>
                 <div id="content-wrapper" class="onload-animation transition-leaving">
@@ -770,6 +677,22 @@ const transparentClass = shouldEnableTransparency
 
 <!-- 保留此元素以确保Swup正常工作 -->
 {(!siteConfig.toc.enable || isFloatTOC) && <div id="toc" class="hidden"></div>}
+
+<!-- 侧边栏日记目录 - 始终存在但默认隐藏 -->
+<div class="absolute w-full z-10 pointer-events-none">
+	<div class="relative max-w-[var(--page-width)] mx-auto">
+		<div id="diary-toc-wrapper" class:list={["hidden transition-all duration-300 opacity-0 absolute top-0 w-[var(--toc-width)] pointer-events-auto",
+			"-right-[var(--toc-width)]",
+			{"toc-hide": siteConfig.wallpaperMode.defaultMode === "banner"}]}
+		>
+			<div id="diary-toc-inner-wrapper" class="fixed top-14 w-[var(--toc-width)] h-[calc(100vh_-_20rem)] overflow-y-scroll overflow-x-hidden hide-scrollbar">
+				<div id="diary-toc" class="w-full h-full transition-swup-fade">
+					<!-- 日记目录内容将由 custom element 动态生成 -->
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
 </Layout>
 
 <style>
@@ -1283,6 +1206,49 @@ body.no-banner-mode .absolute.w-full.z-30 {
     display: none !important;
 }
 
+/* 网格模式下右侧栏始终显示 */
+#main-grid[data-layout-mode="grid"] .right-sidebar-container {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: auto !important;
+    max-width: none !important;
+    grid-column: 3 / 4 !important;
+    grid-row: 1 / 2 !important;
+}
+
+/* 网格模式下强制显示所有右侧栏内的元素 */
+#main-grid[data-layout-mode="grid"] .right-sidebar-container * {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* 移除hidden类在网格模式下的效果 */
+#main-grid[data-layout-mode="grid"] .right-sidebar-container .hidden {
+    display: block !important;
+}
+
+/* 确保lg断点下右侧栏显示 */
+@media (min-width: 1024px) {
+    #main-grid[data-layout-mode="grid"] .right-sidebar-container {
+        display: block !important;
+    }
+}
+
+/* 网格模式下桌面端的列定位 */
+@media (min-width: 1280px) {
+    #main-grid[data-layout-mode="grid"] > .sidebar {
+        grid-column: 1 / 2;
+        grid-row: 1 / 2;
+    }
+    
+    #main-grid[data-layout-mode="grid"] .right-sidebar-container {
+        grid-column: 3 / 4;
+        grid-row: 1 / 2;
+    }
+}
+
 /* Grid 模式下调整主网格布局 */
 #main-grid[data-layout-mode="grid"] {
     /* 在桌面端只显示左侧边栏和主内容 */
@@ -1301,10 +1267,10 @@ body.no-banner-mode .absolute.w-full.z-30 {
     }
 }
 
-/* 桌面设备Grid模式：使用双列布局 */
+/* 桌面设备Grid模式：使用三列布局（包含右侧栏）*/
 @media (min-width: 1280px) {
     #main-grid[data-layout-mode="grid"] {
-        grid-template-columns: 17.5rem 1fr !important;
+        grid-template-columns: 280px 1fr 280px !important;
     }
     
     #main-grid[data-layout-mode="grid"] #swup-container {
@@ -1315,7 +1281,7 @@ body.no-banner-mode .absolute.w-full.z-30 {
 /* 确保大屏桌面设备Grid模式配置 */
 @media (min-width: 1280px) {
     #main-grid[data-layout-mode="grid"] {
-        grid-template-columns: 17.5rem 1fr !important;
+        grid-template-columns: 280px 1fr 280px !important;
     }
     
     #main-grid[data-layout-mode="grid"] #swup-container {
