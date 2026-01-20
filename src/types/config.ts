@@ -77,8 +77,10 @@ export type SiteConfig = {
 
 	// 顶栏标题配置
 	navbarTitle?: {
+		mode?: "text-icon" | "logo"; // 显示模式："text-icon" 显示图标+文本，"logo" 仅显示Logo
 		text: string; // 顶栏标题文本
 		icon?: string; // 顶栏标题图标路径
+		logo?: string; // 网站Logo图片路径
 	};
 
 	// 添加字体配置
@@ -89,7 +91,7 @@ export type SiteConfig = {
 			localFonts: string[];
 			enableCompress: boolean;
 		};
-		cjkFont?: {
+		cjkFont: {
 			fontFamily: string;
 			fontWeight: string | number;
 			localFonts: string[];
@@ -100,7 +102,7 @@ export type SiteConfig = {
 	// 添加bangumi配置
 	bangumi?: {
 		userId?: string; // Bangumi用户ID
-		fetchOnDev?: boolean; // 是否在开发（DEV）环境中允许从 Bangumi 拉取数据
+		fetchOnDev?: boolean;
 	};
 
 	// 添加番剧页面配置
@@ -167,11 +169,10 @@ export type SiteConfig = {
 		depth: 1 | 2 | 3;
 		useJapaneseBadge?: boolean; // 使用日语假名标记（あいうえお...）代替数字
 	};
+	showCoverInContent: boolean; // 控制文章封面在文章内容页显示的开关
 	generateOgImages: boolean;
 	favicon: Favicon[];
 	showLastModified: boolean; // 控制“上次编辑”卡片显示的开关
-	/** 控制文章内容页是否显示文章封面 */
-	showCoverInContent?: boolean;
 };
 
 export type Favicon = {
@@ -187,7 +188,7 @@ export enum LinkPreset {
 	Friends = 3,
 	Anime = 4,
 	Diary = 5,
-	Gallery = 6,
+	Albums = 6,
 	Projects = 7,
 	Skills = 8,
 	Timeline = 9,
@@ -225,17 +226,38 @@ export type LicenseConfig = {
 	name: string;
 	url: string;
 };
+
+// Permalink 配置
+export type PermalinkConfig = {
+	enable: boolean; // 是否启用全局 permalink 功能
+	/**
+	 * permalink 格式模板
+	 * 支持的占位符：
+	 * - %year% : 4位年份 (2024)
+	 * - %monthnum% : 2位月份 (01-12)
+	 * - %day% : 2位日期 (01-31)
+	 * - %hour% : 2位小时 (00-23)
+	 * - %minute% : 2位分钟 (00-59)
+	 * - %second% : 2位秒数 (00-59)
+	 * - %post_id% : 文章序号（按发布时间升序排列）
+	 * - %postname% : 文章文件名（slug）
+	 * - %category% : 分类名（无分类时为 "uncategorized"）
+	 *
+	 * 示例：
+	 * - "%year%-%monthnum%-%postname%" => "2024-12-my-post"
+	 * - "%post_id%-%postname%" => "42-my-post"
+	 * - "%category%-%postname%" => "tech-my-post"
+	 *
+	 * 注意：不支持斜杠 "/"，所有生成的链接都在根目录下
+	 */
+	format: string;
+};
+
 // 评论配置
 
 export type CommentConfig = {
 	enable: boolean; // 是否启用评论功能
 	twikoo?: TwikooConfig;
-};
-
-// Permalink 配置
-export type PermalinkConfig = {
-	enable: boolean; // 是否启用全局 permalink 功能
-	format: string; // permalink 格式模板，例如 "%year%-%postname%" 或 "%post_id%"
 };
 
 type TwikooConfig = {
@@ -254,12 +276,12 @@ export type WALLPAPER_MODE =
 export type BlogPostData = {
 	body: string;
 	title: string;
-    published: string | Date;
+	published: Date;
 	description: string;
 	tags: string[];
 	draft?: boolean;
 	image?: string;
-	category?: string | null;
+	category?: string;
 	pinned?: boolean;
 	prevTitle?: string;
 	prevSlug?: string;
@@ -310,6 +332,7 @@ export type MusicPlayerConfig = {
 	storageName?: string; // localStorage 缓存键名
 };
 
+
 export type FooterConfig = {
 	enable: boolean; // 是否启用Footer HTML注入功能
 	customHtml?: string; // 自定义HTML内容，用于添加备案号等信息
@@ -326,7 +349,6 @@ export type WidgetComponentType =
 	| "pio" // 添加 pio 组件类型
 	| "site-stats" // 站点统计组件
 	| "calendar" // 日历组件
-	| "diary-archive" // 日记归档组件
 	| "custom";
 
 export type WidgetComponentConfig = {
@@ -342,7 +364,7 @@ export type WidgetComponentConfig = {
 		hidden?: ("mobile" | "tablet" | "desktop")[]; // 在指定设备上隐藏
 		collapseThreshold?: number; // 折叠阈值
 	};
-	customProps?: Record<string, unknown>; // 自定义属性，用于扩展组件功能
+	customProps?: Record<string, any>; // 自定义属性，用于扩展组件功能
 };
 
 export type SidebarLayoutConfig = {
@@ -360,8 +382,8 @@ export type SidebarLayoutConfig = {
 			desktop: number; // 桌面端断点（px）
 		};
 		layout: {
-			mobile: "hidden" | "bottom" | "drawer" | "sidebar"; // 移动端布局模式
-			tablet: "sidebar" | "bottom" | "drawer"; // 平板端布局模式
+			mobile: "hidden" | "sidebar"; // 移动端布局模式
+			tablet: "hidden" | "sidebar"; // 平板端布局模式
 			desktop: "sidebar"; // 桌面端布局模式
 		};
 	};
@@ -438,6 +460,9 @@ export type PioConfig = {
 	};
 };
 
+/**
+ * 分享组件配置
+ */
 export type ShareConfig = {
 	enable: boolean; // 是否启用分享功能
 };
