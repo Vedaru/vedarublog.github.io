@@ -268,96 +268,71 @@ function setProgress(event: MouseEvent) {
 	currentTime = newTime;
 }
 
-let isVolumeDragging = false;
-let isBrowser = typeof window !== 'undefined';
-let lastProgressClientX: number | null = null;
-let progRafId: number | null = null;
-let actualDuration = 0;
-let tooltipTime = 0;
-let progressTooltipPercent = 0;
+// 进度条相关变量
 let isProgressDragging = false;
 let showProgressTooltip = false;
-let progressTooltipLeft = 0; // viewport px
-let progressTooltipTop = 0;  // viewport px (fixed when entering)
-let volHoverRafId: number | null = null;
-let lastVolumeHoverClientX: number | null = null;
-let volumeHoverValue = 0;
-let volumeTooltipPercent = 0;
-let showVolumeTooltip = false;
-let volumeTooltipLeft = 0; // viewport px
-let volumeTooltipTop = 0;  // viewport px (fixed when entering)
+let progressTooltipPercent = 0; // 0-100
+let tooltipTime = 0;
 
-// 1. 拖拽时调用的更新函数
-function scheduleProgressUpdate(clientX: number) {
-    lastProgressClientX = clientX;
-    if (!isBrowser) return;
-    // 使用 requestAnimationFrame 保证动画流畅度跟屏幕刷新率同步
-    if (progRafId == null) {
-        progRafId = window.requestAnimationFrame(() => {
-            progRafId = null;
-            if (!progressBar || lastProgressClientX == null || !audio) return;
-            const rect = progressBar.getBoundingClientRect();
-            const percent = Math.max(0, Math.min(1, (lastProgressClientX - rect.left) / rect.width));
-            let newTime = percent * (actualDuration || duration || 0);
-            newTime = Math.max(0, Math.min(actualDuration || duration || 0, newTime));
-            
-            // 实时更新 currentTime 变量，这会立即触发 Svelte 的 UI 更新
-            if (Math.abs(currentTime - newTime) > 0.01) { 
-                currentTime = newTime; 
-            }
-            // 更新提示框的位置和时间（使用视口坐标，纵坐标在进入时固定）
-            tooltipTime = newTime;
-            progressTooltipPercent = percent * 100;
-            // 左侧使用真实 clientX（限制在进度条范围内），顶部固定为进度条上方
-            progressTooltipLeft = Math.max(rect.left, Math.min(rect.right, lastProgressClientX));
-            progressTooltipTop = rect.top - 40;
-            lastProgressClientX = null;
-        });
+// 音量条相关变量
+let isVolumeDragging = false;
+let isPointerDown = false;
+let showVolumeTooltip = false;
+let volumeTooltipPercent = 0; // 0-100
+let volumeHoverValue = 0; // 0-1
+let volumeBarRect: DOMRect | null = null;
+
+// 处理进度条悬停移动
+function handleProgressHover(e: PointerEvent) {
+    if (!progressBar) return;
+    const rect = progressBar.getBoundingClientRect();
+    const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    
+    // 更新提示框位置和时间
+    progressTooltipPercent = percent * 100;
+    
+    if (isProgressDragging) {
+         // 拖拽中，currentTime 已在 scheduleProgressUpdate 中更新
+         // 这里只更新百分比位置
+         tooltipTime = currentTime;
+    } else {
+        // 仅悬停
+        tooltipTime = percent * (duration || 0);
     }
 }
 
-// 2. 鼠标移动事件监听
-function onProgressPointerMove(e: PointerEvent) {
-    if (!isProgressDragging) return;
-    e.preventDefault();
-    scheduleProgressUpdate(e.clientX); // 触发上面的更新
+// 处理音量悬停移动
+function handleVolumeHover(e: PointerEvent) {
+    if (!volumeBar) return;
+    const rect = volumeBar.getBoundingClientRect();
+    const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+
+    volumeTooltipPercent = percent * 100;
+    volumeHoverValue = percent;
 }
-let isPointerDown = false;
-let volumeBarRect: DOMRect | null = null;
-let rafId: number | null = null;
 
 function startVolumeDrag(event: PointerEvent) {
     if (!volumeBar) return;
 	event.preventDefault();
     
     isPointerDown = true; 
+    isVolumeDragging = true;
 	volumeBar.setPointerCapture(event.pointerId);
 
     volumeBarRect = volumeBar.getBoundingClientRect();
     updateVolumeLogic(event.clientX);
-    // show tooltip and set fixed top/initial left during drag
-    volumeTooltipTop = volumeBarRect.top - 40;
-    volumeTooltipLeft = Math.max(volumeBarRect.left, Math.min(volumeBarRect.right, event.clientX));
+    showVolumeTooltip = true;
+    handleVolumeHover(event); // 立即更新提示框位置
 }
 
 function handleVolumeMove(event: PointerEvent) {
-    if (!isPointerDown) return;
-	event.preventDefault();
-
-    isVolumeDragging = true; 
-    if (rafId) return;
-
-	rafId = requestAnimationFrame(() => {
-        updateVolumeLogic(event.clientX);
-        // update tooltip X while dragging
-        if (volumeBarRect) {
-            volumeTooltipLeft = Math.max(volumeBarRect.left, Math.min(volumeBarRect.right, event.clientX));
-        } else if (volumeBar) {
-            const rect = volumeBar.getBoundingClientRect();
-            volumeTooltipLeft = Math.max(rect.left, Math.min(rect.right, event.clientX));
-        }
-        rafId = null;
-    });
+    if (isPointerDown && isVolumeDragging) {
+        event.preventDefault();
+        requestAnimationFrame(() => {
+            updateVolumeLogic(event.clientX);
+            handleVolumeHover(event); // 拖拽时也更新提示框位置
+        });
+    }
 }
 
 function stopVolumeDrag(event: PointerEvent) {
@@ -365,13 +340,9 @@ function stopVolumeDrag(event: PointerEvent) {
 	isPointerDown = false;
     isVolumeDragging = false;
     volumeBarRect = null;
+    showVolumeTooltip = false;
 	if (volumeBar) {
 		volumeBar.releasePointerCapture(event.pointerId);
-	}
-
-	if (rafId) {
-        cancelAnimationFrame(rafId);
-        rafId = null;
 	}
 }
 
@@ -384,24 +355,6 @@ function updateVolumeLogic(clientX: number) {
         Math.min(1, (clientX - rect.left) / rect.width),
     );
 	volume = percent;
-}
-
-function scheduleVolumeHoverUpdate(clientX: number) {
-    lastVolumeHoverClientX = clientX;
-    if (!isBrowser) return;
-    if (volHoverRafId == null) {
-        volHoverRafId = window.requestAnimationFrame(() => {
-            volHoverRafId = null;
-            if (!volumeBar || lastVolumeHoverClientX == null) return;
-            const rect = volumeBar.getBoundingClientRect();
-            const percent = Math.max(0, Math.min(1, (lastVolumeHoverClientX - rect.left) / rect.width));
-            
-            // 更新用于显示的变量
-            volumeHoverValue = percent;
-            volumeTooltipPercent = percent * 100;
-            lastVolumeHoverClientX = null;
-        });
-    }
 }
 
 function toggleMute() {
@@ -453,8 +406,8 @@ onDestroy(() => {
 ></audio>
 
 <svelte:window 
-    on:pointermove={(e) => { handleVolumeMove(e); onProgressPointerMove(e); }} 
-    on:pointerup={(e) => { stopVolumeDrag(e); isProgressDragging = false; if (audio) audio.currentTime = currentTime; showProgressTooltip = false; }} 
+    on:pointermove={(e) => { handleVolumeMove(e); if(isProgressDragging) handleProgressHover(e); }} 
+    on:pointerup={(e) => { stopVolumeDrag(e); isProgressDragging = false; if (audio && isProgressDragging) audio.currentTime = currentTime; showProgressTooltip = false; }} 
 />
 
 {#if musicPlayerConfig.enable}
@@ -595,49 +548,34 @@ onDestroy(() => {
             </div>
         </div>
         <div class="progress-section mb-4">
-            <div class="progress-bar flex-1 h-2 bg-[var(--btn-regular-bg)] rounded-full cursor-pointer"
+            <div class="progress-bar relative flex-1 h-2 bg-[var(--btn-regular-bg)] rounded-full cursor-pointer group"
                  bind:this={progressBar}
                  on:click={setProgress}
                  on:pointerenter={(e) => {
-                     if (!progressBar) return;
-                     const rect = progressBar.getBoundingClientRect();
                      showProgressTooltip = true;
-                     progressTooltipTop = rect.top - 40;
-                     // center tooltip under mouse if available
-                     progressTooltipLeft = Math.max(rect.left, Math.min(rect.right, e?.clientX || rect.left + rect.width/2));
+                     handleProgressHover(e);
                  }}
                  on:pointerleave={() => { if (!isProgressDragging) showProgressTooltip = false; }}
                  on:pointerdown={(e) => {
-                     if (!progressBar) return;
                      e.preventDefault();
                      isProgressDragging = true;
                      showProgressTooltip = true;
-                     if (audio && isPlaying) audio.pause(); // 暂停音频以便拖拽
+                     if (audio && isPlaying) audio.pause(); 
+                     handleProgressHover(e);
+                     // 立即更新进度
                      const rect = progressBar.getBoundingClientRect();
                      const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-                     let newTime = percent * (actualDuration || duration || 0);
+                     const newTime = percent * duration;
                      currentTime = newTime;
-                     tooltipTime = newTime;
-                     progressTooltipPercent = percent * 100;
-                     progressTooltipLeft = Math.max(rect.left, Math.min(rect.right, e.clientX));
-                     progressTooltipTop = rect.top - 40;
                  }}
                  on:pointerup={() => {
                      isProgressDragging = false;
                      if (audio) {
                          audio.currentTime = currentTime;
-                         if (isPlaying) audio.play().catch(() => {}); // 如果原来在播放，恢复播放
+                         if (isPlaying) audio.play().catch(() => {});
                      }
                  }}
-                 on:pointermove={(e) => {
-                     if (!progressBar || isProgressDragging) return;
-                     const rect = progressBar.getBoundingClientRect();
-                     const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-                     tooltipTime = percent * (actualDuration || duration || 0);
-                     progressTooltipPercent = percent * 100;
-                     // update tooltip viewport X to follow mouse
-                     progressTooltipLeft = Math.max(rect.left, Math.min(rect.right, e.clientX));
-                 }}
+                 on:pointermove={handleProgressHover}
                  on:keydown={(e) => {
                      if (e.key === 'Enter' || e.key === ' ') {
                          e.preventDefault();
@@ -655,19 +593,17 @@ onDestroy(() => {
                  aria-valuemin="0"
                  aria-valuemax="100"
                  aria-valuenow={duration > 0 ? (currentTime / duration * 100) : 0}>
-                <div class="h-full bg-[var(--primary)] rounded-full"
+                
+                <div class="h-full bg-[var(--primary)] rounded-full pointer-events-none"
                      style="width: {duration > 0 ? (currentTime / duration) * 100 : 0}%">
                 </div>
 
-
+                <!-- 进度条提示卡片 -->
                 {#if showProgressTooltip}
-                    <div class="progress-tooltip" style="left: {progressTooltipLeft}px; top: {progressTooltipTop}px; position: fixed;">
-                        <!-- 
-                           逻辑判断：
-                           如果是拖拽中 (isProgressDragging)，显示 currentTime (跟随鼠标变化的那个值)
-                           如果是悬停 (Hover)，显示 tooltipTime (计算出的悬停位置时间)
-                        -->
-                        {formatTime(isProgressDragging ? currentTime : tooltipTime)} / {formatTime(duration)}
+                    <div class="progress-tooltip absolute" style="left: {progressTooltipPercent}%;">
+                        <div class="tooltip-card">
+                            {formatTime(isProgressDragging ? currentTime : tooltipTime)}
+                        </div>
                     </div>
                 {/if}
             </div>
@@ -723,34 +659,15 @@ onDestroy(() => {
                     <Icon icon="material-symbols:volume-up" class="text-lg" />
                 {/if}
             </button>
-            <div class="flex-1 h-2 bg-[var(--btn-regular-bg)] rounded-full cursor-pointer touch-none"
+            <div class="relative flex-1 h-2 bg-[var(--btn-regular-bg)] rounded-full cursor-pointer touch-none group"
                  bind:this={volumeBar}
                  on:pointerenter={(e) => {
-                     if (!volumeBar) return;
-                     const rect = volumeBar.getBoundingClientRect();
                      showVolumeTooltip = true;
-                     volumeTooltipTop = rect.top - 40;
-                     volumeTooltipLeft = Math.max(rect.left, Math.min(rect.right, e?.clientX || rect.left + rect.width/2));
+                     handleVolumeHover(e);
                  }}
-                 on:pointerleave={() => showVolumeTooltip = false}
-                 on:pointerdown={(e) => {
-                     startVolumeDrag(e);
-                     // ensure tooltip shows and follows initial pointer
-                     if (volumeBar) {
-                         const rect = volumeBar.getBoundingClientRect();
-                         volumeTooltipTop = rect.top - 40;
-                         volumeTooltipLeft = Math.max(rect.left, Math.min(rect.right, e.clientX));
-                     }
-                 }}
-                 on:pointermove={(e) => {
-                     if (!volumeBar || isVolumeDragging) return;
-                     const rect = volumeBar.getBoundingClientRect();
-                     const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-                     volumeHoverValue = percent;
-                     volumeTooltipPercent = percent * 100;
-                     // follow mouse X
-                     volumeTooltipLeft = Math.max(rect.left, Math.min(rect.right, e.clientX));
-                 }}
+                 on:pointerleave={() => { if(!isVolumeDragging) showVolumeTooltip = false; }}
+                 on:pointerdown={startVolumeDrag}
+                 on:pointermove={handleVolumeHover}
                  on:keydown={(e) => {
                      if (e.key === 'Enter' || e.key === ' ') {
                          e.preventDefault();
@@ -763,17 +680,16 @@ onDestroy(() => {
                  aria-valuemin="0"
                  aria-valuemax="100"
                  aria-valuenow={volume * 100}>
-                <div class="h-full bg-[var(--primary)] rounded-full"
+                 
+                <div class="h-full bg-[var(--primary)] rounded-full pointer-events-none"
                      style="width: {volume * 100}%"></div>
 
-
+                <!-- 音量条提示卡片 -->
                 {#if showVolumeTooltip}
-                    <div class="volume-tooltip" style="left: {volumeTooltipLeft}px; top: {volumeTooltipTop}px; position: fixed;">
-                        <!-- 
-                           将 0-1 的小数乘以 100 并取整，显示百分比 
-                           同样区分了拖拽中(volume)和悬停(volumeHoverValue)
-                        -->
-                        {Math.round((isVolumeDragging ? volume : volumeHoverValue) * 100)}%
+                    <div class="volume-tooltip absolute" style="left: {volumeTooltipPercent}%;">
+                        <div class="tooltip-card">
+                            {Math.round((isVolumeDragging ? volume : volumeHoverValue) * 100)}%
+                        </div>
                     </div>
                 {/if}
             </div>
@@ -1013,30 +929,41 @@ button.bg-\[var\(--primary\)\] {
 	border: none;
 }
 
-.progress-tooltip {
-    transform: translateX(-50%);
-    background: var(--float-panel-bg);
-    color: var(--content-meta);
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    white-space: nowrap;
+/* 提示框基础样式 */
+.progress-tooltip,
+.volume-tooltip {
+    bottom: 100%; /* 定位在条的上方 */
+    transform: translateX(-50%); /* 水平居中 */
     pointer-events: none;
-    z-index: 10;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    padding-bottom: 8px; /* 留出箭头空间 */
+    z-index: 100;
 }
 
-.volume-tooltip {
-    transform: translateX(-50%);
+.tooltip-card {
     background: var(--float-panel-bg);
     color: var(--content-meta);
     padding: 4px 8px;
-    border-radius: 4px;
+    border-radius: 6px;
     font-size: 12px;
+    font-weight: 500;
     white-space: nowrap;
-    pointer-events: none;
-    z-index: 10;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: 1px solid var(--line-divider);
+    position: relative;
+}
+
+/* 小三角箭头 */
+.tooltip-card::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+    width: 8px;
+    height: 8px;
+    background: var(--float-panel-bg);
+    border-right: 1px solid var(--line-divider);
+    border-bottom: 1px solid var(--line-divider);
 }
 </style>
 {/if}
