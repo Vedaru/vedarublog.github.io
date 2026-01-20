@@ -68,22 +68,15 @@ const getCategoryText = (category: string) => {
 ---
 
 <MainGridLayout title={title} description={subtitle}>
-  <!-- 导入Iconify图标库 -->
-  <script is:inline>
-    (function () {
-      // 如果已经注册了自定义元素则无需重复加载
-      if (typeof customElements !== 'undefined' && customElements.get('iconify-icon')) return;
-      const script = document.createElement('script');
-      script.src = 'https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js';
-      script.defer = true;
-      script.onload = () => {
-        // Iconify 加载完成
-      };
-      script.onerror = () => {
-        console.error('Failed to load Iconify');
-      };
-      document.head.appendChild(script);
-    })();
+  <!-- 引入右侧边栏布局管理器 -->
+  <script>
+    import('../scripts/right-sidebar-layout.js');
+    import { loadIconify } from "../utils/icon-loader";
+    
+    // 加载Iconify图标库
+    loadIconify().catch((error) => {
+      console.error("Failed to load Iconify:", error);
+    });
   </script>
   <div class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative min-h-32">
     <div class="card-base z-10 px-9 py-6 relative w-full">
@@ -136,8 +129,6 @@ const getCategoryText = (category: string) => {
                       src={project.image} 
                       alt={project.title}
                       class="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                      loading="lazy"
-                      decoding="async"
                     />
                   </div>
                 )}
@@ -220,7 +211,7 @@ const getCategoryText = (category: string) => {
                   ({categoryProjects.length})
                 </span>
               </h2>
-              <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {categoryProjects.map((project) => (
                   <div class="bg-transparent rounded-lg border border-black/10 dark:border-white/10 overflow-hidden hover:shadow-lg transition-shadow duration-300">
                     {project.image && (
@@ -229,8 +220,6 @@ const getCategoryText = (category: string) => {
                           src={project.image} 
                           alt={project.title}
                           class="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                          loading="lazy"
-                          decoding="async"
                         />
                       </div>
                     )}

@@ -5,7 +5,7 @@
  * 初始化页面布局
  * @param {string} pageType - 页面类型（projects, skills等）
  */
-function initPageLayout(_pageType) {
+function initPageLayout(pageType) {
 	// 获取布局配置
 	const defaultPostListLayout =
 		localStorage.getItem("postListLayout") || "list";
@@ -41,7 +41,8 @@ function initPageLayout(_pageType) {
 	// 监听页面导航事件
 	document.addEventListener("astro:page-load", () => {
 		setTimeout(() => {
-			const currentLayout = localStorage.getItem("postListLayout") || "list";
+			const currentLayout =
+				localStorage.getItem("postListLayout") || "list";
 			if (currentLayout === "grid") {
 				hideRightSidebar();
 			} else {
@@ -53,7 +54,8 @@ function initPageLayout(_pageType) {
 	// 监听SWUP导航事件
 	document.addEventListener("swup:contentReplaced", () => {
 		setTimeout(() => {
-			const currentLayout = localStorage.getItem("postListLayout") || "list";
+			const currentLayout =
+				localStorage.getItem("postListLayout") || "list";
 			if (currentLayout === "grid") {
 				hideRightSidebar();
 			} else {
@@ -67,30 +69,18 @@ function initPageLayout(_pageType) {
  * 隐藏右侧边栏
  */
 function hideRightSidebar() {
-	// 在网格模式下不隐藏右侧边栏 - 保持显示
 	const rightSidebar = document.querySelector(".right-sidebar-container");
 	if (rightSidebar) {
-		// 移除隐藏类
-		rightSidebar.classList.remove("hidden-in-grid-mode");
+		// 添加隐藏类
+		rightSidebar.classList.add("hidden-in-grid-mode");
 
-		// 保持显示 - 使用 !important 确保不被覆盖
-		rightSidebar.style.setProperty("display", "", "important");
-		rightSidebar.style.setProperty("visibility", "visible", "important");
-		rightSidebar.style.setProperty("opacity", "1", "important");
+		// 设置显示为none以完全隐藏
+		rightSidebar.style.display = "none";
 
-		// 强制移除最大宽度限制，让网格完全控制
-		rightSidebar.style.setProperty("max-width", "none", "important");
-		rightSidebar.style.setProperty("width", "auto", "important");
-
-		// 调整主网格布局 - 给右侧栏足够的空间
+		// 调整主网格布局
 		const mainGrid = document.getElementById("main-grid");
 		if (mainGrid) {
-			// 使用固定宽度：左侧 280px、中间 1fr、右侧 280px
-			mainGrid.style.setProperty(
-				"grid-template-columns",
-				"280px 1fr 280px",
-				"important",
-			);
+			mainGrid.style.gridTemplateColumns = "17.5rem 1fr";
 			mainGrid.setAttribute("data-layout-mode", "grid");
 		}
 	}
@@ -105,8 +95,8 @@ function showRightSidebar() {
 		// 移除隐藏类
 		rightSidebar.classList.remove("hidden-in-grid-mode");
 
-		// 恢复显示 - 清除内联样式
-		rightSidebar.style.cssText = "";
+		// 恢复显示
+		rightSidebar.style.display = "";
 
 		// 恢复主网格布局
 		const mainGrid = document.getElementById("main-grid");
@@ -122,25 +112,6 @@ function initialize() {
 	const pageType =
 		document.documentElement.getAttribute("data-page-type") || "projects";
 	initPageLayout(pageType);
-
-	// 添加持续监控，确保右侧栏不被意外隐藏
-	const rightSidebar = document.querySelector(".right-sidebar-container");
-	if (rightSidebar) {
-		const observer = new MutationObserver(() => {
-			const currentLayout = localStorage.getItem("postListLayout") || "list";
-			if (currentLayout === "grid") {
-				// 确保网格模式下右侧栏始终显示
-				if (rightSidebar.style.display === "none") {
-					hideRightSidebar();
-				}
-			}
-		});
-
-		observer.observe(rightSidebar, {
-			attributes: true,
-			attributeFilter: ["style", "class"],
-		});
-	}
 }
 
 if (document.readyState === "loading") {

@@ -1,8 +1,8 @@
 import type { CollectionEntry } from "astro:content";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
-import { permalinkConfig } from "@/config";
-import { generatePermalinkSlug, getPermalinkPath } from "./permalink-utils";
+import { permalinkConfig } from "../config";
+import { generatePermalinkSlug } from "./permalink-utils";
 
 /**
  * 移除文件扩展名（.md, .mdx, .markdown）
@@ -29,32 +29,38 @@ export function getPostUrlBySlug(slug: string): string {
 	return url(`/posts/${slugWithoutExt}/`);
 }
 
-export function getPostUrlByPermalink(permalink: string): string {
-	// 保持向后兼容：如果未启用全局 permalink，仍然使用 /posts/{permalink}/
-	const cleanPermalink = String(permalink).replace(/^\/+/, "").replace(/\/+$/, "");
-	return url(`/posts/${cleanPermalink}/`);
+export function getPostUrlByAlias(alias: string): string {
+	// 移除开头的斜杠并确保固定链接在 /posts/ 路径下
+	const cleanAlias = alias.replace(/^\/+/, "");
+	return url(`/posts/${cleanAlias}/`);
 }
 
 export function getPostUrl(post: CollectionEntry<"posts">): string;
-export function getPostUrl(post: { id: string; data: { permalink?: string } }): string;
+export function getPostUrl(post: {
+	id: string;
+	data: { alias?: string; permalink?: string };
+}): string;
 export function getPostUrl(post: any): string {
-	// 如果文章有自定义固定链接
-	if (post.data?.permalink) {
-		// 当启用全局 permalink 功能时，自定义 permalink 视为根目录下的路径
-		if (permalinkConfig.enable) {
-			return url(getPermalinkPath(post));
-		}
-		// 否则保持兼容性，返回 /posts/{permalink}/
-		return getPostUrlByPermalink(post.data.permalink);
+	// 如果文章有自定义 permalink，优先使用（在根目录下）
+	if (post.data.permalink) {
+		const slug = post.data.permalink
+			.replace(/^\/+/, "")
+			.replace(/\/+$/, "");
+		return url(`/${slug}/`);
 	}
 
-	// 当启用全局 permalink 功能时，使用生成的 permalink（根目录）
+	// 如果全局 permalink 功能启用，使用生成的 slug（在根目录下）
 	if (permalinkConfig.enable) {
 		const slug = generatePermalinkSlug(post);
 		return url(`/${slug}/`);
 	}
 
-	// 默认：使用 /posts/{slug}/
+	// 如果文章有 alias，使用 alias（在 /posts/ 下）
+	if (post.data.alias) {
+		return getPostUrlByAlias(post.data.alias);
+	}
+
+	// 否则使用默认的 slug 路径
 	return getPostUrlBySlug(post.id);
 }
 
@@ -67,7 +73,8 @@ export function getCategoryUrl(category: string | null): string {
 	if (
 		!category ||
 		category.trim() === "" ||
-		category.trim().toLowerCase() === i18n(I18nKey.uncategorized).toLowerCase()
+		category.trim().toLowerCase() ===
+			i18n(I18nKey.uncategorized).toLowerCase()
 	)
 		return url("/archive/?uncategorized=true");
 	return url(`/archive/?category=${encodeURIComponent(category.trim())}`);

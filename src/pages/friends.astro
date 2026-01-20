@@ -24,20 +24,6 @@ const friendsList = getShuffledFriendsList();
 
 // 获取所有标签
 const allTags = Array.from(new Set(friendsList.flatMap((item) => item.tags)));
-import ResponsiveImage from "../components/ResponsiveImage.astro";
-
-function smallAvatar(src, size = 80) {
-  try {
-    const url = new URL(src);
-    if (url.hostname.includes('avatars.githubusercontent.com')) {
-      url.searchParams.set('s', String(size));
-      return url.toString();
-    }
-  } catch (e) {
-    // ignore malformed URLs
-  }
-  return src;
-}
 ---
 
 <MainGridLayout title={i18n(I18nKey.friends)} description={i18n(I18nKey.friends)}>
@@ -46,6 +32,9 @@ function smallAvatar(src, size = 80) {
 		// 标记当前页面为友情链接页面
 		window.isFriendsPage = true;
 	</script>
+  <script>
+    import('../scripts/right-sidebar-layout.js');
+  </script>
 	<div class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative min-h-32">
 		<div class="card-base z-10 px-9 py-6 relative w-full">
       <!-- 页面标题 -->
@@ -104,7 +93,7 @@ function smallAvatar(src, size = 80) {
 
 			<!-- 友链卡片网格 -->
 			<div id="friends-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6 mb-6">
-				{friendsList.map((item, idx) => (
+				{friendsList.map((item) => (
 					<div 
 						class="friend-card group relative bg-transparent rounded-xl border border-black/10 dark:border-white/10
 								 overflow-hidden transition-all duration-300
@@ -122,16 +111,15 @@ function smallAvatar(src, size = 80) {
 												bg-[var(--btn-regular-bg)] 
 												ring-2 ring-transparent
 												transition-all duration-300">
-								<ResponsiveImage
-									src={smallAvatar(item.imgurl, 80)}
-									alt={item.title}
-									class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300"
-									width={64}
-									height={64}
-									sizes="64px"
-									loading={idx < 2 ? "eager" : "lazy"}
-									fetchpriority={idx < 2 ? 'high' : undefined}
-								/>							</div>								<!-- 标题和链接 -->
+									<img 
+										src={item.imgurl} 
+										alt={item.title}
+										class="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-300"
+										loading="lazy"
+									/>
+								</div>
+
+								<!-- 标题和链接 -->
 								<div class="flex-1 min-w-0">
 									<h3 class="text-xl font-bold text-black/90 dark:text-white/90 mb-1 truncate
 												 group-hover:text-[var(--primary)] transition-colors duration-200">
@@ -228,7 +216,7 @@ function smallAvatar(src, size = 80) {
 	</div>
 	
 	<!-- 引用全局脚本 -->
-	<script src={`${import.meta.env.BASE_URL}js/friends-page-handler.js`} defer></script>
+	<script is:inline src="/js/friends-page-handler.js"></script>
 </MainGridLayout>
 
 <style>
