@@ -4,7 +4,7 @@ import { onMount } from "svelte";
 import I18nKey from "../i18n/i18nKey";
 import { i18n } from "../i18n/translation";
 import { navigateToPage } from "../utils/navigation-utils";
-import { panelManager } from "../utils/panel-manager";
+import { panelManager } from "../utils/panel-manager.js";
 
 let tocItems: Array<{
 	id: string;
@@ -35,14 +35,8 @@ const setPanelVisibility = async (show: boolean): Promise<void> => {
 
 const generateTOC = () => {
 	// 获取配置
-	const siteConfig = (
-		window as unknown as Record<
-			string,
-			{ toc?: { useJapaneseBadge?: boolean; depth?: number } }
-		>
-	).siteConfig;
-	useJapaneseBadge = siteConfig?.toc?.useJapaneseBadge || false;
-	tocDepth = siteConfig?.toc?.depth || 3;
+	useJapaneseBadge = (window as any).siteConfig?.toc?.useJapaneseBadge || false;
+	tocDepth = (window as any).siteConfig?.toc?.depth || 3;
 
 	const headings = document.querySelectorAll("h1, h2, h3, h4, h5, h6");
 	const items: Array<{
@@ -221,15 +215,10 @@ let swupListenersRegistered = false;
 const setupSwupListeners = () => {
 	if (
 		typeof window !== "undefined" &&
-		(window as unknown as Record<string, unknown>).swup &&
+		(window as any).swup &&
 		!swupListenersRegistered
 	) {
-		const swup = (
-			window as unknown as Record<
-				string,
-				{ hooks: { on: (event: string, callback: () => void) => void } }
-			>
-		).swup;
+		const swup = (window as any).swup;
 
 		// 只监听页面视图事件，避免重复触发
 		swup.hooks.on("page:view", () => {
@@ -254,12 +243,12 @@ const setupSwupListeners = () => {
 const checkSwupAvailability = () => {
 	if (typeof window !== "undefined") {
 		// 检查Swup是否已加载
-		swupReady = !!(window as unknown as Record<string, unknown>).swup;
+		swupReady = !!(window as any).swup;
 
 		// 如果Swup还未加载，监听其加载事件
 		if (!swupReady) {
 			const checkSwup = () => {
-				if ((window as unknown as Record<string, unknown>).swup) {
+				if ((window as any).swup) {
 					swupReady = true;
 					document.removeEventListener("swup:enable", checkSwup);
 					// Swup加载完成后设置监听器
@@ -272,7 +261,7 @@ const checkSwupAvailability = () => {
 
 			// 设置超时检查
 			setTimeout(() => {
-				if ((window as unknown as Record<string, unknown>).swup) {
+				if ((window as any).swup) {
 					swupReady = true;
 					document.removeEventListener("swup:enable", checkSwup);
 					// Swup加载完成后设置监听器
@@ -312,16 +301,8 @@ onMount(() => {
 		window.removeEventListener("scroll", updateActiveHeading);
 
 		// 清理Swup事件监听器
-		if (
-			typeof window !== "undefined" &&
-			(window as unknown as Record<string, unknown>).swup
-		) {
-			const swup = (
-				window as unknown as Record<
-					string,
-					{ hooks: { off: (event: string) => void } }
-				>
-			).swup;
+		if (typeof window !== "undefined" && (window as any).swup) {
+			const swup = (window as any).swup;
 			swup.hooks.off("page:view");
 		}
 
@@ -333,7 +314,7 @@ onMount(() => {
 
 // 导出初始化函数供外部调用
 if (typeof window !== "undefined") {
-	(window as unknown as Record<string, unknown>).mobileTOCInit = init;
+	(window as any).mobileTOCInit = init;
 }
 </script>
 

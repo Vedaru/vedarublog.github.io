@@ -23,7 +23,7 @@ const umamiBaseUrl = umamiConfig.baseUrl || "";
                   class="transition opacity-0 scale-90 group-hover:scale-100 group-hover:opacity-100 text-white text-5xl">
             </Icon>
         </div>
-        <ImageWrapper src={profileConfig.avatar || ""} alt="Profile Image of the Author" class="mx-auto lg:w-full h-full lg:mt-0 " priority={true}></ImageWrapper>
+        <ImageWrapper src={profileConfig.avatar || ""} alt="Profile Image of the Author" class="mx-auto lg:w-full h-full lg:mt-0 "></ImageWrapper>
     </a>
     <div class="px-2">
         <div class="font-bold text-xl text-center mb-1 dark:text-neutral-50 transition">{profileConfig.name}</div>
@@ -62,5 +62,47 @@ const umamiBaseUrl = umamiConfig.baseUrl || "";
 </div>
 
 {umamiEnabled && (
-    <script src={import.meta.env.BASE_URL + 'js/umami-stats.js'} defer data-umami-type="site" data-umami-base={umamiBaseUrl} data-umami-apikey={umamiApiKey} data-umami-websiteid={umamiWebsiteId}></script>
+    <script is:inline define:vars={{ umamiBaseUrl, umamiApiKey, umamiWebsiteId, umamiConfig }}>
+        // 客户端统计文案生成函数
+        function generateStatsText(pageViews, visits) {
+            return `浏览量 ${pageViews} · 访问次数 ${visits}`;
+        }
+        
+        // 获取访问量统计
+        async function fetchSiteStats(isRetry = false) {
+            if (!umamiConfig.enabled || !isRetry) {
+                // isRetry is used to avoid recursive retry loop or similar logic if implemented
+            }
+            if (!umamiConfig.enabled) {
+                return;
+            }
+            
+            try {
+                // 调用全局工具获取 Umami 统计数据
+                const stats = await getUmamiWebsiteStats(umamiBaseUrl, umamiApiKey, umamiWebsiteId);
+                
+                // 从返回的数据中提取页面浏览量和访客数
+                const pageViews = stats.pageviews || 0;
+                const visits = stats.visits || 0;
+                
+                const displayElement = document.getElementById('site-stats-display');
+                if (displayElement) {
+                    displayElement.textContent = generateStatsText(pageViews, visits);
+                }
+            } catch (error) {
+                console.error('Error fetching site stats:', error);
+                const displayElement = document.getElementById('site-stats-display');
+                if (displayElement) {
+                    displayElement.textContent = '统计不可用';
+                }
+            }
+        }
+
+        // 页面加载完成后获取统计数据
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', fetchSiteStats);
+        } else {
+            fetchSiteStats();
+        }
+    </script>
 )}

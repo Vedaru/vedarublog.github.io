@@ -93,7 +93,7 @@ const { preloadIcons = [], timeout = 10000, retryCount = 3 } = Astro.props;
 
           const script = document.createElement('script');
           script.src = 'https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js';
-          script.defer = true;
+          script.async = true;
           script.crossOrigin = 'anonymous';
 
           const timeoutId = setTimeout(() => {

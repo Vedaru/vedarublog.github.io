@@ -3,7 +3,6 @@ import { onMount } from "svelte";
 
 import I18nKey from "../i18n/i18nKey";
 import { i18n } from "../i18n/translation";
-import { getPostUrl } from "../utils/url-utils";
 
 export let tags: string[];
 export let categories: string[];
@@ -16,12 +15,14 @@ const uncategorized = params.get("uncategorized");
 
 interface Post {
 	id: string;
+	url?: string; // 预计算的文章 URL
 	data: {
 		title: string;
 		tags: string[];
-        category?: string | null;
-        published: string | Date;
-		permalink?: string; // 添加 permalink 字段
+		category?: string;
+		published: Date;
+		alias?: string;
+		permalink?: string; // 自定义固定链接
 	};
 }
 
@@ -32,10 +33,9 @@ interface Group {
 
 let groups: Group[] = [];
 
-function formatDate(date: string | Date) {
-	const d = typeof date === "string" ? new Date(date) : date;
-	const month = (d.getMonth() + 1).toString().padStart(2, "0");
-	const day = d.getDate().toString().padStart(2, "0");
+function formatDate(date: Date) {
+	const month = (date.getMonth() + 1).toString().padStart(2, "0");
+	const day = date.getDate().toString().padStart(2, "0");
 	return `${month}-${day}`;
 }
 
@@ -65,13 +65,13 @@ onMount(async () => {
 	}
 
 	// 按发布时间倒序排序，确保不受置顶影响
-    filteredPosts = filteredPosts
-    .slice()
-    .sort((a, b) => new Date(b.data.published).getTime() - new Date(a.data.published).getTime());
+	filteredPosts = filteredPosts
+		.slice()
+		.sort((a, b) => b.data.published.getTime() - a.data.published.getTime());
 
 	const grouped = filteredPosts.reduce(
 		(acc, post) => {
-			const year = new Date(post.data.published).getFullYear();
+			const year = post.data.published.getFullYear();
 			if (!acc[year]) {
 				acc[year] = [];
 			}
@@ -92,9 +92,9 @@ onMount(async () => {
 });
 </script>
 
-<div class="card-base px-8 py-6 onload-animation">
+<div class="card-base px-8 py-6">
     {#each groups as group}
-        <div class="archive-year-group">
+        <div>
             <div class="flex flex-row w-full items-center h-[3.75rem]">
                 <div class="w-[15%] md:w-[10%] transition text-2xl font-bold text-right text-75">
                     {group.year}
@@ -112,7 +112,7 @@ onMount(async () => {
 
             {#each group.posts as post}
                 <a
-                        href={getPostUrl(post)}
+                        href={post.url || `/posts/${post.id}/`}
                         aria-label={post.data.title}
                         class="group btn-plain !block h-10 w-full rounded-lg hover:text-[initial]"
                 >

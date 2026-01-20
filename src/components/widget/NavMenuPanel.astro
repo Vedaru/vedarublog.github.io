@@ -54,7 +54,7 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
 	}),
 );
 ---
-<div id="nav-menu-panel" class:list={"float-panel float-panel-closed fixed transition-all right-4 px-2 py-2 max-h-[80vh] overflow-y-auto"}>
+<div id="nav-menu-panel" class:list={["float-panel float-panel-closed absolute transition-all fixed right-4 px-2 py-2 max-h-[80vh] overflow-y-auto"]}>
     {processedLinks.map((link) => (
         <div class="mobile-menu-item">
             {link.children && link.children.length > 0 ? (
@@ -80,7 +80,6 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
                                class="group flex justify-between items-center py-2 pl-6 pr-1 rounded-lg gap-8
                                    hover:bg-[var(--btn-plain-bg-hover)] active:bg-[var(--btn-plain-bg-active)] transition"
                                target={child.external ? "_blank" : null}
-                               data-submenu-item
                             >
                                 <div class="flex items-center transition text-black/60 dark:text-white/60 font-medium group-hover:text-[var(--primary)] group-active:text-[var(--primary)]">
                                     {child.icon && <Icon name={child.icon} class="text-[1.1rem] mr-2" />}
@@ -99,7 +98,6 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
                     hover:bg-[var(--btn-plain-bg-hover)] active:bg-[var(--btn-plain-bg-active)] transition
                 "
                    target={link.external ? "_blank" : null}
-                   data-nav-link
                 >
                     <div class="flex items-center transition text-black/75 dark:text-white/75 font-bold group-hover:text-[var(--primary)] group-active:text-[var(--primary)]">
                         {link.icon && <Icon name={link.icon} class="text-[1.1rem] mr-2" />}
@@ -118,41 +116,6 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
 </div>
 
 <style>
-    #nav-menu-panel {
-        transform-origin: top right;
-        will-change: transform, opacity;
-    }
-    
-    #nav-menu-panel:not(.float-panel-closed) {
-        animation: menuSlideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-    }
-    
-    #nav-menu-panel.float-panel-closed {
-        animation: menuSlideOut 0.25s cubic-bezier(0.4, 0, 1, 1) forwards;
-    }
-    
-    @keyframes menuSlideIn {
-        from {
-            transform: translateY(-12px) scale(0.95);
-            opacity: 0;
-        }
-        to {
-            transform: translateY(0) scale(1);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes menuSlideOut {
-        from {
-            transform: translateY(0) scale(1);
-            opacity: 1;
-        }
-        to {
-            transform: translateY(-12px) scale(0.95);
-            opacity: 0;
-        }
-    }
-    
     .mobile-submenu {
         @apply max-h-0 overflow-hidden transition-all duration-300 ease-in-out;
     }
@@ -164,96 +127,21 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
     .mobile-dropdown[data-expanded="true"] .mobile-dropdown-arrow {
         @apply rotate-180;
     }
-    
-    /* 移除移动端点击高亮效果 */
-    button, a {
-        -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
-        -webkit-touch-callout: none !important;
-        tap-highlight-color: rgba(0,0,0,0) !important;
-        outline: none !important;
-    }
-    
-    button:focus, a:focus, button:active, a:active,
-    button:focus-visible, a:focus-visible {
-        outline: none !important;
-        box-shadow: none !important;
-        -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
-    }
 </style>
 
-<script type="module" is:inline>
-    // 等待 panelManager 可用的辅助函数
-    async function waitForPanelManager(maxWaitTime = 5000) {
-        const startTime = Date.now();
-        while (!window['panelManager']) {
-            if (Date.now() - startTime > maxWaitTime) {
-                console.error('panelManager not available after waiting');
-                return null;
-            }
-            await new Promise(resolve => setTimeout(resolve, 50));
-        }
-        return window['panelManager'];
-    }
-    
-    async function initNavMenuPanel() {
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
         const mobileDropdowns = document.querySelectorAll('[data-mobile-dropdown]');
-        
-        // 等待并使用全局 panelManager
-        try {
-            const panelManager = await waitForPanelManager();
-            if (!panelManager) {
-                console.warn('panelManager not initialized');
-                return;
-            }
-            
-            // 检查 closePanel 方法是否存在
-            if (typeof panelManager.closePanel !== 'function') {
-                console.error('panelManager.closePanel is not a function');
-                return;
-            }
-            
-            // 绑定子菜单项点击事件
-            const submenuItems = document.querySelectorAll('[data-submenu-item]');
-            submenuItems.forEach(item => {
-                item.addEventListener('click', async function(_e) {
-                    console.log('Submenu item clicked, closing nav-menu-panel');
-                    try {
-                        await panelManager.closePanel('nav-menu-panel');
-                    } catch (error) {
-                        console.error('Error closing panel:', error);
-                    }
-                });
-            });
-            
-            // 绑定普通导航链接点击事件
-            const navLinks = document.querySelectorAll('[data-nav-link]');
-            navLinks.forEach(link => {
-                link.addEventListener('click', async function(_e) {
-                    console.log('Nav link clicked, closing nav-menu-panel');
-                    try {
-                        await panelManager.closePanel('nav-menu-panel');
-                    } catch (error) {
-                        console.error('Error closing panel:', error);
-                    }
-                });
-            });
-        } catch (error) {
-            console.error('Failed to initialize panelManager:', error);
-        }
         
         mobileDropdowns.forEach(dropdown => {
             const trigger = dropdown.querySelector('[data-mobile-dropdown-trigger]');
             const submenu = dropdown.querySelector('[data-mobile-submenu]');
             
             if (!trigger || !submenu) return;
-
+            
             trigger.addEventListener('click', function(e) {
                 e.preventDefault();
-                e.stopPropagation();
-                console.log('Dropdown trigger clicked:', trigger);
-                
                 const isExpanded = dropdown.getAttribute('data-expanded') === 'true';
-                console.log('Current expanded state:', isExpanded);
                 
                 // 关闭其他打开的下拉菜单
                 mobileDropdowns.forEach(otherDropdown => {
@@ -268,22 +156,9 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
                 
                 // 切换当前下拉菜单
                 const newState = !isExpanded;
-                console.log('Setting expanded state to:', newState);
                 dropdown.setAttribute('data-expanded', newState.toString());
                 trigger.setAttribute('aria-expanded', newState.toString());
             });
-            
-            // 阻止子菜单点击时冒泡
-            submenu.addEventListener('click', function(e) {
-                e.stopPropagation();
-            });
         });
-    }
-    
-    // 页面加载完成后初始化
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initNavMenuPanel);
-    } else {
-        initNavMenuPanel();
-    }
+    });
 </script>

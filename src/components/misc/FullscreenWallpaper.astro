@@ -1,7 +1,6 @@
 ---
 import { siteConfig } from "../../config";
 import type { FullscreenWallpaperConfig } from "../../types/config";
-import ResponsiveImage from "../ResponsiveImage.astro";
 
 interface Props {
 	config: FullscreenWallpaperConfig;
@@ -96,8 +95,7 @@ const renderGroups = [
 	<script is:inline>
 	// 立即执行脚本：防止闪烁
 	(function() {
-		// 默认行为改为全屏模式，避免首次渲染被隐藏
-		const mode = localStorage.getItem('wallpaperMode') || 'fullscreen';
+		const mode = localStorage.getItem('wallpaperMode') || 'banner';
 		if (mode !== 'fullscreen') {
 			document.currentScript.parentElement.style.display = 'none';
 		}
@@ -107,16 +105,15 @@ const renderGroups = [
 	{renderGroups.map(group => group.hasImages && (
 		<div class={`${group.containerClass} w-full h-full relative`} style="transform: translateZ(0);">
 			{group.images.map((src, index) => (
-				<ResponsiveImage
+				<img
 					src={src}
 					alt={`${group.key} wallpaper ${index + 1}`}
 					class={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${positionClass}`}
 					data-carousel-item={isCarouselEnabled ? index : undefined}
 					style={`transform: translateZ(0); backface-visibility: hidden; will-change: opacity; ${blur > 0 ? `filter: blur(${blur}px);` : ''}; opacity: ${index === 0 ? 1 : 0};`}
 					decoding="async"
-					loading={index === 0 ? "eager" : "lazy"}
-					fetchpriority={index === 0 ? 'high' : undefined}
-					/>
+					loading={index === 0 ? "eager" : "lazy"} 
+				/>
 			))}
 		</div>
 	))}
@@ -156,44 +153,14 @@ const renderGroups = [
 				const { items, currentIndex } = stateItem;
 				// 立即设置样式，防止视觉上跳回第一张
 				for (let i = 0; i < items.length; i++) {
-					// 优化加载策略：当前显示项设置为 eager 并提升优先级
-					try {
-						items[i].style.opacity = i === currentIndex ? '1' : '0';
-						items[i].loading = i === currentIndex ? 'eager' : 'lazy';
-						if (i === currentIndex) items[i].setAttribute('fetchpriority', 'high');
-					} catch (e) {
-						// ignore
-					}
+					items[i].style.opacity = i === currentIndex ? '1' : '0';
 				}
-			}
-
-			// 预加载图片（返回一个 promise）
-			function preloadImage(img) {
-				return new Promise((resolve) => {
-					const src = img.currentSrc || img.src;
-					if (!src) return resolve();
-					const pre = new Image();
-					pre.src = src;
-					if (pre.decode) {
-						pre.decode().then(resolve).catch(resolve);
-					} else {
-						// no decode support, resolve immediately
-						setTimeout(resolve, 50);
-					}
-				});
 			}
 
 			// 切换下一张
-			async function switchNextImage(stateItem) {
+			function switchNextImage(stateItem) {
 				const { items, currentIndex } = stateItem;
 				const nextIndex = (currentIndex + 1) % items.length;
-				
-				// 预加载下一张图以避免切换时出现空白
-				try {
-					await preloadImage(items[nextIndex]);
-				} catch (e) {
-					// ignore
-				}
 				
 				items[currentIndex].style.opacity = '0';
 				items[nextIndex].style.opacity = '1';
