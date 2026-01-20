@@ -53,23 +53,24 @@ if (footerConfig.enable) {
 </div>
 
 <script is:inline>
-    // 全局处理函数
-    window.handleSakuraToggle = function() {
-        console.log('=== 触发樱花切换 ===');
-        
-        if (typeof window.__toggleSakura === 'function') {
-            try {
-                window.__toggleSakura();
-                const isRunning = typeof window.__getSakuraStatus === 'function' ? window.__getSakuraStatus() : false;
-                console.log('樱花状态:', isRunning ? '开启' : '关闭');
-            } catch (error) {
-                console.error('切换樱花时出错:', error);
+    // 全局处理函数（幂等注册）
+    if (!window.handleSakuraToggle) {
+        window.handleSakuraToggle = function() {
+            console.log('=== 触发樱花切换 ===');
+            if (typeof window.__toggleSakura === 'function') {
+                try {
+                    window.__toggleSakura();
+                    const isRunning = typeof window.__getSakuraStatus === 'function' ? window.__getSakuraStatus() : false;
+                    console.log('樱花状态:', isRunning ? '开启' : '关闭');
+                } catch (error) {
+                    console.error('切换樱花时出错:', error);
+                }
+            } else {
+                console.error('樱花管理器未加载');
             }
-        } else {
-            console.error('樱花管理器未加载');
-        }
-    };
-    console.log('全局樱花处理函数已注册');
+        };
+        console.log('全局樱花处理函数已注册');
+    }
 </script>
 
 <script>
@@ -78,32 +79,41 @@ if (footerConfig.enable) {
 
     // 阻止Layout.astro中的樱花初始化
     (window as any).sakuraInitialized = true;
-    
-    // 挂载到window对象
-    (window as any).__toggleSakura = toggleSakura;
-    (window as any).__getSakuraStatus = getSakuraStatus;
-    
-    // 立即初始化樱花管理器（使用enable:false，这样toggle时才会启动）
+
+    // 挂载到window对象（仅在未挂载时设置或保持现有）
+    if (!(window as any).__toggleSakura) {
+        (window as any).__toggleSakura = toggleSakura;
+    }
+    if (!(window as any).__getSakuraStatus) {
+        (window as any).__getSakuraStatus = getSakuraStatus;
+    }
+
+    // 立即初始化樱花管理器（使用enable:false，这样toggle时才会启动），幂等化防止重复 init
     const config = { ...sakuraConfig, enable: false };
-    initSakura(config);
-    
-    // 预加载图片以提高响应速度
-    (function preloadSeasonalImage() {
-        const month = new Date().getMonth() + 1;
-        let imageName = "sakura.webp";
-        
-        if (month >= 3 && month <= 5) {
-            imageName = "sakura.webp";
-        } else if (month >= 9 && month <= 11) {
-            imageName = "mapleleaf.webp";
-        } else if (month === 12 || month === 1 || month === 2) {
-            imageName = "snowflake.webp";
-        }
-        
-        const img = new Image();
-        img.src = `/${imageName}`;
-        console.log(`预加载季节图片: ${imageName}`);
-    })();
-    
-    console.log('樱花管理器已初始化（待命状态）');
+    if (!(window as any).__sakuraManagerInitialized) {
+        initSakura(config);
+        (window as any).__sakuraManagerInitialized = true;
+        // 预加载图片以提高响应速度
+        (function preloadSeasonalImage() {
+            const month = new Date().getMonth() + 1;
+            let imageName = "sakura.webp";
+            
+            if (month >= 3 && month <= 5) {
+                imageName = "sakura.webp";
+            } else if (month >= 9 && month <= 11) {
+                imageName = "mapleleaf.webp";
+            } else if (month === 12 || month === 1 || month === 2) {
+                imageName = "snowflake.webp";
+            }
+            
+            const img = new Image();
+            img.src = `/${imageName}`;
+            console.log(`预加载季节图片: ${imageName}`);
+        })();
+
+        console.log('樱花管理器已初始化（待命状态）');
+    } else {
+        // Already initialized, update handlers if needed
+        console.log('樱花管理器已存在，跳过重复初始化');
+    }
 </script>

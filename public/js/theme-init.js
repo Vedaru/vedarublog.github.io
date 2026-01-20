@@ -9,7 +9,9 @@ window.BANNER_HEIGHT_EXTEND = 30;
 window.BANNER_HEIGHT_HOME = 65;
 
 // 从 Astro 定义的变量获取配置
-const DEFAULT_THEME = 'auto';
+if (!window.DEFAULT_THEME) {
+    window.DEFAULT_THEME = 'auto';
+}
 const LIGHT_MODE = window.LIGHT_MODE || 'light';
 const DARK_MODE = window.DARK_MODE || 'dark';
 const BANNER_HEIGHT_EXTEND = window.BANNER_HEIGHT_EXTEND || 30;
@@ -17,7 +19,7 @@ const PAGE_WIDTH = window.PAGE_WIDTH || 80;
 const configHue = window.configHue || 250;
 
 // Load the theme from local storage
-const theme = localStorage.getItem('theme') || DEFAULT_THEME;
+const theme = localStorage.getItem('theme') || window.DEFAULT_THEME;
 let isDark = false;
 switch (theme) {
     case LIGHT_MODE:

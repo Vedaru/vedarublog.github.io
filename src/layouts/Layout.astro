@@ -233,6 +233,9 @@ if (siteConfig.font) {
 		<!-- 第三方分析脚本 - 延迟加载优化（移到外部文件） -->
 		<script src="/js/analytics-loader.js" is:inline></script>
 		<!-- 主题初始化脚本 - 移到外部文件并延迟加载 -->
+		<script>
+			if (!window.DEFAULT_THEME) window.DEFAULT_THEME = "{DEFAULT_THEME}";
+		</script>
 		<script src="/js/theme-init.js" defer></script>
 
 		<title>{pageTitle}</title>
@@ -485,9 +488,8 @@ import {
 	// BANNER_HEIGHT_HOME,
 	// BANNER_HEIGHT_EXTEND,
 	// MAIN_PANEL_OVERLAPS_BANNER_HEIGHT,
-	DARK_MODE,
-	DEFAULT_THEME
-} from "../constants/constants";
+	DARK_MODE
+} from "../constants/constants"; 
 
 
 // 保证全局脚本作用域可用BANNER_HEIGHT等变量
@@ -1043,7 +1045,7 @@ const setup = () => {
 		});
 		
 		// 同步主题状态 - 解决从首页进入文章页面时代码块渲染问题
-		const storedTheme = localStorage.getItem('theme') || DEFAULT_THEME;
+		const storedTheme = localStorage.getItem('theme') || window.DEFAULT_THEME || 'auto';
 		const isDark = storedTheme === DARK_MODE;
 		const expectedTheme = isDark ? 'github-dark' : 'github-light';
 		const currentTheme = document.documentElement.getAttribute('data-theme');

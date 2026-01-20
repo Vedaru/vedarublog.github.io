@@ -66,6 +66,18 @@ declare global {
 				depth?: number;
 			};
 		};
+
+		// Additional globals introduced by runtime scripts
+		DEFAULT_THEME?: string;
+		LIGHT_MODE?: string;
+		DARK_MODE?: string;
+		configHue?: number;
+
+		// Sakura manager globals
+		__toggleSakura?: () => void;
+		__getSakuraStatus?: () => boolean;
+		__sakuraManagerInitialized?: boolean;
+		sakuraInitialized?: boolean;
 	}
 }
 
