@@ -3,7 +3,6 @@ import ConfigCarrier from "@components/ConfigCarrier.astro";
 import MusicPlayer from "@components/widget/MusicPlayer.svelte";
 import Pio from "@components/widget/Pio.svelte"; // 使用 Svelte 版本的 Pio 组件
 import DiaryYearMonthTOC from "@components/widget/DiaryYearMonthTOC.astro"; // 导入日记目录组件以注册 custom element
-import { ClientRouter } from 'astro:transitions';
 import {
 	musicPlayerConfig,
 	pioConfig,
@@ -295,7 +294,6 @@ if (siteConfig.font) {
 
 
 
-		<ClientRouter />
 		<slot name="head"></slot>
 
 		<!-- Pio 看板娘样式和脚本延迟加载（可配置） -->

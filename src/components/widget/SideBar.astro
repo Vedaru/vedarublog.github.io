@@ -73,7 +73,7 @@ const breakpoints = widgetManager.getBreakpoints();
 const clientResponsiveLayout = widgetManager.getConfig().responsive.layout;
 ---
 
-<div id="sidebar" transition:persist class:list={[className, "w-full"]}
+<div id="sidebar" class:list={[className, "w-full"]}
 	data-breakpoints={JSON.stringify(breakpoints)}
 	data-responsive={JSON.stringify(clientResponsiveLayout)}>
 	<!-- 顶部固定组件区域 -->
