@@ -1,6 +1,5 @@
-import cloudflare from "@astrojs/cloudflare";
 import sitemap from "@astrojs/sitemap";
-import svelte from "@astrojs/svelte";
+import svelte, { vitePreprocess } from "@astrojs/svelte";
 import tailwind from "@astrojs/tailwind";
 import { pluginCollapsibleSections } from "@expressive-code/plugin-collapsible-sections";
 import { pluginLineNumbers } from "@expressive-code/plugin-line-numbers";
@@ -9,57 +8,54 @@ import { defineConfig } from "astro/config";
 import expressiveCode from "astro-expressive-code";
 import icon from "astro-icon";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
-import rehypeComponents from "rehype-components"; /* Render the custom directive content */
+import rehypeComponents from "rehype-components";
 import rehypeKatex from "rehype-katex";
 import rehypeSlug from "rehype-slug";
-import remarkDirective from "remark-directive"; /* Handle directives */
+import remarkDirective from "remark-directive";
 import remarkGithubAdmonitionsToDirectives from "remark-github-admonitions-to-directives";
 import remarkMath from "remark-math";
 import remarkSectionize from "remark-sectionize";
-import { expressiveCodeConfig, siteConfig } from "./src/config.ts";
+import { siteConfig } from "./src/config.ts";
 import { pluginCustomCopyButton } from "./src/plugins/expressive-code/custom-copy-button.js";
 import { pluginLanguageBadge } from "./src/plugins/expressive-code/language-badge.ts";
 import { AdmonitionComponent } from "./src/plugins/rehype-component-admonition.mjs";
 import { GithubCardComponent } from "./src/plugins/rehype-component-github-card.mjs";
 import { rehypeMermaid } from "./src/plugins/rehype-mermaid.mjs";
-import { rehypeResponsiveImages } from "./src/plugins/rehype-responsive-images.mjs";
 import { rehypeWrapTable } from "./src/plugins/rehype-wrap-table.mjs";
 import { parseDirectiveNode } from "./src/plugins/remark-directive-rehype.js";
-import { remarkExcerpt } from "./src/plugins/remark-excerpt.js";
 import { remarkMermaid } from "./src/plugins/remark-mermaid.js";
-import { remarkReadingTime } from "./src/plugins/remark-reading-time.mjs";
+import { remarkContent } from "./src/plugins/remark-content.mjs";
+import { rehypeImageWidth } from "./src/plugins/rehype-image-width.mjs";
+
 // https://astro.build/config
 export default defineConfig({
 	site: "https://vedaru.cn",
 	adapter: cloudflare({
-		mode: "directory",
-		runtime: {
-			mode: "local",
-			type: "pages",
-		},
+			mode: "directory",
+			runtime: {
+					mode: "local",
+					type: "pages",
+			},
 	}),
 	image: {
-		service: {
-			entry: "astro/assets/services/cloudflare",
+			service: {
+					entry: "astro/assets/services/cloudflare",
 		},
 	},
-
-	// Cloudflare Pages 部署配置
 	base: "/",
 	trailingSlash: "always",
+
 	integrations: [
 		tailwind({
 			nesting: true,
 		}),
 		swup({
 			theme: false,
-			animationClass: "transition-swup-", // see https://swup.js.org/options/#animationselector
-			// the default value `transition-` cause transition delay
-			// when the Tailwind class `transition-all` is used
+			animationClass: "transition-swup-",
 			containers: ["main"],
 			smoothScrolling: false, // 禁用平滑滚动以提升性能，避免与锚点导航冲突
-			cache: false, // 禁用缓存，因为 Cloudflare Pages 已提供缓存
-			preload: true, // 启用预加载以提升页面切换速度
+			cache: true,
+			preload: true, // swup 默认鼠标悬停预加载
 			accessibility: true,
 			updateHead: true,
 			updateBodyClass: false,
@@ -69,19 +65,14 @@ export default defineConfig({
 			animateHistoryBrowsing: false,
 			skipPopStateHandling: (event) => {
 				// 跳过锚点链接的处理，让浏览器原生处理
-				return event.state && event.state.url && event.state.url.includes("#");
+				return (
+					event.state &&
+					event.state.url &&
+					event.state.url.includes("#")
+				);
 			},
 		}),
-		icon({
-			include: {
-				"preprocess: vitePreprocess(),": ["*"],
-				"fa6-brands": ["*"],
-				"fa6-regular": ["*"],
-				"fa6-solid": ["*"],
-				mdi: ["*"],
-				"simple-icons": ["*"],
-			},
-		}),
+		icon(),
 		expressiveCode({
 			themes: ["github-light", "github-dark"],
 			plugins: [
@@ -93,21 +84,11 @@ export default defineConfig({
 			defaultProps: {
 				wrap: true,
 				overridesByLang: {
-					shellsession: {
-						showLineNumbers: false,
-					},
-					bash: {
-						frame: "code",
-					},
-					shell: {
-						frame: "code",
-					},
-					sh: {
-						frame: "code",
-					},
-					zsh: {
-						frame: "code",
-					},
+					shellsession: { showLineNumbers: false },
+					bash: { frame: "code" },
+					shell: { frame: "code" },
+					sh: { frame: "code" },
+					zsh: { frame: "code" },
 				},
 			},
 			styleOverrides: {
@@ -139,14 +120,15 @@ export default defineConfig({
 				showCopyToClipboardButton: false,
 			},
 		}),
-		svelte(),
+		svelte({
+			preprocess: vitePreprocess(),
+		}),
 		sitemap(),
 	],
 	markdown: {
 		remarkPlugins: [
 			remarkMath,
-			remarkReadingTime,
-			remarkExcerpt,
+			remarkContent,
 			remarkGithubAdmonitionsToDirectives,
 			remarkDirective,
 			remarkSectionize,
@@ -156,9 +138,9 @@ export default defineConfig({
 		rehypePlugins: [
 			rehypeKatex,
 			rehypeSlug,
-			rehypeMermaid,
-			rehypeResponsiveImages,
 			rehypeWrapTable,
+			rehypeMermaid,
+			rehypeImageWidth,
 			[
 				rehypeComponents,
 				{
@@ -166,7 +148,8 @@ export default defineConfig({
 						github: GithubCardComponent,
 						note: (x, y) => AdmonitionComponent(x, y, "note"),
 						tip: (x, y) => AdmonitionComponent(x, y, "tip"),
-						important: (x, y) => AdmonitionComponent(x, y, "important"),
+						important: (x, y) =>
+							AdmonitionComponent(x, y, "important"),
 						caution: (x, y) => AdmonitionComponent(x, y, "caution"),
 						warning: (x, y) => AdmonitionComponent(x, y, "warning"),
 					},
@@ -186,54 +169,26 @@ export default defineConfig({
 							className: ["anchor-icon"],
 							"data-pagefind-ignore": true,
 						},
-						children: [
-							{
-								type: "text",
-								value: "#",
-							},
-						],
+						children: [{ type: "text", value: "#" }],
 					},
 				},
 			],
 		],
 	},
 	vite: {
-		plugins: [
-			{
-				name: 'add-crossorigin-to-preloads',
-				transformIndexHtml(html) {
-					// First, add as="script" to preload links without as attribute
-					html = html.replace(
-						/<link rel="preload" href="([^"]*)"([^>]*)>/g,
-						'<link rel="preload" as="script" href="$1" crossorigin="anonymous"$2>'
-					);
-					// Then, ensure existing as="script" have crossorigin
-					html = html.replace(
-						/<link rel="preload" as="script" href="([^"]*)"([^>]*)>/g,
-						'<link rel="preload" as="script" href="$1" crossorigin="anonymous"$2>'
-					);
-					return html;
-				},
-			},
-		],
 		build: {
 			// 静态资源处理优化，防止小图片转 base64 导致 HTML 体积过大（可选，根据需要调整）
 			assetsInlineLimit: 4096,
-			modulePreload: false,
+
 			rollupOptions: {
-				output: {
-					manualChunks: {
-						// 将第三方库分离到单独的 chunk
-						vendor: ['svelte', '@astrojs/svelte', '@swup/astro'],
-						icons: ['@iconify/svelte', '@iconify-json/fa6-brands', '@iconify-json/fa6-solid'],
-						utils: ['dayjs', 'crypto-js', 'reading-time'],
-					},
-				},
 				onwarn(warning, warn) {
-					// temporarily suppress this warning
 					if (
-						warning.message.includes("is dynamically imported by") &&
-						warning.message.includes("but also statically imported by")
+						warning.message.includes(
+							"is dynamically imported by",
+						) &&
+						warning.message.includes(
+							"but also statically imported by",
+						)
 					) {
 						return;
 					}
