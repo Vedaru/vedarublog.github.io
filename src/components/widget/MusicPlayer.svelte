@@ -877,5 +877,15 @@ button.bg-\[var\(--primary\)\] {
     border-right: 1px solid var(--line-divider);
     border-bottom: 1px solid var(--line-divider);
 }
-</style>
+/* 隐藏播放列表最右侧滚动条，但保留滚动功能（兼容 WebKit、Firefox、IE/Edge） */
+.playlist-content {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+    padding-right: 6px; /* 可选：防止最后一列文字被裁切 */
+}
+.playlist-content::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+}</style>
 {/if}
