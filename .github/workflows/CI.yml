@@ -59,6 +59,9 @@ jobs:
           # Stage all music changes (including deletions like .m4a)
           git add -A public/assets/music public/music || true
 
+          # Pull latest changes to avoid conflicts
+          git pull --rebase origin main
+
           # Set remote to HTTPS for pushing
           git remote set-url origin https://github.com/Vedaru/vedarublog.github.io.git
 
