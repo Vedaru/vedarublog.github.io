@@ -277,11 +277,15 @@ let tooltipTime = 0;
 let progressTooltipPercent = 0;
 let isProgressDragging = false;
 let showProgressTooltip = false;
+let progressTooltipLeft = 0; // viewport px
+let progressTooltipTop = 0;  // viewport px (fixed when entering)
 let volHoverRafId: number | null = null;
 let lastVolumeHoverClientX: number | null = null;
 let volumeHoverValue = 0;
 let volumeTooltipPercent = 0;
 let showVolumeTooltip = false;
+let volumeTooltipLeft = 0; // viewport px
+let volumeTooltipTop = 0;  // viewport px (fixed when entering)
 
 // 1. 拖拽时调用的更新函数
 function scheduleProgressUpdate(clientX: number) {
@@ -301,9 +305,12 @@ function scheduleProgressUpdate(clientX: number) {
             if (Math.abs(currentTime - newTime) > 0.01) { 
                 currentTime = newTime; 
             }
-            // 更新提示框的位置和时间
+            // 更新提示框的位置和时间（使用视口坐标，纵坐标在进入时固定）
             tooltipTime = newTime;
             progressTooltipPercent = percent * 100;
+            // 左侧使用真实 clientX（限制在进度条范围内），顶部固定为进度条上方
+            progressTooltipLeft = Math.max(rect.left, Math.min(rect.right, lastProgressClientX));
+            progressTooltipTop = rect.top - 40;
             lastProgressClientX = null;
         });
     }
@@ -328,6 +335,9 @@ function startVolumeDrag(event: PointerEvent) {
 
     volumeBarRect = volumeBar.getBoundingClientRect();
     updateVolumeLogic(event.clientX);
+    // show tooltip and set fixed top/initial left during drag
+    volumeTooltipTop = volumeBarRect.top - 40;
+    volumeTooltipLeft = Math.max(volumeBarRect.left, Math.min(volumeBarRect.right, event.clientX));
 }
 
 function handleVolumeMove(event: PointerEvent) {
@@ -339,6 +349,13 @@ function handleVolumeMove(event: PointerEvent) {
 
 	rafId = requestAnimationFrame(() => {
         updateVolumeLogic(event.clientX);
+        // update tooltip X while dragging
+        if (volumeBarRect) {
+            volumeTooltipLeft = Math.max(volumeBarRect.left, Math.min(volumeBarRect.right, event.clientX));
+        } else if (volumeBar) {
+            const rect = volumeBar.getBoundingClientRect();
+            volumeTooltipLeft = Math.max(rect.left, Math.min(rect.right, event.clientX));
+        }
         rafId = null;
     });
 }
@@ -581,7 +598,14 @@ onDestroy(() => {
             <div class="progress-bar flex-1 h-2 bg-[var(--btn-regular-bg)] rounded-full cursor-pointer"
                  bind:this={progressBar}
                  on:click={setProgress}
-                 on:pointerenter={() => showProgressTooltip = true}
+                 on:pointerenter={(e) => {
+                     if (!progressBar) return;
+                     const rect = progressBar.getBoundingClientRect();
+                     showProgressTooltip = true;
+                     progressTooltipTop = rect.top - 40;
+                     // center tooltip under mouse if available
+                     progressTooltipLeft = Math.max(rect.left, Math.min(rect.right, e?.clientX || rect.left + rect.width/2));
+                 }}
                  on:pointerleave={() => { if (!isProgressDragging) showProgressTooltip = false; }}
                  on:pointerdown={(e) => {
                      if (!progressBar) return;
@@ -595,6 +619,8 @@ onDestroy(() => {
                      currentTime = newTime;
                      tooltipTime = newTime;
                      progressTooltipPercent = percent * 100;
+                     progressTooltipLeft = Math.max(rect.left, Math.min(rect.right, e.clientX));
+                     progressTooltipTop = rect.top - 40;
                  }}
                  on:pointerup={() => {
                      isProgressDragging = false;
@@ -609,6 +635,8 @@ onDestroy(() => {
                      const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
                      tooltipTime = percent * (actualDuration || duration || 0);
                      progressTooltipPercent = percent * 100;
+                     // update tooltip viewport X to follow mouse
+                     progressTooltipLeft = Math.max(rect.left, Math.min(rect.right, e.clientX));
                  }}
                  on:keydown={(e) => {
                      if (e.key === 'Enter' || e.key === ' ') {
@@ -633,7 +661,7 @@ onDestroy(() => {
 
 
                 {#if showProgressTooltip}
-                    <div class="progress-tooltip" style="left: {progressTooltipPercent}%">
+                    <div class="progress-tooltip" style="left: {progressTooltipLeft}px; top: {progressTooltipTop}px; position: fixed;">
                         <!-- 
                            逻辑判断：
                            如果是拖拽中 (isProgressDragging)，显示 currentTime (跟随鼠标变化的那个值)
@@ -697,15 +725,31 @@ onDestroy(() => {
             </button>
             <div class="flex-1 h-2 bg-[var(--btn-regular-bg)] rounded-full cursor-pointer touch-none"
                  bind:this={volumeBar}
-                 on:pointerenter={() => showVolumeTooltip = true}
+                 on:pointerenter={(e) => {
+                     if (!volumeBar) return;
+                     const rect = volumeBar.getBoundingClientRect();
+                     showVolumeTooltip = true;
+                     volumeTooltipTop = rect.top - 40;
+                     volumeTooltipLeft = Math.max(rect.left, Math.min(rect.right, e?.clientX || rect.left + rect.width/2));
+                 }}
                  on:pointerleave={() => showVolumeTooltip = false}
-                 on:pointerdown={startVolumeDrag}
+                 on:pointerdown={(e) => {
+                     startVolumeDrag(e);
+                     // ensure tooltip shows and follows initial pointer
+                     if (volumeBar) {
+                         const rect = volumeBar.getBoundingClientRect();
+                         volumeTooltipTop = rect.top - 40;
+                         volumeTooltipLeft = Math.max(rect.left, Math.min(rect.right, e.clientX));
+                     }
+                 }}
                  on:pointermove={(e) => {
                      if (!volumeBar || isVolumeDragging) return;
                      const rect = volumeBar.getBoundingClientRect();
                      const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
                      volumeHoverValue = percent;
                      volumeTooltipPercent = percent * 100;
+                     // follow mouse X
+                     volumeTooltipLeft = Math.max(rect.left, Math.min(rect.right, e.clientX));
                  }}
                  on:keydown={(e) => {
                      if (e.key === 'Enter' || e.key === ' ') {
@@ -724,7 +768,7 @@ onDestroy(() => {
 
 
                 {#if showVolumeTooltip}
-                    <div class="volume-tooltip" style="left: {volumeTooltipPercent}%">
+                    <div class="volume-tooltip" style="left: {volumeTooltipLeft}px; top: {volumeTooltipTop}px; position: fixed;">
                         <!-- 
                            将 0-1 的小数乘以 100 并取整，显示百分比 
                            同样区分了拖拽中(volume)和悬停(volumeHoverValue)
@@ -970,8 +1014,6 @@ button.bg-\[var\(--primary\)\] {
 }
 
 .progress-tooltip {
-    position: absolute;
-    top: -30px;
     transform: translateX(-50%);
     background: var(--float-panel-bg);
     color: var(--content-meta);
@@ -985,8 +1027,6 @@ button.bg-\[var\(--primary\)\] {
 }
 
 .volume-tooltip {
-    position: absolute;
-    top: -30px;
     transform: translateX(-50%);
     background: var(--float-panel-bg);
     color: var(--content-meta);
