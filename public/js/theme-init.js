@@ -3,6 +3,9 @@
  * 设置主题、颜色和移动设备优化
  */
 
+(() => {
+'use strict';
+
 // 全局注入变量
 window.BANNER_HEIGHT = 35;
 window.BANNER_HEIGHT_EXTEND = 30;
@@ -92,3 +95,4 @@ try {
 } catch (e) {
     // ignore
 }
+})();
