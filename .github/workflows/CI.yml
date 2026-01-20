@@ -56,22 +56,20 @@ jobs:
 
       - name: Commit and push downloaded music (if any)
         run: |
-          # Pull latest changes first to avoid conflicts
-          git pull --rebase origin main
-
-          # Stage all music changes (including deletions like .m4a)
-          git add -A public/assets/music public/music || true
-
-          # Set remote to HTTPS for pushing
+          # 1. Set remote to HTTPS for pushing first
           git remote set-url origin https://github.com/Vedaru/vedarublog.github.io.git
 
-          # If no staged changes, skip
+          # 2. Stage all music changes (including deletions like .m4a)
+          # We must stage/commit BEFORE pulling to avoid "unstaged changes" error during rebase
+          git add -A public/assets/music public/music || true
+
+          # 3. If no staged changes, skip
           if git diff --staged --quiet; then
             echo "No music changes to commit"
             exit 0
           fi
 
-          # Prevent commit loops: if the latest commit message indicates an automated music update, skip
+          # 4. Prevent commit loops: if the latest commit message indicates an automated music update, skip
           LATEST_MSG=$(git log -1 --pretty=%B 2>/dev/null || true)
           echo "Latest commit message: $LATEST_MSG"
           if echo "$LATEST_MSG" | grep -q -E '^chore:.*music'; then
@@ -79,8 +77,14 @@ jobs:
             exit 0
           fi
 
-          # Commit and push
+          # 5. Commit changes locally
           git -c user.name="Vedaru" -c user.email="Vedaru@users.noreply.github.com" commit -m "chore: update music — replace m4a with mp3 (automated)"
+
+          # 6. Pull latest changes from remote and rebase our new commit on top
+          # This handles the case where main updated while this job was running
+          git pull --rebase origin main
+
+          # 7. Push the unified history
           git push origin HEAD:main
 
   check:
