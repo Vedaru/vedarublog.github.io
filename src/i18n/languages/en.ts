@@ -94,6 +94,28 @@ export const en: Translation = {
 	[Key.backToHome]: "Back to Home",
 
 	// Music Player
+	[Key.musicPlayer]: "Music Player",
+	[Key.musicPlayerShow]: "Show Music Player",
+	[Key.musicPlayerHide]: "Hide Music Player",
+	[Key.musicPlayerExpand]: "Expand",
+	[Key.musicPlayerCollapse]: "Collapse",
+	[Key.musicPlayerPause]: "Pause",
+	[Key.musicPlayerPlay]: "Play",
+	[Key.musicPlayerPrevious]: "Previous",
+	[Key.musicPlayerNext]: "Next",
+	[Key.musicPlayerShuffle]: "Shuffle",
+	[Key.musicPlayerRepeat]: "Repeat",
+	[Key.musicPlayerRepeatOne]: "Repeat One",
+	[Key.musicPlayerVolume]: "Volume",
+	[Key.musicPlayerProgress]: "Progress",
+	[Key.musicPlayerCover]: "Cover",
+	[Key.musicPlayerPlaylist]: "Playlist",
+	[Key.musicPlayerLoading]: "Loading...",
+	[Key.musicPlayerErrorPlaylist]: "Failed to load playlist",
+	[Key.musicPlayerErrorSong]: "Failed to load song",
+	[Key.musicPlayerErrorEmpty]: "Playlist is empty",
+	[Key.unknownSong]: "Unknown Song",
+	[Key.unknownArtist]: "Unknown Artist",
 	[Key.playlist]: "Playlist",
 
 	// Albums Page
@@ -107,6 +129,7 @@ export const en: Translation = {
 	// Devices Page
 	[Key.devices]: "My Devices",
 	[Key.devicesSubtitle]: "Here are the devices I use in my daily life",
+	[Key.devicesViewDetails]: "View Details",
 	[Key.albumsPhotoCount]: "photo",
 	[Key.albumsPhotosCount]: "photos",
 
@@ -310,4 +333,10 @@ export const en: Translation = {
 	[Key.shareOnSocial]: "Share",
 	[Key.shareOnSocialDescription]:
 		"If this article helped you, please share it with others!",
+
+	// Profile Stats
+	[Key.profileStatsLoading]: "Loading...",
+	[Key.profileStatsPageViews]: "Page Views",
+	[Key.profileStatsVisits]: "Visits",
+	[Key.profileStatsUnavailable]: "Unavailable",
 };

@@ -60,10 +60,6 @@ export const zh_TW: Translation = {
 	[Key.diary]: "日記",
 	[Key.gallery]: "相冊",
 
-	// 設備頁面
-	[Key.devices]: "我的設備",
-	[Key.devicesSubtitle]: "這裡展示了我日常使用的各類設備",
-
 	// 番劇頁面
 	[Key.animeTitle]: "我的追番記錄",
 	[Key.animeSubtitle]: "記錄我的二次元之旅",
@@ -95,6 +91,28 @@ export const zh_TW: Translation = {
 	[Key.backToHome]: "返回首頁",
 
 	// 音樂播放器
+	[Key.musicPlayer]: "音樂播放器",
+	[Key.musicPlayerShow]: "顯示音樂播放器",
+	[Key.musicPlayerHide]: "隱藏音樂播放器",
+	[Key.musicPlayerExpand]: "展開",
+	[Key.musicPlayerCollapse]: "折疊",
+	[Key.musicPlayerPause]: "暫停",
+	[Key.musicPlayerPlay]: "播放",
+	[Key.musicPlayerPrevious]: "上一首",
+	[Key.musicPlayerNext]: "下一首",
+	[Key.musicPlayerShuffle]: "隨機播放",
+	[Key.musicPlayerRepeat]: "循環播放",
+	[Key.musicPlayerRepeatOne]: "單曲循環",
+	[Key.musicPlayerVolume]: "音量",
+	[Key.musicPlayerProgress]: "進度",
+	[Key.musicPlayerCover]: "封面",
+	[Key.musicPlayerPlaylist]: "播放列表",
+	[Key.musicPlayerLoading]: "載入中...",
+	[Key.musicPlayerErrorPlaylist]: "播放列表載入失敗",
+	[Key.musicPlayerErrorSong]: "歌曲載入失敗",
+	[Key.musicPlayerErrorEmpty]: "播放列表為空",
+	[Key.unknownSong]: "未知歌曲",
+	[Key.unknownArtist]: "未知藝術家",
 	[Key.playlist]: "播放列表",
 
 	// 相冊頁面
@@ -105,6 +123,11 @@ export const zh_TW: Translation = {
 	[Key.albumsBackToList]: "返回相冊",
 	[Key.albumsPhotoCount]: "張照片",
 	[Key.albumsPhotosCount]: "張照片",
+
+	// 設備頁面
+	[Key.devices]: "我的設備",
+	[Key.devicesSubtitle]: "這裡展示了我日常使用的各類設備",
+	[Key.devicesViewDetails]: "查看詳情",
 
 	// 項目展示頁面
 	[Key.projects]: "項目展示",
@@ -301,4 +324,10 @@ export const zh_TW: Translation = {
 	[Key.shareOnSocial]: "分享",
 	[Key.shareOnSocialDescription]:
 		"如果這篇文章對你有幫助，歡迎分享給更多人！",
+
+	// 個人資料統計
+	[Key.profileStatsLoading]: "載入中...",
+	[Key.profileStatsPageViews]: "頁面瀏覽量",
+	[Key.profileStatsVisits]: "訪問次數",
+	[Key.profileStatsUnavailable]: "不可用",
 };

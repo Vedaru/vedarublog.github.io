@@ -45,7 +45,7 @@ let fallback = src;
 if (entry) {
   const variants = entry.variants || [];
   // assembly srcset using generated /_gen/ URLs
-  srcset = variants.map((v) => `${v.src} ${v.width}w`).join(', ');
+  srcset = variants.map((v: { src: string; width: number }) => `${v.src} ${v.width}w`).join(', ');
   fallback = entry.fallback || entry.original || src;
 }
 ---

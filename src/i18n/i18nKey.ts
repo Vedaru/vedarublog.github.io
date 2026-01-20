@@ -112,6 +112,8 @@ enum I18nKey {
 	unknownSong = "unknownSong",
 	unknownArtist = "unknownArtist",
 
+	playlist = "playlist",
+
 	// 相册页面
 	albums = "albums",
 	albumsSubtitle = "albumsSubtitle",
