@@ -1,18 +1,18 @@
 [
   {
-    "name": "反乌托邦",
-    "artist": "乌托邦P",
-    "url": "/assets/music/url/0-meting.opus",
-    "cover": "/assets/music/cover/0-meting.jpg",
-    "lrc": "https://api.injahow.cn/meting/?server=netease&type=lrc&id=2671812705",
+    "name": "8月31日",
+    "artist": "DECO*27/初音ミク",
+    "url": "/assets/music/url/0-831.opus",
+    "cover": "/assets/music/cover/0-831.jpg",
+    "lrc": "https://api.injahow.cn/meting/?server=netease&type=lrc&id=28364371",
     "id": ""
   },
   {
-    "name": "8月31日",
-    "artist": "DECO*27/初音ミク",
-    "url": "/assets/music/url/1-831.opus",
-    "cover": "/assets/music/cover/1-831.jpg",
-    "lrc": "https://api.injahow.cn/meting/?server=netease&type=lrc&id=28364371",
+    "name": "反乌托邦",
+    "artist": "乌托邦P",
+    "url": "/assets/music/url/1-meting.opus",
+    "cover": "/assets/music/cover/1-meting.jpg",
+    "lrc": "https://api.injahow.cn/meting/?server=netease&type=lrc&id=2671812705",
     "id": ""
   },
   {
