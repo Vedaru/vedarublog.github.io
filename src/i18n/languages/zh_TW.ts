@@ -83,7 +83,7 @@ export const zh_TW: Translation = {
 	[Key.diarySubtitle]: "隨時隨地，分享生活",
 	[Key.diaryCount]: "條短文",
 	[Key.diaryReply]: "回復",
-	[Key.diaryTips]: "顯示全部日記",
+	[Key.diaryTips]: "只展示最近30條日記",
 	[Key.diaryMinutesAgo]: "分鐘前",
 	[Key.diaryHoursAgo]: "小時前",
 	[Key.diaryDaysAgo]: "天前",
@@ -149,7 +149,8 @@ export const zh_TW: Translation = {
 	[Key.rssBenefit2]: "在一個地方管理多個網站的訂閱",
 	[Key.rssBenefit3]: "避免錯過重要更新和文章",
 	[Key.rssBenefit4]: "享受無廣告的純淨閱讀體驗",
-	[Key.rssHowToUse]: "推薦使用 Feedly、Inoreader 或其他 RSS 閱讀器來訂閱本站。",
+	[Key.rssHowToUse]:
+		"推薦使用 Feedly、Inoreader 或其他 RSS 閱讀器來訂閱本站。",
 	[Key.rssCopied]: "RSS 鏈接已複製到剪貼板！",
 	[Key.rssCopyFailed]: "複製失敗，請手動複製鏈接",
 
@@ -290,20 +291,14 @@ export const zh_TW: Translation = {
 	[Key.calendarNovember]: "11月",
 	[Key.calendarDecember]: "12月",
 
-	// Music Player
-	[Key.unknownSong]: "未知歌曲",
-	[Key.unknownArtist]: "未知藝人",
-	[Key.musicPlayerErrorPlaylist]: "載入播放清單失敗",
-	[Key.musicPlayerErrorSong]: "載入歌曲失敗",
-	[Key.musicPlayerErrorEmpty]: "播放清單為空",
-	[Key.musicPlayerShow]: "顯示音樂播放器",
-	[Key.musicPlayerPause]: "暫停",
-	[Key.musicPlayerPlay]: "播放",
-	[Key.musicPlayerCover]: "專輯封面",
-	[Key.musicPlayerExpand]: "展開播放器",
-	[Key.musicPlayerHide]: "隱藏播放器",
-	[Key.musicPlayerPlaylist]: "播放清單",
-	[Key.musicPlayerProgress]: "播放進度",
-	[Key.musicPlayerVolume]: "音量",
-	[Key.musicPlayerCollapse]: "摺疊播放器",
+	// 分享功能
+	[Key.shareArticle]: "分享",
+	[Key.generatingPoster]: "正在生成海報...",
+	[Key.copied]: "已複製",
+	[Key.copyLink]: "複製連結",
+	[Key.savePoster]: "儲存海報",
+	[Key.scanToRead]: "掃碼閱讀",
+	[Key.shareOnSocial]: "分享",
+	[Key.shareOnSocialDescription]:
+		"如果這篇文章對你有幫助，歡迎分享給更多人！",
 };

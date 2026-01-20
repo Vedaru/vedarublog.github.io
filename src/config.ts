@@ -12,6 +12,7 @@ import type {
 	SidebarLayoutConfig,
 	SiteConfig,
 	PermalinkConfig,
+	ShareConfig,
 } from "./types/config";
 import { LinkPreset } from "./types/config";
 
@@ -381,6 +382,11 @@ export const commentConfig: CommentConfig = {
 		// SHOW_IMAGE: 'false', // 已移除，避免类型错误
 	},
 };
+
+export const shareConfig: ShareConfig = {
+	enable: true, // 启用分享功能。当设置为 false 时，分享组件将不会显示在文章区域，且不会加载分享组件使用的库
+};
+
 
 export const announcementConfig: AnnouncementConfig = {
 	title: "公告", // 公告标题
