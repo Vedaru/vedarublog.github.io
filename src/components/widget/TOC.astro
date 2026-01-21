@@ -53,25 +53,52 @@ class TableOfContents extends HTMLElement {
 
     constructor() {
         super();
+        // 使用多个阈值以便更稳定地判断可见比例，并考虑导航栏高度偏移
         this.observer = new IntersectionObserver(
-            this.markVisibleSection, { threshold: 0 }
+            this.markVisibleSection, { threshold: [0, 0.15, 0.5], rootMargin: '-80px 0px -40px 0px' }
         );
     };
 
     markVisibleSection = (entries: IntersectionObserverEntry[]) => {
-        entries.forEach((entry) => {
-            // 优先使用我们在 init 时设置的 data 属性，兜底回退到子节点的 id
-            const id = (entry.target as HTMLElement).dataset.tocId ?? entry.target.children[0]?.getAttribute("id");
-            const idx = id ? this.headingIdxMap.get(id) : undefined;
-            if (idx != undefined)
-                this.active[idx] = entry.isIntersecting;
+        // 收集每个 entry 的 intersectionRatio 并选出最大的作为当前主导 section
+        const ratioMap = new Map<number, number>(); // idx -> ratio
 
-            if (entry.isIntersecting && this.anchorNavTarget == entry.target.firstChild)
+        entries.forEach((entry) => {
+            const targetEl = entry.target as HTMLElement;
+            // 优先使用 data 属性，兜底查找子元素带 id 的节点
+            let id = targetEl.dataset.tocId || null;
+            if (!id) {
+                const descendantWithId = targetEl.querySelector('[id]') as HTMLElement | null;
+                id = descendantWithId?.id ?? (targetEl.firstElementChild?.id ?? null);
+            }
+
+            const idx = id ? this.headingIdxMap.get(id) : undefined;
+            const ratio = entry.intersectionRatio ?? (entry.isIntersecting ? 0.01 : 0);
+            if (idx != undefined) {
+                ratioMap.set(idx, Math.max(ratioMap.get(idx) ?? 0, ratio));
+            }
+
+            if (entry.isIntersecting && this.anchorNavTarget == targetEl.firstChild)
                 this.anchorNavTarget = null;
         });
 
-        if (!this.active.includes(true))
+        // 将 active 数组全部置 false，然后只将 ratio 最大的项设为 true（更稳定）
+        if (ratioMap.size > 0) {
+            this.active.fill(false);
+            let maxIdx = -1;
+            let maxRatio = 0;
+            ratioMap.forEach((r, i) => {
+                if (r > maxRatio) {
+                    maxRatio = r;
+                    maxIdx = i;
+                }
+            });
+            if (maxIdx >= 0) this.active[maxIdx] = true;
+        } else if (!this.active.includes(true)) {
+            // 如果没有任何 entry，使用回退策略
             this.fallback();
+        }
+
         this.update();
     };
 
