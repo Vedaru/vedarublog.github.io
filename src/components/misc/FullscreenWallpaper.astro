@@ -113,9 +113,7 @@ const renderGroups = [
 						data-carousel-item={index}
 						style={`transform: translateZ(0); backface-visibility: hidden; will-change: opacity; ${blurAmount > 0 ? `filter: blur(${blurAmount}px);` : ''}; opacity: ${index === 0 ? 1 : 0};`}
 						decoding="async"
-						loading={index === 0 ? "eager" : "lazy"}
-						fetchpriority={index === 0 ? "high" : undefined}
-						sizes="100vw"
+						loading={index === 0 ? "eager" : "lazy"} 
 					/>
 				))}
 			</div>
@@ -148,41 +146,31 @@ const renderGroups = [
 						const desktopDiv = document.createElement('div');
 						desktopDiv.className = 'hidden lg:block w-full h-full relative';
 						desktopDiv.style.transform = 'translateZ(0)';
-					// preload desktop wallpaper
-					const pl = document.createElement('link');
-					pl.rel = 'preload';
-					pl.as = 'image';
-					pl.href = desktopSrc;
-					document.head.appendChild(pl);
-					desktopDiv.innerHTML = `
-						<img
-							src="${desktopSrc}"
-							alt="desktop wallpaper"
-							class="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${positionClass}"
-							style="transform: translateZ(0); backface-visibility: hidden; will-change: opacity; ${blurAmount > 0 ? `filter: blur(${blurAmount}px);` : ''} opacity: 1;"
-							decoding="async"
-							loading="eager"
-							fetchpriority="high"
+						desktopDiv.innerHTML = `
+							<img
+								src="${desktopSrc}"
+								alt="desktop wallpaper"
+								class="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${positionClass}"
+								style="transform: translateZ(0); backface-visibility: hidden; will-change: opacity; ${blurAmount > 0 ? `filter: blur(${blurAmount}px);` : ''} opacity: 1;"
+								decoding="async"
+								loading="eager"
+							/>
+						`;
+						container.appendChild(desktopDiv);
+					}
 					
 					if (mobileSrc) {
 						const mobileDiv = document.createElement('div');
 						mobileDiv.className = 'block lg:hidden w-full h-full relative';
 						mobileDiv.style.transform = 'translateZ(0)';
-					// preload mobile wallpaper
-					const pl2 = document.createElement('link');
-					pl2.rel = 'preload';
-					pl2.as = 'image';
-					pl2.href = mobileSrc;
-					document.head.appendChild(pl2);
-					mobileDiv.innerHTML = `
-						<img
-							src="${mobileSrc}"
-							alt="mobile wallpaper"
-							class="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${positionClass}"
-							style="transform: translateZ(0); backface-visibility: hidden; will-change: opacity; ${blurAmount > 0 ? `filter: blur(${blurAmount}px);` : ''} opacity: 1;"
-							decoding="async"
-							loading="eager"
-							fetchpriority="high"
+						mobileDiv.innerHTML = `
+							<img
+								src="${mobileSrc}"
+								alt="mobile wallpaper"
+								class="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${positionClass}"
+								style="transform: translateZ(0); backface-visibility: hidden; will-change: opacity; ${blurAmount > 0 ? `filter: blur(${blurAmount}px);` : ''} opacity: 1;"
+								decoding="async"
+								loading="eager"
 							/>
 						`;
 						container.appendChild(mobileDiv);

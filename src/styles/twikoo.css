@@ -188,8 +188,3 @@ Make the emoji component display correctly when there are too many emoji packs
   position: relative;
   z-index: 100;
 }
-
-/* 隐藏特定的 SVG 图标 */
-svg[viewBox="0 0 512 512"] {
-  display: none;
-}
