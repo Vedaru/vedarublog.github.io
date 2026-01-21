@@ -81,7 +81,7 @@ export const siteConfig: SiteConfig = {
 		// 注意：如果侧边栏配置启用了"both"双侧边栏，则无法使用文章列表"grid"网格（双列）布局
 		defaultMode: "list",
 		// 是否允许用户切换布局
-		allowSwitch: true,
+		allowSwitch: false,
 	},
 
 	// 标签样式配置
@@ -332,8 +332,8 @@ export const navBarConfig: NavBarConfig = {
 
 export const profileConfig: ProfileConfig = {
 	avatar: "assets/images/avatar.webp", // 相对于 /src 目录。如果以 '/' 开头，则相对于 /public 目录
-	name: "まつざか ゆき",
-	bio: "世界は大きい、君は行かなければならない",
+	name: "Vedaru",
+	bio: "梦想是成为现充……",
 	typewriter: {
 		enable: true, // 启用个人简介打字机效果
 		speed: 80, // 打字速度（毫秒）
@@ -418,11 +418,11 @@ export const shareConfig: ShareConfig = {
 
 export const announcementConfig: AnnouncementConfig = {
 	title: "公告", // 公告标题
-	content: "最近因为要准备期末考试可能会停一段时间的更新了。", // 公告内容
+	content: "正常更新中……", // 公告内容
 	closable: false, // 允许用户关闭公告
 	link: {
 		enable: true, // 启用链接
-		text: "Learn More", // 链接文本
+		text: "关于本站", // 链接文本
 		url: "/about/", // 链接 URL
 		external: false, // 内部链接
 	},

@@ -23,7 +23,8 @@ export const friendsData: FriendItem[] = [
 	{
 		id: 2,
 		title: "Mizuki Docs",
-		imgurl: "http://q.qlogo.cn/headimg_dl?dst_uin=3231515355&spec=640&img_type=jpg",
+		imgurl:
+			"https://q.qlogo.cn/headimg_dl?dst_uin=3231515355&spec=640&img_type=jpg",
 		desc: "Mizuki User Manual",
 		siteurl: "https://docs.mizuki.mysqil.com",
 		tags: ["Docs"],
@@ -76,6 +77,22 @@ export const friendsData: FriendItem[] = [
 		siteurl: "https://developer.mozilla.org",
 		tags: ["Docs", "Reference"],
 	},
+	{
+		id: 9,
+		title: "MARDIO1",
+		imgurl: "https://avatars.githubusercontent.com/u/98638994?v=4&s=640",
+		desc: "大佬无需多言",
+		siteurl: "https://github.com/MARDIO1",
+		tags: ["Developer"],
+	},
+	{
+		id: 10,
+		title: "mratgnothing",
+		imgurl:"https://avatars.githubusercontent.com/u/251090025?v=4",
+		desc: "我的老板doge",
+		siteurl: "https://github.com/mratgnothing",
+		tags: ["Developer"],
+	}
 ];
 
 // 获取所有友情链接数据
