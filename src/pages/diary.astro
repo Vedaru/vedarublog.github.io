@@ -35,6 +35,18 @@ for (const [y, months] of Object.entries(groupedMoments)) {
 	}
 }
 
+// Build a sorted grouped structure (years desc, months desc, items desc)
+const sortedGroupedMoments = {} as Record<string, Record<string, typeof moments>>;
+const yearKeys = Object.keys(groupedMoments).sort((a, b) => parseInt(b) - parseInt(a));
+for (const y of yearKeys) {
+	const months = groupedMoments[y];
+	const monthKeys = Object.keys(months).sort((a, b) => parseInt(b) - parseInt(a));
+	sortedGroupedMoments[y] = {};
+	for (const m of monthKeys) {
+		sortedGroupedMoments[y][m] = months[m].slice().sort((x, y) => new Date(y.date).getTime() - new Date(x.date).getTime());
+	}
+}
+
 // 时间格式化函数
 ---
 
@@ -66,7 +78,7 @@ for (const [y, months] of Object.entries(groupedMoments)) {
 
 					<div class="moments-timeline">
 						<div class="timeline-list space-y-4">
-						{Object.entries(groupedMoments).map(([year, months]) => (
+						{Object.entries(sortedGroupedMoments).map(([year, months]) => (
 							<>
 								<h1 id={`year-${year}`} class="diary-year-heading mt-2 mb-4 text-xl font-semibold text-90 dark:text-20">{year} 年</h1>
 								{Object.entries(months).map(([month, items]) => (
