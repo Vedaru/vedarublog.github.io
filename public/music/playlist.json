@@ -1,0 +1,98 @@
+[
+  {
+    "name": "Reflection in the mirror",
+    "artist": "スリーズブーケ",
+    "url": "/assets/music/url/0-R.opus",
+    "cover": "/assets/music/cover/0-R.jpg",
+    "lrc": "https://www.bilibili.uno/api?server=netease&type=lrc&id=2052339049",
+    "id": ""
+  },
+  {
+    "name": "ルカルカ★ナイトフィーバー (Cover)",
+    "artist": "Pastel＊Palettes",
+    "url": "/assets/music/url/1-C.opus",
+    "cover": "/assets/music/cover/1-C.jpg",
+    "lrc": "https://www.bilibili.uno/api?server=netease&type=lrc&id=1809138322",
+    "id": ""
+  },
+  {
+    "name": "secret base ~君がくれたもの~",
+    "artist": "Pastel＊Palettes",
+    "url": "/assets/music/url/2-api.opus",
+    "cover": "/assets/music/cover/2-api.jpg",
+    "lrc": "https://www.bilibili.uno/api?server=netease&type=lrc&id=551335798",
+    "id": ""
+  },
+  {
+    "name": "最強ハーモニー",
+    "artist": "今村彩夏 / 西明日香",
+    "url": "/assets/music/url/3-api.opus",
+    "cover": "/assets/music/cover/3-api.jpg",
+    "lrc": "https://www.bilibili.uno/api?server=netease&type=lrc&id=417243938",
+    "id": ""
+  },
+  {
+    "name": "FUTURITY SMILE -25 colors-",
+    "artist": "シャイニーカラーズ",
+    "url": "/assets/music/url/4-FUTURITYSMILE25.opus",
+    "cover": "/assets/music/cover/4-FUTURITYSMILE25.jpg",
+    "lrc": "https://www.bilibili.uno/api?server=netease&type=lrc&id=2016146946",
+    "id": ""
+  },
+  {
+    "name": "Returns",
+    "artist": "Poppin'Party",
+    "url": "/assets/music/url/5-R.opus",
+    "cover": "/assets/music/cover/5-R.jpg",
+    "lrc": "https://www.bilibili.uno/api?server=netease&type=lrc&id=1365428127",
+    "id": ""
+  },
+  {
+    "name": "白金ディスコ",
+    "artist": "井口裕香",
+    "url": "/assets/music/url/6-api.opus",
+    "cover": "/assets/music/cover/6-api.jpg",
+    "lrc": "https://www.bilibili.uno/api?server=netease&type=lrc&id=460528",
+    "id": ""
+  },
+  {
+    "name": "キズナミュージック♪",
+    "artist": "Poppin'Party",
+    "url": "/assets/music/url/7-api.opus",
+    "cover": "/assets/music/cover/7-api.jpg",
+    "lrc": "https://www.bilibili.uno/api?server=netease&type=lrc&id=1332891849",
+    "id": ""
+  },
+  {
+    "name": "あなたにありがとう",
+    "artist": "小春めう",
+    "url": "/assets/music/url/8-api.opus",
+    "cover": "/assets/music/cover/8-api.jpg",
+    "lrc": "https://www.bilibili.uno/api?server=netease&type=lrc&id=511922975",
+    "id": ""
+  },
+  {
+    "name": "君色に染まる",
+    "artist": "ゆいこんぬ",
+    "url": "/assets/music/url/9-api.opus",
+    "cover": "/assets/music/cover/9-api.jpg",
+    "lrc": "https://www.bilibili.uno/api?server=netease&type=lrc&id=501133567",
+    "id": ""
+  },
+  {
+    "name": "春を連れて",
+    "artist": "Kotoha",
+    "url": "/assets/music/url/10-api.opus",
+    "cover": "/assets/music/cover/10-api.jpg",
+    "lrc": "https://www.bilibili.uno/api?server=netease&type=lrc&id=2075565122",
+    "id": ""
+  },
+  {
+    "name": "with",
+    "artist": "嶺内ともみ",
+    "url": "/assets/music/url/11-api.opus",
+    "cover": "/assets/music/cover/11-api.jpg",
+    "lrc": "https://www.bilibili.uno/api?server=netease&type=lrc&id=1337185378",
+    "id": ""
+  }
+]
