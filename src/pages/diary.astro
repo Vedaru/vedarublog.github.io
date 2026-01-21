@@ -38,9 +38,12 @@ for (const [y, months] of Object.entries(groupedMoments)) {
 // Build a sorted grouped structure (years desc, months desc, items desc)
 const sortedGroupedMoments = {} as Record<string, Record<string, typeof moments>>;
 const yearKeys = Object.keys(groupedMoments).sort((a, b) => parseInt(b) - parseInt(a));
+const sortedYearKeys = yearKeys; // keep explicit array (object keys may reorder numeric-like keys)
+const sortedMonthKeysByYear: Record<string, string[]> = {};
 for (const y of yearKeys) {
 	const months = groupedMoments[y];
 	const monthKeys = Object.keys(months).sort((a, b) => parseInt(b) - parseInt(a));
+	sortedMonthKeysByYear[y] = monthKeys;
 	sortedGroupedMoments[y] = {};
 	for (const m of monthKeys) {
 		sortedGroupedMoments[y][m] = months[m].slice().sort((x, y) => new Date(y.date).getTime() - new Date(x.date).getTime());
@@ -78,13 +81,13 @@ for (const y of yearKeys) {
 
 					<div class="moments-timeline">
 						<div class="timeline-list space-y-4">
-						{Object.entries(sortedGroupedMoments).map(([year, months]) => (
-							<>
-								<h1 id={`year-${year}`} class="diary-year-heading mt-2 mb-4 text-xl font-semibold text-90 dark:text-20">{year} 年</h1>
-								{Object.entries(months).map(([month, items]) => (
-									<>
-										<h2 id={`year-${year}-month-${month}`} class="diary-month-heading mt-1 mb-3 text-md font-medium text-70 dark:text-40">{month} 月</h2>
-										{items.map((moment) => (
+{sortedYearKeys.map((year) => (
+						<>
+							<h1 id={`year-${year}`} class="diary-year-heading mt-2 mb-4 text-xl font-semibold text-90 dark:text-20">{year} 年</h1>
+							{sortedMonthKeysByYear[year].map((month) => (
+								<>
+									<h2 id={`year-${year}-month-${month}`} class="diary-month-heading mt-1 mb-3 text-md font-medium text-70 dark:text-40">{month} 月</h2>
+									{sortedGroupedMoments[year][month].map((moment) => (
 											<div id={monthAnchorMap[moment.id] ?? undefined} class="moment-item card-base-daily p-4 md:p-6 lg:p-8 hover:shadow-lg transition-all">
 												<div class="moment-content">
 													<p class="moment-text text-sm md:text-base lg:text-lg text-90 leading-relaxed mb-3 md:mb-4">{moment.content}</p>
