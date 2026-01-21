@@ -27,9 +27,13 @@ draft: false
 <style>
 .post-side-by-side {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+	/* Always 3 columns on wide screens */
+	grid-template-columns: repeat(3, 1fr);
 	gap: 0.75rem;
 	align-items: stretch;
+}
+.post-side-by-side p {
+	margin: 0; /* remove default paragraph margin */
 }
 .post-side-by-side img {
 	width: 100%;
@@ -39,7 +43,17 @@ draft: false
 	border-radius: 6px;
 	display: block;
 }
+/* Medium screens: switch to 2 columns */
+@media (max-width: 900px) {
+	.post-side-by-side {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+/* Small screens: single column and allow natural image aspect */
 @media (max-width: 640px) {
+	.post-side-by-side {
+		grid-template-columns: 1fr;
+	}
 	.post-side-by-side img {
 		aspect-ratio: auto;
 		height: auto;
