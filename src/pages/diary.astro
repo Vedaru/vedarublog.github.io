@@ -68,10 +68,10 @@ for (const [y, months] of Object.entries(groupedMoments)) {
 						<div class="timeline-list space-y-4">
 						{Object.entries(groupedMoments).map(([year, months]) => (
 							<>
-								<h1 id={`year-${year}`} class="diary-year-heading mt-2 mb-4 text-xl font-semibold">{year} 年</h1>
+								<h1 id={`year-${year}`} class="diary-year-heading mt-2 mb-4 text-xl font-semibold text-90 dark:text-20">{year} 年</h1>
 								{Object.entries(months).map(([month, items]) => (
 									<>
-										<h2 id={`year-${year}-month-${month}`} class="diary-month-heading mt-1 mb-3 text-md font-medium text-70">{month} 月</h2>
+										<h2 id={`year-${year}-month-${month}`} class="diary-month-heading mt-1 mb-3 text-md font-medium text-70 dark:text-40">{month} 月</h2>
 										{items.map((moment) => (
 											<div id={monthAnchorMap[moment.id] ?? undefined} class="moment-item card-base-daily p-4 md:p-6 lg:p-8 hover:shadow-lg transition-all">
 												<div class="moment-content">
