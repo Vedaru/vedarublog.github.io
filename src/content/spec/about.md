@@ -3,47 +3,50 @@ This website is built with the **Astro** framework using the [Mizuki](https://gi
 
 ::github{repo="matsuzaka-yuki/Mizuki"}
 
-## 🌟 Theme Features
+## 🌟 关于我
 
-### 🎨 Design & User Experience
-- **Modern & Elegant Design** - Clean, minimalist interface with beautiful typography
-- **Fully Responsive** - Optimized for all devices from mobile to desktop
-- **Dark/Light Mode** - Automatic theme switching with smooth transitions
-- **Beautiful Typography** - Enhanced readability with JetBrains Mono font
-- **Smooth Animations** - Fluid page transitions and interactive elements
+### 🎨 请多指教
+- **身份** - 大一编程小白，正在探索技术的海洋🌊
+- **兴趣** - 二次元文化爱好者，热爱动画、漫画与游戏，吉他编曲新手，正在学习音乐制作
+- **状态** - 永远在学习路上的萌新，乐于分享与交流
 
-### 🔍 Content & Search
-- **Advanced Search** - Powered by [Pagefind](https://pagefind.app/) for fast, accurate results
-- **Enhanced Markdown** - Extended syntax with code highlighting and math support
-- **Interactive Table of Contents** - Auto-scroll navigation for long articles
-- **RSS Feed Generation** - Stay updated with automatic feed generation
-- **Reading Time Estimation** - Know how long articles take to read
-- **Post Categorization** - Organize content with tags and categories
+## 📝 本站内容
+这里主要记录我的学习成长和兴趣分享：
 
+### 🎵 音乐创作
+- VOCALOID 使用心得与技巧分享
+- Cubase 编曲经验与问题探讨
+- 原创音乐作品与幕后制作过程
+- 吉他编配与音乐理论实践
 
+### 🎨 二次元文化
+- 新番观后感与推荐
+- ACG 文化现象杂谈
+- 个人创作（同人、插画等）分享
 
-### 📱 Special Pages
-- **Anime Tracking Page** - Track your anime watching progress with ratings
-- **Friends Links Page** - Showcase friend websites with beautiful cards
-- **Diary/Moments Page** - Share life moments like social media posts
-- **Archive Page** - Organized timeline view of all posts
-- **About Page** - Customizable personal introduction (this page!)
+### 💻 技术学习
+- 编程学习过程中的笔记与总结
+- 网站开发技术实践记录
+- 技术问题解决方案分享
+- 有趣的小项目展示（左下角雪初音可爱捏~）
 
-### 🛠 Technical Features
-- **Enhanced Code Blocks** - Powered by [Expressive Code](https://expressive-code.com/)
-- **Math Support** - LaTeX rendering with KaTeX for mathematical expressions
-- **Image Optimization** - PhotoSwipe gallery with lazy loading
-- **SEO Optimized** - Built-in sitemap and meta tags for better search visibility
-- **Performance Optimized** - Fast loading with caching and optimization
-- **Comment System Ready** - Integration support for Twikoo comments
+## ❤️ 创建初衷
+- **记录成长** - 记录从编程小白到进阶的学习历程
+- **知识整理** - 将零散的知识系统化，加深理解
+- **寻找同好** - 结识同样喜欢编程、音乐和二次元的朋友
+- **分享交流** - 希望我的经验能帮助到有相同兴趣的人
+- **自我督促** - 通过公开写作倒逼自己持续学习QWQ
 
-### 🎯 Advanced Markdown Features
-- **Callouts & Admonitions** - Beautiful info boxes with `> [!NOTE]`, `> [!TIP]`, `> [!WARNING]`
-- **Mathematical Equations** - Write LaTeX math with `$inline$` and `$$block$$` syntax
-- **GitHub Cards** - Embed repository cards with `::github{repo="user/repo"}`
-- **Syntax Highlighting** - Advanced code highlighting with line numbers
-- **Copy Code Buttons** - Easy code copying functionality
+## 🗓️ 更新时间
+- **每周日** - 固定更新
+- **不定期** - 更新日记和追番内容
 
+## 📬 与我联系
+欢迎通过以下方式交流：
+- 在文章下方留言评论
+- 通过[GitHub](https://github.com/Vedaru)关注我的项目
+
+### 期待与更多同好成为朋友！
 ---
 
 *Built with ❤️ using Astro and inspired by modern web design principles.*

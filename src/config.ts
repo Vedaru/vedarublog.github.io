@@ -51,9 +51,9 @@ export const siteConfig: SiteConfig = {
 	// 顶栏标题配置
 	navbarTitle: {
 		// 显示模式："text-icon" 显示图标+文本，"logo" 仅显示Logo
-		mode: "logo",
+		mode: "text-icon",
 		// 顶栏标题文本
-		text: "MizukiUI",
+		text: "Vedaru",
 		// 顶栏标题图标路径，默认使用 public/assets/home/home.png
 		icon: "assets/home/home.png",
 		// 网站Logo图片路径
@@ -93,25 +93,24 @@ export const siteConfig: SiteConfig = {
 	// 壁纸模式配置
 	wallpaperMode: {
 		// 默认壁纸模式：banner=顶部横幅，fullscreen=全屏壁纸，none=无壁纸
-		defaultMode: "banner",
+		defaultMode: "fullscreen",
 		// 整体布局方案切换按钮显示设置（默认："desktop"）
 		// "off" = 不显示
 		// "mobile" = 仅在移动端显示
 		// "desktop" = 仅在桌面端显示
 		// "both" = 在所有设备上显示
-		showModeSwitchOnMobile: "desktop",
+		showModeSwitchOnMobile: "off",
 	},
 
 	banner: {
 		// 支持单张图片或图片数组，当数组长度 > 1 时自动启用轮播
 		src: {
 			desktop: [
-				"/assets/desktop-banner/1.webp",
-				"/assets/desktop-banner/2.webp",
-				"/assets/desktop-banner/3.webp",
-				"/assets/desktop-banner/4.webp",
-				"/assets/desktop-banner/5.webp",
-				"/assets/desktop-banner/6.webp",
+				"/assets/desktop-banner/8b31043a430bb793c6bd2949adb5ae1bb0825f25.webp",
+				"/assets/desktop-banner/54ae9fc257542e969dda9d9bcf07405999facb13.webp",
+				"/assets/desktop-banner/703c235a202e38293fa8037d04fc44500256417f.webp",
+				"/assets/desktop-banner/831fb1cdaeead8de1cae31354771e244290750052.webp",
+				"/assets/desktop-banner/be809be42311aa693fc459cf189339c36ca3ecbb.webp",
 			], // 桌面横幅图片
 			mobile: [
 				"/assets/mobile-banner/1.webp",
@@ -146,7 +145,7 @@ export const siteConfig: SiteConfig = {
 		// 请自行搭建API
 
 		homeText: {
-			enable: true, // 在主页显示自定义文本
+			enable: false, // 在主页显示自定义文本
 			title: "わたしの部屋", // 主页横幅主标题
 
 			subtitle: [
@@ -218,13 +217,12 @@ export const siteConfig: SiteConfig = {
 export const fullscreenWallpaperConfig: FullscreenWallpaperConfig = {
 	src: {
 		desktop: [
-			"/assets/desktop-banner/1.webp",
-			"/assets/desktop-banner/2.webp",
-			"/assets/desktop-banner/3.webp",
-			"/assets/desktop-banner/4.webp",
-			"/assets/desktop-banner/5.webp",
-			"/assets/desktop-banner/6.webp",
-		], // 桌面横幅图片
+			"/assets/desktop-banner/8b31043a430bb793c6bd2949adb5ae1bb0825f25.webp",
+			"/assets/desktop-banner/54ae9fc257542e969dda9d9bcf07405999facb13.webp",
+			"/assets/desktop-banner/703c235a202e38293fa8037d04fc44500256417f.webp",
+			"/assets/desktop-banner/831fb1cdaeead8de1cae31354771e244290750052.webp",
+			"/assets/desktop-banner/be809be42311aa693fc459cf189339c36ca3ecbb.webp",
+		], // 桌面壁纸图片
 		mobile: [
 			"/assets/mobile-banner/1.webp",
 			"/assets/mobile-banner/2.webp",
@@ -232,7 +230,7 @@ export const fullscreenWallpaperConfig: FullscreenWallpaperConfig = {
 			"/assets/mobile-banner/4.webp",
 			"/assets/mobile-banner/5.webp",
 			"/assets/mobile-banner/6.webp",
-		], // 移动横幅图片
+		], // 移动壁纸图片
 	}, // 使用本地横幅图片
 	position: "center", // 壁纸位置，等同于 object-position
 	carousel: {
@@ -256,21 +254,15 @@ export const navBarConfig: NavBarConfig = {
 			children: [
 				{
 					name: "GitHub",
-					url: "https://github.com/matsuzaka-yuki/Mizuki",
+					url: "https://github.com/Vedaru",
 					external: true,
 					icon: "fa6-brands:github",
 				},
 				{
 					name: "Bilibili",
-					url: "https://space.bilibili.com/701864046",
+					url: "https://space.bilibili.com/3546947954674618",
 					external: true,
 					icon: "fa6-brands:bilibili",
-				},
-				{
-					name: "Gitee",
-					url: "https://gitee.com/matsuzakayuki/Mizuki",
-					external: true,
-					icon: "mdi:git",
 				},
 			],
 		},
@@ -293,12 +285,6 @@ export const navBarConfig: NavBarConfig = {
 					name: "Gallery",
 					url: "/albums/",
 					icon: "material-symbols:photo-library",
-				},
-				{
-					name: "Devices",
-					url: "devices/",
-					icon: "material-symbols:devices",
-					external: false,
 				},
 			],
 		},
@@ -356,27 +342,22 @@ export const profileConfig: ProfileConfig = {
 		{
 			name: "Bilibili",
 			icon: "fa6-brands:bilibili",
-			url: "https://space.bilibili.com/701864046",
-		},
-		{
-			name: "Gitee",
-			icon: "mdi:git",
-			url: "https://gitee.com/matsuzakayuki",
+			url: "https://space.bilibili.com/3546947954674618",
 		},
 		{
 			name: "GitHub",
 			icon: "fa6-brands:github",
-			url: "https://github.com/matsuzaka-yuki",
-		},
-		{
-			name: "Codeberg",
-			icon: "simple-icons:codeberg",
-			url: "https://codeberg.org",
+			url: "https://github.com/Vedaru",
 		},
 		{
 			name: "Discord",
 			icon: "fa6-brands:discord",
-			url: "https://discord.gg/MqW6TcQtVM",
+			url: "https://discord.com/channels/@me",
+		},
+		{
+			name: "X",
+			icon: "fa6-brands:x-twitter",
+			url: "https://x.com/loner450189",
 		},
 	],
 };
@@ -523,7 +504,7 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 			// 组件显示顺序
 			order: 2,
 			// 组件位置："top" 表示固定在顶部
-			position: "top",
+			position: "sticky",
 			// 所在侧边栏
 			sidebar: "left",
 			// CSS 类名
@@ -558,11 +539,11 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 			// 是否启用该组件
 			enable: true,
 			// 组件显示顺序
-			order: 5,
+			order: 6,
 			// 组件位置："sticky" 表示粘性定位
-			position: "top",
+			position: "sticky",
 			// 所在侧边栏
-			sidebar: "left",
+			sidebar: "right",
 			// CSS 类名
 			class: "onload-animation",
 			// 动画延迟时间
@@ -593,11 +574,11 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 			// 组件类型：日历组件(移动端不显示)
 			type: "calendar",
 			// 是否启用该组件
-			enable: true,
+			enable: false,
 			// 组件显示顺序
-			order: 6,
+			order: 4,
 			// 组件位置
-			position: "top",
+			position: "sticky",
 			// 所在侧边栏
 			sidebar: "right",
 			// CSS 类名
@@ -606,7 +587,6 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 			animationDelay: 250,
 		},
 	],
-
 	// 默认动画配置
 	defaultAnimation: {
 		// 是否启用默认动画

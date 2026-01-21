@@ -149,8 +149,7 @@ function getRandom(option: string, config: SakuraConfig): any {
 			break;
 		case "s":
 			ret =
-				config.size.min +
-				Math.random() * (config.size.max - config.size.min);
+				config.size.min + Math.random() * (config.size.max - config.size.min);
 			break;
 		case "r":
 			ret = Math.random() * 6;
@@ -170,8 +169,7 @@ function getRandom(option: string, config: SakuraConfig): any {
 		case "fny":
 			random =
 				config.speed.vertical.min +
-				Math.random() *
-					(config.speed.vertical.max - config.speed.vertical.min);
+				Math.random() * (config.speed.vertical.max - config.speed.vertical.min);
 			ret = (_x: number, y: number) => y + random;
 			break;
 		case "fnr":
@@ -204,16 +202,29 @@ export class SakuraManager {
 			return;
 		}
 
+		// 根据月份选择图片
+		const month = new Date().getMonth() + 1; // getMonth() 返回 0-11
+		let imageName = "sakura.webp"; // 默认樱花
+		
+		if (month >= 3 && month <= 5) {
+			imageName = "sakura.webp"; // 3-5月：樱花
+		} else if (month >= 9 && month <= 11) {
+			imageName = "mapleleaf.webp"; // 9-11月：枫叶
+		} else if (month === 12 || month === 1 || month === 2) {
+			imageName = "snowflake.webp"; // 12-2月：雪花
+		}
+
 		// 创建图片对象
 		this.img = new Image();
-		this.img.src = "/sakura.png"; // 使用樱花图片
+		this.img.src = `/${imageName}`;
+		console.log(`加载季节图片: ${imageName} (月份: ${month})`);
 
 		// 等待图片加载完成
 		await new Promise<void>((resolve, reject) => {
 			if (this.img) {
 				this.img.onload = () => resolve();
 				this.img.onerror = () =>
-					reject(new Error("Failed to load sakura image"));
+					reject(new Error(`Failed to load image: ${imageName}`));
 			}
 		});
 
@@ -328,7 +339,11 @@ export class SakuraManager {
 		if (this.isRunning) {
 			this.stop();
 		} else {
+			// 临时启用配置以允许初始化
+			const originalEnable = this.config.enable;
+			this.config.enable = true;
 			this.init();
+			this.config.enable = originalEnable;
 		}
 	}
 

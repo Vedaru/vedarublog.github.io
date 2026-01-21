@@ -1,7 +1,7 @@
 ---
 import type { CollectionEntry } from "astro:content";
 import { commentConfig } from "@/config";
-import { removeFileExtension } from "@/utils/url-utils";
+import { removeFileExtension, getPostUrl } from "@/utils/url-utils";
 import Twikoo from "./Twikoo.astro";
 
 interface Props {
@@ -10,8 +10,8 @@ interface Props {
 
 const { id, data: _data } = Astro.props.post;
 
-const slug = removeFileExtension(id);
-const path = `/posts/${slug}`;
+// Use canonical post URL (respects global/custom permalinks) and remove trailing slash for compatibility with Twikoo
+const path = getPostUrl({ id, data: _data }).replace(/\/$/, "");
 // const url = `${Astro.site?.href}${path}`;
 
 let commentService = "";
