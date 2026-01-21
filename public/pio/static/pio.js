@@ -10,7 +10,7 @@
 
 ---- */
 
-var Paul_Pio = function (prop) {
+window.Paul_Pio = function (prop) {
 	const current = {
 		idol: 0,
 		timeout: undefined,
@@ -25,8 +25,9 @@ var Paul_Pio = function (prop) {
 		// 创建内容
 		create: (tag, options) => {
 			const el = document.createElement(tag);
-			options.class && (el.className = options.class);
-
+			if (options.class) {
+				el.className = options.class;
+			}
 			return el;
 		},
 		// 随机内容
@@ -35,10 +36,13 @@ var Paul_Pio = function (prop) {
 		},
 		// 是否为移动设备
 		isMobile: () => {
+			// 使用触控能力与 UA 双重判断，提升平板/手机识别准确度
+			const hasTouch =
+				navigator.maxTouchPoints > 0 ||
+				window.matchMedia("(pointer: coarse)").matches;
 			let ua = window.navigator.userAgent.toLowerCase();
 			ua = ua.indexOf("mobile") || ua.indexOf("android") || ua.indexOf("ios");
-
-			return window.innerWidth < 500 || ua !== -1;
+			return hasTouch || window.innerWidth < 820 || ua !== -1;
 		},
 	};
 
@@ -60,10 +64,11 @@ var Paul_Pio = function (prop) {
 	const modules = {
 		// 更换模型
 		idol: () => {
-			current.idol < prop.model.length - 1
-				? current.idol++
-				: (current.idol = 0);
-
+			if (current.idol < prop.model.length - 1) {
+				current.idol += 1;
+			} else {
+				current.idol = 0;
+			}
 			return current.idol;
 		},
 		// 创建对话框方法
@@ -94,12 +99,36 @@ var Paul_Pio = function (prop) {
 
 	this.destroy = modules.destroy;
 	this.message = modules.message;
+	// Rendering control helpers - allow host page to pause/reduce/resume rendering during heavy transitions
+	this.pauseRendering = function() {
+		try {
+			window.__PIO_RENDER_CONTROL = window.__PIO_RENDER_CONTROL || { mode: 'normal', reduceFPS: 15, _lastRender: 0 };
+			window.__PIO_RENDER_CONTROL.mode = 'paused';
+			console.log('[PIO] rendering paused');
+		} catch (e) { }
+	};
 
+	this.resumeRendering = function() {
+		try {
+			window.__PIO_RENDER_CONTROL = window.__PIO_RENDER_CONTROL || { mode: 'normal', reduceFPS: 15, _lastRender: 0 };
+			window.__PIO_RENDER_CONTROL.mode = 'normal';
+			console.log('[PIO] rendering resumed');
+		} catch (e) { }
+	};
+
+	this.reduceRendering = function(fps) {
+		try {
+			window.__PIO_RENDER_CONTROL = window.__PIO_RENDER_CONTROL || { mode: 'normal', reduceFPS: 15, _lastRender: 0 };
+			window.__PIO_RENDER_CONTROL.mode = 'reduced';
+			window.__PIO_RENDER_CONTROL.reduceFPS = fps || 12;
+			console.log('[PIO] rendering reduced to ' + window.__PIO_RENDER_CONTROL.reduceFPS + ' fps');
+		} catch (e) { }
+	};
 	/* - 提示操作 */
 	const action = {
 		// 欢迎
 		welcome: () => {
-			if (document.referrer && document.referrer.includes(current.root)) {
+			if (document?.referrer?.includes(current.root)) {
 				const referrer = document.createElement("a");
 				referrer.href = document.referrer;
 
@@ -111,8 +140,8 @@ var Paul_Pio = function (prop) {
 					modules.message(`欢迎来自 “${referrer.hostname}” 的朋友！`);
 				}
 			} else if (prop.tips) {
-				let text,
-					hour = new Date().getHours();
+				let text;
+				const hour = new Date().getHours();
 
 				if (hour > 22 || hour <= 5) {
 					text = "你是夜猫子呀？这么晚还不睡觉，明天起的来嘛";
@@ -154,6 +183,10 @@ var Paul_Pio = function (prop) {
 		},
 		// 右侧按钮
 		buttons: () => {
+			// 重建前清空按钮，防止重复累加
+			if (current.menu) {
+				current.menu.innerHTML = "";
+			}
 			// 返回首页 - 使用 Swup 无刷新跳转
 			elements.home.onclick = () => {
 				// 检查 Swup 是否可用
@@ -206,7 +239,13 @@ var Paul_Pio = function (prop) {
 			// 夜间模式
 			if (prop.night) {
 				elements.night.onclick = () => {
-					typeof prop.night === "function" ? prop.night() : eval(prop.night);
+					if (typeof prop.night === "function") {
+						prop.night();
+					} else {
+						console.warn(
+							"Night toggle is not a function; skipping unsafe eval",
+						);
+					}
 				};
 				elements.night.onmouseover = () => {
 					modules.message("夜间点击这里可以保护眼睛呢");
@@ -350,7 +389,7 @@ var Paul_Pio = function (prop) {
 };
 
 // 请保留版权说明
-if (window.console && window.console.log) {
+if (window.console?.log) {
 	console.log(
 		"%c Pio %c https://paugram.com ",
 		"color: #fff; margin: 1em 0; padding: 5px 0; background: #673ab7;",
