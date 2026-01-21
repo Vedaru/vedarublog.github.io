@@ -1,98 +1,82 @@
 [
   {
-    "name": "Reflection in the mirror",
-    "artist": "スリーズブーケ",
-    "url": "/assets/music/url/0-R.opus",
-    "cover": "/assets/music/cover/0-R.jpg",
-    "lrc": "https://www.bilibili.uno/api?server=netease&type=lrc&id=2052339049",
+    "name": "8月31日",
+    "artist": "DECO*27 / 初音ミク",
+    "url": "/assets/music/url/0-831.opus",
+    "cover": "/assets/music/cover/0-831.jpg",
+    "lrc": "https://api.i-meto.com/meting/api?server=netease&type=lrc&id=28364371&auth=7f12a54709b6193230353f824d97733fed9f1b10",
     "id": ""
   },
   {
-    "name": "ルカルカ★ナイトフィーバー (Cover)",
-    "artist": "Pastel＊Palettes",
-    "url": "/assets/music/url/1-C.opus",
-    "cover": "/assets/music/cover/1-C.jpg",
-    "lrc": "https://www.bilibili.uno/api?server=netease&type=lrc&id=1809138322",
+    "name": "反乌托邦",
+    "artist": "乌托邦P",
+    "url": "/assets/music/url/1-api.opus",
+    "cover": "/assets/music/cover/1-api.jpg",
+    "lrc": "https://api.i-meto.com/meting/api?server=netease&type=lrc&id=2671812705&auth=e66739d33ce2763954676cdc55a99e06a4bdba98",
     "id": ""
   },
   {
-    "name": "secret base ~君がくれたもの~",
-    "artist": "Pastel＊Palettes",
-    "url": "/assets/music/url/2-api.opus",
-    "cover": "/assets/music/cover/2-api.jpg",
-    "lrc": "https://www.bilibili.uno/api?server=netease&type=lrc&id=551335798",
+    "name": "RIP",
+    "artist": "Orangestar / IA",
+    "url": "/assets/music/url/2-RIP.opus",
+    "cover": "/assets/music/cover/2-RIP.jpg",
+    "lrc": "https://api.i-meto.com/meting/api?server=netease&type=lrc&id=458238397&auth=88c41ee00bc2abdb430a8d63ba582600c0f198d2",
     "id": ""
   },
   {
-    "name": "最強ハーモニー",
-    "artist": "今村彩夏 / 西明日香",
-    "url": "/assets/music/url/3-api.opus",
-    "cover": "/assets/music/cover/3-api.jpg",
-    "lrc": "https://www.bilibili.uno/api?server=netease&type=lrc&id=417243938",
+    "name": "Last Night,Good Night",
+    "artist": "livetune / 初音ミク",
+    "url": "/assets/music/url/3-LNGN.opus",
+    "cover": "/assets/music/cover/3-LNGN.jpg",
+    "lrc": "https://api.i-meto.com/meting/api?server=netease&type=lrc&id=22677560&auth=0a60d0855bdc0c20c46bb891e9f93db7a354ebfc",
     "id": ""
   },
   {
-    "name": "FUTURITY SMILE -25 colors-",
-    "artist": "シャイニーカラーズ",
-    "url": "/assets/music/url/4-FUTURITYSMILE25.opus",
-    "cover": "/assets/music/cover/4-FUTURITYSMILE25.jpg",
-    "lrc": "https://www.bilibili.uno/api?server=netease&type=lrc&id=2016146946",
+    "name": "夢よ未来へ",
+    "artist": "はりーP / 初音ミク",
+    "url": "/assets/music/url/4-api.opus",
+    "cover": "/assets/music/cover/4-api.jpg",
+    "lrc": "https://api.i-meto.com/meting/api?server=netease&type=lrc&id=1372315794&auth=c87ce096b28fbb158defc84969e53f460a12daa8",
     "id": ""
   },
   {
-    "name": "Returns",
-    "artist": "Poppin'Party",
-    "url": "/assets/music/url/5-R.opus",
-    "cover": "/assets/music/cover/5-R.jpg",
-    "lrc": "https://www.bilibili.uno/api?server=netease&type=lrc&id=1365428127",
+    "name": "一人行者",
+    "artist": "心华",
+    "url": "/assets/music/url/5-api.opus",
+    "cover": "/assets/music/cover/5-api.jpg",
+    "lrc": "https://api.i-meto.com/meting/api?server=netease&type=lrc&id=526116050&auth=2e841ca2224e16823251de765da29378fea34f83",
     "id": ""
   },
   {
-    "name": "白金ディスコ",
-    "artist": "井口裕香",
+    "name": "アイロニ",
+    "artist": "すこっぷ / 初音ミク",
     "url": "/assets/music/url/6-api.opus",
     "cover": "/assets/music/cover/6-api.jpg",
-    "lrc": "https://www.bilibili.uno/api?server=netease&type=lrc&id=460528",
+    "lrc": "https://api.i-meto.com/meting/api?server=netease&type=lrc&id=28411815&auth=597b33989456452c2a9f28d059c3e1b154dd9d94",
     "id": ""
   },
   {
-    "name": "キズナミュージック♪",
-    "artist": "Poppin'Party",
+    "name": "夜明けと蛍 arrange ver.",
+    "artist": "n-buna",
     "url": "/assets/music/url/7-api.opus",
     "cover": "/assets/music/cover/7-api.jpg",
-    "lrc": "https://www.bilibili.uno/api?server=netease&type=lrc&id=1332891849",
+    "lrc": "https://api.i-meto.com/meting/api?server=netease&type=lrc&id=1966112058&auth=b9e2de6088c5e065305ada687730491ceb40b33a",
     "id": ""
   },
   {
-    "name": "あなたにありがとう",
-    "artist": "小春めう",
+    "name": "アスノヨゾラ哨戒班",
+    "artist": "Orangestar / IA",
     "url": "/assets/music/url/8-api.opus",
     "cover": "/assets/music/cover/8-api.jpg",
-    "lrc": "https://www.bilibili.uno/api?server=netease&type=lrc&id=511922975",
+    "lrc": "https://api.i-meto.com/meting/api?server=netease&type=lrc&id=31830623&auth=44dd5eb7699959bf40a321bde6ed77289a8a99b0",
     "id": ""
   },
   {
-    "name": "君色に染まる",
-    "artist": "ゆいこんぬ",
+    "name": "もうじき夏が終わるから",
+    "artist": "n-buna / 初音ミク",
     "url": "/assets/music/url/9-api.opus",
     "cover": "/assets/music/cover/9-api.jpg",
-    "lrc": "https://www.bilibili.uno/api?server=netease&type=lrc&id=501133567",
-    "id": ""
-  },
-  {
-    "name": "春を連れて",
-    "artist": "Kotoha",
-    "url": "/assets/music/url/10-api.opus",
-    "cover": "/assets/music/cover/10-api.jpg",
-    "lrc": "https://www.bilibili.uno/api?server=netease&type=lrc&id=2075565122",
-    "id": ""
-  },
-  {
-    "name": "with",
-    "artist": "嶺内ともみ",
-    "url": "/assets/music/url/11-api.opus",
-    "cover": "/assets/music/cover/11-api.jpg",
-    "lrc": "https://www.bilibili.uno/api?server=netease&type=lrc&id=1337185378",
+    "lrc": "https://api.i-meto.com/meting/api?server=netease&type=lrc&id=33367332&auth=2d4830d1d519e87048d7e02691919651abbf6df5",
     "id": ""
   }
 ]
