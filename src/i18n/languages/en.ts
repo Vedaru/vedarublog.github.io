@@ -58,7 +58,6 @@ export const en: Translation = {
 	[Key.license]: "License",
 	[Key.anime]: "Anime",
 	[Key.diary]: "Diary",
-	[Key.gallery]: "Gallery",
 
 	// Anime Page
 	[Key.animeTitle]: "My Anime List",
@@ -96,9 +95,9 @@ export const en: Translation = {
 	// Music Player
 	[Key.musicPlayer]: "Music Player",
 	[Key.musicPlayerShow]: "Show Music Player",
-	[Key.musicPlayerHide]: "Hide Music Player",
-	[Key.musicPlayerExpand]: "Expand",
-	[Key.musicPlayerCollapse]: "Collapse",
+	[Key.musicPlayerHide]: "Hide Player",
+	[Key.musicPlayerExpand]: "Expand Music Player",
+	[Key.musicPlayerCollapse]: "Collapse Player",
 	[Key.musicPlayerPause]: "Pause",
 	[Key.musicPlayerPlay]: "Play",
 	[Key.musicPlayerPrevious]: "Previous",
@@ -106,17 +105,16 @@ export const en: Translation = {
 	[Key.musicPlayerShuffle]: "Shuffle",
 	[Key.musicPlayerRepeat]: "Repeat",
 	[Key.musicPlayerRepeatOne]: "Repeat One",
-	[Key.musicPlayerVolume]: "Volume",
-	[Key.musicPlayerProgress]: "Progress",
+	[Key.musicPlayerVolume]: "Volume Control",
+	[Key.musicPlayerProgress]: "Playback Progress",
 	[Key.musicPlayerCover]: "Cover",
 	[Key.musicPlayerPlaylist]: "Playlist",
 	[Key.musicPlayerLoading]: "Loading...",
-	[Key.musicPlayerErrorPlaylist]: "Failed to load playlist",
-	[Key.musicPlayerErrorSong]: "Failed to load song",
-	[Key.musicPlayerErrorEmpty]: "Playlist is empty",
+	[Key.musicPlayerErrorPlaylist]: "Failed to fetch playlist",
+	[Key.musicPlayerErrorSong]: "Failed to load current song, trying next",
+	[Key.musicPlayerErrorEmpty]: "No available songs in playlist",
 	[Key.unknownSong]: "Unknown Song",
 	[Key.unknownArtist]: "Unknown Artist",
-	[Key.playlist]: "Playlist",
 
 	// Albums Page
 	[Key.albums]: "Albums",
@@ -335,8 +333,8 @@ export const en: Translation = {
 		"If this article helped you, please share it with others!",
 
 	// Profile Stats
-	[Key.profileStatsLoading]: "Loading...",
-	[Key.profileStatsPageViews]: "Page Views",
+	[Key.profileStatsLoading]: "Loading stats...",
+	[Key.profileStatsPageViews]: "Page views",
 	[Key.profileStatsVisits]: "Visits",
-	[Key.profileStatsUnavailable]: "Unavailable",
+	[Key.profileStatsUnavailable]: "Stats unavailable",
 };

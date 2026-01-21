@@ -159,7 +159,7 @@ BCRYPT_SALT_ROUNDS=12
 title: 我的第一篇博客文章
 published: 2023-09-09
 description: 这是我新博客的第一篇文章。
-image: ./cover.webp
+image: ./cover.jpg
 tags: [标签1, 标签2]
 category: 前端
 draft: false
@@ -225,7 +225,7 @@ Mizuki 支持超越标准 GitHub Flavored Markdown 的增强功能：
 | `pnpm build`               | 构建生产站点到 `./dist/`               |
 | `pnpm preview`             | 在部署前本地预览构建                   |
 | `pnpm check`               | 运行 Astro 错误检查                    |
-| `pnpm format`              | 使用 Biome 格式化代码                  |
+| `pnpm format`              | 使用 Prettier 格式化代码                  |
 | `pnpm lint`                | 检查并修复代码问题                     |
 | `pnpm new-post <文件名>`   | 创建新博客文章                         |
 | `pnpm astro ...`           | 运行 Astro CLI 命令                    |

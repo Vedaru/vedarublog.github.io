@@ -74,14 +74,6 @@
     }
   }
 
-  .expressive-code {
-    @apply my-4;
-    ::selection {
-      @apply bg-[var(--codeblock-selection)];
-      color: #ffffff;
-    }
-  }
-
   ul,
   ol {
     li::marker {
@@ -208,3 +200,4 @@
 :root:not(.dark) .custom-md spoiler {
   --_spoiler-mask: color-mix(in oklch, var(--primary) 55%, white 45%);
 }
+

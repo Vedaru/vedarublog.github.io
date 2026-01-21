@@ -56,7 +56,6 @@ enum I18nKey {
 	friendsTags = "friendsTags",
 	anime = "anime",
 	diary = "diary",
-	gallery = "gallery",
 
 	// 番剧页面
 	animeTitle = "animeTitle",
@@ -111,8 +110,6 @@ enum I18nKey {
 	musicPlayerErrorEmpty = "musicPlayerErrorEmpty",
 	unknownSong = "unknownSong",
 	unknownArtist = "unknownArtist",
-
-	playlist = "playlist",
 
 	// 相册页面
 	albums = "albums",

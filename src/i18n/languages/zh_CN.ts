@@ -58,7 +58,6 @@ export const zh_CN: Translation = {
 	[Key.license]: "许可协议",
 	[Key.anime]: "追番",
 	[Key.diary]: "日记",
-	[Key.gallery]: "相册",
 
 	// 番剧页面
 	[Key.animeTitle]: "我的追番记录",
@@ -93,27 +92,26 @@ export const zh_CN: Translation = {
 	// 音乐播放器
 	[Key.musicPlayer]: "音乐播放器",
 	[Key.musicPlayerShow]: "显示音乐播放器",
-	[Key.musicPlayerHide]: "隐藏音乐播放器",
-	[Key.musicPlayerExpand]: "展开",
-	[Key.musicPlayerCollapse]: "折叠",
+	[Key.musicPlayerHide]: "隐藏播放器",
+	[Key.musicPlayerExpand]: "展开音乐播放器",
+	[Key.musicPlayerCollapse]: "收起播放器",
 	[Key.musicPlayerPause]: "暂停",
 	[Key.musicPlayerPlay]: "播放",
 	[Key.musicPlayerPrevious]: "上一首",
 	[Key.musicPlayerNext]: "下一首",
 	[Key.musicPlayerShuffle]: "随机播放",
-	[Key.musicPlayerRepeat]: "循环播放",
+	[Key.musicPlayerRepeat]: "列表循环",
 	[Key.musicPlayerRepeatOne]: "单曲循环",
-	[Key.musicPlayerVolume]: "音量",
-	[Key.musicPlayerProgress]: "进度",
+	[Key.musicPlayerVolume]: "音量控制",
+	[Key.musicPlayerProgress]: "播放进度",
 	[Key.musicPlayerCover]: "封面",
 	[Key.musicPlayerPlaylist]: "播放列表",
 	[Key.musicPlayerLoading]: "加载中...",
-	[Key.musicPlayerErrorPlaylist]: "播放列表加载失败",
-	[Key.musicPlayerErrorSong]: "歌曲加载失败",
-	[Key.musicPlayerErrorEmpty]: "播放列表为空",
+	[Key.musicPlayerErrorPlaylist]: "播放列表获取失败",
+	[Key.musicPlayerErrorSong]: "当前歌曲加载失败，尝试加载下一首",
+	[Key.musicPlayerErrorEmpty]: "播放列表中没有可用的歌曲",
 	[Key.unknownSong]: "未知歌曲",
 	[Key.unknownArtist]: "未知艺术家",
-	[Key.playlist]: "播放列表",
 
 	// 相册页面
 	[Key.albums]: "相册",
@@ -322,9 +320,9 @@ export const zh_CN: Translation = {
 	[Key.shareOnSocialDescription]:
 		"如果这篇文章对你有帮助，欢迎分享给更多人！",
 
-	// 个人资料统计
-	[Key.profileStatsLoading]: "加载中...",
-	[Key.profileStatsPageViews]: "页面浏览量",
+	// 个人资料
+	[Key.profileStatsLoading]: "统计加载中...",
+	[Key.profileStatsPageViews]: "浏览量",
 	[Key.profileStatsVisits]: "访问次数",
-	[Key.profileStatsUnavailable]: "不可用",
+	[Key.profileStatsUnavailable]: "统计不可用",
 };

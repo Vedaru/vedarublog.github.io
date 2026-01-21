@@ -5,7 +5,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9.2-blue)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-![Mizuki Preview](../README.webp)
+![Mizuki Preview](./README.webp)
 
 <table>
   <tr>
@@ -145,7 +145,7 @@
 title: 私の最初のブログ投稿
 published: 2023-09-09
 description: これは私の新しいブログの最初の投稿です。
-image: ./cover.webp
+image: ./cover.jpg
 tags: [タグ1, タグ2]
 category: フロントエンド
 draft: false
@@ -211,7 +211,7 @@ Mizukiは標準のGitHub Flavored Markdownを超える拡張機能をサポー�
 | `pnpm build`               | 本番サイトを`./dist/`にビルド              |
 | `pnpm preview`             | デプロイ前にビルドをローカルでプレビュー     |
 | `pnpm check`               | Astroエラーチェックを実行                  |
-| `pnpm format`              | Biomeでコードをフォーマット                |
+| `pnpm format`              | Prettierでコードをフォーマット                |
 | `pnpm lint`                | コードの問題をチェックして修正              |
 | `pnpm new-post <ファイル名>` | 新しいブログ投稿を作成                     |
 | `pnpm astro ...`           | Astro CLIコマンドを実行                   |

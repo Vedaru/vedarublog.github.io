@@ -4,79 +4,48 @@ import { getDiaryList, getDiaryStats } from "../data/diary";
 import I18nKey from "../i18n/i18nKey";
 import { i18n } from "../i18n/translation";
 import MainGridLayout from "../layouts/MainGridLayout.astro";
-import ResponsiveImage from "../components/ResponsiveImage.astro";
 
 // 检查日记页面是否启用
 if (!siteConfig.featurePages.diary) {
 	return Astro.redirect("/404/");
 }
 
-// 获取日记数据（显式请求全部日记，不做数量限制）
-const moments = getDiaryList(Number.MAX_SAFE_INTEGER);
-
-// 按年 -> 月分组（外层年份，内层月份；均倒序）
-const groupByYearMonth = (list: any[]) => {
-	const yearMap = new Map();
-	list.forEach((m: any) => {
-		// 直接从日期字符串 YYYY-MM-DDTHH:MM:SS 中提取年月，避免时区偏移
-		const datePart = m.date.split('T')[0];
-		const [yStr, mStr] = datePart.split('-');
-		const y = parseInt(yStr, 10);
-		const mth = String(parseInt(mStr, 10)).padStart(2, "0");
-		if (!yearMap.has(y)) yearMap.set(y, new Map());
-		const monthMap = yearMap.get(y);
-		if (!monthMap.has(mth)) monthMap.set(mth, []);
-		monthMap.get(mth).push(m);
-	});
-	// sort years desc, months desc
-	return Array.from(yearMap.entries())
-		.sort(
-			(
-				a: [number, Map<string, Record<string, unknown>>],
-				b: [number, Map<string, Record<string, unknown>>],
-			) => (a[0] < b[0] ? 1 : -1),
-		)
-		.map(([year, mMap]) => [
-			year,
-			Array.from(mMap.entries()).sort(
-				(
-					a: [string, Record<string, unknown>],
-					b: [string, Record<string, unknown>],
-				) => (a[0] < b[0] ? 1 : -1),
-			),
-		]);
-};
-
-const groupedMoments = groupByYearMonth(moments);
+// 获取日记数据
+const moments = getDiaryList();
 const diaryStats = getDiaryStats();
 
-// 时间格式化函数（相对时间，基于 siteConfig.timeZone）
+// 时间格式化函数
 function formatTime(dateString: string): string {
-	// 直接使用 date 字符串中的日期部分（忽略时区/本地时间），保证展示与数据中的日期一致
-	if (!dateString) return '';
-	// dateString 可能形如 "YYYY-MM-DDTHH:MM:SS" 或带时区后缀，先按 "T" 分割取日期部分
-	const datePart = dateString.split('T')[0];
-	const parts = datePart.split('-');
-	if (parts.length < 3) return dateString;
-	const monthStr = String(parts[1]).padStart(2, '0');
-	const dayStr = String(parts[2]).padStart(2, '0');
-	const lang = (siteConfig && siteConfig.lang) ? String(siteConfig.lang).toLowerCase() : '';
-	if (lang.startsWith('zh')) {
-		return `${monthStr}月${dayStr}日`;
-	}
-	return `${monthStr}-${dayStr}`;
-}
+	var TG = 8;
+	if (siteConfig.timeZone >= -12 && siteConfig.timeZone <= 12)
+		TG = siteConfig.timeZone;
+	const timeGap = TG;
 
-// 返回具体时:分（24 小时制），用于卡片右下角显示（使用本地时区）
-function formatClock(dateString: string): string {
-	const d = new Date(dateString);
-	const hh = String(d.getHours()).padStart(2, "0");
-	const mm = String(d.getMinutes()).padStart(2, "0");
-	return `${hh}:${mm}`;
+	// const lang = siteConfig.lang;
+	const now = new Date();
+	const date = new Date(dateString);
+	const diffInMinutes = Math.floor(
+		(now.getTime() + timeGap * 60 * 60 * 1000 - date.getTime()) / (1000 * 60),
+	);
+
+	if (diffInMinutes < 60) {
+		return `${diffInMinutes}${i18n(I18nKey.diaryMinutesAgo)}`;
+	}
+	if (diffInMinutes < 1440) {
+		// 24小时
+		const hours = Math.floor(diffInMinutes / 60);
+		return `${hours}${i18n(I18nKey.diaryHoursAgo)}`;
+	}
+	const days = Math.floor(diffInMinutes / 1440);
+	return `${days}${i18n(I18nKey.diaryDaysAgo)}`;
 }
 ---
 
 <MainGridLayout title={i18n(I18nKey.diary)} description="即刻短文">
+	<!-- 引入右侧边栏布局管理器 -->
+  <script>
+    import('../scripts/right-sidebar-layout.js');
+  </script>
 	<div class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative min-h-32">
 		<div class="card-base z-10 px-4 py-4 md:px-6 md:py-5 relative w-full">
 		<div class="relative max-w-4xl w-full px-2 md:px-0">
@@ -84,13 +53,13 @@ function formatClock(dateString: string): string {
 				<div class="moments-header mb-6">
 					<div class="header-content">
 						<div class="header-info">
-							<h1 class="moments-title text-xl lg:text-3xl font-bold text-90 mb-1">{i18n(I18nKey.diary)}</h1>
-							<p class="moments-subtitle text-sm lg:text-2xl text-75">{i18n(I18nKey.diarySubtitle)}</p>
+							<h1 class="moments-title text-xl md:text-2xl lg:text-3xl font-bold text-90 mb-1">{i18n(I18nKey.diary)}</h1>
+							<p class="moments-subtitle text-sm md:text-base lg:text-lg text-75">{i18n(I18nKey.diarySubtitle)}</p>
 						</div>
 						<div class="header-stats">
 							<div class="stat-item text-center">
-								<span class="stat-number text-lg lg:text-2xl font-bold text-[var(--primary)]">{diaryStats.total}</span>
-								<span class="stat-label text-xs lg:text-base text-75">{i18n(I18nKey.diaryCount)}</span>
+								<span class="stat-number text-lg md:text-xl lg:text-2xl font-bold text-[var(--primary)]">{diaryStats.total}</span>
+								<span class="stat-label text-xs md:text-sm lg:text-base text-75">{i18n(I18nKey.diaryCount)}</span>
 							</div>
 						</div>
 					</div>
@@ -99,105 +68,59 @@ function formatClock(dateString: string): string {
 				<!-- 短文列表 -->
 				<div class="moments-timeline">
 					<div class="timeline-list space-y-4">
-					{groupedMoments.map(([year, months]) => (
-						<div class="moment-group" id={`year-${year}`}>
-							<div class="moment-group-header flex items-center gap-2 text-sm md:text-base font-semibold text-90">
-								<span class="group-label">{year}</span>
-								<span class="group-count text-50 text-xs md:text-sm">({months.reduce((acc: number, [, arr]: any) => acc + arr.length, 0)})</span>
-							</div>
-							<div class="space-y-3">
-							{months.map(([month, items]) => (
-								<div class="moment-subgroup" id={`month-${year}-${month}`}>
-									<div class="moment-subgroup-header flex items-center gap-2 text-sm md:text-base font-semibold text-90">
-										<span class="group-label">{year}-{month}</span>
-										<span class="group-count text-50 text-xs md:text-sm">({items.length})</span>
-									</div>
-									<div class="space-y-4">
-									{items.map((moment: any) => (
-										<div class="moment-item card-base p-4 lg:p-8 hover:shadow-lg transition-all">
-											<div class="moment-content">
-												<p class="moment-text text-sm lg:text-lg leading-relaxed mb-3 text-90">{moment.content}</p>
-												{moment.images && moment.images.length > 0 && (
-					<div class="moment-images grid grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-4 mb-3">
-						{moment.images.map((image: any, _index: number) => (
-						<div class="image-item relative rounded-md overflow-hidden aspect-square cursor-pointer hover:scale-105 transition-transform">
-							<ResponsiveImage 
-								src={image}
+					{moments.map((moment, index) => (
+						<div class="moment-item card-base-daily p-4 md:p-6 lg:p-8 hover:shadow-lg transition-all">
+								<div class="moment-content">
+									<p class="moment-text text-sm md:text-base lg:text-lg text-90 leading-relaxed mb-3 md:mb-4">{moment.content}</p>
+									
+									{moment.images && moment.images.length > 0 && (
+				<div class="diary-images grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3 lg:gap-4 mb-3 md:mb-4">
+					{moment.images.map((image, _index) => (
+					<div class="image-item relative rounded-md overflow-hidden aspect-square cursor-pointer hover:scale-105 transition-transform">
+						<a href="javascript:void(0)" data-src={image} data-fancybox={`gallery-${index}-${_index}`} class="block w-full h-full">
+							<img 
+								src={image} 
 								alt="diary moment image"
 								class="w-full h-full object-cover"
-								sizes="(max-width: 768px) 50vw, 25vw"
 								loading="lazy"
-								decoding="async"
 							/>
-						</div>
-						))}
+						</a>
 					</div>
-				)}
-										</div>
-										<hr class="moment-divider border-t border-[var(--line-divider)] my-3 md:my-4" />
-										<div class="moment-footer flex justify-between items-center">
-											<div class="moment-time flex items-center gap-1.5 text-75 text-xs lg:text-base">
-												<i class="time-icon text-xs md:text-sm">🕐</i>
-												<time datetime={moment.date}>
-													{formatTime(moment.date)}
-												</time>
-											</div>
-												<div class="moment-clock text-75 text-xs lg:text-base" aria-hidden>
-													<time datetime={moment.date}>{formatClock(moment.date)}</time>
-												</div>
-										</div>
+					))}
+				</div>
+			)}
+								</div>
+								
+								<hr class="moment-divider border-t border-[var(--line-divider)] my-3 md:my-4" />
+								
+								<div class="moment-footer flex justify-between items-center">
+									<div class="moment-time flex items-center gap-1.5 text-75 text-xs md:text-sm lg:text-base">
+										<i class="time-icon text-xs md:text-sm">🕐</i>
+										<time datetime={moment.date}>
+											{formatTime(moment.date)}
+										</time>
 									</div>
-								))}
+									
 								</div>
 							</div>
-							))}
-							</div>
-						</div>
-					))}
+						))}
 					</div>
+				</div>
+
+				<!-- 底部提示 -->
+				<div class="moments-tips text-center mt-6 md:mt-8 lg:mt-10 text-75 text-xs md:text-sm lg:text-base italic">
+					{i18n(I18nKey.diaryTips)}
 				</div>
 			</div>
 		</div>
 	</div>
-	
-	<!-- 将日记数据存储在隐藏元素中，供全局脚本读取 -->
-	<div 
-		id="diary-page-data" 
-		data-grouped-moments={JSON.stringify(groupedMoments)} 
-		data-page-type="diary"
-		style="display:none;"
-	></div>
 </MainGridLayout>
 
 <style>
-	.card-base {
-		background: var(--card-bg);
+	.card-base-daily {
+		@apply rounded-[var(--radius-large)] overflow-hidden bg-[var(--card-bg)];
 		border: 1px solid var(--line-divider);
 		transition: all 0.3s ease;
-	}
-	
-	/* 日记目录卡片样式 */
-	.diary-toc-card {
-		border-radius: 12px;
-	}
-	
-	.diary-toc-grid {
-		/* 网格已在类中定义 */
-	}
-	
-	.toc-year-card {
-		/* 年份卡片容器 */
-	}
-	
-	.toc-year-link {
-		display: block;
-		text-decoration: none;
-	}
-	
-	.toc-month-badge {
-		display: inline-block;
-		text-decoration: none;
-		font-weight: 500;
 	}
 	
 	.moments-header {
@@ -218,30 +141,20 @@ function formatClock(dateString: string): string {
 	}
 	
 	.moments-title {
+		color: white;
 		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 	}
-
+	
 	.moments-subtitle {
+		color: rgba(255, 255, 255, 0.9);
 	}
-
+	
 	.stat-number {
-		color: #000000;
-		transition: color 0.15s ease;
-		opacity: 1 !important;
-		display: inline !important;
-	}
-
-	:root.dark .stat-number {
 		color: white;
 	}
-
+	
 	.stat-label {
-		color: var(--content-meta);
-		transition: color 0.15s ease;
-	}
-
-	:root.dark .stat-label {
-		color: var(--content-meta);
+		color: rgba(255, 255, 255, 0.8);
 	}
 	
 	.image-item img {
@@ -262,58 +175,6 @@ function formatClock(dateString: string): string {
 	.action-btn:hover {
 		color: var(--primary);
 	}
-
-	.moment-text {
-		white-space: pre-line;
-	}
-
-	.moment-item {}
-
-	.moment-time {}
-
-	.moment-clock { text-align: right; color: var(--content-meta); }
-
-	.moment-group summary,
-	.moment-subgroup summary {
-		list-style: none;
-		cursor: pointer;
-	}
-
-	.moment-group summary::-webkit-details-marker,
-	.moment-subgroup summary::-webkit-details-marker {
-		display: none;
-	}
-
-	.moment-group-header,
-	.moment-subgroup-header {
-		user-select: none;
-		font-family: inherit;
-	}
-
-	.group-label {}
-
-	.group-count {
-		margin-left: 0.25rem;
-	}
-
-	.group-toggle {
-		transition: transform 0.2s ease;
-	}
-
-	#expand-all-diaries {
-		color: white;
-	}
-
-	#expand-all-diaries:hover {
-		color: rgba(255, 255, 255, 0.7);
-		text-decoration: underline;
-	}
-
-	.moment-group[open] > summary .group-toggle,
-	.moment-subgroup[open] > summary .group-toggle {
-		transform: rotate(90deg);
-	}
-
 	
 	/* 响应式设计 */
 	/* 手机端 (小于640px) */
@@ -328,7 +189,7 @@ function formatClock(dateString: string): string {
 			gap: 0.75rem;
 		}
 		
-		.moment-images {
+		.diary-images {
 			grid-template-columns: repeat(2, 1fr);
 		}
 		
@@ -355,7 +216,7 @@ function formatClock(dateString: string): string {
 			padding: 1.5rem;
 		}
 		
-		.moment-images {
+		.diary-images {
 			grid-template-columns: repeat(3, 1fr);
 			gap: 0.75rem;
 			max-width: 500px;
@@ -381,7 +242,7 @@ function formatClock(dateString: string): string {
 			padding: 2rem;
 		}
 		
-		.moment-images {
+		.diary-images {
 			grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 			max-width: 600px;
 			gap: 1rem;

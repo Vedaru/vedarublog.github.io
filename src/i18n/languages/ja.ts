@@ -11,7 +11,7 @@ export const ja: Translation = {
 	// ナビゲーションバータイトル
 	[Key.navLinks]: "リンク",
 	[Key.navMy]: "私の",
-	[Key.navAbout]: "About",
+	[Key.navAbout]: "について",
 	[Key.navOthers]: "その他",
 
 	[Key.tags]: "タグ",
@@ -58,7 +58,11 @@ export const ja: Translation = {
 	[Key.license]: "ライセンス",
 	[Key.anime]: "アニメ",
 	[Key.diary]: "日記",
-	[Key.gallery]: "ギャラリー",
+
+	// デバイスページ
+	[Key.devices]: "私のデバイス",
+	[Key.devicesSubtitle]: "ここに私の日常で使用するデバイスを表示します",
+	[Key.devicesViewDetails]: "詳細を見る",
 
 	// アニメページ
 	[Key.animeTitle]: "私のアニメリスト",
@@ -96,27 +100,27 @@ export const ja: Translation = {
 	// 音楽プレーヤー
 	[Key.musicPlayer]: "音楽プレーヤー",
 	[Key.musicPlayerShow]: "音楽プレーヤーを表示",
-	[Key.musicPlayerHide]: "音楽プレーヤーを隠す",
-	[Key.musicPlayerExpand]: "展開",
-	[Key.musicPlayerCollapse]: "折りたたむ",
+	[Key.musicPlayerHide]: "プレーヤーを隠す",
+	[Key.musicPlayerExpand]: "音楽プレーヤーを展開",
+	[Key.musicPlayerCollapse]: "プレーヤーを折りたたむ",
 	[Key.musicPlayerPause]: "一時停止",
 	[Key.musicPlayerPlay]: "再生",
-	[Key.musicPlayerPrevious]: "前へ",
-	[Key.musicPlayerNext]: "次へ",
+	[Key.musicPlayerPrevious]: "前の曲",
+	[Key.musicPlayerNext]: "次の曲",
 	[Key.musicPlayerShuffle]: "シャッフル",
 	[Key.musicPlayerRepeat]: "リピート",
-	[Key.musicPlayerRepeatOne]: "一曲リピート",
-	[Key.musicPlayerVolume]: "音量",
-	[Key.musicPlayerProgress]: "進捗",
+	[Key.musicPlayerRepeatOne]: "1曲リピート",
+	[Key.musicPlayerVolume]: "ボリューム制御",
+	[Key.musicPlayerProgress]: "再生状況",
 	[Key.musicPlayerCover]: "カバー",
 	[Key.musicPlayerPlaylist]: "プレイリスト",
 	[Key.musicPlayerLoading]: "読み込み中...",
-	[Key.musicPlayerErrorPlaylist]: "プレイリストの読み込みに失敗しました",
-	[Key.musicPlayerErrorSong]: "曲の読み込みに失敗しました",
-	[Key.musicPlayerErrorEmpty]: "プレイリストが空です",
-	[Key.unknownSong]: "不明な曲",
-	[Key.unknownArtist]: "不明なアーティスト",
-	[Key.playlist]: "プレイリスト",
+	[Key.musicPlayerErrorPlaylist]: "プレイリストの取得に失敗しました",
+	[Key.musicPlayerErrorSong]:
+		"現在の曲の読み込みに失敗しました、次の曲を試しています",
+	[Key.musicPlayerErrorEmpty]: "プレイリストに利用可能な曲がありません",
+	[Key.unknownSong]: "未知の曲",
+	[Key.unknownArtist]: "未知のアーティスト",
 
 	// アルバムページ
 	[Key.albums]: "アルバム",
@@ -127,11 +131,6 @@ export const ja: Translation = {
 	[Key.albumsBackToList]: "アルバムに戻る",
 	[Key.albumsPhotoCount]: "写真",
 	[Key.albumsPhotosCount]: "写真",
-
-	// 设备页面
-	[Key.devices]: "私のデバイス",
-	[Key.devicesSubtitle]: "日常的に使用しているデバイスはこちらです",
-	[Key.devicesViewDetails]: "詳細を見る",
 
 	// プロジェクトページ
 	[Key.projects]: "プロジェクト",
@@ -337,9 +336,9 @@ export const ja: Translation = {
 	[Key.shareOnSocialDescription]:
 		"この記事が役に立った場合は、ぜひ他の人とシェアしてください！",
 
-	// 个人资料统计
-	[Key.profileStatsLoading]: "読み込み中...",
+	// プロフィール統計
+	[Key.profileStatsLoading]: "統計情報を読み込み中...",
 	[Key.profileStatsPageViews]: "ページビュー",
-	[Key.profileStatsVisits]: "訪問数",
-	[Key.profileStatsUnavailable]: "利用不可",
+	[Key.profileStatsVisits]: "アクセス数",
+	[Key.profileStatsUnavailable]: "統計情報は利用できません",
 };

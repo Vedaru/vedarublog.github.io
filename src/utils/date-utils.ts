@@ -1,8 +1,7 @@
 import { siteConfig } from "../config";
 
-export function formatDateToYYYYMMDD(date: string | Date): string {
-	const d = typeof date === "string" ? new Date(date) : date;
-	return d.toISOString().substring(0, 10);
+export function formatDateToYYYYMMDD(date: Date): string {
+	return date.toISOString().substring(0, 10);
 }
 
 // 国际化日期格式化函数
