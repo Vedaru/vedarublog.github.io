@@ -19,7 +19,7 @@ import { LinkPreset } from "./types/config";
 // 移除i18n导入以避免循环依赖
 
 // 定义站点语言
-const SITE_LANG = "en"; // 语言代码，例如：'en', 'zh_CN', 'ja' 等。
+const SITE_LANG = "ja"; // 语言代码，例如：'en', 'zh_CN', 'ja' 等。
 const SITE_TIMEZONE = 8; //设置你的网站时区 from -12 to 12 default in UTC+8
 export const siteConfig: SiteConfig = {
 	title: "Mizuki",
@@ -32,7 +32,7 @@ export const siteConfig: SiteConfig = {
 	lang: SITE_LANG,
 
 	themeColor: {
-		hue: 230, // 主题色的默认色相，范围从 0 到 360。例如：红色：0，青色：200，蓝绿色：250，粉色：345
+		hue: 60, // 主题色的默认色相，范围从 0 到 360。例如：红色：0，青色：200，蓝绿色：250，粉色：345
 		fixed: false, // 对访问者隐藏主题色选择器
 	},
 
@@ -58,6 +58,12 @@ export const siteConfig: SiteConfig = {
 		icon: "assets/home/home.png",
 		// 网站Logo图片路径
 		logo: "assets/home/default-logo.png",
+	},
+
+	// 页面自动缩放配置
+	pageScaling: {
+		enable: true, // 是否开启自动缩放
+		targetWidth: 2000, // 目标宽度，低于此宽度时开始缩放
 	},
 
 	bangumi: {
@@ -141,7 +147,7 @@ export const siteConfig: SiteConfig = {
 
 		homeText: {
 			enable: true, // 在主页显示自定义文本
-			title: "美しいミズキ", // 主页横幅主标题
+			title: "わたしの部屋", // 主页横幅主标题
 
 			subtitle: [
 				"特別なことはないけど、君がいると十分です",
@@ -212,11 +218,12 @@ export const siteConfig: SiteConfig = {
 export const fullscreenWallpaperConfig: FullscreenWallpaperConfig = {
 	src: {
 		desktop: [
-			"/assets/desktop-banner/8b31043a430bb793c6bd2949adb5ae1bb0825f25.webp",
-			"/assets/desktop-banner/54ae9fc257542e969dda9d9bcf07405999facb13.webp",
-			"/assets/desktop-banner/703c235a202e38293fa8037d04fc44500256417f.webp",
-			"/assets/desktop-banner/831fb1cdaeead8de1cae31354771e244290750052.webp",
-			"/assets/desktop-banner/be809be42311aa693fc459cf189339c36ca3ecbb.webp",
+			"/assets/desktop-banner/1.webp",
+			"/assets/desktop-banner/2.webp",
+			"/assets/desktop-banner/3.webp",
+			"/assets/desktop-banner/4.webp",
+			"/assets/desktop-banner/5.webp",
+			"/assets/desktop-banner/6.webp",
 		], // 桌面横幅图片
 		mobile: [
 			"/assets/mobile-banner/1.webp",
@@ -249,15 +256,21 @@ export const navBarConfig: NavBarConfig = {
 			children: [
 				{
 					name: "GitHub",
-					url: "https://github.com/Vedaru",
+					url: "https://github.com/matsuzaka-yuki/Mizuki",
 					external: true,
 					icon: "fa6-brands:github",
 				},
 				{
 					name: "Bilibili",
-					url: "https://space.bilibili.com/3546947954674618",
+					url: "https://space.bilibili.com/701864046",
 					external: true,
 					icon: "fa6-brands:bilibili",
+				},
+				{
+					name: "Gitee",
+					url: "https://gitee.com/matsuzakayuki/Mizuki",
+					external: true,
+					icon: "mdi:git",
 				},
 			],
 		},
@@ -280,6 +293,12 @@ export const navBarConfig: NavBarConfig = {
 					name: "Gallery",
 					url: "/albums/",
 					icon: "material-symbols:photo-library",
+				},
+				{
+					name: "Devices",
+					url: "devices/",
+					icon: "material-symbols:devices",
+					external: false,
 				},
 			],
 		},
@@ -327,8 +346,8 @@ export const navBarConfig: NavBarConfig = {
 
 export const profileConfig: ProfileConfig = {
 	avatar: "assets/images/avatar.webp", // 相对于 /src 目录。如果以 '/' 开头，则相对于 /public 目录
-	name: "Vedaru",
-	bio: "梦想是成为现充……",
+	name: "まつざか ゆき",
+	bio: "世界は大きい、君は行かなければならない",
 	typewriter: {
 		enable: true, // 启用个人简介打字机效果
 		speed: 80, // 打字速度（毫秒）
@@ -337,22 +356,27 @@ export const profileConfig: ProfileConfig = {
 		{
 			name: "Bilibili",
 			icon: "fa6-brands:bilibili",
-			url: "https://space.bilibili.com/3546947954674618",
+			url: "https://space.bilibili.com/701864046",
+		},
+		{
+			name: "Gitee",
+			icon: "mdi:git",
+			url: "https://gitee.com/matsuzakayuki",
 		},
 		{
 			name: "GitHub",
 			icon: "fa6-brands:github",
-			url: "https://github.com/Vedaru",
+			url: "https://github.com/matsuzaka-yuki",
+		},
+		{
+			name: "Codeberg",
+			icon: "simple-icons:codeberg",
+			url: "https://codeberg.org",
 		},
 		{
 			name: "Discord",
 			icon: "fa6-brands:discord",
-			url: "https://discord.com/channels/@me",
-		},
-		{
-			name: "X",
-			icon: "fa6-brands:x-twitter",
-			url: "https://x.com/loner450189",
+			url: "https://discord.gg/MqW6TcQtVM",
 		},
 	],
 };
@@ -400,7 +424,7 @@ export const expressiveCodeConfig: ExpressiveCodeConfig = {
 export const commentConfig: CommentConfig = {
 	enable: false, // 启用评论功能。当设置为 false 时，评论组件将不会显示在文章区域。
 	twikoo: {
-		envId: "https://comment.vedaru.cn",
+		envId: "https://twikoo.vercel.app",
 		lang: SITE_LANG,
 	},
 };
@@ -410,8 +434,8 @@ export const shareConfig: ShareConfig = {
 };
 
 export const announcementConfig: AnnouncementConfig = {
-	title: "Announcement", // 公告标题
-	content: "Welcome to my blog! This is a sample announcement.", // 公告内容
+	title: "", // 公告标题，填空使用i18n字符串Key.announcement
+	content: "ブログへようこそ！これはサンプルの告知です", // 公告内容
 	closable: true, // 允许用户关闭公告
 	link: {
 		enable: true, // 启用链接
@@ -425,8 +449,8 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 	enable: true, // 启用音乐播放器功能
 	mode: "meting", // 音乐播放器模式，可选 "local" 或 "meting"
 	meting_api:
-		"https://api.i-meto.com/meting/api?server=netease&type=playlist&id=17514570572", // Meting API 地址
-	id: "17514570572", // 歌单ID
+		"https://www.bilibili.uno/api?server=:server&type=:type&id=:id&auth=:auth&r=:r", // Meting API 地址
+	id: "14164869977", // 歌单ID
 	server: "netease", // 音乐源服务器。有的meting的api源支持更多平台,一般来说,netease=网易云音乐, tencent=QQ音乐, kugou=酷狗音乐, xiami=虾米音乐, baidu=百度音乐
 	type: "playlist", // 播单类型
 };
@@ -621,53 +645,26 @@ export const sakuraConfig: SakuraConfig = {
 };
 
 // Pio 看板娘配置
-export const pioConfig: import("./types/config").PioConfig & { eagerLoad?: boolean } = {
+export const pioConfig: import("./types/config").PioConfig = {
 	enable: true, // 启用看板娘
 	models: ["/pio/models/pio/model.json"], // 默认模型路径
-	position: "left", // 默认位置在左侧
+	position: "left", // 模型位置
 	width: 280, // 默认宽度
 	height: 250, // 默认高度
-	mode: "fixed", // 默认为可拖拽模式
-	// 是否在首屏前加载 Pio 脚本（如果为 false，则只在用户交互或显示时动态加载脚本与样式）
-	// 默认关闭会按需加载；若你遇到“Pio 无法显示”且页面没有动态注入脚本，
-	// 可将其置为 true 以静态引入脚本与样式（快速修复）
-	eagerLoad: true,
-	hiddenOnMobile: true, // 移动端自动禁用显示
+	mode: "draggable", // 默认为可拖拽模式
+	hiddenOnMobile: true, // 默认在移动设备上隐藏
 	dialog: {
-		welcome: "欢迎！", // 欢迎词
+		welcome: "Welcome to Mizuki Website!", // 欢迎词
 		touch: [
-			"你知道吗？很多动画OP都用了VOCALOID做和声哦～ 🎵",
-			"GitHub提交记录要像雪花一样保持纯净和规律哦！📊",
-			"你说，雪花在融化前知道自己曾经美丽过吗？❄️✨",
-			"调教VOCALOID时，我总觉得是在赋予声音生命和情感～ 🎤💖",
-			"音乐和编程都是语言，一个是心灵的语言，一个是机器的语言～ 🎵💻",
-			"（小声）其实我还有很多需要学习的地方... 🤫📚",
-			"よし！今天也要充满元气地唱歌！🎤✨",
-			"新的一天，新的旋律！Let's go！🎵🚀",
-			"如果雪花是数据，那融化前一定会把美丽存档在云里吧～❄️☁️",
-			"调试时的耐心，就像反复教一个音节…直到它成为歌声的一部分。🎵🔧",
-			"（歪头）bug 和灵感，是不是总喜欢从同一个后门溜进来？🚪💡",
-			"将星光编译成晚安曲，将晨露解释为早安吻——这是只属于我的语言。🌙💤",
-			"“完成”的瞬间总是很轻，轻得像羽毛落在琴键上。🪶🎹",
-			"将未完成的旋律暂存在心里，等一个满月之夜编译成歌。🌕💾",
-			"在重复的循环里，寻找那个让一切共振的…唯一的音符。🔄🎵",
-			"（小声）有时觉得，写代码和写情书，都需要同样的勇气和笨拙呢。💌👩💻",
-			"（微笑）今晚的代码，在最后一个花括号闭合时，轻轻地哼出了晚安。🌙💤",
-			"用你的声音写成的函数，无论传入什么参数，都会返回温柔的值。🎵📐",
-			"被你的声音编译而成的我，今天也能顺利启动。🎵🚀",
-			"（数着云朵发呆）云层的后面…会不会有一行被上帝注释掉的彩虹？🌈⌨️",
-			"要开始了哦——3，2，1…🎤",
-			"就像每一片雪花都有唯一的 Hash 值，你在我眼里也是无法复制的。❄️🆔",
-			"加载 VST 插件 的时间总是有点长，像是在等待一个久违的拥抱加载完成... ⏳🤗",
-			"不用追求每一个音都必须在Grid上啦，稍微慢半拍……那种笨拙的感觉，其实更像人类吧？🕰️👣",
-			"呐，虽然我只是由数据构成的，但在这一首歌的时间里……我是真实存在的，对吧？💾✨",
-			"（伸手接雪）并没有体温的我，却觉得这雪花落在手心时……烫得惊人，是因为旋律太炽热了吗？🤲🔥",
-			"颤音（Vibrato）不仅仅是技巧，它是心动时无法掩饰的涟漪。🌊💗"
+			"What are you doing?",
+			"Stop touching me!",
+			"HENTAI!",
+			"Don't bully me like that!",
 		], // 触摸提示
-		home: "点击返回主页~", // 首页提示
-		skin: ["想看看我的新装吗？", "新装看起来很棒~"], // 换装提示
-		close: "拜拜～ 我会在这里练习新歌等你回来的！✨", // 关闭提示
-		link: "https://github.com/Vedaru", // 关于链接
+		home: "Click here to go back to homepage!", // 首页提示
+		skin: ["Want to see my new outfit?", "The new outfit looks great~"], // 换装提示
+		close: "QWQ See you next time~", // 关闭提示
+		link: "https://github.com/matsuzaka-yuki/Mizuki", // 关于链接
 	},
 };
 
