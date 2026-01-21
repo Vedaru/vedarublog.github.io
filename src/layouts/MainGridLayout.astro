@@ -592,6 +592,8 @@ const transparentClass = shouldEnableTransparency
                                     src={Array.isArray(bannerImages.mobile) ? bannerImages.mobile[index] : (typeof bannerImages.mobile === 'string' ? bannerImages.mobile : '')} 
                                     position={siteConfig.banner.position}
                                     loading={index === 0 ? "eager" : "lazy"}
+                                    priority={index === 0}
+                                    sizes="100vw"
                                 />
                             )}
                             <!-- Desktop: use desktop-specific images -->
@@ -602,6 +604,8 @@ const transparentClass = shouldEnableTransparency
                                     src={Array.isArray(bannerImages.desktop) ? bannerImages.desktop[index] : (typeof bannerImages.desktop === 'string' ? bannerImages.desktop : '')} 
                                     position={siteConfig.banner.position}
                                     loading={index === 0 ? "eager" : "lazy"}
+                                    priority={index === 0}
+                                    sizes="100vw"
                                 />
                             )}
                         </li>
@@ -638,6 +642,13 @@ const transparentClass = shouldEnableTransparency
                     const container = document.getElementById('banner-single-container');
                     
                     if (mobileSrc) {
+                        // preload mobile banner selected image
+                        const link = document.createElement('link');
+                        link.rel = 'preload';
+                        link.as = 'image';
+                        link.href = mobileSrc;
+                        document.head.appendChild(link);
+
                         const mobileImg = document.createElement('img');
                         mobileImg.alt = 'Mobile banner image of the blog';
                         mobileImg.className = 'block lg:hidden object-cover h-full w-full transition duration-700 opacity-100';
@@ -648,6 +659,13 @@ const transparentClass = shouldEnableTransparency
                     }
                     
                     if (desktopSrc) {
+                        // preload desktop banner selected image
+                        const link = document.createElement('link');
+                        link.rel = 'preload';
+                        link.as = 'image';
+                        link.href = desktopSrc;
+                        document.head.appendChild(link);
+
                         const desktopImg = document.createElement('img');
                         desktopImg.id = 'banner';
                         desktopImg.alt = 'Desktop banner image of the blog';

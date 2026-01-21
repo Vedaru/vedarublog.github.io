@@ -27,8 +27,8 @@ draft: false
 <style>
 .post-side-by-side {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-	gap: 0.75rem;
+	grid-template-columns: repeat(auto-fit, minmax(20px, 1fr));
+	gap: 0.25rem;
 	align-items: stretch;
 }
 .post-side-by-side img {
