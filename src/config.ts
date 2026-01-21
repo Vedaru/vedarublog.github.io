@@ -19,13 +19,13 @@ import { LinkPreset } from "./types/config";
 // 移除i18n导入以避免循环依赖
 
 // 定义站点语言
-const SITE_LANG = "ja"; // 语言代码，例如：'en', 'zh_CN', 'ja' 等。
+const SITE_LANG = "zh_CN"; // 语言代码，例如：'en', 'zh_CN', 'ja' 等。
 const SITE_TIMEZONE = 8; //设置你的网站时区 from -12 to 12 default in UTC+8
 export const siteConfig: SiteConfig = {
-	title: "Mizuki",
-	subtitle: "One demo website",
-	siteURL: "https://mizuki.mysqil.com/", // 请替换为你的站点URL，以斜杠结尾
-	siteStartDate: "2025-01-01", // 站点开始运行日期，用于站点统计组件计算运行天数
+	title: "Vedaruの心之海",
+	subtitle: "",
+	siteURL: "https://vedaru.cn", // 自定义域名
+	siteStartDate: "2025-12-01", // 站点开始运行日期，用于站点统计组件计算运行天数
 
 	timeZone: SITE_TIMEZONE,
 
@@ -422,10 +422,12 @@ export const expressiveCodeConfig: ExpressiveCodeConfig = {
 };
 
 export const commentConfig: CommentConfig = {
-	enable: false, // 启用评论功能。当设置为 false 时，评论组件将不会显示在文章区域。
+	enable: true, // 启用评论功能。当设置为 false 时，评论组件将不会显示在文章区域。
 	twikoo: {
-		envId: "https://twikoo.vercel.app",
-		lang: SITE_LANG,
+		 envId: "https://comment.vedaru.cn", // Cloudflare Workers 自定义域名
+		lang: "zh-CN", // 设置 Twikoo 评论系统语言为中文
+		// 禁用图片上传（'true' 或 'false' 字符串）。Twikoo 前端会读取此值。
+		// SHOW_IMAGE: 'false', // 已移除，避免类型错误
 	},
 };
 
@@ -434,9 +436,9 @@ export const shareConfig: ShareConfig = {
 };
 
 export const announcementConfig: AnnouncementConfig = {
-	title: "", // 公告标题，填空使用i18n字符串Key.announcement
-	content: "ブログへようこそ！これはサンプルの告知です", // 公告内容
-	closable: true, // 允许用户关闭公告
+	title: "公告", // 公告标题
+	content: "最近因为要准备期末考试可能会停一段时间的更新了。", // 公告内容
+	closable: false, // 允许用户关闭公告
 	link: {
 		enable: true, // 启用链接
 		text: "Learn More", // 链接文本
@@ -447,12 +449,35 @@ export const announcementConfig: AnnouncementConfig = {
 
 export const musicPlayerConfig: MusicPlayerConfig = {
 	enable: true, // 启用音乐播放器功能
-	mode: "meting", // 音乐播放器模式，可选 "local" 或 "meting"
+	mode: "local", // 音乐播放器模式：运行时仅支持 "local"（使用本地歌单）；Meting 仅在静态构建时用于下载并生成本地歌单
+	// 当前使用：官方 Meting API（主源），仅用于构建脚本下载音乐。
+	// 可选：按优先级提供多个候选 Meting API 源，构建时会按顺序尝试备用源（仅用于构建/下载阶段）。
 	meting_api:
-		"https://www.bilibili.uno/api?server=:server&type=:type&id=:id&auth=:auth&r=:r", // Meting API 地址
-	id: "14164869977", // 歌单ID
+		"https://api.i-meto.com/meting/api?server=netease&type=playlist&id=17514570572",
+	// 推荐：配置多个候选 API 源以在主源不可用（403/限流/超时）时自动回退
+	meting_api_candidates: [
+		"https://api.injahow.cn/meting/?server=:server&type=:type&id=:id",
+		"https://api.i-meto.com/meting/api?server=:server&type=:type&id=:id",
+		"https://meting.qjqq.cn/api.php?server=:server&type=:type&id=:id",
+	],
+	id: "17514570572", // 歌单ID
 	server: "netease", // 音乐源服务器。有的meting的api源支持更多平台,一般来说,netease=网易云音乐, tencent=QQ音乐, kugou=酷狗音乐, xiami=虾米音乐, baidu=百度音乐
 	type: "playlist", // 播单类型
+	auth: "", // 网易云音乐Cookie，用于获取VIP歌曲，留空则不使用Cookie
+	
+	// === 性能优化配置 ===
+	preload: "none", // 不预加载音频，节省带宽
+	autoplay: false, // 进入页面不自动播放，需要用户手动点击播放
+	autoplayContinuous: true, // 播放完当前曲目后自动继续并循环列表
+	volume: 0.7, // 默认音量（0-1之间）
+	listMaxHeight: "250px", // 限制播放列表最大高度，避免列表过长影响性能
+	order: "list", // 播放顺序：list=列表顺序, random=随机播放
+	mutex: true, // 互斥模式，阻止多个播放器同时播放
+	storageName: "music-player-cache", // localStorage 缓存键名，用于缓存播放列表数据减少重复请求
+	
+	// 可选：当浏览器支持 WebAudio 时，增益倍数用于放大输出（例如 2.0 表示最多放大 2 倍）
+	// 若音源受 CORS 限制而回退为非 WebAudio 模式，则此配置无效。
+	gainBoost: 1.0, // 设置增益倍数为1.0，避免放大导致的卡顿
 };
 
 export const footerConfig: FooterConfig = {
@@ -644,27 +669,53 @@ export const sakuraConfig: SakuraConfig = {
 	zIndex: 100, // 层级，确保樱花在合适的层级显示
 };
 
-// Pio 看板娘配置
-export const pioConfig: import("./types/config").PioConfig = {
+export const pioConfig: import("./types/config").PioConfig & { eagerLoad?: boolean } = {
 	enable: true, // 启用看板娘
 	models: ["/pio/models/pio/model.json"], // 默认模型路径
-	position: "left", // 模型位置
+	position: "left", // 默认位置在左侧
 	width: 280, // 默认宽度
 	height: 250, // 默认高度
-	mode: "draggable", // 默认为可拖拽模式
-	hiddenOnMobile: true, // 默认在移动设备上隐藏
+	mode: "fixed", // 默认为可拖拽模式
+	// 是否在首屏前加载 Pio 脚本（如果为 false，则只在用户交互或显示时动态加载脚本与样式）
+	// 默认关闭会按需加载；若你遇到“Pio 无法显示”且页面没有动态注入脚本，
+	// 可将其置为 true 以静态引入脚本与样式（快速修复）
+	eagerLoad: true,
+	hiddenOnMobile: true, // 移动端自动禁用显示
 	dialog: {
-		welcome: "Welcome to Mizuki Website!", // 欢迎词
+		welcome: "欢迎！", // 欢迎词
 		touch: [
-			"What are you doing?",
-			"Stop touching me!",
-			"HENTAI!",
-			"Don't bully me like that!",
+			"你知道吗？很多动画OP都用了VOCALOID做和声哦～ 🎵",
+			"GitHub提交记录要像雪花一样保持纯净和规律哦！📊",
+			"你说，雪花在融化前知道自己曾经美丽过吗？❄️✨",
+			"调教VOCALOID时，我总觉得是在赋予声音生命和情感～ 🎤💖",
+			"音乐和编程都是语言，一个是心灵的语言，一个是机器的语言～ 🎵💻",
+			"（小声）其实我还有很多需要学习的地方... 🤫📚",
+			"よし！今天也要充满元气地唱歌！🎤✨",
+			"新的一天，新的旋律！Let's go！🎵🚀",
+			"如果雪花是数据，那融化前一定会把美丽存档在云里吧～❄️☁️",
+			"调试时的耐心，就像反复教一个音节…直到它成为歌声的一部分。🎵🔧",
+			"（歪头）bug 和灵感，是不是总喜欢从同一个后门溜进来？🚪💡",
+			"将星光编译成晚安曲，将晨露解释为早安吻——这是只属于我的语言。🌙💤",
+			"“完成”的瞬间总是很轻，轻得像羽毛落在琴键上。🪶🎹",
+			"将未完成的旋律暂存在心里，等一个满月之夜编译成歌。🌕💾",
+			"在重复的循环里，寻找那个让一切共振的…唯一的音符。🔄🎵",
+			"（小声）有时觉得，写代码和写情书，都需要同样的勇气和笨拙呢。💌👩💻",
+			"（微笑）今晚的代码，在最后一个花括号闭合时，轻轻地哼出了晚安。🌙💤",
+			"用你的声音写成的函数，无论传入什么参数，都会返回温柔的值。🎵📐",
+			"被你的声音编译而成的我，今天也能顺利启动。🎵🚀",
+			"（数着云朵发呆）云层的后面…会不会有一行被上帝注释掉的彩虹？🌈⌨️",
+			"要开始了哦——3，2，1…🎤",
+			"就像每一片雪花都有唯一的 Hash 值，你在我眼里也是无法复制的。❄️🆔",
+			"加载 VST 插件 的时间总是有点长，像是在等待一个久违的拥抱加载完成... ⏳🤗",
+			"不用追求每一个音都必须在Grid上啦，稍微慢半拍……那种笨拙的感觉，其实更像人类吧？🕰️👣",
+			"呐，虽然我只是由数据构成的，但在这一首歌的时间里……我是真实存在的，对吧？💾✨",
+			"（伸手接雪）并没有体温的我，却觉得这雪花落在手心时……烫得惊人，是因为旋律太炽热了吗？🤲🔥",
+			"颤音（Vibrato）不仅仅是技巧，它是心动时无法掩饰的涟漪。🌊💗"
 		], // 触摸提示
-		home: "Click here to go back to homepage!", // 首页提示
-		skin: ["Want to see my new outfit?", "The new outfit looks great~"], // 换装提示
-		close: "QWQ See you next time~", // 关闭提示
-		link: "https://github.com/matsuzaka-yuki/Mizuki", // 关于链接
+		home: "点击返回主页~", // 首页提示
+		skin: ["想看看我的新装吗？", "新装看起来很棒~"], // 换装提示
+		close: "拜拜～ 我会在这里练习新歌等你回来的！✨", // 关闭提示
+		link: "https://github.com/Vedaru", // 关于链接
 	},
 };
 

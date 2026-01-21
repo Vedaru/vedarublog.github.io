@@ -319,9 +319,22 @@ export type MusicPlayerConfig = {
 	enable: boolean; // 是否启用音乐播放器功能
 	mode: "meting" | "local"; // 音乐播放器模式
 	meting_api: string; // Meting API 地址
+	meting_api_candidates?: string[]; // 可选：多个 Meting API 候选列表，按优先级排列
 	id: string; // 歌单ID
 	server: string; // 音乐源服务器
 	type: string; // 音乐类型
+	auth?: string; // 可选：网易云音乐Cookie，用于获取VIP歌曲
+	// 可选：当浏览器支持 WebAudio 时，增益倍数用于放大输出（例如 2.0 表示最多放大 2 倍）
+	gainBoost?: number;
+	// 可选性能/行为配置
+	preload?: "none" | "metadata" | "auto"; // 音频预加载策略
+	autoplay?: boolean; // 是否自动播放
+	autoplayContinuous?: boolean; // 是否在播放完一首后自动继续播放并循环列表
+	volume?: number; // 默认音量（0-1）
+	listMaxHeight?: string; // 播放列表最大高度（CSS 值，例如 "250px"）
+	order?: "list" | "random"; // 播放顺序
+	mutex?: boolean; // 互斥模式，防止多个播放器同时播放
+	storageName?: string; // localStorage 缓存键名
 };
 
 export type FooterConfig = {
