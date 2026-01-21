@@ -269,9 +269,11 @@ class TableOfContents extends HTMLElement {
     regenerateTOC(retryCount = 0) {
         // 检查是否为文章页面
         const isPostPage = window.location.pathname.includes('/posts/') || 
-                          document.querySelector('.custom-md, .markdown-content') !== null;
+                          document.querySelector('.custom-md, .markdown-content') !== null ||
+                          window.location.pathname.includes('/diary') ||
+                          document.querySelector('.moments-timeline') !== null;
         if (!isPostPage) {
-            // 如果不是文章页面，隐藏TOC
+            // 如果不是文章或日记页面，隐藏TOC
             this.innerHTML = '';
             delete this.dataset.loaded;
             return;

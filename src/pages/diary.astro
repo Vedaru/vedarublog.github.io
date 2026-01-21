@@ -14,31 +14,28 @@ if (!siteConfig.featurePages.diary) {
 const moments = getDiaryList();
 const diaryStats = getDiaryStats();
 
-// 时间格式化函数
-function formatTime(dateString: string): string {
-	var TG = 8;
-	if (siteConfig.timeZone >= -12 && siteConfig.timeZone <= 12)
-		TG = siteConfig.timeZone;
-	const timeGap = TG;
-
-	// const lang = siteConfig.lang;
-	const now = new Date();
-	const date = new Date(dateString);
-	const diffInMinutes = Math.floor(
-		(now.getTime() + timeGap * 60 * 60 * 1000 - date.getTime()) / (1000 * 60),
-	);
-
-	if (diffInMinutes < 60) {
-		return `${diffInMinutes}${i18n(I18nKey.diaryMinutesAgo)}`;
-	}
-	if (diffInMinutes < 1440) {
-		// 24小时
-		const hours = Math.floor(diffInMinutes / 60);
-		return `${hours}${i18n(I18nKey.diaryHoursAgo)}`;
-	}
-	const days = Math.floor(diffInMinutes / 1440);
-	return `${days}${i18n(I18nKey.diaryDaysAgo)}`;
+// Build grouped year->month structure for TOC and anchor mapping
+const groupedMoments = {} as Record<string, Record<string, typeof moments>>;
+const monthAnchorMap: Record<number, string> = {};
+for (const m of moments) {
+	const d = new Date(m.date);
+	const y = String(d.getFullYear());
+	const month = String(d.getMonth() + 1).padStart(2, "0");
+	if (!groupedMoments[y]) groupedMoments[y] = {};
+	if (!groupedMoments[y][month]) groupedMoments[y][month] = [];
+	groupedMoments[y][month].push(m);
 }
+// For each year/month, map the first moment of that month to an anchor id
+for (const [y, months] of Object.entries(groupedMoments)) {
+	for (const [month, items] of Object.entries(months)) {
+		if (items.length > 0) {
+			const anchorId = `year-${y}-month-${month}`;
+			monthAnchorMap[items[0].id] = anchorId; // first item for that month
+		}
+	}
+}
+
+// 时间格式化函数
 ---
 
 <MainGridLayout title={i18n(I18nKey.diary)} description="即刻短文">
@@ -66,46 +63,58 @@ function formatTime(dateString: string): string {
 				</div>
 
 				<!-- 短文列表 -->
-				<div class="moments-timeline">
-					<div class="timeline-list space-y-4">
-					{moments.map((moment, index) => (
-						<div class="moment-item card-base-daily p-4 md:p-6 lg:p-8 hover:shadow-lg transition-all">
-								<div class="moment-content">
-									<p class="moment-text text-sm md:text-base lg:text-lg text-90 leading-relaxed mb-3 md:mb-4">{moment.content}</p>
-									
-									{moment.images && moment.images.length > 0 && (
-				<div class="diary-images grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3 lg:gap-4 mb-3 md:mb-4">
-					{moment.images.map((image, _index) => (
-					<div class="image-item relative rounded-md overflow-hidden aspect-square cursor-pointer hover:scale-105 transition-transform">
-						<a href="javascript:void(0)" data-src={image} data-fancybox={`gallery-${index}-${_index}`} class="block w-full h-full">
-							<img 
-								src={image} 
-								alt="diary moment image"
-								class="w-full h-full object-cover"
-								loading="lazy"
-							/>
-						</a>
-					</div>
-					))}
-				</div>
-			)}
-								</div>
-								
-								<hr class="moment-divider border-t border-[var(--line-divider)] my-3 md:my-4" />
-								
-								<div class="moment-footer flex justify-between items-center">
-									<div class="moment-time flex items-center gap-1.5 text-75 text-xs md:text-sm lg:text-base">
-										<i class="time-icon text-xs md:text-sm">🕐</i>
-										<time datetime={moment.date}>
-											{formatTime(moment.date)}
-										</time>
-									</div>
-									
-								</div>
-							</div>
+
+					<div class="moments-timeline">
+						<div class="timeline-list space-y-4">
+						{Object.entries(groupedMoments).map(([year, months]) => (
+							<>
+								<h1 id={`year-${year}`} class="diary-year-heading mt-2 mb-4 text-xl font-semibold">{year} 年</h1>
+								{Object.entries(months).map(([month, items]) => (
+									<>
+										<h2 id={`year-${year}-month-${month}`} class="diary-month-heading mt-1 mb-3 text-md font-medium text-70">{month} 月</h2>
+										{items.map((moment) => (
+											<div id={monthAnchorMap[moment.id] ?? undefined} class="moment-item card-base-daily p-4 md:p-6 lg:p-8 hover:shadow-lg transition-all">
+												<div class="moment-content">
+													<p class="moment-text text-sm md:text-base lg:text-lg text-90 leading-relaxed mb-3 md:mb-4">{moment.content}</p>
+													{moment.images && moment.images.length > 0 && (
+													<div class="diary-images grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3 lg:gap-4 mb-3 md:mb-4">
+														{moment.images.map((image, _index) => (
+														<div class="image-item relative rounded-md overflow-hidden aspect-square cursor-pointer hover:scale-105 transition-transform">
+															<a href="javascript:void(0)" data-src={image} data-fancybox={`gallery-${moment.id}-${_index}`} class="block w-full h-full">
+																<img 
+																src={image} 
+																alt="diary moment image"
+																class="w-full h-full object-cover"
+																loading="lazy"
+															/>
+															</a>
+														</div>
+													))}
+													</div>
+												)}
+											</div>
+											<hr class="moment-divider border-t border-[var(--line-divider)] my-3 md:my-4" />
+											<div class="moment-footer flex justify-between items-center">
+												<div class="moment-time flex items-center gap-1.5 text-75 text-xs md:text-sm lg:text-base">
+													<i class="time-icon text-xs md:text-sm">🕐</i>
+													<time datetime={moment.date}>
+														{(() => {
+															const d = new Date(moment.date);
+															const m = d.getMonth() + 1;
+															const day = d.getDate();
+															return `${m}月${day}日`;
+														})()}
+													</time>
+												</div>
+											</div>
+										</div>
+									))}
+								</>
+							))}
+						</>
 						))}
 					</div>
-				</div>
+
 
 				<!-- 底部提示 -->
 				<div class="moments-tips text-center mt-6 md:mt-8 lg:mt-10 text-75 text-xs md:text-sm lg:text-base italic">
