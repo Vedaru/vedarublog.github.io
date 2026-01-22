@@ -239,7 +239,7 @@ export const navBarConfig: NavBarConfig = {
 		LinkPreset.Home,
 		LinkPreset.Archive,
 		{
-			name: "AI Chat",
+			name: "AI",
 			url: "/chat/",
 			icon: "material-symbols:chat",
 		},
