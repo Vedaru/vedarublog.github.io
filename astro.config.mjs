@@ -1,4 +1,5 @@
 import sitemap from "@astrojs/sitemap";
+import cloudflare from "@astrojs/cloudflare";
 import svelte, { vitePreprocess } from "@astrojs/svelte";
 import tailwind from "@astrojs/tailwind";
 import { pluginCollapsibleSections } from "@expressive-code/plugin-collapsible-sections";
@@ -114,6 +115,7 @@ export default defineConfig({
 			preprocess: vitePreprocess(),
 		}),
 		sitemap(),
+		cloudflare(),
 	],
 	markdown: {
 		remarkPlugins: [
