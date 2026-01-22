@@ -113,3 +113,113 @@ n-buna的两张术专和Orangestar的哨戒班给我的冲击并不只限于听�
 
 “烹饪美味的菜肴往往只需要使用简单的食材。”  
 简单的十几种参数、有限数量的采样，使用这些看似有限的创作条件往往更能促使创作者贯彻“大道至简”的哲学，创作出真正的天籁之音。
+
+# 那些赋予电子音灵魂的“神”
+
+如果说 VOCALOID 软件是一把乐器，那么 P 主（Producer）就是赋予这把乐器“神格”的人。在深入接触这个圈子后，我发现每一个出名的 P 主都有着极其鲜明的“个人气味”。
+
+比如 **n-buna** 的音乐里总有一股挥之不去的夏日蝉鸣感和透明的忧郁；而 **Orangestar** 则更像是盛夏午后的雷阵雨，虽然充满了极高音域带来的压迫感，但听完后却有一种被洗涤的清爽。
+
+后来我又遇到了更多性格迥异的创作者：
+
+<div class="post-side-by-side">
+<p><img src="/images/pinocchiop.webp" alt="PinocchioP" title="PinocchioP"></p>
+<p><img src="/images/maretu.webp" alt="MARETU" title="MARETU"></p>
+<p><img src="/images/kikuo.webp" alt="Kikuo" title="Kikuo"></p>
+</div>
+
+<style>
+.post-side-by-side {
+	display: grid;
+	/* Always 3 columns on wide screens */
+	grid-template-columns: repeat(3, 1fr);
+	gap: 0.75rem;
+	align-items: stretch;
+}
+.post-side-by-side p {
+	margin: 0; /* remove default paragraph margin */
+}
+.post-side-by-side img {
+	width: 100%;
+	aspect-ratio: 1 / 1;
+	height: auto;
+	object-fit: cover;
+	border-radius: 6px;
+	display: block;
+}
+/* Medium screens: switch to 2 columns */
+@media (max-width: 900px) {
+	.post-side-by-side {
+		grid-template-columns: repeat(2, 1fr);
+	}
+}
+/* Small screens: single column and allow natural image aspect */
+@media (max-width: 640px) {
+	.post-side-by-side {
+		grid-template-columns: 1fr;
+	}
+	.post-side-by-side img {
+		aspect-ratio: auto;
+		height: auto;
+	}
+}
+</style>
+
+
+*   **PinocchioP**：他总是在用最欢快的节奏唱着最毒舌、最深刻的社会观察，那种“清醒的荒诞”感让人欲罢不能。
+*   **MARETU**：那种充满机械感的打击乐和极具辨识度的“抽搐感”编曲，把人心底最阴暗的情绪解剖得淋漓尽致。
+*   **Kikuo**：那是真正的幻觉艺术，把 Miku 用成了某种原始宗教的祭祀乐器，华丽、诡谲而又纯洁。
+
+你会发现，这些创作者并不把 Miku 仅仅当作一个“替身歌手”，而是把她当作自己灵魂的扩音器。这种**“创作者 > 歌手”**的独特结构，正是术圈最具魅力的地方。
+
+---
+
+# 术力口：不仅是音乐，更是一种共创文化
+
+VOCALOID 之所以能火二十年，我觉得还在于它的“开源”属性。一首神曲的诞生，往往伴随着一个完整创作链条的集体爆发。
+
+<div class="post-side-by-side-two">
+	<div class="post-text">
+		<p>很多时候，我爱上一首术曲，不仅是因为旋律。当我点开视频，看到那些用简单的色块勾勒出宏大世界观的<b>曲绘</b>，看到那些随节奏跳动的、具有设计感的<b>字体排版（PV）</b>，我才真正理解了这首歌。这是一种由音乐、绘画、叙事、技术共同构建的综合艺术。</p>
+		<p>更浪漫的是，术圈有着极其强大的“同人代谢能力”。一首曲子火了，会有无数的歌见（Utaite）去翻唱，会有舞见去编舞。这种由点及面的“共创”，让 VOCALOID 不再只是一个软件，而是一个活着的、不断进化的生命体。</p>
+	</div>
+	<div class="post-image">
+		<img src="/images/miku_live.webp" alt="初音未来" title="万物皆可Miku">
+	</div>
+</div>
+
+<style>
+/* 复用并微调之前的样式 */
+.post-side-by-side-two {
+	display: grid;
+	grid-template-columns: 1fr 280px; /* 调整了文字和图片的左右位置 */
+	gap: 1.5rem;
+	align-items: start;
+	margin: 1.5rem 0;
+}
+@media (max-width: 720px) {
+	.post-side-by-side-two {
+		grid-template-columns: 1fr;
+	}
+	.post-side-by-side-two .post-image {
+		order: -1; /* 手机端图片置顶 */
+	}
+}
+</style>
+
+---
+
+# 写在最后：那抹从未消逝的色彩
+
+很多人曾预言 VOCALOID 会没落，说随着 AI 技术（如 SV、ACE）的普及，那些带有“机械感”的参数调整将失去意义。但我始终觉得，**AI 追求的是“像人”，而 VOCALOID 追求的是“超越人”。**
+
+正如我在前文所说，那种经过人工无数次打磨、调试出来的“非人感”，恰恰是人类情感最纯粹的投影。只要还有人愿意为了调好一个转音而熬通宵，只要还有人能被那一声晶莹的电子音戳中泪点，VOCALOID 的夏天就永远不会结束。
+
+对我来说，从初三那个午后第一次听见 n-buna 的《花与水饴，最终电车》开始，有些东西就已经定格了。
+
+那是永恒的夏日，永恒的哨戒班，以及那个永远 16 岁、永远在歌唱的葱色身影。
+
+---
+
+> **碎碎念：**
+> 大家入坑的第一首术曲是什么？或者最近有什么宝藏 P 主推荐吗？欢迎在评论区安利呀！✨
