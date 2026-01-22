@@ -53,9 +53,9 @@ class TableOfContents extends HTMLElement {
 
     constructor() {
         super();
-        // 使用多个阈值以便更稳定地判断可见比例，并考虑导航栏高度偏移
+        // 与文章页面保持一致的配置：当顶部偏移并向下占据一定视口高度时才认为在视图中
         this.observer = new IntersectionObserver(
-            this.markVisibleSection, { threshold: [0, 0.15, 0.5], rootMargin: '-80px 0px -40px 0px' }
+            this.markVisibleSection, { threshold: 0, rootMargin: '-80px 0px -80% 0px' }
         );
     };
 
