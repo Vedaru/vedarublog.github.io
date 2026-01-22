@@ -17,6 +17,7 @@ let pioContainer;
 let pioCanvas;
 let userInput = "";
 let isThinking = false;
+let isChatting = false; // 添加聊天状态变量
 let pioText = "你好呀！想和我聊聊天吗？"; // 这里的变量名参考你组件原有的文本变量
   
   // 替换成你刚才部署的 Worker 地址
