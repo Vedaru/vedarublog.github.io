@@ -344,6 +344,9 @@ window.Paul_Pio = function (prop) {
 
 	// 运行
 	this.init = (noModel) => {
+		// 移除隐藏状态
+		current.body.classList.remove("hidden");
+
 		// 未隐藏 + 非手机版，出现操作功能
 		if (!(prop.hidden && tools.isMobile())) {
 			if (!noModel) {
@@ -387,7 +390,8 @@ window.Paul_Pio = function (prop) {
 		};
 	};
 
-	localStorage.getItem("posterGirl") === "0" ? this.initHidden() : this.init();
+	// 总是显示 Pio，不管 localStorage
+	this.init();
 };
 
 // 请保留版权说明
