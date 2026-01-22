@@ -149,3 +149,8 @@
     transform: rotate(360deg);
   }
 }
+
+/* 🔧 Hide play button on anime cards (remove play icon and background) */
+.anime-cover-container .w-12.h-12 {
+  display: none !important;
+}
