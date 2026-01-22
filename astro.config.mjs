@@ -34,7 +34,8 @@ export default defineConfig({
 	base: "/",
 	trailingSlash: "always",
 
-	output: "static",
+	// 使用 Cloudflare Pages 部署时需要 server 输出以支持 API 路由和绑定
+	output: "server",
 
 	integrations: [
 		tailwind({
