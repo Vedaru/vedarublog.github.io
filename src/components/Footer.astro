@@ -2,7 +2,7 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { footerConfig, profileConfig } from "../config";
+import { footerConfig, profileConfig, sakuraConfig } from "../config";
 import { url } from "../utils/url-utils";
 
 const currentYear = new Date().getFullYear();
@@ -48,7 +48,89 @@ if (footerConfig.enable) {
         Powered by
         <a class="transition link text-[var(--primary)] font-medium" target="_blank" href="https://astro.build">Astro</a> &
         <a class="transition link text-[var(--primary)] font-medium" target="_blank" href="https://github.com/matsuzaka-yuki/mizuki">Mizuki</a>&nbsp; Version <a class="transition link text-[var(--primary)] font-medium" target="_blank" href="https://github.com/matsuzaka-yuki/mizuki">8.0</a><br>
+        <a id="sakura-trigger" role="button" aria-pressed="false" tabindex="0" class="transition link text-[var(--primary)] font-medium cursor-pointer mt-2 inline-block" style="user-select: none;" href="javascript:void(0);" onclick="window.handleSakuraToggle?.();">点击之后什么都不会发生的吧</a>
         
 
     </div>
 </div>
+
+<script is:inline>
+    // 全局处理函数（幂等注册）
+    if (!window.handleSakuraToggle) {
+        window.handleSakuraToggle = function() {
+            console.log('=== 触发樱花切换 ===');
+            if (typeof window.__toggleSakura === 'function') {
+                try {
+                    window.__toggleSakura();
+                    const isRunning = typeof window.__getSakuraStatus === 'function' ? window.__getSakuraStatus() : false;
+                    console.log('樱花状态:', isRunning ? '开启' : '关闭');
+                    const trigger = document.getElementById('sakura-trigger');
+                    if (trigger) {
+                        try { trigger.setAttribute('aria-pressed', isRunning ? 'true' : 'false'); } catch (e) {}
+                    }
+                } catch (error) {
+                    console.error('切换樱花时出错:', error);
+                }
+            } else {
+                console.error('樱花管理器未加载');
+            }
+        };
+        (function attachKeyboardSupport() {
+            const trigger = document.getElementById('sakura-trigger');
+            if (!trigger) return;
+            trigger.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    window.handleSakuraToggle?.();
+                }
+            });
+            const initState = typeof window.__getSakuraStatus === 'function' ? window.__getSakuraStatus() : false;
+            try { trigger.setAttribute('aria-pressed', initState ? 'true' : 'false'); } catch (e) {}
+        })();
+        console.log('全局樱花处理函数已注册');
+    }
+</script>
+
+<script>
+    import { toggleSakura, getSakuraStatus, initSakura } from '../utils/sakura-manager';
+    import { sakuraConfig } from '../config';
+
+    // 阻止Layout.astro中的樱花初始化
+    (window as any).sakuraInitialized = true;
+
+    // 挂载到window对象（仅在未挂载时设置或保持现有）
+    if (!(window as any).__toggleSakura) {
+        (window as any).__toggleSakura = toggleSakura;
+    }
+    if (!(window as any).__getSakuraStatus) {
+        (window as any).__getSakuraStatus = getSakuraStatus;
+    }
+
+    // 立即初始化樱花管理器（使用enable:false，这样toggle时才会启动），幂等化防止重复 init
+    const config = { ...sakuraConfig, enable: false };
+    if (!(window as any).__sakuraManagerInitialized) {
+        initSakura(config);
+        (window as any).__sakuraManagerInitialized = true;
+        // 预加载图片以提高响应速度
+        (function preloadSeasonalImage() {
+            const month = new Date().getMonth() + 1;
+            let imageName = "sakura.webp";
+            
+            if (month >= 3 && month <= 5) {
+                imageName = "sakura.webp";
+            } else if (month >= 9 && month <= 11) {
+                imageName = "mapleleaf.webp";
+            } else if (month === 12 || month === 1 || month === 2) {
+                imageName = "snowflake.webp";
+            }
+            
+            const img = new Image();
+            img.src = `/${imageName}`;
+            console.log(`预加载季节图片: ${imageName}`);
+        })();
+
+        console.log('樱花管理器已初始化（待命状态）');
+    } else {
+        console.log('樱花管理器已存在，跳过重复初始化');
+    }
+</script>
