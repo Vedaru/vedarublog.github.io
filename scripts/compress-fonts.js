@@ -952,28 +952,29 @@ async function compressFonts() {
 			}
 		}
 
-		// 在将总结打印到控制台之前，移除 dist/assets/font 下的 .ttf/.otf 文件，避免将原始字体部署到 Cloudflare
+		// 删除 dist 中的原始 TTF/OTF，避免被部署到 Cloudflare
 		try {
 			if (fs.existsSync(distFontDir)) {
-				const distFontFiles = fs.readdirSync(distFontDir);
-				const removed = [];
-				distFontFiles.forEach((file) => {
-					const e = path.extname(file).toLowerCase();
+				const removedFiles = [];
+				const distFiles = fs.readdirSync(distFontDir);
+				for (const f of distFiles) {
+					const e = path.extname(f).toLowerCase();
 					if (e === ".ttf" || e === ".otf") {
+						const p = path.join(distFontDir, f);
 						try {
-							fs.unlinkSync(path.join(distFontDir, file));
-							removed.push(file);
+							fs.unlinkSync(p);
+							removedFiles.push(f);
 						} catch (err) {
-							console.warn(`⚠ Failed to remove ${file} from dist: ${err.message}`);
+							console.warn(`Failed to remove ${f} from dist: ${err.message}`);
 						}
 					}
-				});
-				if (removed.length > 0) {
-					console.log(`✓ Removed original font files from dist: ${removed.join(', ')}`);
+				}
+				if (removedFiles.length > 0) {
+					console.log(`Removed original font files from dist: ${removedFiles.join(", ")}`);
 				}
 			}
 		} catch (err) {
-			console.warn(`⚠ Failed to clean original fonts in dist: ${err.message}`);
+			console.warn(`Font cleanup failed: ${err.message}`);
 		}
 
 		// 输出总结
