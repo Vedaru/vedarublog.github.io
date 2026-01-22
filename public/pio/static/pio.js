@@ -92,8 +92,10 @@ window.Paul_Pio = function (prop) {
 		},
 		// 移除方法
 		destroy: () => {
-			this.initHidden();
-			localStorage.setItem("posterGirl", "0");
+			// 注释掉隐藏功能，让叉号点击后不隐藏组件
+			// this.initHidden();
+			// localStorage.setItem("posterGirl", "0");
+			modules.message("我不会消失哦～");
 		},
 	};
 
