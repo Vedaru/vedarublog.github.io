@@ -44,6 +44,15 @@ let pioText = "你好呀！想和我聊聊天吗？"; // 这里的变量名参�
     }
   }
 
+  function showPioMessage(message) {
+    pioText = message;
+    // 如果 Pio 实例存在，可以调用其消息显示方法
+    if (typeof window !== "undefined" && window.Paul_Pio && window.Paul_Pio.prototype) {
+      // 假设有一个全局实例或方法来显示消息
+      // 这里可以调用 pio.js 的 message 方法
+    }
+  }
+
 // 样式已通过 Layout.astro 静态引入，无需动态加载
 
 // 等待 DOM 加载完成后再初始化 Pio
@@ -116,6 +125,17 @@ onMount(() => {
 
 	// 加载资源并初始化
 	loadPioAssets();
+
+	// 监听 Pio 聊天切换事件
+	const handleToggleChat = () => {
+		isChatting = !isChatting;
+	};
+	window.addEventListener('togglePioChat', handleToggleChat);
+
+	// 在组件销毁时移除监听器
+	return () => {
+		window.removeEventListener('togglePioChat', handleToggleChat);
+	};
 });
 
 onDestroy(() => {
@@ -135,32 +155,48 @@ onDestroy(() => {
       height={pioConfig.height || 250}
     ></canvas>  
   	{#if isChatting}
-    <div class="pio-chat-input-container">
-      <input 
-        bind:value={userInput} 
-        on:keydown={(e) => e.key === 'Enter' && handleChat()}
-        placeholder="输入内容..." 
-      />
-      <button on:click={handleChat} disabled={isThinking}>
-        {isThinking ? '...' : '发送'}
-      </button>
-  	</div>
+    <div class="pio-chat-container">
+      {#if pioText}
+        <div class="pio-chat-message">{pioText}</div>
+      {/if}
+      <div class="pio-chat-input-container">
+        <input 
+          bind:value={userInput} 
+          on:keydown={(e) => e.key === 'Enter' && handleChat()}
+          placeholder="输入内容..." 
+        />
+        <button on:click={handleChat} disabled={isThinking}>
+          {isThinking ? '...' : '发送'}
+        </button>
+      </div>
+    </div>
   	{/if}
   </div>
 {/if}
 
 <style>
-.pio-chat-input-container {
+.pio-chat-container {
     position: absolute;
-    bottom: 50px;
+    bottom: 100%;
     left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 1em;
+    padding: 1em;
+    margin-bottom: 0.5em;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .pio-chat-message {
+    margin-bottom: 0.5em;
+    font-size: 0.9em;
+    color: #333;
+  }
+
+  .pio-chat-input-container {
     display: flex;
     gap: 4px;
-    background: rgba(255, 255, 255, 0.8);
-    padding: 5px;
-    border-radius: 8px;
-    backdrop-filter: blur(4px);
-    z-index: 100;
+    margin-top: 0.5em;
   }
   .pio-chat-input-container input {
     border: none;

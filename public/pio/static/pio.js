@@ -255,12 +255,12 @@ window.Paul_Pio = function (prop) {
 				current.menu.appendChild(elements.night);
 			}
 
-			// 关闭看板娘
+			// 切换聊天模式
 			elements.close.onclick = () => {
-				modules.destroy();
+				window.dispatchEvent(new CustomEvent('togglePioChat'));
 			};
 			elements.close.onmouseover = () => {
-				modules.message(prop.content.close || "QWQ 下次再见吧~");
+				modules.message("点击这里和我聊天吧！");
 			};
 			current.menu.appendChild(elements.close);
 		},
