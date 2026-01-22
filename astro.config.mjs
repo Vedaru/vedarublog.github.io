@@ -36,6 +36,18 @@ export default defineConfig({
 
 	// 使用 Cloudflare Pages 部署时需要 server 输出以支持 API 路由和绑定
 	output: "server",
+	adapter: cloudflare({
+		mode: "directory",
+		runtime: {
+			mode: "local",
+			type: "pages",
+		},
+	}),
+	image: {
+		service: {
+			entry: "astro/assets/services/cloudflare",
+		},
+	},
 
 	integrations: [
 		tailwind({
@@ -116,7 +128,6 @@ export default defineConfig({
 			preprocess: vitePreprocess(),
 		}),
 		sitemap(),
-		cloudflare(),
 	],
 	markdown: {
 		remarkPlugins: [
