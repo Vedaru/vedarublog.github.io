@@ -1,5 +1,4 @@
 import sitemap from "@astrojs/sitemap";
-import cloudflare from "@astrojs/cloudflare";
 import svelte, { vitePreprocess } from "@astrojs/svelte";
 import tailwind from "@astrojs/tailwind";
 import { pluginCollapsibleSections } from "@expressive-code/plugin-collapsible-sections";
@@ -34,20 +33,7 @@ export default defineConfig({
 	base: "/",
 	trailingSlash: "always",
 
-	// 使用 Cloudflare Pages 部署时需要 server 输出以支持 API 路由和绑定
-	output: "server",
-	adapter: cloudflare({
-		mode: "directory",
-		runtime: {
-			mode: "local",
-			type: "pages",
-		},
-	}),
-	image: {
-		service: {
-			entry: "astro/assets/services/cloudflare",
-		},
-	},
+	output: "static",
 
 	integrations: [
 		tailwind({

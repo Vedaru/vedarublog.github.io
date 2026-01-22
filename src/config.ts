@@ -9,7 +9,6 @@ import type {
 	NavBarConfig,
 	PermalinkConfig,
 	ProfileConfig,
-	SakuraConfig,
 	ShareConfig,
 	SidebarLayoutConfig,
 	SiteConfig,
@@ -238,11 +237,7 @@ export const navBarConfig: NavBarConfig = {
 	links: [
 		LinkPreset.Home,
 		LinkPreset.Archive,
-		{
-			name: "AI",
-			url: "/chat/",
-			icon: "material-symbols:chat",
-		},
+		// 支持自定义导航栏链接，支持多级菜单
 		{
 			name: "Links",
 			url: "/links/",
@@ -618,33 +613,6 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 	},
 };
 
-export const sakuraConfig: SakuraConfig = {
-	enable: false, // 默认关闭樱花特效
-	sakuraNum: 10, // 樱花数量
-	limitTimes: -1, // 樱花越界限制次数，-1为无限循环
-	size: {
-		min: 0.2, // 樱花最小尺寸倍数
-		max: 0.3, // 樱花最大尺寸倍数
-	},
-	opacity: {
-		min: 0.3, // 樱花最小不透明度
-		max: 0.9, // 樱花最大不透明度
-	},
-	speed: {
-		horizontal: {
-			min: -0.5, // 水平移动速度最小值
-			max: 0.5, // 水平移动速度最大值
-		},
-		vertical: {
-			min: 1.0, // 垂直移动速度最小值
-			max: 1.3, // 垂直移动速度最大值
-		},
-		rotation: 0.03, // 旋转速度
-		fadeSpeed: 0.03, // 消失速度，不应大于最小不透明度
-	},
-	zIndex: 100, // 层级，确保樱花在合适的层级显示
-};
-
 export const pioConfig: import("./types/config").PioConfig & { eagerLoad?: boolean } = {
 	enable: true, // 启用看板娘
 	models: ["/pio/models/pio/model.json"], // 默认模型路径
@@ -701,7 +669,6 @@ export const widgetConfigs = {
 	announcement: announcementConfig,
 	music: musicPlayerConfig,
 	layout: sidebarLayoutConfig,
-	sakura: sakuraConfig,
 	fullscreenWallpaper: fullscreenWallpaperConfig,
 	pio: pioConfig, // 添加 pio 配置
 	share: shareConfig, // 添加分享配置
