@@ -77,6 +77,7 @@
 		"unist-util-visit": "^5.0.0"
 	},
 	"devDependencies": {
+		"@astrojs/cloudflare": "^12.6.12",
 		"@astrojs/ts-plugin": "^1.10.6",
 		"@iconify-json/mdi": "^1.2.3",
 		"@rollup/plugin-yaml": "^4.1.2",
