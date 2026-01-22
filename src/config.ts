@@ -238,7 +238,11 @@ export const navBarConfig: NavBarConfig = {
 	links: [
 		LinkPreset.Home,
 		LinkPreset.Archive,
-		// 支持自定义导航栏链接，支持多级菜单
+		{
+			name: "AI Chat",
+			url: "/chat/",
+			icon: "material-symbols:chat",
+		},
 		{
 			name: "Links",
 			url: "/links/",
