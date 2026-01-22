@@ -15,6 +15,33 @@ let pioInstance = null;
 let pioInitialized = false;
 let pioContainer;
 let pioCanvas;
+let userInput = "";
+let isThinking = false;
+let pioText = "你好呀！想和我聊聊天吗？"; // 这里的变量名参考你组件原有的文本变量
+  
+  // 替换成你刚才部署的 Worker 地址
+  const AI_API = "https://ai.vedaru.cn";
+
+  async function handleChat() {
+    if (!userInput) return;
+    isThinking = true;
+    const tempInput = userInput;
+    userInput = "";
+    
+    try {
+      const res = await fetch(AI_API, {
+        method: "POST",
+        body: JSON.stringify({ prompt: tempInput })
+      });
+      const data = await res.json();
+      // 调用原生 Pio 展示消息的方法，或者直接修改文本变量
+      showPioMessage(data.response); 
+    } catch (err) {
+      showPioMessage("哎呀，网络好像出错了...");
+    } finally {
+      isThinking = false;
+    }
+  }
 
 // 样式已通过 Layout.astro 静态引入，无需动态加载
 
@@ -105,10 +132,40 @@ onDestroy(() => {
       bind:this={pioCanvas}
       width={pioConfig.width || 280} 
       height={pioConfig.height || 250}
-    ></canvas>
+    ></canvas>  
+  	{#if isChatting}
+    <div class="pio-chat-input-container">
+      <input 
+        bind:value={userInput} 
+        on:keydown={(e) => e.key === 'Enter' && handleChat()}
+        placeholder="输入内容..." 
+      />
+      <button on:click={handleChat} disabled={isThinking}>
+        {isThinking ? '...' : '发送'}
+      </button>
+  	</div>
+  	{/if}
   </div>
 {/if}
 
 <style>
-  /* Pio 相关样式将通过外部CSS文件加载 */
+.pio-chat-input-container {
+    position: absolute;
+    bottom: 50px;
+    left: 0;
+    display: flex;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 5px;
+    border-radius: 8px;
+    backdrop-filter: blur(4px);
+    z-index: 100;
+  }
+  .pio-chat-input-container input {
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 12px;
+    width: 100px;
+  }
 </style>
