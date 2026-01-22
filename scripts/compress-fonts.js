@@ -952,6 +952,30 @@ async function compressFonts() {
 			}
 		}
 
+		// 在将总结打印到控制台之前，移除 dist/assets/font 下的 .ttf/.otf 文件，避免将原始字体部署到 Cloudflare
+		try {
+			if (fs.existsSync(distFontDir)) {
+				const distFontFiles = fs.readdirSync(distFontDir);
+				const removed = [];
+				distFontFiles.forEach((file) => {
+					const e = path.extname(file).toLowerCase();
+					if (e === ".ttf" || e === ".otf") {
+						try {
+							fs.unlinkSync(path.join(distFontDir, file));
+							removed.push(file);
+						} catch (err) {
+							console.warn(`⚠ Failed to remove ${file} from dist: ${err.message}`);
+						}
+					}
+				});
+				if (removed.length > 0) {
+					console.log(`✓ Removed original font files from dist: ${removed.join(', ')}`);
+				}
+			}
+		} catch (err) {
+			console.warn(`⚠ Failed to clean original fonts in dist: ${err.message}`);
+		}
+
 		// 输出总结
 		if (errors.length > 0) {
 			console.log("\n❌ Font compression encountered errors!");

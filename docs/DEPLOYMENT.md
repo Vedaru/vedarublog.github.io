@@ -266,6 +266,8 @@ USE_SUBMODULE=false  # ⚠️ Cloudflare Pages 默认不支持 submodule
 - 使用独立仓库模式: `USE_SUBMODULE=false`
 - 或在构建命令中手动初始化: `git submodule update --init && pnpm build`
 
+- 字体部署说明：构建流程会执行 `node scripts/compress-fonts.js`，该脚本会把本地的 `.ttf`/`.otf` 转换为 `.woff2` 并且从 `dist/assets/font` 中移除原始 `.ttf`/`.otf`，因此在 Cloudflare Pages 发布的站点不会包含 `.ttf` 文件。如需保留源文件用于审计或备份，请在仓库的其他位置保存（但不会被部署到页面）。
+
 ---
 
 ## 🔄 自动同步机制

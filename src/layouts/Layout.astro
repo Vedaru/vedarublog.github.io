@@ -490,8 +490,6 @@ if (siteConfig.font) {
 	// const MAIN_PANEL_OVERLAPS_BANNER_HEIGHT = 3.5;
 	import { siteConfig } from "../config";
 	import { widgetConfigs } from "../config";
-	import { initSakura } from "../utils/sakura-manager";
-
 	// const setTimeout = window.setTimeout;
 	// @ts-ignore
 	const setTimeout = (callback: any, delay: any) =>
@@ -833,20 +831,6 @@ function disableAnimation() {
 			// 开始自动轮播
 			startCarousel();
 		}
-	}
-
-	function setupSakura() {
-		const sakuraConfig = (widgetConfigs as any)?.sakura;
-		if (!sakuraConfig || !sakuraConfig.enable) return;
-		if ((window as any).sakuraInitialized) return;
-		initSakura(sakuraConfig);
-		(window as any).sakuraInitialized = true;
-	}
-
-	if (document.readyState === "loading") {
-		document.addEventListener("DOMContentLoaded", setupSakura);
-	} else {
-		setupSakura();
 	}
 
 	let fancyboxSelectors: string[] = [];
