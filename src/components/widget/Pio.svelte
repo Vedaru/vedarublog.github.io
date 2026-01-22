@@ -159,7 +159,7 @@ onDestroy(() => {
       {#if pioText}
         <div class="pio-chat-message">{pioText}</div>
       {/if}
-      <div class="pio-chat-input-container">
+      <div class="pio-chat-input-area">
         <input 
           bind:value={userInput} 
           on:keydown={(e) => e.key === 'Enter' && handleChat()}
@@ -193,16 +193,32 @@ onDestroy(() => {
     color: #333;
   }
 
-  .pio-chat-input-container {
+  .pio-chat-input-area {
     display: flex;
     gap: 4px;
     margin-top: 0.5em;
+    align-items: center;
   }
-  .pio-chat-input-container input {
-    border: none;
-    background: transparent;
+  .pio-chat-input-area input {
+    flex: 1;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 4px 8px;
     outline: none;
     font-size: 12px;
-    width: 100px;
+  }
+  .pio-chat-input-area button {
+    border: none;
+    background: var(--primary);
+    color: white;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .pio-chat-input-area button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
   }
 </style>
