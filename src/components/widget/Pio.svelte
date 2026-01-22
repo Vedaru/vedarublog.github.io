@@ -18,6 +18,7 @@ let pioCanvas;
 let userInput = "";
 let isThinking = false;
 let pioText = "你好呀！想和我聊聊天吗？"; // 这里的变量名参考你组件原有的文本变量
+let isChatting = true; // 控制聊天输入框显示
   
   // 替换成你刚才部署的 Worker 地址
   const AI_API = "https://ai.vedaru.cn";
@@ -118,9 +119,9 @@ onMount(() => {
 });
 
 onDestroy(() => {
-	// Svelte 组件销毁时不需要清理 Pio 实例
-	// 因为我们希望它在页面切换时保持状态
-	console.log("Pio Svelte component destroyed (keeping instance alive)");
+	// Pio 组件设置为持久化，不进行清理操作
+	// 保持 Pio 实例在页面切换时存活
+	console.log("Pio component unmounting (instance preserved)");
 });
 </script>
 
