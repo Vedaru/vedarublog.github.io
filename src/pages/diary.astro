@@ -86,7 +86,7 @@ for (const y of yearKeys) {
 							<h1 id={`year-${year}`} class="diary-year-heading mt-2 mb-4 text-xl font-semibold text-90 dark:text-20">{year} 年</h1>
 							{sortedMonthKeysByYear[year].map((month) => (
 								<>
-									<h2 id={`year-${year}-month-${month}`} class="diary-month-heading mt-1 mb-3 text-md font-medium text-70 dark:text-40">{month} 月</h2>
+									<h2 id={`year-${year}-month-${month}`} class="diary-month-heading mt-1 mb-3 text-md font-medium text-black/70 dark:text-white/40">{month} 月</h2>
 									{sortedGroupedMoments[year][month].map((moment) => (
 											<div id={monthAnchorMap[moment.id] ?? undefined} class="moment-item card-base-daily p-4 md:p-6 lg:p-8 hover:shadow-lg transition-all">
 												<div class="moment-content">
@@ -293,14 +293,14 @@ for (const y of yearKeys) {
 .diary-year-heading {
 	@apply text-black/90;
 }
-.dark .diary-year-heading {
+:root.dark .diary-year-heading {
 	@apply text-white/90;
 }
 .diary-month-heading {
-	@apply text-black/90;
+	@apply text-black/70;
 }
-.dark .diary-month-heading {
-	@apply text-white/90;
+:root.dark .diary-month-heading {
+	@apply text-white/40;
 }
 </style>
 

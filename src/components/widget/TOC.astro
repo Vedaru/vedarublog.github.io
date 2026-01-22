@@ -60,42 +60,77 @@ class TableOfContents extends HTMLElement {
     };
 
     markVisibleSection = (entries: IntersectionObserverEntry[]) => {
-        // 收集每个 entry 的 intersectionRatio 并选出最大的作为当前主导 section
-        const ratioMap = new Map<number, number>(); // idx -> ratio
+        // 改进：基于可见面积（intersectionRect area / bounding area）为主评分，
+        // 在 tie-break 时用到目标区域距离视口顶部的距离（越靠近顶部权重越高），并缓存通过查找得到的 id。
+        const ratioMap = new Map<number, number>(); // idx -> score
+        const NAVBAR_OFFSET = 80; // 与滚动偏移保持一致
 
         entries.forEach((entry) => {
             const targetEl = entry.target as HTMLElement;
-            // 优先使用 data 属性，兜底查找子元素带 id 的节点
+
+            // 优先使用缓存的 data 属性
             let id = targetEl.dataset.tocId || null;
+
+            // 若没有缓存 id，则按优先级尝试：section 内的 headings -> 带 id 的后代元素 -> firstElementChild.id
             if (!id) {
-                const descendantWithId = targetEl.querySelector('[id]') as HTMLElement | null;
-                id = descendantWithId?.id ?? (targetEl.firstElementChild?.id ?? null);
+                const headingEls = Array.from(targetEl.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]')) as HTMLElement[];
+                if (headingEls.length) {
+                    // 选择在视口中可见高度最大的 heading（更能代表用户视线位置）
+                    let best: { id: string; score: number } | null = null;
+                    for (const h of headingEls) {
+                        const hr = h.getBoundingClientRect();
+                        const visibleHeight = Math.max(0, Math.min(hr.bottom, window.innerHeight) - Math.max(hr.top, 0));
+                        if (!best || visibleHeight > best.score) best = { id: h.id, score: visibleHeight };
+                    }
+                    if (best) id = best.id;
+                }
+                if (!id) {
+                    const descendantWithId = targetEl.querySelector('[id]') as HTMLElement | null;
+                    id = descendantWithId?.id ?? (targetEl.firstElementChild?.id ?? null);
+                }
+                // 缓存以便下次快速读取（容错）
+                try { if (id) targetEl.dataset.tocId = id; } catch (e) { /* ignore */ }
             }
 
             const idx = id ? this.headingIdxMap.get(id) : undefined;
-            const ratio = entry.intersectionRatio ?? (entry.isIntersecting ? 0.01 : 0);
+
+            // 计算可见面积比（更稳定于单纯的 intersectionRatio）
+            let areaRatio = 0;
+            if (entry.intersectionRect && entry.boundingClientRect) {
+                const iRect = entry.intersectionRect;
+                const bRect = entry.boundingClientRect;
+                const visibleArea = Math.max(0, iRect.width * iRect.height);
+                const totalArea = Math.max(1, bRect.width * bRect.height);
+                areaRatio = visibleArea / totalArea;
+            } else {
+                areaRatio = entry.isIntersecting ? 0.01 : 0;
+            }
+
+            // tie-break: 更靠近顶部的区域略加分（越靠近 top 加分越大）
+            const rectTop = entry.boundingClientRect ? (entry.boundingClientRect.top - NAVBAR_OFFSET) : Infinity;
+            const proximityScore = rectTop === Infinity ? 0 : (1 / (1 + Math.max(0, rectTop)));
+
+            const finalScore = areaRatio + proximityScore * 0.001; // 给 proximity 很小的权重，避免覆盖面积优先级
+
             if (idx != undefined) {
-                ratioMap.set(idx, Math.max(ratioMap.get(idx) ?? 0, ratio));
+                ratioMap.set(idx, Math.max(ratioMap.get(idx) ?? 0, finalScore));
             }
 
             if (entry.isIntersecting && this.anchorNavTarget == targetEl.firstChild)
                 this.anchorNavTarget = null;
         });
 
-        // 将 active 数组全部置 false，然后只将 ratio 最大的项设为 true（更稳定）
+        // 选择得分最高的条目作为 active（更稳定并考虑可见面积与位置）
         if (ratioMap.size > 0) {
             this.active.fill(false);
-            let maxIdx = -1;
-            let maxRatio = 0;
-            ratioMap.forEach((r, i) => {
-                if (r > maxRatio) {
-                    maxRatio = r;
-                    maxIdx = i;
-                }
+            let bestIdx = -1;
+            let bestScore = -1;
+            ratioMap.forEach((s, i) => {
+                if (s > bestScore) { bestScore = s; bestIdx = i; }
             });
-            if (maxIdx >= 0) this.active[maxIdx] = true;
+            if (bestIdx >= 0) this.active[bestIdx] = true;
         } else if (!this.active.includes(true)) {
-            // 如果没有任何 entry，使用回退策略
+            // 没有任何 entry 时使用回退策略
             this.fallback();
         }
 
