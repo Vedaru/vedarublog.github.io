@@ -53,87 +53,24 @@ class TableOfContents extends HTMLElement {
 
     constructor() {
         super();
-        // 与文章页面保持一致的配置：当顶部偏移并向下占据一定视口高度时才认为在视图中
         this.observer = new IntersectionObserver(
-            this.markVisibleSection, { threshold: 0, rootMargin: '-80px 0px -80% 0px' }
+            this.markVisibleSection, { threshold: 0 }
         );
     };
 
     markVisibleSection = (entries: IntersectionObserverEntry[]) => {
-        // 改进：基于可见面积（intersectionRect area / bounding area）为主评分，
-        // 在 tie-break 时用到目标区域距离视口顶部的距离（越靠近顶部权重越高），并缓存通过查找得到的 id。
-        const ratioMap = new Map<number, number>(); // idx -> score
-        const NAVBAR_OFFSET = 80; // 与滚动偏移保持一致
-
         entries.forEach((entry) => {
-            const targetEl = entry.target as HTMLElement;
-
-            // 优先使用缓存的 data 属性
-            let id = targetEl.dataset.tocId || null;
-
-            // 若没有缓存 id，则按优先级尝试：section 内的 headings -> 带 id 的后代元素 -> firstElementChild.id
-            if (!id) {
-                const headingEls = Array.from(targetEl.querySelectorAll('h1[id],h2[id],h3[id],h4[id],h5[id],h6[id]')) as HTMLElement[];
-                if (headingEls.length) {
-                    // 选择在视口中可见高度最大的 heading（更能代表用户视线位置）
-                    let best: { id: string; score: number } | null = null;
-                    for (const h of headingEls) {
-                        const hr = h.getBoundingClientRect();
-                        const visibleHeight = Math.max(0, Math.min(hr.bottom, window.innerHeight) - Math.max(hr.top, 0));
-                        if (!best || visibleHeight > best.score) best = { id: h.id, score: visibleHeight };
-                    }
-                    if (best) id = best.id;
-                }
-                if (!id) {
-                    const descendantWithId = targetEl.querySelector('[id]') as HTMLElement | null;
-                    id = descendantWithId?.id ?? (targetEl.firstElementChild?.id ?? null);
-                }
-                // 缓存以便下次快速读取（容错）
-                try { if (id) targetEl.dataset.tocId = id; } catch (e) { /* ignore */ }
-            }
-
+            const id = entry.target.children[0]?.getAttribute("id");
             const idx = id ? this.headingIdxMap.get(id) : undefined;
+            if (idx != undefined)
+                this.active[idx] = entry.isIntersecting;
 
-            // 计算可见面积比（更稳定于单纯的 intersectionRatio）
-            let areaRatio = 0;
-            if (entry.intersectionRect && entry.boundingClientRect) {
-                const iRect = entry.intersectionRect;
-                const bRect = entry.boundingClientRect;
-                const visibleArea = Math.max(0, iRect.width * iRect.height);
-                const totalArea = Math.max(1, bRect.width * bRect.height);
-                areaRatio = visibleArea / totalArea;
-            } else {
-                areaRatio = entry.isIntersecting ? 0.01 : 0;
-            }
-
-            // tie-break: 更靠近顶部的区域略加分（越靠近 top 加分越大）
-            const rectTop = entry.boundingClientRect ? (entry.boundingClientRect.top - NAVBAR_OFFSET) : Infinity;
-            const proximityScore = rectTop === Infinity ? 0 : (1 / (1 + Math.max(0, rectTop)));
-
-            const finalScore = areaRatio + proximityScore * 0.001; // 给 proximity 很小的权重，避免覆盖面积优先级
-
-            if (idx != undefined) {
-                ratioMap.set(idx, Math.max(ratioMap.get(idx) ?? 0, finalScore));
-            }
-
-            if (entry.isIntersecting && this.anchorNavTarget == targetEl.firstChild)
+            if (entry.isIntersecting && this.anchorNavTarget == entry.target.firstChild)
                 this.anchorNavTarget = null;
         });
 
-        // 选择得分最高的条目作为 active（更稳定并考虑可见面积与位置）
-        if (ratioMap.size > 0) {
-            this.active.fill(false);
-            let bestIdx = -1;
-            let bestScore = -1;
-            ratioMap.forEach((s, i) => {
-                if (s > bestScore) { bestScore = s; bestIdx = i; }
-            });
-            if (bestIdx >= 0) this.active[bestIdx] = true;
-        } else if (!this.active.includes(true)) {
-            // 没有任何 entry 时使用回退策略
+        if (!this.active.includes(true))
             this.fallback();
-        }
-
         this.update();
     };
 
@@ -309,27 +246,14 @@ class TableOfContents extends HTMLElement {
 
         this.sections = new Array(this.tocEntries.length);
         this.headings = new Array(this.tocEntries.length);
-        const isDiary = window.location.pathname.includes('/diary') || document.querySelector('.moments-timeline') !== null;
         for (let i = 0; i < this.tocEntries.length; i++) {
             const id = decodeURIComponent(this.tocEntries[i].hash?.substring(1));
             const heading = document.getElementById(id);
-            let section: HTMLElement | null = null;
-
-            if (isDiary) {
-                // 在日记页面，优先选择与该 id 匹配且非 H1-H6 的元素（比如第一个 moment item），
-                // 这样 IntersectionObserver 能观察到实际滚动区域；找不到则回退到 heading 的父元素
-                const candidates = Array.from(document.querySelectorAll(`#${CSS.escape(id)}`)) as HTMLElement[];
-                section = candidates.find(el => !/^H[1-6]$/.test(el.tagName)) || heading?.parentElement || null;
-            } else {
-                section = heading?.parentElement || null;
-            }
-
+            const section = heading?.parentElement;
             if (heading instanceof HTMLElement && section instanceof HTMLElement) {
                 this.headings[i] = heading;
                 this.sections[i] = section;
                 this.headingIdxMap.set(id, i);
-                // 为了更可靠地从 entry.target 读取 id，保存到 data 属性
-                try { section.dataset.tocId = id; } catch (e) { /* ignore */ }
             }
         }
         this.active = new Array(this.tocEntries.length).fill(false);
@@ -343,11 +267,13 @@ class TableOfContents extends HTMLElement {
     };
 
     regenerateTOC(retryCount = 0) {
-        // 检查是否为文章页面
+        // 检查是否为文章页面或日记页面（支持 /diary）
+        const isDiaryPage = window.location.pathname.includes('/diary');
         const isPostPage = window.location.pathname.includes('/posts/') || 
-                          document.querySelector('.custom-md, .markdown-content') !== null ||
-                          window.location.pathname.includes('/diary') ||
-                          document.querySelector('.moments-timeline') !== null;
+                          isDiaryPage ||
+                          document.querySelector('.custom-md, .markdown-content') !== null;
+        // 调试信息，便于定位可能的问题
+        console.debug('TOC: page detection', { pathname: window.location.pathname, isDiaryPage });
         if (!isPostPage) {
             // 如果不是文章或日记页面，隐藏TOC
             this.innerHTML = '';
@@ -362,46 +288,6 @@ class TableOfContents extends HTMLElement {
                 slug: h.id,
                 text: (h.textContent || '').replace(/#+\s*$/, '')
             }));
-
-        // 如果是日记页面，按年-月升序排列（从早到晚）以便 TOC 从上到下显示早到晚
-        const isDiaryPage = window.location.pathname.includes('/diary') || document.querySelector('.moments-timeline') !== null;
-        if (isDiaryPage) {
-            const ymRegex = /^year-(\d{4})(?:-month-(\d{2}))?$/;
-            headings.sort((a, b) => {
-                const am = a.slug.match(ymRegex);
-                const bm = b.slug.match(ymRegex);
-                if (am && bm) {
-                    const ay = parseInt(am[1], 10);
-                    const amonthRaw = am[2];
-                    const amonth = amonthRaw ? parseInt(amonthRaw, 10) : undefined;
-                    const by = parseInt(bm[1], 10);
-                    const bmonthRaw = bm[2];
-                    const bmonth = bmonthRaw ? parseInt(bmonthRaw, 10) : undefined;
-
-                    // 如果一个是 year、另一个是 month，保证 year 在 month 之前（即年级标题排在该年月份的上方）
-                    if (amonth === undefined && bmonth !== undefined) {
-                        // 同年则 year 在前；不同年则按年降序
-                        if (by !== ay) return by - ay;
-                        return -1;
-                    }
-                    if (amonth !== undefined && bmonth === undefined) {
-                        if (by !== ay) return by - ay;
-                        return 1;
-                    }
-
-                    // 两者均为 year 或均为 month：按 年+月 降序
-                    const aKey = ay * 100 + (amonth ?? 0);
-                    const bKey = by * 100 + (bmonth ?? 0);
-                    return bKey - aKey; // 降序
-                } else if (am && !bm) {
-                    // a 匹配，b 不匹配 → 将匹配项靠前
-                    return -1;
-                } else if (!am && bm) {
-                    return 1;
-                }
-                return 0;
-            });
-        }
         // 如果没有标题，延迟重试最多3次
         if (headings.length === 0 && retryCount < 3) {
             setTimeout(() => this.regenerateTOC(retryCount + 1), 120);
