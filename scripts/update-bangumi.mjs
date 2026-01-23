@@ -22,7 +22,7 @@ async function getUserIdFromConfig() {
 		if (match && match[1]) {
 			const userId = match[1];
 			if (
-				userId === "your-bangumi-id" ||
+				userId === "vedaru" ||
 				userId === "your-user-id" ||
 				!userId
 			) {
