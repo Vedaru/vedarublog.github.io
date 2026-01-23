@@ -2,7 +2,7 @@
 title: Encrypted Post
 published: 2024-01-15
 description: This is an article for testing the page encryption feature
-encrypted: true
+encrypted: false
 pinned: false
 password: "123456"
 permalink: "encrypted-example"
