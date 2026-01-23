@@ -10,3 +10,5 @@
 优化了日记界面的TOC卡片，现在可以直接点击TOC跳转到相应月份的日记。
 
 在pio组件中添加了聊天的功能，后端由Cloudflare Workers AI提供AI模块支持。
+
+番剧从local模式改为调用bangumi api
