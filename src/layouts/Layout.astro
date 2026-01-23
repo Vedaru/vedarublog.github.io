@@ -9,6 +9,7 @@ import {
 	siteConfig,
 } from "@/config";
 import { umamiConfig } from "../config";
+import SpeedInsights from "@vercel/speed-insights/astro";
 
 const BANNER_HEIGHT = 35;
 const BANNER_HEIGHT_EXTEND = 30;
@@ -295,7 +296,7 @@ if (siteConfig.font) {
 			const expressiveTheme = isDark ? "github-dark" : "github-light";
 			const currentTheme =
 				document.documentElement.getAttribute("data-theme");
-			// 只在主题不同时才更新，避免触发不必要的重绘
+			// 只在主���不同时才更新，避免触发不必要的重绘
 			if (currentTheme !== expressiveTheme) {
 				document.documentElement.setAttribute(
 					"data-theme",
@@ -407,6 +408,9 @@ if (siteConfig.font) {
 
 		<!-- Pio 看板娘组件 - 仅在启用时加载 -->
 		{pioConfig.enable && <Pio client:load />}
+
+		<!-- Vercel Speed Insights -->
+		<SpeedInsights />
 
 		<!-- increase the page height during page transition to prevent the scrolling animation from jumping -->
 		<div id="page-height-extend" class="hidden h-[300vh]"></div>
@@ -1000,7 +1004,7 @@ function disableAnimation() {
 				}
 			}
 
-			// 重新初始化semifull模式的滚动检测
+			// 重新初始化semifull模式��滚动检测
 			const navbar = document.getElementById("navbar");
 			if (navbar) {
 				const transparentMode = navbar.getAttribute(
