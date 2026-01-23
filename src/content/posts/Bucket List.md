@@ -18,6 +18,16 @@ Vortexgear Core (Plus) 40% Keyboard
 
 Fender Hybrid2 Tele  
 
+NVIDIA DGX H100  
+
 ---  
 
 ## Things to Do  
+
+自己动手搭建一台台式机  
+
+自建一个api项目  
+
+本地部署一个AI智能体（并把ta调教成猫娘bushi）  
+
+弹奏出如同拿不拿一样抓耳的电吉他riff  

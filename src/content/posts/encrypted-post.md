@@ -22,7 +22,7 @@ description: This is the first post of my new Astro blog.
 image: ./cover.webp
 tags: [Foo, Bar]
 category: Front-end
-draft: false
+draft: true
 ---
 ```
 
