@@ -167,6 +167,10 @@ export default defineConfig({
 	},
 	vite: {
 		build: {
+			// 修复 preload 报错：request credentials mode does not match
+			modulePreload: {
+				polyfill: false,
+			},
 			// 静态资源处理优化，防止小图片转 base64 导致 HTML 体积过大（可选，根据需要调整）
 			assetsInlineLimit: 4096,
 
