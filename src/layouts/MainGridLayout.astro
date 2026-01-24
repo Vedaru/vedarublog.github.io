@@ -778,6 +778,8 @@ const transparentClass = shouldEnableTransparency
             {isBothSidebarMode && hasRightSidebarComponents && <div class={`right-sidebar-container ${rightSidebarClass} ${transparentClass}`}><RightSideBar headings={headings}></RightSideBar></div>}
 
             <main id="swup-container" class={`${mainContentClass} transition-main`}>
+                <!-- Ensure a main heading exists for accessibility (used by swup a11y plugin). This heading is visually hidden but available to screen readers as a reliable fallback. -->
+                <h1 id="main-heading" class="sr-only">{title || siteConfig.title}</h1>
                 <div id="content-wrapper" class="onload-animation transition-leaving">
                     <!-- the overflow-hidden here prevent long text break the layout-->
                     <!-- make id different from windows.swup global property -->
