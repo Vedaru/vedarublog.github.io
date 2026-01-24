@@ -511,12 +511,14 @@ const hiddenAnimeList = animeList.slice(INITIAL_DISPLAY_COUNT);
 	</div>
 
 	<script is:inline define:vars={{ isBothSidebarMode }}>
-		(function () {
+		// 将初始化函数定义为具名函数，以便 Swup 调用
+		function initAnimePageLayout() {
 			function initAnimeLayout() {
 				const animeListContainer = document.getElementById(
 					"anime-list-container",
 				);
 				if (!animeListContainer) return false;
+
 				const currentLayout =
 					localStorage.getItem("postListLayout") || "list";
 				updateAnimeListLayout(currentLayout, false);
@@ -553,143 +555,170 @@ const hiddenAnimeList = animeList.slice(INITIAL_DISPLAY_COUNT);
 				}
 			}
 
-			if (document.readyState === "loading") {
-				document.addEventListener("DOMContentLoaded", tryInit);
-			} else {
-				tryInit();
-			}
+			tryInit();
+		}
 
-			function updateAnimeListLayout(layout, shouldAnimate = true) {
-				const animeListContainer = document.getElementById(
-					"anime-list-container",
-				);
-				if (!animeListContainer) return;
-				animeListContainer.dataset.currentLayout = layout;
+		// 布局更新函数
+		function updateAnimeListLayout(layout, shouldAnimate = true) {
+			const animeListContainer = document.getElementById(
+				"anime-list-container",
+			);
+			if (!animeListContainer) return;
+			animeListContainer.dataset.currentLayout = layout;
 
-				const animeItems = Array.from(
-					document.querySelectorAll("[data-anime-status]"),
-				);
-				const visibleItems = animeItems.filter(
-					(item) => item.offsetParent !== null,
-				);
-				const firstPositions = new Map();
-				if (shouldAnimate) {
-					visibleItems.forEach((item) => {
-						const rect = item.getBoundingClientRect();
-						firstPositions.set(item, {
-							left: rect.left,
-							top: rect.top,
-							width: rect.width,
-							height: rect.height,
-						});
-					});
-				}
-
-				const style = document.createElement("style");
-				style.innerHTML = `.anime-grid-container .group { transition: none !important; }`;
-				document.head.appendChild(style);
-				animeListContainer.classList.remove(
-					"anime-list-mode",
-					"anime-grid-mode",
-				);
-				animeListContainer.classList.remove(
-					"grid-cols-1",
-					"md:grid-cols-2",
-					"lg:grid-cols-3",
-				);
-
-				if (layout === "grid") {
-					animeListContainer.classList.add("anime-grid-mode");
-					const rightSidebar = document.querySelector(
-						".right-sidebar-container",
-					);
-					if (rightSidebar) {
-						rightSidebar.style.display = "none";
-						rightSidebar.classList.add("hidden-in-grid-mode");
-					}
-					const mainGrid = document.getElementById("main-grid");
-					if (mainGrid) {
-						mainGrid.style.gridTemplateColumns = "17.5rem 1fr";
-						mainGrid.classList.add("two-column-layout");
-					}
-				} else {
-					animeListContainer.classList.add("anime-list-mode");
-					animeListContainer.classList.add(
-						"grid-cols-1",
-						"lg:grid-cols-2",
-					);
-					const rightSidebar = document.querySelector(
-						".right-sidebar-container",
-					);
-					if (rightSidebar) {
-						rightSidebar.style.display = "";
-						rightSidebar.classList.remove("hidden-in-grid-mode");
-					}
-					const mainGrid = document.getElementById("main-grid");
-					if (mainGrid) {
-						mainGrid.style.gridTemplateColumns = "";
-						mainGrid.classList.remove("two-column-layout");
-					}
-				}
-
-				void animeListContainer.offsetHeight;
-				if (!shouldAnimate) {
-					if (style.parentNode) style.parentNode.removeChild(style);
-					return;
-				}
-
-				requestAnimationFrame(() => {
-					if (style.parentNode) style.parentNode.removeChild(style);
-
-					visibleItems.forEach((item) => {
-						const first = firstPositions.get(item);
-						if (!first) return;
-						const last = item.getBoundingClientRect();
-
-						const deltaX = Math.round(first.left - last.left);
-						const deltaY = Math.round(first.top - last.top);
-						const deltaW = first.width / last.width;
-						const deltaH = first.height / last.height;
-
-						if (
-							Math.abs(deltaX) < 1 &&
-							Math.abs(deltaY) < 1 &&
-							Math.abs(deltaW - 1) < 0.01 &&
-							Math.abs(deltaH - 1) < 0.01
-						)
-							return;
-
-						item.style.willChange = "transform";
-						item.style.transition = "none";
-						item.style.transformOrigin = "top left";
-						item.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(${deltaW}, ${deltaH})`;
-					});
-
-					void animeListContainer.offsetHeight;
-					requestAnimationFrame(() => {
-						visibleItems.forEach((item) => {
-							item.style.transition =
-								"transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1)";
-							item.style.transform = "";
-						});
-						setTimeout(() => {
-							visibleItems.forEach((item) => {
-								item.style.transition = "";
-								item.style.transformOrigin = "";
-								item.style.transform = "";
-								item.style.willChange = "";
-							});
-						}, 500);
+			const animeItems = Array.from(
+				document.querySelectorAll("[data-anime-status]"),
+			);
+			const visibleItems = animeItems.filter(
+				(item) => item.offsetParent !== null,
+			);
+			const firstPositions = new Map();
+			if (shouldAnimate) {
+				visibleItems.forEach((item) => {
+					const rect = item.getBoundingClientRect();
+					firstPositions.set(item, {
+						left: rect.left,
+						top: rect.top,
+						width: rect.width,
+						height: rect.height,
 					});
 				});
 			}
-			// expose init functions for swup navigation
-			window.initAnimeLayout = initAnimeLayout;
-			window.tryInitAnimeLayout = tryInit;
-			window.addEventListener("layoutChange", (event) => {
-				updateAnimeListLayout(event.detail.layout);
+
+			// 防止重复添加 style 标签
+			let style = document.getElementById('anime-grid-style');
+			if (!style) {
+				style = document.createElement("style");
+				style.id = 'anime-grid-style';
+				style.innerHTML = `.anime-grid-container .group { transition: none !important; }`;
+				document.head.appendChild(style);
+			}
+
+			animeListContainer.classList.remove(
+				"anime-list-mode",
+				"anime-grid-mode",
+			);
+			animeListContainer.classList.remove(
+				"grid-cols-1",
+				"md:grid-cols-2",
+				"lg:grid-cols-3",
+			);
+
+			if (layout === "grid") {
+				animeListContainer.classList.add("anime-grid-mode");
+				const rightSidebar = document.querySelector(
+					".right-sidebar-container",
+				);
+				if (rightSidebar) {
+					rightSidebar.style.display = "none";
+					rightSidebar.classList.add("hidden-in-grid-mode");
+				}
+				const mainGrid = document.getElementById("main-grid");
+				if (mainGrid) {
+					mainGrid.style.gridTemplateColumns = "17.5rem 1fr";
+					mainGrid.classList.add("two-column-layout");
+				}
+			} else {
+				animeListContainer.classList.add("anime-list-mode");
+				animeListContainer.classList.add(
+					"grid-cols-1",
+					"lg:grid-cols-2",
+				);
+				const rightSidebar = document.querySelector(
+					".right-sidebar-container",
+				);
+				if (rightSidebar) {
+					rightSidebar.style.display = "";
+					rightSidebar.classList.remove("hidden-in-grid-mode");
+				}
+				const mainGrid = document.getElementById("main-grid");
+				if (mainGrid) {
+					mainGrid.style.gridTemplateColumns = "";
+					mainGrid.classList.remove("two-column-layout");
+				}
+			}
+
+			void animeListContainer.offsetHeight;
+			if (!shouldAnimate) {
+				if (style.parentNode) style.parentNode.removeChild(style);
+				return;
+			}
+
+			requestAnimationFrame(() => {
+				if (style.parentNode) style.parentNode.removeChild(style);
+
+				visibleItems.forEach((item) => {
+					const first = firstPositions.get(item);
+					if (!first) return;
+					const last = item.getBoundingClientRect();
+
+					const deltaX = Math.round(first.left - last.left);
+					const deltaY = Math.round(first.top - last.top);
+					const deltaW = first.width / last.width;
+					const deltaH = first.height / last.height;
+
+					if (
+						Math.abs(deltaX) < 1 &&
+						Math.abs(deltaY) < 1 &&
+						Math.abs(deltaW - 1) < 0.01 &&
+						Math.abs(deltaH - 1) < 0.01
+					)
+						return;
+
+					item.style.willChange = "transform";
+					item.style.transition = "none";
+					item.style.transformOrigin = "top left";
+					item.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(${deltaW}, ${deltaH})`;
+				});
+
+				void animeListContainer.offsetHeight;
+				requestAnimationFrame(() => {
+					visibleItems.forEach((item) => {
+						item.style.transition =
+							"transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1)";
+						item.style.transform = "";
+					});
+					setTimeout(() => {
+						visibleItems.forEach((item) => {
+							item.style.transition = "";
+							item.style.transformOrigin = "";
+							item.style.transform = "";
+							item.style.willChange = "";
+						});
+					}, 500);
+				});
 			});
-		})();
+		}
+
+		// 暴露全局函数给自定义事件使用
+		window.updateAnimeListLayout = updateAnimeListLayout;
+
+		// 页面初次加载执行
+		if (document.readyState === "loading") {
+			document.addEventListener("DOMContentLoaded", initAnimePageLayout);
+		} else {
+			initAnimePageLayout();
+		}
+
+		window.addEventListener("layoutChange", (event) => {
+			updateAnimeListLayout(event.detail.layout);
+		});
+
+		// 监听 Swup 跳转事件
+		function setupAnimeSwupListener() {
+			if (window.swup) {
+				// 当内容替换完成后（进入新页面），重新运行初始化逻辑
+				window.swup.hooks.on("content:replace", initAnimePageLayout);
+			}
+		}
+
+		if (typeof window !== "undefined") {
+			if (window.swup) {
+				setupAnimeSwupListener();
+			} else {
+				document.addEventListener("swup:enable", setupAnimeSwupListener);
+			}
+		}
 	</script>
 
 	<script is:inline>
@@ -903,18 +932,12 @@ const hiddenAnimeList = animeList.slice(INITIAL_DISPLAY_COUNT);
 		document.addEventListener("DOMContentLoaded", initFilterButtons);
 		function setupSwupListeners() {
 			if (window.swup) {
-				window.swup.hooks.on("content:replace", () => {
-					setTimeout(initFilterButtons, 150);
-					setTimeout(() => {
-						if (window.tryInitAnimeLayout) window.tryInitAnimeLayout();
-					}, 150);
-				});
-				window.swup.hooks.on("page:view", () => {
-					setTimeout(initFilterButtons, 150);
-					setTimeout(() => {
-						if (window.tryInitAnimeLayout) window.tryInitAnimeLayout();
-					}, 150);
-				});
+				window.swup.hooks.on("content:replace", () =>
+					setTimeout(initFilterButtons, 150),
+				);
+				window.swup.hooks.on("page:view", () =>
+					setTimeout(initFilterButtons, 150),
+				);
 			}
 		}
 
