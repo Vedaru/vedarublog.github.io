@@ -1,5 +1,4 @@
 {
-	"extends": "astro/tsconfigs/strict",
 	"compilerOptions": {
 		"target": "ESNext",
 		"module": "ESNext",
@@ -23,8 +22,7 @@
 			"@i18n/*": ["src/i18n/*"],
 			"@layouts/*": ["src/layouts/*"],
 			"@/*": ["src/*"]
-		},
-		"types": ["vite/client"]
+		}
 	},
 	"include": ["src/**/*"]
 }
