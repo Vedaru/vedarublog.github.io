@@ -153,7 +153,6 @@ class TableOfContents extends HTMLElement {
         if (!this.sections.length) return;
 
         for (let i = 0; i < this.sections.length; i++) {
-            if (!this.sections[i]) continue;
             let offsetTop = this.sections[i].getBoundingClientRect().top;
             let offsetBottom = this.sections[i].getBoundingClientRect().bottom;
 
@@ -259,9 +258,9 @@ class TableOfContents extends HTMLElement {
         }
         this.active = new Array(this.tocEntries.length).fill(false);
 
-        this.sections.forEach((section) => {
-            if (section) this.observer.observe(section);
-        });
+        this.sections.forEach((section) =>
+            this.observer.observe(section)
+        );
 
         this.fallback();
         this.update();
@@ -356,9 +355,9 @@ class TableOfContents extends HTMLElement {
     }
 
     disconnectedCallback() {
-        this.sections.forEach((section) => {
-            if (section) this.observer.unobserve(section);
-        });
+        this.sections.forEach((section) =>
+            this.observer.unobserve(section)
+        );
         this.observer.disconnect();
         this.tocEl?.removeEventListener("click", this.handleAnchorClick);
     };
