@@ -145,6 +145,13 @@ jobs:
           NPM_CONFIG_UPDATE_NOTIFIER: false
         run: pnpm install --frozen-lockfile
 
+      - name: Update Bangumi data
+        run: |
+          echo "Updating Bangumi data..."
+          node scripts/update-bangumi.mjs
+        env:
+          ENABLE_CONTENT_SYNC: false
+
       - name: Run Astro Check
         run: pnpm astro check
         env:
