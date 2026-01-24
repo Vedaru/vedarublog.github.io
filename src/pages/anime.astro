@@ -683,9 +683,7 @@ const hiddenAnimeList = animeList.slice(INITIAL_DISPLAY_COUNT);
 					});
 				});
 			}
-			// expose init functions for swup navigation
-			window.initAnimeLayout = initAnimeLayout;
-			window.tryInitAnimeLayout = tryInit;
+
 			window.addEventListener("layoutChange", (event) => {
 				updateAnimeListLayout(event.detail.layout);
 			});
@@ -903,18 +901,12 @@ const hiddenAnimeList = animeList.slice(INITIAL_DISPLAY_COUNT);
 		document.addEventListener("DOMContentLoaded", initFilterButtons);
 		function setupSwupListeners() {
 			if (window.swup) {
-				window.swup.hooks.on("content:replace", () => {
-					setTimeout(initFilterButtons, 150);
-					setTimeout(() => {
-						if (window.tryInitAnimeLayout) window.tryInitAnimeLayout();
-					}, 150);
-				});
-				window.swup.hooks.on("page:view", () => {
-					setTimeout(initFilterButtons, 150);
-					setTimeout(() => {
-						if (window.tryInitAnimeLayout) window.tryInitAnimeLayout();
-					}, 150);
-				});
+				window.swup.hooks.on("content:replace", () =>
+					setTimeout(initFilterButtons, 150),
+				);
+				window.swup.hooks.on("page:view", () =>
+					setTimeout(initFilterButtons, 150),
+				);
 			}
 		}
 
