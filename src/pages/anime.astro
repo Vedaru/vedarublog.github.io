@@ -559,6 +559,17 @@ const hiddenAnimeList = animeList.slice(INITIAL_DISPLAY_COUNT);
 				tryInit();
 			}
 
+			// Ensure init runs on swup page navigations
+			function setupSwupInit() {
+				if (window.swup) {
+					window.swup.hooks.on("content:replace", () => setTimeout(tryInit, 50));
+					window.swup.hooks.on("page:view", () => setTimeout(tryInit, 50));
+				} else {
+					document.addEventListener("swup:enable", setupSwupInit);
+				}
+			}
+			if (typeof window !== "undefined") setupSwupInit();
+
 			function updateAnimeListLayout(layout, shouldAnimate = true) {
 				const animeListContainer = document.getElementById(
 					"anime-list-container",
