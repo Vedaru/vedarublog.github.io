@@ -334,10 +334,9 @@ function handleVolumeMove(event: PointerEvent) {
 function stopVolumeDrag(event: PointerEvent) {
     if (!isPointerDown) return;
 	isPointerDown = false;
-    const wasDragging = isVolumeDragging;
     isVolumeDragging = false;
     volumeBarRect = null;
-    if (wasDragging) showVolumeTooltip = false;
+    showVolumeTooltip = false;
 	if (volumeBar) {
 		volumeBar.releasePointerCapture(event.pointerId);
 	}
@@ -423,8 +422,8 @@ onDestroy(() => {
                 // 如果之前是播放状态，恢复播放（可选：如果pointerdown暂停了的话）
                 if (isPlaying) audio.play().catch(() => {});
             }
-            showProgressTooltip = false; 
         }
+        showProgressTooltip = false; 
     }} 
 />
 
