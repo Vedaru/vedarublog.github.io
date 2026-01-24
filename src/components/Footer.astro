@@ -26,9 +26,9 @@ if (footerConfig.enable) {
 			customFooterHtml = customFooterHtml
 				.replace(/<!--[\s\S]*?-->/g, "")
 				.trim();
-		} catch (error) {
-			console.warn("FooterConfig.html文件读取失败:", error.message);
-		}
+			} catch (error: unknown) {
+    			console.warn("FooterConfig.html文件读取失败:", (error as Error).message);
+			}	
 	}
 }
 ---
