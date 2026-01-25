@@ -90,7 +90,7 @@ for (const y of yearKeys) {
 									{sortedGroupedMoments[year][month].map((moment) => (
 											<div id={monthAnchorMap[moment.id] ?? undefined} class="moment-item card-base-daily p-4 md:p-6 lg:p-8 hover:shadow-lg transition-all">
 												<div class="moment-content">
-													<p class="moment-text text-sm md:text-base lg:text-lg text-90 leading-relaxed mb-3 md:mb-4">{moment.content}</p>
+													<p class="moment-text text-sm md:text-base lg:text-lg text-90 leading-relaxed mb-3 md:mb-4" set:html={moment.content.replace(/\n/g, '<br>')}></p>
 													{moment.images && moment.images.length > 0 && (
 													<div class="diary-images grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3 lg:gap-4 mb-3 md:mb-4">
 														{moment.images.map((image, _index) => (
