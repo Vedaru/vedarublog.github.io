@@ -18,7 +18,9 @@ Vortexgear Core (Plus) 40% Keyboard
 
 Fender Hybrid2 Tele  
 
-NVIDIA DGX H100  
+NVIDIA DGX Spark  
+
+NVIDIA RTX 4090
 
 ---  
 
