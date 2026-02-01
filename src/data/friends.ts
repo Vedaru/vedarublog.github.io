@@ -92,6 +92,14 @@ export const friendsData: FriendItem[] = [
 		desc: "我的老板doge",
 		siteurl: "https://github.com/mratgnothing",
 		tags: ["Developer"],
+	},
+	{
+		id: 11,
+		title: "sakimidare",
+		imgurl: "https://avatars.githubusercontent.com/u/69438785?v=4",
+		desc: "大佬，高贵的linux用户",
+		siteurl: "https://sakimidare.top",
+		tags: ["Blog", "Developer"],
 	}
 ];
 
