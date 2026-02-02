@@ -267,6 +267,37 @@ function setProgress(event: MouseEvent) {
 	currentTime = newTime;
 }
 
+function startProgressDrag(event: PointerEvent) {
+	if (!progressBar) return;
+	event.preventDefault();
+	progressBar.setPointerCapture(event.pointerId);
+	isProgressDragging = true;
+	showProgressTooltip = true;
+	handleProgressHover(event);
+}
+
+function stopProgressDrag(event: PointerEvent) {
+	if (!isProgressDragging) return;
+	isProgressDragging = false;
+	
+	if (progressBar) {
+		try {
+			progressBar.releasePointerCapture(event.pointerId);
+		} catch (e) {
+			// 忽略异常
+		}
+	}
+	
+	// 拖拽结束时，将音频跳到最后计算出的时间
+	if (audio) {
+		audio.currentTime = tooltipTime;
+		currentTime = tooltipTime;
+		// 如果之前是播放状态，恢复播放
+		if (isPlaying) audio.play().catch(() => {});
+	}
+	showProgressTooltip = false;
+}
+
 // 进度条相关变量
 let isProgressDragging = false;
 let showProgressTooltip = false;
@@ -337,8 +368,13 @@ function stopVolumeDrag(event: PointerEvent) {
     isVolumeDragging = false;
     volumeBarRect = null;
     showVolumeTooltip = false;
+	
 	if (volumeBar) {
-		volumeBar.releasePointerCapture(event.pointerId);
+		try {
+			volumeBar.releasePointerCapture(event.pointerId);
+		} catch (e) {
+			// 忽略异常
+		}
 	}
 }
 
@@ -408,22 +444,20 @@ onDestroy(() => {
 <!-- Window 监听器用于处理拖拽时的鼠标移动 -->
 <svelte:window 
     on:pointermove={(e) => { 
-        handleVolumeMove(e); 
-        if(isProgressDragging) handleProgressHover(e); 
+        if (isVolumeDragging) {
+            handleVolumeMove(e);
+        }
+        if (isProgressDragging) {
+            handleProgressHover(e);
+        }
     }} 
     on:pointerup={(e) => { 
-        stopVolumeDrag(e); 
-        if (isProgressDragging) {
-            isProgressDragging = false;
-            // 拖拽结束时，将音频跳到最后计算出的时间
-            if (audio) {
-                audio.currentTime = tooltipTime;
-                currentTime = tooltipTime;
-                // 如果之前是播放状态，恢复播放（可选：如果pointerdown暂停了的话）
-                if (isPlaying) audio.play().catch(() => {});
-            }
+        if (isVolumeDragging) {
+            stopVolumeDrag(e);
         }
-        showProgressTooltip = false; 
+        if (isProgressDragging) {
+            stopProgressDrag(e);
+        }
     }} 
 />
 
@@ -540,7 +574,7 @@ onDestroy(() => {
         
         <!-- 进度条区域 -->
         <div class="progress-section mb-4">
-            <div class="progress-bar relative flex-1 h-2 bg-[var(--btn-regular-bg)] rounded-full cursor-pointer group"
+            <div class="progress-bar relative flex-1 h-2 bg-[var(--btn-regular-bg)] rounded-full cursor-pointer group touch-none"
                  bind:this={progressBar}
                  on:click={setProgress}
                  on:pointerenter={(e) => {
@@ -548,13 +582,7 @@ onDestroy(() => {
                      handleProgressHover(e);
                  }}
                  on:pointerleave={() => { if (!isProgressDragging) showProgressTooltip = false; }}
-                 on:pointerdown={(e) => {
-                     e.preventDefault();
-                     isProgressDragging = true;
-                     showProgressTooltip = true;
-                     // 拖拽开始，不做暂停操作，可以实现Scrubbing效果，但为了平滑这里只更新视觉
-                     handleProgressHover(e);
-                 }}
+                 on:pointerdown={startProgressDrag}
                  on:pointermove={handleProgressHover}
                  role="slider"
                  tabindex="0"
