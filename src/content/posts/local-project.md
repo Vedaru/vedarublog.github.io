@@ -8,7 +8,8 @@ category: 项目
 draft: false
 ---
 
-
+AI virtual host integrating speech recognition, LLM, memory system, and voice synthesis.
+::github{repo="Vedaru/Local-project"}
 
 # Local: 基于 DeepSeek 与 混合架构的 AI 虚拟主播系统
 
