@@ -209,51 +209,31 @@ Python: 3.8+
 
 ```mermaid
 graph TD
-    A["🎤 用户语音输入"] --> B["👂 Ear<br/>Faster-Whisper<br/>GPU 实时识别 毫秒级"]
-    B --> C["🧠 Memory<br/>智能冲突检测<br/>检索历史记忆<br/>自动覆盖旧记忆"]
-    C --> D["🤖 LLM<br/>DeepSeek-V3 API<br/>注入上下文<br/>短期/长期/情感记忆"]
-    D --> E["⚡ 流式切句 & 填充音<br/>边生成边读<br/>语气词缓冲冷场"]
-    E --> F["📝 Memory<br/>事实提炼<br/>Qwen-Turbo API<br/>提炼事实 → ChromaDB"]
-    F --> G["🎵 VoiceManager<br/>GPT-SoVITS<br/>高质量情感语音合成<br/>零样本声音克隆"]
-    G --> H["👄 LipSyncManager<br/>根据波形同步口型<br/>ExpressionManager<br/>表情切换"]
-    H --> I["✨ AvatarWidget<br/>PyQt6 Live2D<br/>播放语音与表情<br/>完整交互体验"]
-    
-    style A fill:#ff9999
-    style B fill:#ffcc99
-    style C fill:#ffff99
-    style D fill:#ccffcc
-    style E fill:#99ccff
-    style F fill:#ffff99
-    style G fill:#cc99ff
-    style H fill:#ff99cc
-    style I fill:#99ffff
+    A["User Audio Input"] --> B["Ear Module<br/>Faster-Whisper<br/>Real-time Recognition"]
+    B --> C["Memory Module<br/>Conflict Detection<br/>Retrieve History"]
+    C --> D["LLM Module<br/>DeepSeek-V3 API<br/>Context Injection"]
+    D --> E["Stream Sentence Cut<br/>& Filler Sounds<br/>Reduce API Latency"]
+    E --> F["Memory Module<br/>Fact Extraction<br/>Store to ChromaDB"]
+    F --> G["Voice Manager<br/>GPT-SoVITS<br/>Speech Synthesis"]
+    G --> H["LipSync Manager<br/>Sync Lip Movement<br/>Expression Change"]
+    H --> I["Avatar Widget<br/>PyQt6 Live2D<br/>Final Output"]
 ```
 
 ### 记忆系统的四步冲突检测
 
-**以用户更新"食物偏好"为例:**
-
 ```mermaid
 graph LR
-    INPUT["📥 输入<br/>我现在最喜欢吃香蕉"] --> STEP1["1️⃣ 实体定位<br/>提取关键词<br/>entity=香蕉<br/>category=食物偏好"]
+    INPUT["Input: I like eating bananas"] --> STEP1["Step 1: Entity Extraction<br/>entity=banana<br/>category=food preference"]
     
-    OLDMEM["📚 旧记忆<br/>喜欢吃苹果<br/>喜欢吃葡萄"] -.-> STEP2
+    OLDMEM["Old Memories<br/>like apples<br/>like grapes"] -.-> STEP2
     
-    STEP1 --> STEP2["2️⃣ 冲突检索<br/>向量相似度搜索<br/>苹果/葡萄/香蕉<br/>语义匹配检测"]
+    STEP1 --> STEP2["Step 2: Conflict Retrieval<br/>Vector Search<br/>Semantic Matching"]
     
-    STEP2 --> STEP3["3️⃣ 智能判定<br/>检测冲突规则<br/>✓ 同实体<br/>✓ 同类别<br/>✗ 不同用户"]
+    STEP2 --> STEP3["Step 3: Conflict Detection<br/>Same entity<br/>Same category<br/>Different user"]
     
-    STEP3 --> STEP4["4️⃣ 自动覆盖<br/>删除旧记忆<br/>插入新记忆<br/>保持一致性"]
+    STEP3 --> STEP4["Step 4: Auto Override<br/>Delete old memory<br/>Insert new memory<br/>Maintain consistency"]
     
-    STEP4 --> OUTPUT["✅ 输出<br/>最终状态:<br/>只保留喜欢吃香蕉"]
-    
-    style INPUT fill:#ff9999
-    style STEP1 fill:#ffcc99
-    style STEP2 fill:#ffff99
-    style STEP3 fill:#ccffcc
-    style STEP4 fill:#99ccff
-    style OUTPUT fill:#99ffff
-    style OLDMEM fill:#ffcccc,stroke:#ff0000
+    STEP4 --> OUTPUT["Output: Final State<br/>Only likes eating bananas"]
 ```
 
 ---
