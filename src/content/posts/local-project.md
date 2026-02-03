@@ -8,9 +8,6 @@ category: 项目
 draft: false
 ---
 
-AI virtual host integrating speech recognition, LLM, memory system, and voice synthesis.
-::github{repo="Vedaru/Local-project"}
-
 # Local: 基于 DeepSeek 与 混合架构的 AI 虚拟主播系统
 
 Local 是一个集成了语音识别 (ASR)、大语言模型 (LLM)、长期记忆系统 (RAG) 以及高质量语音合成 (TTS) 的人工智能虚拟主播系统。本项目旨在构建一个类似 Neuro-sama 的数字生命，通过本地算力与云端 API 的混合驱动，实现在低延迟环境下的高智能互动。
