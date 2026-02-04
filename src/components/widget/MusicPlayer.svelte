@@ -239,7 +239,8 @@ function handleAudioEnded() {
 		audio.play().catch(() => {});
 	} else if (
 		isRepeating === 2 ||
-		isShuffled
+		isShuffled ||
+		musicPlayerConfig.autoplayContinuous
 	) {
 		nextSong(true);
 	} else {
