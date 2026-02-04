@@ -636,12 +636,14 @@ onDestroy(() => {
                 <Icon icon="material-symbols:skip-next" class="text-xl" />
             </button>
             <button class="w-10 h-10 rounded-lg"
-                    class:btn-regular={isRepeating > 0}
-                    class:btn-plain={isRepeating === 0}
+                    class:btn-regular={isRepeating > 0 || (isRepeating === 0 && musicPlayerConfig.autoplayContinuous)}
+                    class:btn-plain={isRepeating === 0 && !musicPlayerConfig.autoplayContinuous}
                     on:click={toggleRepeat}>
                 {#if isRepeating === 1}
                     <Icon icon="material-symbols:repeat-one" class="text-lg" />
                 {:else if isRepeating === 2}
+                    <Icon icon="material-symbols:repeat" class="text-lg" />
+                {:else if musicPlayerConfig.autoplayContinuous}
                     <Icon icon="material-symbols:repeat" class="text-lg" />
                 {:else}
                     <Icon icon="material-symbols:repeat" class="text-lg opacity-50" />
