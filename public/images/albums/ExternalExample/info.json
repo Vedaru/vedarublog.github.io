@@ -1,6 +1,6 @@
 {
 	"mode": "external",
-	"hidden": true,
+	"hidden": false,
 	"title": "外链相册示例",
 	"description": "这是一个使用外链图片的相册示例，所有图片都来自外部链接",
 	"date": "2025-08-28",
