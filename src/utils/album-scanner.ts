@@ -69,7 +69,7 @@ async function processAlbumFolder(
 	} else {
 		// 本地模式：检查本地文件
 		const coverExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.avif', '.bmp', '.tiff', '.tif'];
-		let coverFile = null;
+		let coverFile: string | null = null;
 		for (const ext of coverExtensions) {
 			const coverPath = path.join(folderPath, `cover${ext}`);
 			if (fs.existsSync(coverPath)) {
