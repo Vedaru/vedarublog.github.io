@@ -1,10 +1,10 @@
 {
-  "title": "爱弥斯",
-  "description": "但愿我会让你感到骄傲，但愿我没有让你失望",
-  "date": "2026-02-06",
-  "location": "",
-  "tags": ["示例"],
-  "layout": "grid",
-  "columns": 3,
-  "hidden": false
+    "title": "爱弥斯",
+    "description": "但愿我会让你感到骄傲，但愿我没有让你失望",
+    "date": "2026-02-06",
+    "location": "Wuthering Waves",
+    "tags": ["鸣潮"],
+    "layout": "masonry",
+    "columns": 3,
+    "hidden": false
 }
