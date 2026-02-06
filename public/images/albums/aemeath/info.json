@@ -6,58 +6,5 @@
     "tags": ["鸣潮"],
     "layout": "masonry",
     "columns": 3,
-    "hidden": false,
-    "cover": "cover.avif",
-    "photos": [
-        {
-            "id": "aemeath-1",
-            "src": "pic1.avif",
-            "alt": "爱弥斯",
-            "title": "爱弥斯",
-            "description": "",
-            "tags": ["鸣潮", "爱弥斯"],
-            "width": 1256,
-            "height": 1746
-        },
-        {
-            "id": "aemeath-2",
-            "src": "pic2.avif",
-            "alt": "爱弥斯",
-            "title": "爱弥斯",
-            "description": "",
-            "tags": ["鸣潮", "爱弥斯"],
-            "width": 1080,
-            "height": 1436
-        },
-        {
-            "id": "aemeath-3",
-            "src": "pic3.avif",
-            "alt": "爱弥斯",
-            "title": "爱弥斯",
-            "description": "",
-            "tags": ["鸣潮", "爱弥斯"],
-            "width": 781,
-            "height": 1200
-        },
-        {
-            "id": "aemeath-4",
-            "src": "pic4.avif",
-            "alt": "爱弥斯",
-            "title": "爱弥斯",
-            "description": "",
-            "tags": ["鸣潮", "爱弥斯"],
-            "width": 1256,
-            "height": 763
-        },
-        {
-            "id": "aemeath-5",
-            "src": "pic5.avif",
-            "alt": "爱弥斯",
-            "title": "爱弥斯",
-            "description": "",
-            "tags": ["鸣潮", "爱弥斯"],
-            "width": 1256,
-            "height": 900
-        }
-    ]
+    "hidden": false
 }

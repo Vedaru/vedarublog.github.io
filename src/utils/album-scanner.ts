@@ -68,13 +68,21 @@ async function processAlbumFolder(
 		photos = processExternalPhotos(info.photos || [], folderName);
 	} else {
 		// 本地模式：检查本地文件
-		const coverPath = path.join(folderPath, "cover.jpg");
-		if (!fs.existsSync(coverPath)) {
-			console.warn(`相册 ${folderName} 缺少 cover.jpg 文件`);
+		const coverExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.avif', '.bmp', '.tiff', '.tif'];
+		let coverFile = null;
+		for (const ext of coverExtensions) {
+			const coverPath = path.join(folderPath, `cover${ext}`);
+			if (fs.existsSync(coverPath)) {
+				coverFile = `cover${ext}`;
+				break;
+			}
+		}
+		if (!coverFile) {
+			console.warn(`相册 ${folderName} 缺少 cover 文件（支持格式：jpg, jpeg, png, gif, webp, svg, avif, bmp, tiff, tif）`);
 			return null;
 		}
 
-		cover = `/images/albums/${folderName}/cover.jpg`;
+		cover = `/images/albums/${folderName}/${coverFile}`;
 		photos = scanPhotos(folderPath, folderName);
 	}
 
