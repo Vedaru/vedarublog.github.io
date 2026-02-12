@@ -269,13 +269,12 @@ class TableOfContents extends HTMLElement {
     regenerateTOC(retryCount = 0) {
         // 检查是否为文章页面或日记页面（支持 /diary）
         const isDiaryPage = window.location.pathname.includes('/diary');
+        // 检查是否为文章页面
         const isPostPage = window.location.pathname.includes('/posts/') || 
                           isDiaryPage ||
                           document.querySelector('.custom-md, .markdown-content') !== null;
-        // 调试信息，便于定位可能的问题
-        console.debug('TOC: page detection', { pathname: window.location.pathname, isDiaryPage });
         if (!isPostPage) {
-            // 如果不是文章或日记页面，隐藏TOC
+            // 如果不是文章页面，隐藏TOC
             this.innerHTML = '';
             delete this.dataset.loaded;
             return;
