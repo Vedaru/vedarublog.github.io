@@ -111,9 +111,17 @@ export type SiteConfig = {
 		fetchOnDev?: boolean;
 	};
 
+	// 添加bilibili配置
+	bilibili?: {
+		vmid?: string; // Bilibili用户ID (vmid)
+		fetchOnDev?: boolean; // 是否在开发环境下获取 Bilibili 数据
+		coverMirror?: string; // 封面图片镜像源（可选，默认为空字符串）
+		useWebp?: boolean; // 是否使用WebP格式（默认 true）
+	};
+
 	// 添加番剧页面配置
 	anime?: {
-		mode?: "bangumi" | "local"; // 番剧页面模式
+		mode?: "bangumi" | "local" | "bilibili"; // 番剧页面模式
 	};
 
 	// 标签样式配置
@@ -318,23 +326,26 @@ export type AnnouncementConfig = {
 export type MusicPlayerConfig = {
 	enable: boolean; // 是否启用音乐播放器功能
 	mode: "meting" | "local"; // 音乐播放器模式
-	meting_api: string; // Meting API 地址
-	meting_api_candidates?: string[]; // 可选：多个 Meting API 候选列表，按优先级排列
-	id: string; // 歌单ID
-	server: string; // 音乐源服务器
-	type: string; // 音乐类型
-	auth?: string; // 可选：网易云音乐Cookie，用于获取VIP歌曲
-	// 可选：当浏览器支持 WebAudio 时，增益倍数用于放大输出（例如 2.0 表示最多放大 2 倍）
+	meting_api?: string; // Meting API 地址（可选，构建时用于下载歌单）
+	meting_api_candidates?: string[]; // 可选的 Meting API 备选源
+	id?: string; // 歌单ID（可选）
+	server?: string; // 音乐源服务器（可选）
+	type?: string; // 音乐类型（可选）
+	auth?: string; // 可选 Cookie / 授权字段
+
+	// 播放器运行时选项
+	preload?: "auto" | "none" | string;
+	autoplay?: boolean;
+	/**
+	 * autoplayContinuous: 播放完当前曲目后是否继续播放并循环列表（用于 UI 控制）
+	 */
+	autoplayContinuous?: boolean;
+	volume?: number;
+	listMaxHeight?: string;
+	order?: string | "list" | "random";
+	mutex?: boolean;
+	storageName?: string;
 	gainBoost?: number;
-	// 可选性能/行为配置
-	preload?: "none" | "metadata" | "auto"; // 音频预加载策略
-	autoplay?: boolean; // 是否自动播放
-	autoplayContinuous?: boolean; // 是否在播放完一首后自动继续播放并循环列表
-	volume?: number; // 默认音量（0-1）
-	listMaxHeight?: string; // 播放列表最大高度（CSS 值，例如 "250px"）
-	order?: "list" | "random"; // 播放顺序
-	mutex?: boolean; // 互斥模式，防止多个播放器同时播放
-	storageName?: string; // localStorage 缓存键名
 };
 
 export type FooterConfig = {
@@ -357,10 +368,7 @@ export type WidgetComponentType =
 
 export type WidgetComponentConfig = {
 	type: WidgetComponentType; // 组件类型
-	enable: boolean; // 是否启用该组件
-	order: number; // 显示顺序，数字越小越靠前
 	position: "top" | "sticky"; // 组件位置：顶部固定区域或粘性区域
-	sidebar?: "left" | "right"; // 组件所在侧边栏：左侧或右侧（仅当启用双侧边栏时有效）
 	class?: string; // 自定义CSS类名
 	style?: string; // 自定义内联样式
 	animationDelay?: number; // 动画延迟时间（毫秒）
@@ -372,8 +380,12 @@ export type WidgetComponentConfig = {
 };
 
 export type SidebarLayoutConfig = {
-	position: "unilateral" | "both"; // 侧边栏位置：单侧或双侧
-	components: WidgetComponentConfig[]; // 组件配置列表
+	properties: WidgetComponentConfig[]; // 组件配置列表
+	components: {
+		left: WidgetComponentType[];
+		right: WidgetComponentType[];
+		drawer: WidgetComponentType[];
+	};
 	defaultAnimation: {
 		enable: boolean; // 是否启用默认动画
 		baseDelay: number; // 基础延迟时间（毫秒）
@@ -385,12 +397,34 @@ export type SidebarLayoutConfig = {
 			tablet: number; // 平板端断点（px）
 			desktop: number; // 桌面端断点（px）
 		};
-		layout: {
-			mobile: "hidden" | "sidebar"; // 移动端布局模式
-			tablet: "hidden" | "sidebar"; // 平板端布局模式
-			desktop: "sidebar"; // 桌面端布局模式
-		};
 	};
+};
+
+export type SakuraConfig = {
+	enable: boolean; // 是否启用樱花特效
+	sakuraNum: number; // 樱花数量，默认21
+	limitTimes: number; // 樱花越界限制次数，-1为无限循环
+	size: {
+		min: number; // 樱花最小尺寸倍数
+		max: number; // 樱花最大尺寸倍数
+	};
+	opacity: {
+		min: number; // 樱花最小不透明度
+		max: number; // 樱花最大不透明度
+	};
+	speed: {
+		horizontal: {
+			min: number; // 水平移动速度最小值
+			max: number; // 水平移动速度最大值
+		};
+		vertical: {
+			min: number; // 垂直移动速度最小值
+			max: number; // 垂直移动速度最大值
+		};
+		rotation: number; // 旋转速度
+		fadeSpeed: number; // 消失速度
+	};
+	zIndex: number; // 层级，确保樱花在合适的层级显示
 };
 
 export type FullscreenWallpaperConfig = {
