@@ -112,8 +112,11 @@ export const siteConfig: SiteConfig = {
 				"/assets/desktop-banner/be809be42311aa693fc459cf189339c36ca3ecbb.webp",
 			], // 桌面横幅图片
 			mobile: [
-
-
+				"/assets/desktop-banner/8b31043a430bb793c6bd2949adb5ae1bb0825f25.webp",
+				"/assets/desktop-banner/54ae9fc257542e969dda9d9bcf07405999facb13.webp",
+				"/assets/desktop-banner/703c235a202e38293fa8037d04fc44500256417f.webp",
+				"/assets/desktop-banner/831fb1cdaeead8de1cae31354771e244290750052.webp",
+				"/assets/desktop-banner/be809be42311aa693fc459cf189339c36ca3ecbb.webp",
 			], // 移动横幅图片
 		}, // 使用本地横幅图片
 
