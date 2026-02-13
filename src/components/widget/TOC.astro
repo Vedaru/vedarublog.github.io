@@ -369,13 +369,17 @@ if (!customElements.get("table-of-contents")) {
 
 <style>
   table-of-contents#toc {
-      max-height: 100%;
+      /* 限制为视口高度的一部分，超出时在 TOC 内部滚动 */
+      max-height: calc(100vh - 200px);
       overflow: auto;
+      -webkit-overflow-scrolling: touch; /* 平滑滚动（移动端） */
+      overscroll-behavior: contain; /* 防止滚动穿透 */
       position: relative;
       scroll-behavior: smooth;
       display: block;
   }
 
+  /* 隐藏滚动条（仍允许滚动） */
   table-of-contents#toc::-webkit-scrollbar {
       display: none;
   }

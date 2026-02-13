@@ -8,9 +8,9 @@ category: 项目
 draft: false
 ---
 
-::github{repo="Vedaru/Local-project"}
-
 # Local: 基于 DeepSeek 与 混合架构的 AI 虚拟主播与电脑控制系统
+
+::github{repo="Vedaru/Local-project"}
 
 Local 是一个集成了语音识别 (ASR)、大语言模型 (LLM)、长期记忆系统 (RAG)、高质量语音合成 (TTS) 以及电脑控制功能的人工智能虚拟主播系统。本项目旨在构建一个类似 Neuro-sama 的数字生命，通过本地算力与云端 API 的混合驱动，实现在低延迟环境下的高智能互动，并支持自动化电脑操作。
 
