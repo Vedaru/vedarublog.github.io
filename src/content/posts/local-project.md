@@ -174,6 +174,11 @@ Local-project/
 ├── modules/                   # 核心模块目录
 │   ├── __init__.py            # 模块初始化
 │   ├── _patch_ctranslate2.py  # CTranslate2 补丁
+│   ├── agent/                 # Agent 子模块（ReAct agent + 工具）
+│   │   ├── __init__.py
+│   │   ├── browser.py         # 浏览器 / 网页检索工具
+│   │   ├── core.py            # Agent 核心逻辑（ReAct loop）
+│   │   └── tools.py           # Agent 可用工具封装
 │   ├── config.py              # 配置加载
 │   ├── ear.py                 # 语音识别模块
 │   ├── llm.py                 # LLM 接口模块
@@ -311,7 +316,6 @@ Local-project/
 
 功能:
   - 集成 Live2D 模型渲染 (通过 WebEngine)
-  - 表情系统: 开心、生气、害羞、中立等情感标签
   - 实时口型同步: 根据音频波形调整口形
   - 桌面挂件模式: 置顶透明窗口
   - 系统托盘控制: 最小化/显示/退出
