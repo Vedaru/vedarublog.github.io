@@ -711,7 +711,7 @@ onDestroy(() => {
                     <Icon icon="material-symbols:close" class="text-lg" />
                 </button>
             </div>
-            <div class="playlist-content overflow-y-auto max-h-80">
+            <div class="playlist-content overflow-y-auto max-h-80 pb-2">
                 {#each playlist as song, index}
                     <div class="playlist-item flex items-center gap-3 p-3 hover:bg-[var(--btn-plain-bg-hover)] cursor-pointer transition-colors"
                          class:bg-[var(--btn-plain-bg)]={index === currentIndex}
@@ -912,7 +912,10 @@ button.bg-\[var\(--primary\)\] {
 .playlist-content {
     -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
-    padding-right: 6px; /* 可选：防止最后一列文字被裁切 */
+    /* padding-right removed to prevent highlight gap */
+    padding-bottom: 0.75rem; /* 避免最后一项被遮挡，在移动端滚动到底时可以完整显示 */
+    scroll-padding-bottom: 0.75rem; /* 在使用键盘或锚点滚动时保留底部空间 */
+    box-sizing: border-box; /* 保证 w-full 包含 padding */
 }
 .playlist-content::-webkit-scrollbar {
     width: 0;
