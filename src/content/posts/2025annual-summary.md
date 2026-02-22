@@ -2,7 +2,7 @@
 title: 2025年度总结
 published: 2026-01-25
 description: 关于荒漠、关于破晓、关于一只青蛙的故事。
-tags: [年度总结, 音乐, 编曲, 电吉他, VOCALOID, 编程, 思考]
+tags: [编曲, 电吉他, VOCALOID, 编程, 思考]
 category: 年度总结
 draft: false
 ---
