@@ -201,7 +201,6 @@ Local-project/
 │   ├── controller/            # 电脑控制模块
 │   │   ├── __init__.py
 │   │   ├── core.py            # 控制核心
-│   │   ├── executor.py        # 动作执行器
 │   │   └── safety.py          # 安全守卫
 │   └── memory/                # 记忆管理子模块
 │       ├── __init__.py        # 记忆模块初始化
