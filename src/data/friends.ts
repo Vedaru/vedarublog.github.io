@@ -100,6 +100,22 @@ export const friendsData: FriendItem[] = [
 		desc: "大佬，高贵的linux用户",
 		siteurl: "https://sakimidare.top",
 		tags: ["Blog", "Developer"],
+	},
+	{
+		id: 12,
+		title: "CrystalDiskInfo",
+		imgurl: "https://avatars.githubusercontent.com/u/3816714?v=4",
+		desc: "一款情绪价值很高的硬盘健康检测软件",
+		siteurl: "https://sourceforge.net/projects/crystaldiskinfo/",
+		tags: ["Software"],
+	},
+	{
+		id: 13,
+		title: "Linux C 编程一站式学习",
+		imgurl: "https://avatars.githubusercontent.com/u/69438785?v=4",
+		desc: "sakimidare佬总结的Linux C 编程一站式学习指南",
+		siteurl: "https://c.sakimidare.top/pr01.html",
+		tags: ["Website", "Learning"],
 	}
 ];
 
