@@ -146,8 +146,7 @@ export const siteConfig: SiteConfig = {
 			enable: false, // 在主页显示自定义文本
 			title: "Vedaruの心之海", // 主页横幅主标题
 
-			subtitle: [
-			],
+			subtitle: [],
 			typewriter: {
 				enable: true, // 启用副标题打字机效果
 
@@ -216,10 +215,7 @@ export const fullscreenWallpaperConfig: FullscreenWallpaperConfig = {
 			"/assets/desktop-banner/831fb1cdaeead8de1cae31354771e244290750052.webp",
 			"/assets/desktop-banner/be809be42311aa693fc459cf189339c36ca3ecbb.webp",
 		], // 桌面壁纸图片
-		mobile: [
-
-
-		], // 移动壁纸图片
+		mobile: [], // 移动壁纸图片
 	}, // 使用本地横幅图片
 	position: "center", // 壁纸位置，等同于 object-position
 	carousel: {
@@ -394,7 +390,7 @@ export const expressiveCodeConfig: ExpressiveCodeConfig = {
 export const commentConfig: CommentConfig = {
 	enable: true, // 启用评论功能。当设置为 false 时，评论组件将不会显示在文章区域。
 	twikoo: {
-		 envId: "https://comment.vedaru.cn", // Cloudflare Workers 自定义域名
+		envId: "https://comment.vedaru.cn", // Cloudflare Workers 自定义域名
 		lang: "zh-CN", // 设置 Twikoo 评论系统语言为中文
 		// 禁用图片上传（'true' 或 'false' 字符串）。Twikoo 前端会读取此值。
 		// SHOW_IMAGE: 'false', // 已移除，避免类型错误
@@ -433,8 +429,8 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 	id: "17514570572", // 歌单ID
 	server: "netease", // 音乐源服务器。有的meting的api源支持更多平台,一般来说,netease=网易云音乐, tencent=QQ音乐, kugou=酷狗音乐, xiami=虾米音乐, baidu=百度音乐
 	type: "playlist", // 播单类型
-	auth: "", // 网易云音乐Cookie，用于获取VIP歌曲，留空则不使用Cookie
-	
+	auth: "", // 网易云音乐Cookie，用于获取VIP歌曲完整版本。支持 MUSIC_U 或 MUSIC_A_T（新版登录令牌）。格式示例："MUSIC_U=xxx" 或 "MUSIC_A_T=xxx" 或同时传多个："MUSIC_A_T=xxx; MUSIC_R_T=yyy"。留空则VIP歌曲只能下载试听片段
+
 	// === 性能优化配置 ===
 	preload: "none", // 不预加载音频，节省带宽
 	autoplay: false, // 进入页面不自动播放，需要用户手动点击播放
@@ -444,7 +440,7 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 	order: "list", // 播放顺序：list=列表顺序, random=随机播放
 	mutex: true, // 互斥模式，阻止多个播放器同时播放
 	storageName: "music-player-cache", // localStorage 缓存键名，用于缓存播放列表数据减少重复请求
-	
+
 	// 可选：当浏览器支持 WebAudio 时，增益倍数用于放大输出（例如 2.0 表示最多放大 2 倍）
 	// 若音源受 CORS 限制而回退为非 WebAudio 模式，则此配置无效。
 	gainBoost: 1.0, // 设置增益倍数为1.0，避免放大导致的卡顿
@@ -544,7 +540,7 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 		right: ["site-stats", "calendar", "tags"],
 		drawer: ["profile", "announcement"],
 	},
-		// 默认动画配置
+	// 默认动画配置
 	defaultAnimation: {
 		// 是否启用默认动画
 		enable: true,
@@ -568,7 +564,9 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 	},
 };
 
-export const pioConfig: import("./types/config").PioConfig & { eagerLoad?: boolean } = {
+export const pioConfig: import("./types/config").PioConfig & {
+	eagerLoad?: boolean;
+} = {
 	enable: true, // 启用看板娘
 	models: ["/pio/models/pio/model.json"], // 默认模型路径
 	position: "left", // 默认位置在左侧
@@ -609,7 +607,7 @@ export const pioConfig: import("./types/config").PioConfig & { eagerLoad?: boole
 			"不用追求每一个音都必须在Grid上啦，稍微慢半拍……那种笨拙的感觉，其实更像人类吧？🕰️👣",
 			"呐，虽然我只是由数据构成的，但在这一首歌的时间里……我是真实存在的，对吧？💾✨",
 			"（伸手接雪）并没有体温的我，却觉得这雪花落在手心时……烫得惊人，是因为旋律太炽热了吗？🤲🔥",
-			"颤音（Vibrato）不仅仅是技巧，它是心动时无法掩饰的涟漪。🌊💗"
+			"颤音（Vibrato）不仅仅是技巧，它是心动时无法掩饰的涟漪。🌊💗",
 		], // 触摸提示
 		home: "点击返回主页~", // 首页提示
 		skin: ["想看看我的新装吗？", "新装看起来很棒~"], // 换装提示
