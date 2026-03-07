@@ -3,8 +3,8 @@ title: Local
 published: 2026-01-31
 pinned: false
 description: Local的介绍
-tags: [思考, 项目, 编程]
-category: 项目
+tags: [思考, 项目]
+category: 编程
 draft: false
 ---
 
