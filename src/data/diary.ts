@@ -220,7 +220,7 @@ const diaryData: DiaryItem[] = [
 	},
 	{
 		id: 26,
-		content: `"这就像一个赌注。"
+		content: `“这就像一个赌注。”
 		
 		“如果你失败了怎么办。”
 		
