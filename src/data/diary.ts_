@@ -245,9 +245,7 @@ const diaryData: DiaryItem[] = [
 	  	id: 29,
 	  	content: `我现在并没有使用桌面ide写这一段话，我现在在使用的是acode + vim插件。这解决了我每天像敲点代码就要背一个笨重的笔记本的痛苦。😄
 	  
-	  	但是目前我还没有摸透该如何使用acode的agent，要是真能将github copliot都搬进来那我以后还不如直接在平板上进行开发了。🐶
-
-		用了一段时间发现termux是真的香，现在在平板上面也可以用vim做开发了。😄`,
+	  	但是目前我还没有摸透该如何使用acode的agent，要是真能将github copliot都搬进来那我以后还不如直接在平板上进行开发了。🐶`,
 	  	date: "2026-03-24T10:00:00",
 	}
 ];	
@@ -282,7 +280,7 @@ export const getDiaryList = (limit?: number) => {
 		return sortedData.slice(0, limit);
 	}
 
-	return sortedData;	
+	return sortedData;
 };
 
 // 获取最新的日记
