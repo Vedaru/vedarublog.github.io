@@ -5,10 +5,10 @@
 
   :is(h1, h2, h3, h4, h5, h6) {
     .anchor {
-      @apply transition -m-0.5 ms-[0.2ch] p-0.5 select-none opacity-0 no-underline;
+      @apply transition -m-0.5 ms-[0.2ch] p-0.5 select-none opacity-0 no-underline rounded-md;
 
       .anchor-icon {
-        @apply mx-[0.45ch];
+        @apply mx-[0.45ch] rounded-sm;
       }
     }
 
@@ -196,3 +196,4 @@
 :root:not(.dark) .custom-md spoiler {
   --_spoiler-mask: color-mix(in oklch, var(--primary) 55%, white 45%);
 }
+
