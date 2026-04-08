@@ -1,7 +1,7 @@
 ---
 title: Cpp Reference
 published: 2026-04-07
-discription: cpp最基本的知识点整理
+description: cpp最基本的知识点整理
 tags: [备忘]
 category: 编程
 draft: false
