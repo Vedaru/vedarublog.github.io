@@ -8,156 +8,154 @@ category: 编程
 draft: false
 ---
 
-EdgeDistillDet：为边缘设备打造的一站式小目标检测蒸馏平台
+我做了一个蒸馏训练工具，因为不想一辈子对着黑漆漆的终端
 
-> 从模型训练到边缘部署，让知识蒸馏不再是命令行里的黑盒。
-
-为什么需要 EdgeDistillDet？
-
-在过去几年里，目标检测技术经历了爆发式增长。YOLO 系列模型以其出色的速度-精度权衡，成为了工业界的标配。然而，当我们试图将这些在 GPU 集群上训练好的大模型部署到边缘设备——如瑞芯微 RK3588、华为 Ascend310，甚至普通的嵌入式板卡上时，一个熟悉的困境总会浮现：
-
-- 大模型精度高，但跑不动；
-- 小模型跑得动，但精度差；
-- 知识蒸馏理论上能解决这个问题，但配置起来却繁琐至极；
-- 训练过程像黑盒，调参全靠猜；
-- 部署前不知道模型在目标设备上究竟表现如何。
-
-EdgeDistillDet 正是为了解决这些痛点而诞生的。它将知识蒸馏训练、模型评估、边缘设备性能剖析和可视化工作台整合在同一个项目中，让开发者能够在一个统一的界面里完成从训练到部署的全流程。
+> 这是 EdgeDistillDet，一个还在成长中的学习项目。
 
 ---
 
-项目概览
+先说说我是谁
 
-EdgeDistillDet 是一个面向边缘设备场景的小目标检测蒸馏训练与评估工具。项目采用 Python + React 的全栈架构，以配置驱动的方式组织训练流程，并通过 Web 界面将整个蒸馏过程可视化。
+我是 Vedaru，一个刚上大一的学生。专业背景...还在建。编程算是从高中后期才开始认真玩，之前折腾过 Discord Bot，写过一些小脚本。现在主要在啃 Python、C++，以及深度学习相关的东西。
 
-项目信息	详情	
-仓库地址	[github.com/SDD-YOLO/EdgeDistillDet](https://github.com/SDD-YOLO/EdgeDistillDet)	
-开源协议	MIT	
-当前版本	v1.0.5	
-技术栈	Python 3.10+ / React / FastAPI	
-支持的边缘设备	RK3588、Ascend310、CPU、GPU	
+EdgeDistillDet 是我 SDD-YOLO 项目计划的一部分——我想做一个面向工业缺陷检测的轻量框架，而这是其中第一个能跑出来的模块。
 
 ---
 
-四大核心能力
+为什么要做这个东西？
 
-1. Teacher-Student 蒸馏训练
+事情的起因挺简单的。我在学习知识蒸馏的时候发现，几乎每一步操作都要在终端里完成：改配置、跑训练、看日志、调参数... 训练跑起来之后，我就盯着一串串滚动的数字发呆，完全不知道里面发生了什么。
 
-项目内置了完整的知识蒸馏训练管线。用户只需通过一份 YAML 配置文件定义教师模型、学生模型、蒸馏参数和训练超参，即可启动训练。支持断点续训（`--resume auto`），大幅降低了大规模实验的管理成本。
+更头疼的是，当你好不容易训出一个模型，想放到树莓派或者 RK 板子上试试的时候，你又得换一套完全不同的工具链去测速度、测延迟。整个流程非常割裂。
+
+我就想：既然我要反复折腾这个流程，不如干脆写一个工具，把训练、评估、还有在边缘设备上跑分这些事情，全部串在一起，再加上一个能看得懂的界面。
+
+于是就有了 EdgeDistillDet。
+
+---
+
+EdgeDistillDet 能做什么
+
+坦白说，它不是第一个做这件事的工具，甚至可能不是最好的。但它刚好解决了我学习过程中遇到的几个问题：
+
+1. 用 YAML 配置文件管训练
+
+不用改代码，改个配置文件就能换模型、换数据集、调超参数。对我这种经常需要跑对照实验的新手来说，非常友好。支持断点续训，不小心中断了也能接着跑。
 
 ```bash
 edgedistilldet train --config configs/distill_config.yaml
 ```
 
-2. 一键式模型评估
+2. 一键评估
 
-训练完成后，EdgeDistillDet 提供了标准化的评估流程。通过 `eval` 子命令，可以快速在指定数据集上对模型进行 Benchmark，获取 mAP、FPS 等关键指标，方便不同模型之间的横向对比。
+训练完一键跑 Benchmark，直接出 mAP、FPS 这些指标，方便我横向对比不同蒸馏策略的效果。
 
 ```bash
 edgedistilldet eval --config configs/eval_config.yaml
 ```
 
-3. 边缘设备性能剖析
+3. 边缘设备跑分
 
-这是 EdgeDistillDet 最具特色的功能之一。在真正部署到硬件之前，项目可以模拟或连接目标边缘设备，对模型进行性能剖析，给出延迟、吞吐量等关键数据。支持的设备包括 `rk3588`、`ascend310`、`cpu` 和 `gpu`，基本覆盖了当前主流的边缘推理场景。
+在真正往板子上烧模型之前，先看看模型在 RK3588、Ascend310 或者纯 CPU 上的表现怎么样。支持的设备列表我还在扩充。
 
 ```bash
 edgedistilldet profile --weight model.pt --device rk3588
 ```
 
-4. Web 可视化工作台
+4. Web 界面（这是我最想做的部分）
 
-除了命令行工具，EdgeDistillDet 还提供了一个基于 React + FastAPI 的 Web 可视化界面。训练进度、指标曲线、设备剖析结果都可以在一个统一的页面中查看。项目甚至集成了基于 Agent 的智能辅助模块（`agent_graph` + `agent_rag`），为训练流程提供智能化的建议与文档检索。
+我不想一直盯着终端看 log，所以我用 React + FastAPI 搭了一个 Web 工作台。训练进度、指标曲线、设备跑分结果，打开浏览器就能看。
+
+这个 Web 界面里我还塞了一个 AI Agent 模块（`agent_graph` + `agent_rag`），算是我探索"AI 辅助炼丹"的一个尝试吧。虽然它现在还不够聪明，但方向我觉得是对的。
 
 ---
 
-技术架构解析
+项目是怎么搭起来的
 
-EdgeDistillDet 的整体架构可以用"前后端分离、算法与界面解耦"来概括：
+EdgeDistillDet 的代码结构长这样：
 
 ```
 EdgeDistillDet/
 |\
-|  CLI (main.py) — 统一命令行入口
+|  main.py              # CLI 入口，所有命令都从这里进
 |\
 |  core/
-|  |-- distillation/   # 蒸馏训练核心逻辑
-|  |-- evaluation/     # 评估与 Benchmark
-|  |-- detection/      # 推理与检测封装
+|  |-- distillation/   # 蒸馏训练的核心逻辑
+|  |-- evaluation/     # 评估跑分
+|  |-- detection/      # 推理封装
 |\
 |  web/
-|  |-- app.py           # FastAPI 后端服务
-|  |-- routers/         # RESTful API 路由
-|  |-- services/        # 业务逻辑层
-|  |-- src/             # React 前端源码
-|  |-- agent_graph/     # AI Agent 工作流
-|  |-- agent_rag/       # 检索增强生成模块
+|  |-- app.py           # FastAPI 后端
+|  |-- src/             # React 前端
+|  |-- agent_graph/     # Agent 工作流
+|  |-- agent_rag/       # 文档检索
 |\
-|  configs/             # YAML 配置中心
-|  utils/               # 数据处理与可视化工具
-|  tests/               # pytest 单元测试
+|  configs/             # YAML 配置
+|  utils/               # 各种小工具
+|  tests/               # pytest 测试
 ```
 
-这种分层设计带来了几个显著优势：
+做这个项目的过程中，我也在学一些工程化的东西：
 
-- 算法工程师可以专注于 `core/` 目录下的训练与评估逻辑，无需关心前端实现；
-- 前端开发者可以独立迭代 Web 界面，通过 API 与后端交互；
-- 部署工程师只需要关注模型权重和配置文件，即可完成边缘设备适配。
+- 用 GitHub Actions 跑自动化检查
+- 用 pre-commit 防止自己提交格式混乱的代码
+- 用 pyproject.toml 管理依赖
+- 写 CHANGELOG，强迫自己记录每个版本改了什么
 
----
-
-工程化实践
-
-尽管 EdgeDistillDet 目前仍处于快速迭代阶段，但项目中已经能看到不少成熟的工程化实践：
-
-- GitHub Actions 自动化工作流，确保每次提交都经过基本检查；
-- pre-commit 钩子，在代码提交前自动格式化与检查；
-- pyproject.toml 现代 Python 包管理，替代传统的 `setup.py`；
-- CHANGELOG.md 维护版本变更记录；
-- 前后端版本同步机制，确保 Web UI 与核心库的版本一致性。
-
-这些细节对于一个年轻的开源项目来说，意味着开发者在认真思考"如何让这个项目长期维护下去"，而不仅仅是写出一个能跑的 Demo。
+这些都不是什么高深的技术，但我觉得养成习惯很重要。
 
 ---
 
-适用场景
+当前的状态
 
-EdgeDistillDet 特别适合以下几类用户：
+项目信息	详情	
+仓库	[github.com/SDD-YOLO/EdgeDistillDet](https://github.com/SDD-YOLO/EdgeDistillDet)	
+协议	MIT	
+版本	v1.0.5	
+技术栈	Python 3.10+ / React / FastAPI	
 
-- 边缘 AI 开发者：需要在资源受限设备上部署目标检测模型，希望通过蒸馏获得更小的模型体积；
-- 科研工作者：正在进行小目标检测或模型压缩方向的研究，需要一套标准化的训练与评估工具；
-- AI 教育：教学中需要展示知识蒸馏的完整流程，Web 界面提供了极佳的可视化效果；
-- 嵌入式工程师：需要在 RK3588、Ascend310 等平台上评估模型性能，但缺乏便捷的剖析工具。
+代码还在快速迭代，最近几乎每天都有 commit。有些功能已经能用了，有些还在试错。如果你有耐心看完我的 commit 历史，会发现里面有不少 "Fix xxx bug"、"Refactor xxx" 的记录——这就是真实的学习过程。
 
 ---
 
-快速上手
+怎么跑起来
 
 ```bash
-# 1. 克隆仓库
-git clone https://github.com/SDD-YOLO/EdgeDistillDet
+# 克隆仓库
+git clone https://github.com/SDD-YOLO/EdgeDistillDet.git
 cd EdgeDistillDet
 
-# 2. 安装依赖（推荐 Python 3.12）
+# 安装依赖（推荐 Python 3.12）
 pip install -r requirements.txt
 
-# 3. 验证安装
-edgedistilldet --help
-
-# 4. 启动 Web 工作台
+# 启动 Web 界面
 cd web && npm ci && npm run build && cd ..
 python web/app.py
-# 打开浏览器访问 http://127.0.0.1:5000
+# 浏览器打开 http://127.0.0.1:5000
 ```
+
+---
+
+我的一些想法
+
+做这个项目的这段时间，有几个感受：
+
+第一，边做边学比看完所有教程再做效率高得多。 我之前花了不少时间看 PyTorch 文档和 React 教程，但很多东西是直到我开始写 EdgeDistillDet 才真正理解的。
+
+第二，工具一定要让自己用得舒服。 我做 Web 界面的初衷完全是为了解决自己的痛点。如果一个工具连你自己都不想用，那别人更不可能用了。
+
+第三，承认自己还在学习并不可耻。 代码里肯定有写得不优雅的地方，架构肯定有可以改进的地方。但这就是过程。重要的是持续迭代。
 
 ---
 
 写在最后
 
-EdgeDistillDet 诞生于对"让知识蒸馏更简单"的追求。在这个模型越来越大、部署场景越来越碎片化的时代，能够在训练精度与推理效率之间找到平衡点，并且让整个过程变得透明、可控，或许正是这个项目最大的价值所在。
+如果你也在学习计算机视觉，或者在折腾知识蒸馏、边缘部署这些方向，希望 EdgeDistillDet 能给你一点参考。当然，更欢迎你给我提 issue、挑 bug，或者直接告诉我哪里写得不好。
 
-如果你正在从事边缘目标检测相关的工作，或者对知识蒸馏技术感兴趣，不妨给 [SDD-YOLO/EdgeDistillDet](https://github.com/SDD-YOLO/EdgeDistillDet) 一个 Star，也欢迎通过 Issue 和 PR 参与到项目的建设中来。
+GitHub 仓库地址：[SDD-YOLO/EdgeDistillDet](https://github.com/SDD-YOLO/EdgeDistillDet)
+
+觉得有意思的话，可以赏一个 Star，就当是给我这个大一新手的一点鼓励吧。
 
 ---
 
-本文基于 EdgeDistillDet v1.0.5 版本撰写，项目仍在积极开发中，部分功能可能随版本迭代有所调整。
+本文基于 EdgeDistillDet v1.0.5 撰写。项目持续更新中，内容可能有变动。
