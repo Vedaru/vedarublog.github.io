@@ -66,8 +66,8 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
                         data-mobile-dropdown-trigger
                         aria-expanded="false"
                     >
-                        <div class="flex items-center transition text-black/75 dark:text-white/75 font-bold group-hover:text-[var(--primary)] group-active:text-[var(--primary)]">
-                            {link.icon && <Icon name={link.icon} class="text-[1.1rem] mr-2" />}
+                        <div class="flex items-center gap-2 transition text-black/75 dark:text-white/75 font-bold group-hover:text-[var(--primary)] group-active:text-[var(--primary)]">
+                            {link.icon && <Icon name={link.icon} class="text-[1.1rem] w-[1.1rem] h-[1.1rem] shrink-0" />}
                             {getLocalizedName(link.name)}
                         </div>
                         <Icon name="material-symbols:keyboard-arrow-down-rounded"
@@ -81,8 +81,8 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
                                    hover:bg-[var(--btn-plain-bg-hover)] active:bg-[var(--btn-plain-bg-active)] transition"
                                target={child.external ? "_blank" : null}
                             >
-                                <div class="flex items-center transition text-black/60 dark:text-white/60 font-medium group-hover:text-[var(--primary)] group-active:text-[var(--primary)]">
-                                    {child.icon && <Icon name={child.icon} class="text-[1.1rem] mr-2" />}
+                                <div class="flex items-center gap-2 transition text-black/60 dark:text-white/60 font-medium group-hover:text-[var(--primary)] group-active:text-[var(--primary)]">
+                                    {child.icon && <Icon name={child.icon} class="text-[1.1rem] w-[1.1rem] h-[1.1rem] shrink-0" />}
                                     {getLocalizedName(child.name)}
                                 </div>
                                 {child.external && <Icon name="fa6-solid:arrow-up-right-from-square"
@@ -99,8 +99,8 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
                 "
                    target={link.external ? "_blank" : null}
                 >
-                    <div class="flex items-center transition text-black/75 dark:text-white/75 font-bold group-hover:text-[var(--primary)] group-active:text-[var(--primary)]">
-                        {link.icon && <Icon name={link.icon} class="text-[1.1rem] mr-2" />}
+                    <div class="flex items-center gap-2 transition text-black/75 dark:text-white/75 font-bold group-hover:text-[var(--primary)] group-active:text-[var(--primary)]">
+                        {link.icon && <Icon name={link.icon} class="text-[1.1rem] w-[1.1rem] h-[1.1rem] shrink-0" />}
                         {getLocalizedName(link.name)}
                     </div>
                     {!link.external && <Icon name="material-symbols:chevron-right-rounded"

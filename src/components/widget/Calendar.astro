@@ -135,6 +135,8 @@ const yearSuffix = isChinese ? "年" : " ";
 		yearSuffix,
 	}}
 >
+	const CALENDAR_DATA_CACHE_KEY = "__calendarWidgetPostsData";
+
 	let allPostsData = [];
 	const postDateMap = {};
 	const postsByMonth = {};
@@ -145,28 +147,59 @@ const yearSuffix = isChinese ? "年" : " ";
 		maxYear: new Date().getFullYear() + 5,
 	};
 
+	function resetProcessedData() {
+		Object.keys(postDateMap).forEach((key) => delete postDateMap[key]);
+		Object.keys(postsByMonth).forEach((key) => delete postsByMonth[key]);
+		Object.keys(stats.hasPostInYear).forEach(
+			(key) => delete stats.hasPostInYear[key],
+		);
+		Object.keys(stats.hasPostInMonth).forEach(
+			(key) => delete stats.hasPostInMonth[key],
+		);
+		stats.minYear = new Date().getFullYear();
+		stats.maxYear = new Date().getFullYear() + 5;
+	}
+
+	function applyPostsData(posts) {
+		allPostsData = Array.isArray(posts) ? posts : [];
+		resetProcessedData();
+		processPostsData(allPostsData);
+		const currentPostId = getCurrentPostId();
+		if (currentPostId) {
+			const matchedPost = allPostsData.find((p) => p.id === currentPostId);
+			if (matchedPost) {
+				const [y, m] = matchedPost.date.split("-");
+				currentYear = parseInt(y);
+				currentMonth = parseInt(m) - 1;
+			}
+		}
+	}
+
+	function arePostsEqual(oldPosts, newPosts) {
+		if (oldPosts.length !== newPosts.length) return false;
+		for (let i = 0; i < oldPosts.length; i++) {
+			const a = oldPosts[i];
+			const b = newPosts[i];
+			if (
+				a.id !== b.id ||
+				a.date !== b.date ||
+				a.title !== b.title ||
+				a.updated !== b.updated
+			) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	async function fetchCalendarData() {
 		try {
 			const res = await fetch("/api/calendar-data.json");
 			const data = await res.json();
-			if (Array.isArray(data)) {
-				allPostsData = data;
-				processPostsData(allPostsData);
-				const currentPostId = getCurrentPostId();
-				if (currentPostId) {
-					const matchedPost = allPostsData.find(
-						(p) => p.id === currentPostId,
-					);
-					if (matchedPost) {
-						const [y, m] = matchedPost.date.split("-");
-						currentYear = parseInt(y);
-						currentMonth = parseInt(m) - 1;
-					}
-				}
-				renderCalendar();
-			}
+			return Array.isArray(data) ? data : [];
 		} catch (error) {
 			console.error("Failed to fetch calendar data:", error);
+			return null;
 		}
 	}
 
@@ -230,10 +263,29 @@ const yearSuffix = isChinese ? "年" : " ";
 		return matchedPost ? matchedPost.id : null;
 	}
 
-	function init() {
-		renderCalendar();
+	async function init() {
+		const widgetRoot = document.getElementById("calendar-widget");
+		if (widgetRoot?.dataset.calendarInitialized === "true") return;
+		if (widgetRoot) widgetRoot.dataset.calendarInitialized = "true";
+
 		setupEventListeners();
-		fetchCalendarData();
+
+		const cachedData = window[CALENDAR_DATA_CACHE_KEY];
+		if (Array.isArray(cachedData) && cachedData.length > 0) {
+			applyPostsData(cachedData);
+			renderCalendar();
+		} else {
+			renderCalendar();
+		}
+
+		const remoteData = await fetchCalendarData();
+		if (!Array.isArray(remoteData)) return;
+
+		if (!arePostsEqual(allPostsData, remoteData)) {
+			applyPostsData(remoteData);
+			renderCalendar();
+		}
+		window[CALENDAR_DATA_CACHE_KEY] = remoteData;
 	}
 
 	function setupEventListeners() {
@@ -431,7 +483,9 @@ const yearSuffix = isChinese ? "年" : " ";
 			})
 			.join("");
 
-		dom.postsList.innerHTML = listHtml;
+		if (dom.postsList.innerHTML !== listHtml) {
+			dom.postsList.innerHTML = listHtml;
+		}
 	}
 
 	function showMonthPicker() {

@@ -51,7 +51,10 @@ const hasChildren = children.length > 0;
 					data-dropdown-trigger
 				>
 					{link.icon && (
-						<Icon name={link.icon} class="text-[1.1rem] mr-2" />
+						<Icon
+							name={link.icon}
+							class="text-[1.1rem] w-[1.1rem] h-[1.1rem] shrink-0"
+						/>
 					)}
 					{getLocalizedName(link.name)}
 					<Icon
@@ -76,11 +79,11 @@ const hasChildren = children.length > 0;
 								class="dropdown-item"
 								aria-label={child.name}
 							>
-								<div class="flex items-center">
+								<div class="flex items-center gap-2">
 									{child.icon && (
 										<Icon
 											name={child.icon}
-											class="text-[1rem] mr-2"
+											class="text-[1rem] w-[1rem] h-[1rem] shrink-0"
 										/>
 									)}
 									<span>{getLocalizedName(child.name)}</span>
@@ -105,7 +108,10 @@ const hasChildren = children.length > 0;
 				class="btn-plain scale-animation rounded-lg h-11 font-bold px-5 active:scale-95 flex items-center"
 			>
 				{link.icon && (
-					<Icon name={link.icon} class="text-[1.1rem] mr-2" />
+					<Icon
+						name={link.icon}
+						class="text-[1.1rem] w-[1.1rem] h-[1.1rem] shrink-0"
+					/>
 				)}
 				{getLocalizedName(link.name)}
 				{link.external && (

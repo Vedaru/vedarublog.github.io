@@ -104,7 +104,7 @@ const subtitle = i18n(I18nKey.timelineSubtitle);
   <!-- 图标加载器，预加载所有时间线图标 -->
   <IconifyLoader preloadIcons={allIcons} />
   <div class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative min-h-32">
-    <div class="card-base z-10 px-6 py-8 md:px-9 md:py-1ss0 relative w-full">
+    <div class="card-base z-10 px-6 py-8 md:px-9 md:py-1ss0 relative w-full min-w-0">
       <!-- 页面标题 -->
       <div class="flex flex-col items-start justify-center mb-10">
         <h1 class="text-3xl md:text-4xl font-bold text-black/90 dark:text-white/90 mb-3 relative
@@ -239,9 +239,9 @@ const subtitle = i18n(I18nKey.timelineSubtitle);
         </h2>
         
         <!-- 横向时间线容器 -->
-        <div class="relative overflow-hidden rounded-xl bg-transparent border border-black/10 dark:border-white/10 p-6 hover:shadow-lg transition-shadow duration-300">
+        <div class="relative min-w-0 overflow-hidden rounded-xl bg-transparent border border-black/10 dark:border-white/10 p-6 hover:shadow-lg transition-shadow duration-300">
           <!-- 水平滚动区域 -->
-          <div class="flex overflow-x-auto pb-6 -mx-2 px-2 timeline-horizontal-scroll" id="timeline-scrollbar">
+          <div class="flex min-w-0 overflow-x-auto pb-6 -mx-2 px-2 timeline-horizontal-scroll" id="timeline-scrollbar">
             
             <div class="flex space-x-8 min-w-max">
               {allTimelineItems.map((item, index) => (
@@ -422,4 +422,3 @@ const subtitle = i18n(I18nKey.timelineSubtitle);
     });
   }
 </script>
-
