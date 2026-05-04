@@ -247,6 +247,12 @@ const transparentClass = shouldEnableTransparency
 
 <script type="module" is:inline define:vars={{navbarTransparentMode: siteConfig.banner?.navbar?.transparentMode || "semi", defaultWallpaperMode: siteConfig.wallpaperMode.defaultMode, defaultPostListLayout: siteConfig.postListLayout?.defaultMode || "list", BANNER_HEIGHT: BANNER_HEIGHT, pageScaling: siteConfig.pageScaling}}>
 
+	function setMainGridLayout(mainGrid, layout) {
+		if (!mainGrid) return;
+		mainGrid.classList.remove("layout-switching");
+		mainGrid.setAttribute("data-layout-mode", layout);
+	}
+
 	// 立即执行，在页面渲染前应用壁纸模式和布局模式，避免闪烁
 	(function() {
 		const wallpaperMode = localStorage.getItem('wallpaperMode') || defaultWallpaperMode;
@@ -293,7 +299,7 @@ const transparentClass = shouldEnableTransparency
 			if (mainGrid) {
 				const savedLayout = localStorage.getItem('postListLayout');
 				const currentLayout = savedLayout || defaultPostListLayout;
-				mainGrid.setAttribute('data-layout-mode', currentLayout);
+				setMainGridLayout(mainGrid, currentLayout);
 				
 				// 根据布局模式显示或隐藏右侧边栏
 				const rightSidebar = document.querySelector('.right-sidebar-container');
@@ -485,7 +491,7 @@ const transparentClass = shouldEnableTransparency
 				if (mainGrid) {
 					// @ts-ignore
 					const currentLayout = window.__pendingLayoutMode || localStorage.getItem('postListLayout') || defaultPostListLayout;
-					mainGrid.setAttribute('data-layout-mode', currentLayout);
+					setMainGridLayout(mainGrid, currentLayout);
 					
 					const rightSidebar = document.querySelector('.right-sidebar-container');
 					if (rightSidebar) {
@@ -547,7 +553,7 @@ const transparentClass = shouldEnableTransparency
 			if (mainGrid) {
 				const savedLayout = localStorage.getItem('postListLayout');
 				const currentLayout = savedLayout || defaultPostListLayout;
-				mainGrid.setAttribute('data-layout-mode', currentLayout);
+				setMainGridLayout(mainGrid, currentLayout);
 				
 				if (currentLayout === 'grid') {
 					const rightSidebar = document.querySelector('.right-sidebar-container');
@@ -570,7 +576,7 @@ const transparentClass = shouldEnableTransparency
 			if (mainGrid) {
 				const savedLayout = localStorage.getItem('postListLayout');
 				const currentLayout = savedLayout || defaultPostListLayout;
-				mainGrid.setAttribute('data-layout-mode', currentLayout);
+				setMainGridLayout(mainGrid, currentLayout);
 				
 				if (currentLayout === 'grid') {
 					const rightSidebar = document.querySelector('.right-sidebar-container');
@@ -793,7 +799,7 @@ const transparentClass = shouldEnableTransparency
 <div class={`absolute w-full z-30 pointer-events-none ${mobileNonHomeBannerClass ? 'mobile-main-no-banner' : ''} ${siteConfig.wallpaperMode.defaultMode === 'none' ? 'no-banner-layout' : ''} ${transparentClass}`} style={`top: ${finalMainPanelTop}`}>
     <!-- The pointer-events-none here prevent blocking the click event of the TOC -->
     <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto">
-        <div id="main-grid" class={`transition duration-700 w-full left-0 right-0 grid ${gridCols} grid-rows-none md:grid-rows-[auto] mx-auto gap-4 px-2 md:px-4 ${!mobileShowSidebar || !hasMobileDrawerComponents ? 'mobile-no-sidebar' : ''} ${hasRightSidebarComponents ? 'mobile-both-sidebar' : ''}`}
+        <div id="main-grid" class={`w-full left-0 right-0 grid ${gridCols} grid-rows-none md:grid-rows-[auto] mx-auto gap-4 px-2 md:px-4 ${!mobileShowSidebar || !hasMobileDrawerComponents ? 'mobile-no-sidebar' : ''} ${hasRightSidebarComponents ? 'mobile-both-sidebar' : ''}`}
              data-layout-mode={defaultPostListLayout}
         >
             <!-- Banner image credit -->
@@ -1394,6 +1400,28 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
 }
 
 /* Grid 模式下调整主网格布局 */
+#main-grid {
+    transition:
+        opacity 220ms cubic-bezier(0.4, 0, 0.2, 1),
+        transform 220ms cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: opacity, transform;
+}
+
+#main-grid.layout-switching {
+    animation: main-grid-float 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes main-grid-float {
+    from {
+        opacity: 0.92;
+        transform: translateY(0.5rem);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 #main-grid[data-layout-mode="grid"] {
     /* 在桌面端只显示左侧边栏和主内容 */
 }

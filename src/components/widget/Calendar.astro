@@ -66,7 +66,7 @@ const yearSuffix = isChinese ? "年" : " ";
 		<div class="flex items-center gap-1 shrink-0 ml-2">
 			<button
 				id="back-to-today-btn"
-				class="p-1.5 rounded-md hover:bg-[var(--btn-plain-bg-hover)] text-[var(--primary)] transition-all invisible"
+				class="p-1.5 rounded-md hover:bg-[var(--btn-plain-bg-hover)] text-[var(--primary)] transition-colors invisible"
 				aria-label="Back to today"
 			>
 				<Icon
@@ -365,7 +365,7 @@ const yearSuffix = isChinese ? "年" : " ";
 			}
 
 			html += `
-                <div class="calendar-day aspect-square flex items-center justify-center rounded-md cursor-pointer relative transition-all duration-200 ${bgClass}"
+                <div class="calendar-day aspect-square flex items-center justify-center rounded-md cursor-pointer relative transition-colors duration-200 ${bgClass}"
                     data-date="${dateKey}">
                     ${day}
                     ${hasPost && !isSelected ? `<span class="absolute bottom-1 w-1 h-1 rounded-full bg-[var(--primary)]"></span>` : ""}
@@ -450,7 +450,7 @@ const yearSuffix = isChinese ? "年" : " ";
 			const isCurrentMonth = index === currentMonth;
 			const hasPost = stats.hasPostInMonth[`${currentYear}-${index + 1}`];
 			let cls =
-				"month-item cursor-pointer rounded-lg flex flex-col items-center justify-center p-2 transition-all hover:bg-[var(--btn-plain-bg-hover)] relative border border-transparent";
+				"month-item cursor-pointer rounded-lg flex flex-col items-center justify-center p-2 transition-colors hover:bg-[var(--btn-plain-bg-hover)] relative border border-transparent";
 			if (isCurrentMonth)
 				cls +=
 					" border-[var(--primary)] text-[var(--primary)] bg-[var(--primary)]/5";
@@ -477,7 +477,7 @@ const yearSuffix = isChinese ? "年" : " ";
 			const isCurrent = y === currentYear;
 			const hasPost = stats.hasPostInYear[y];
 			let cls =
-				"year-item cursor-pointer rounded-lg flex flex-col items-center justify-center py-3 transition-all hover:bg-[var(--btn-plain-bg-hover)] relative border border-transparent";
+				"year-item cursor-pointer rounded-lg flex flex-col items-center justify-center py-3 transition-colors hover:bg-[var(--btn-plain-bg-hover)] relative border border-transparent";
 			if (isCurrent)
 				cls +=
 					" border-[var(--primary)] text-[var(--primary)] bg-[var(--primary)]/5";

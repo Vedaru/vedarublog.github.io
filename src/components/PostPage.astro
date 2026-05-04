@@ -40,6 +40,24 @@ const initialLayoutClass = defaultLayout === "grid" ? "grid-mode" : "list-mode";
 
 <script>
 	// 动态布局切换脚本
+	function animateMainGrid(mainGrid: HTMLElement | null, layout: string) {
+		if (!mainGrid) return;
+		if (mainGrid.getAttribute("data-layout-mode") === layout) return;
+
+		mainGrid.classList.remove("layout-switching");
+		void mainGrid.offsetWidth;
+		mainGrid.classList.add("layout-switching");
+		mainGrid.setAttribute("data-layout-mode", layout);
+
+		mainGrid.addEventListener(
+			"animationend",
+			() => {
+				mainGrid.classList.remove("layout-switching");
+			},
+			{ once: true },
+		);
+	}
+
 	function initLayout() {
 		requestAnimationFrame(() => {
 			const postListContainer = document.getElementById(
@@ -95,7 +113,7 @@ const initialLayoutClass = defaultLayout === "grid" ? "grid-mode" : "list-mode";
 			if (rightSidebar) rightSidebar.classList.add("hidden-in-grid-mode");
 
 			const mainGrid = document.getElementById("main-grid");
-			if (mainGrid) mainGrid.setAttribute("data-layout-mode", "grid");
+			animateMainGrid(mainGrid, "grid");
 		} else {
 			container.classList.remove("grid-mode");
 			container.classList.add("list-mode");
@@ -108,7 +126,7 @@ const initialLayoutClass = defaultLayout === "grid" ? "grid-mode" : "list-mode";
 				rightSidebar.classList.remove("hidden-in-grid-mode");
 
 			const mainGrid = document.getElementById("main-grid");
-			if (mainGrid) mainGrid.setAttribute("data-layout-mode", "list");
+			animateMainGrid(mainGrid, "list");
 		}
 
 		container.classList.add("js-initialized");

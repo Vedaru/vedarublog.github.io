@@ -1,6 +1,23 @@
 // 右侧边栏布局管理器
 // 用于在网格模式下隐藏右侧边栏
 
+function animateMainGrid(mainGrid, layout) {
+	if (!mainGrid) return;
+	if (mainGrid.getAttribute("data-layout-mode") === layout) return;
+
+	mainGrid.classList.remove("layout-switching");
+	void mainGrid.offsetWidth;
+	mainGrid.classList.add("layout-switching");
+	mainGrid.setAttribute("data-layout-mode", layout);
+	mainGrid.addEventListener(
+		"animationend",
+		() => {
+			mainGrid.classList.remove("layout-switching");
+		},
+		{ once: true },
+	);
+}
+
 /**
  * 初始化页面布局
  * @param {string} pageType - 页面类型（projects, skills等）
@@ -77,12 +94,10 @@ function hideRightSidebar() {
 		// 设置显示为none以完全隐藏
 		rightSidebar.style.display = "none";
 
-		// 调整主网格布局
-		const mainGrid = document.getElementById("main-grid");
-		if (mainGrid) {
-			mainGrid.style.gridTemplateColumns = "17.5rem 1fr";
-			mainGrid.setAttribute("data-layout-mode", "grid");
-		}
+	const mainGrid = document.getElementById("main-grid");
+	if (mainGrid) {
+		animateMainGrid(mainGrid, "grid");
+	}
 	}
 }
 
@@ -98,12 +113,10 @@ function showRightSidebar() {
 		// 恢复显示
 		rightSidebar.style.display = "";
 
-		// 恢复主网格布局
-		const mainGrid = document.getElementById("main-grid");
-		if (mainGrid) {
-			mainGrid.style.gridTemplateColumns = "";
-			mainGrid.setAttribute("data-layout-mode", "list");
-		}
+	const mainGrid = document.getElementById("main-grid");
+	if (mainGrid) {
+		animateMainGrid(mainGrid, "list");
+	}
 	}
 }
 

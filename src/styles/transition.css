@@ -1,17 +1,19 @@
 /* Page transition animations with Swup - Enhanced version inspired by yukina */
 
-/* 主要内容区域的过渡动画 - 参考yukina的侧滑效果 */
+/* 主要内容区域的过渡动画 - 纯垂直淡入淡出 */
 .transition-main {
   transition:
     opacity 150ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
     transform 150ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform: translateY(0);
 }
 
-/* 离开动画 - 内容向右上滑出并淡出 */
+/* 离开动画 - 内容向上滑出并淡出 */
 .transition-leaving {
   transition:
     transform 150ms cubic-bezier(0.55, 0.055, 0.675, 0.19),
     opacity 150ms cubic-bezier(0.55, 0.055, 0.675, 0.19);
+  transform: translateY(0);
 }
 
 html.is-changing .transition-main {
@@ -26,13 +28,13 @@ html.is-leaving .transition-main {
     transform 150ms cubic-bezier(0.55, 0.055, 0.675, 0.19);
 }
 
-/* 进入动画 - 从右下角轻微滑入，模仿yukina效果 */
+/* 进入动画 - 从下方轻微滑入 */
 html.is-animating .transition-main {
   opacity: 0;
   transform: translateY(1.5rem);
 }
 
-/* 离开动画 - 向左上角滑出 */
+/* 离开动画 - 向上滑出 */
 html.is-animating.is-leaving .transition-leaving {
   transform: translateY(-1.5rem);
   opacity: 0;
