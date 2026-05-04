@@ -31,7 +31,7 @@ const initialLayoutClass = defaultLayout === "grid" ? "grid-mode" : "list-mode";
 		page.data.map((entry, index) => (
 			<PostCard
 				entry={entry}
-				class:list="onload-animation"
+				class:list="onload-animation-fade-in"
 				style={`--i: ${index}; --interval: 50ms;`}
 			/>
 		))
@@ -208,9 +208,9 @@ const initialLayoutClass = defaultLayout === "grid" ? "grid-mode" : "list-mode";
 	#post-list-container > :global(*) {
 		content-visibility: auto;
 		contain-intrinsic-size: 200px;
-		transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+		transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 		opacity: 0;
-		animation: fadeInSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+		animation: fade-in 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 		animation-delay: calc(
 			var(--content-delay) + var(--i) * var(--interval)
 		);
@@ -218,7 +218,7 @@ const initialLayoutClass = defaultLayout === "grid" ? "grid-mode" : "list-mode";
 
 	/* 网格模式动画调整 */
 	#post-list-container.grid-mode > :global(*) {
-		animation-name: fadeInScale;
+		animation-name: fade-in;
 	}
 
 	/* 布局切换时的过渡状态 */
@@ -228,31 +228,5 @@ const initialLayoutClass = defaultLayout === "grid" ? "grid-mode" : "list-mode";
 
 	#post-list-container.layout-switching > :global(*) {
 		animation-delay: calc(var(--i) * 50ms);
-	}
-
-	#post-list-container.layout-switching > :global(*) {
-		transform: scale(0.98);
-	}
-
-	@keyframes fadeInScale {
-		from {
-			opacity: 0;
-			transform: scale(0.95);
-		}
-		to {
-			opacity: 1;
-			transform: scale(1);
-		}
-	}
-
-	@keyframes fadeInSlide {
-		from {
-			opacity: 0;
-			transform: translateX(-10px);
-		}
-		to {
-			opacity: 1;
-			transform: translateX(0);
-		}
 	}
 </style>
