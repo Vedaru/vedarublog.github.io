@@ -54,7 +54,7 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
 	}),
 );
 ---
-<div id="nav-menu-panel" class:list={["float-panel float-panel-closed absolute transition-all fixed right-4 px-2 py-2 max-h-[80vh] overflow-y-auto"]}>
+<div id="nav-menu-panel" class:list={["float-panel float-panel-closed absolute fixed right-4 px-2 py-2 max-h-[80vh] overflow-y-auto"]}>
     {processedLinks.map((link) => (
         <div class="mobile-menu-item">
             {link.children && link.children.length > 0 ? (
@@ -66,8 +66,8 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
                         data-mobile-dropdown-trigger
                         aria-expanded="false"
                     >
-                        <div class="flex items-center gap-2 transition text-black/75 dark:text-white/75 font-bold group-hover:text-[var(--primary)] group-active:text-[var(--primary)]">
-                            {link.icon && <Icon name={link.icon} class="text-[1.1rem] w-[1.1rem] h-[1.1rem] shrink-0" />}
+                        <div class="mobile-item-label flex items-center gap-2 transition text-black/75 dark:text-white/75 font-bold group-hover:text-[var(--primary)] group-active:text-[var(--primary)]">
+                            {link.icon && <Icon name={link.icon} class="mobile-item-icon text-[1.1rem]" />}
                             {getLocalizedName(link.name)}
                         </div>
                         <Icon name="material-symbols:keyboard-arrow-down-rounded"
@@ -81,8 +81,8 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
                                    hover:bg-[var(--btn-plain-bg-hover)] active:bg-[var(--btn-plain-bg-active)] transition"
                                target={child.external ? "_blank" : null}
                             >
-                                <div class="flex items-center gap-2 transition text-black/60 dark:text-white/60 font-medium group-hover:text-[var(--primary)] group-active:text-[var(--primary)]">
-                                    {child.icon && <Icon name={child.icon} class="text-[1.1rem] w-[1.1rem] h-[1.1rem] shrink-0" />}
+                                <div class="mobile-item-label flex items-center gap-2 transition text-black/60 dark:text-white/60 font-medium group-hover:text-[var(--primary)] group-active:text-[var(--primary)]">
+                                    {child.icon && <Icon name={child.icon} class="mobile-item-icon text-[1.1rem]" />}
                                     {getLocalizedName(child.name)}
                                 </div>
                                 {child.external && <Icon name="fa6-solid:arrow-up-right-from-square"
@@ -99,8 +99,8 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
                 "
                    target={link.external ? "_blank" : null}
                 >
-                    <div class="flex items-center gap-2 transition text-black/75 dark:text-white/75 font-bold group-hover:text-[var(--primary)] group-active:text-[var(--primary)]">
-                        {link.icon && <Icon name={link.icon} class="text-[1.1rem] w-[1.1rem] h-[1.1rem] shrink-0" />}
+                    <div class="mobile-item-label flex items-center gap-2 transition text-black/75 dark:text-white/75 font-bold group-hover:text-[var(--primary)] group-active:text-[var(--primary)]">
+                        {link.icon && <Icon name={link.icon} class="mobile-item-icon text-[1.1rem]" />}
                         {getLocalizedName(link.name)}
                     </div>
                     {!link.external && <Icon name="material-symbols:chevron-right-rounded"
@@ -116,12 +116,36 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
 </div>
 
 <style>
+    :root {
+        --panel-motion-duration: 220ms;
+        --panel-motion-easing: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .mobile-item-icon {
+        @apply inline-flex items-center justify-center w-[1.25rem] h-[1.25rem] shrink-0;
+        transform: translateZ(0);
+        backface-visibility: hidden;
+    }
+
+    .mobile-item-label {
+        line-height: 1.5rem;
+    }
+
     .mobile-submenu {
-        @apply max-h-0 overflow-hidden transition-all duration-300 ease-in-out;
+        @apply max-h-0 overflow-hidden;
+        opacity: 0.95;
+        transition:
+            max-height var(--panel-motion-duration) var(--panel-motion-easing),
+            opacity var(--panel-motion-duration) var(--panel-motion-easing);
     }
     
     .mobile-dropdown[data-expanded="true"] .mobile-submenu {
         @apply max-h-96;
+        opacity: 1;
+    }
+
+    .mobile-dropdown-arrow {
+        transition: transform var(--panel-motion-duration) var(--panel-motion-easing);
     }
     
     .mobile-dropdown[data-expanded="true"] .mobile-dropdown-arrow {

@@ -13,7 +13,8 @@ type PanelId =
 class PanelManager {
 	private activePanels: Set<PanelId> = new Set();
 	private panelStack: PanelId[] = [];
-	private readonly duration = 100;
+	private readonly duration = 220;
+	private readonly easing = "cubic-bezier(0.25, 0.46, 0.45, 0.94)";
 
 	/**
 	 * 应用动画打开浮窗
@@ -30,23 +31,23 @@ class PanelManager {
 				// 主题切换期间，直接显示面板，不设置pointer-events: none
 				panel.classList.remove("float-panel-closed");
 				panel.style.opacity = "1";
-				panel.style.transform = "scale(1) translateY(0)";
+				panel.style.transform = "translateY(0)";
 				resolve();
 				return;
 			}
 
 			panel.classList.remove("float-panel-closed");
 			panel.style.opacity = "0";
-			panel.style.transform = "scale(0.95) translateY(-10px)";
+			panel.style.transform = "translateY(-8px)";
 			panel.style.pointerEvents = "none";
 
 			panel.offsetHeight; // 强制重排
 
-			panel.style.transition = `all ${this.duration}ms ease-out`;
+			panel.style.transition = `opacity ${this.duration}ms ${this.easing}, transform ${this.duration}ms ${this.easing}`;
 
 			requestAnimationFrame(() => {
 				panel.style.opacity = "1";
-				panel.style.transform = "scale(1) translateY(0)";
+				panel.style.transform = "translateY(0)";
 				panel.style.pointerEvents = "auto";
 
 				setTimeout(() => {
@@ -77,10 +78,10 @@ class PanelManager {
 				return;
 			}
 
-			panel.style.transition = `all ${this.duration}ms ease-out`;
+			panel.style.transition = `opacity ${this.duration}ms ${this.easing}, transform ${this.duration}ms ${this.easing}`;
 			panel.style.pointerEvents = "none";
 			panel.style.opacity = "0";
-			panel.style.transform = "scale(0.95) translateY(-10px)";
+			panel.style.transform = "translateY(-8px)";
 
 			setTimeout(() => {
 				panel.classList.add("float-panel-closed");
