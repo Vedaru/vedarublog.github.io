@@ -53,7 +53,7 @@ const hasChildren = children.length > 0;
 					{link.icon && (
 						<Icon
 							name={link.icon}
-							class="text-[1.1rem] w-[1.1rem] h-[1.1rem] shrink-0"
+							class="dropdown-item-icon text-[1.1rem]"
 						/>
 					)}
 					{getLocalizedName(link.name)}
@@ -79,11 +79,11 @@ const hasChildren = children.length > 0;
 								class="dropdown-item"
 								aria-label={child.name}
 							>
-								<div class="flex items-center gap-2">
+								<div class="dropdown-item-main flex items-center gap-2">
 									{child.icon && (
 										<Icon
 											name={child.icon}
-											class="text-[1rem] w-[1rem] h-[1rem] shrink-0"
+											class="dropdown-item-icon text-[1rem]"
 										/>
 									)}
 									<span>{getLocalizedName(child.name)}</span>
@@ -110,7 +110,7 @@ const hasChildren = children.length > 0;
 				{link.icon && (
 					<Icon
 						name={link.icon}
-						class="text-[1.1rem] w-[1.1rem] h-[1.1rem] shrink-0"
+						class="dropdown-item-icon text-[1.1rem]"
 					/>
 				)}
 				{getLocalizedName(link.name)}
@@ -131,7 +131,11 @@ const hasChildren = children.length > 0;
 	}
 
 	.dropdown-menu {
-		@apply absolute top-full left-0 pt-2 opacity-0 invisible pointer-events-none translate-y-[-8px] transition-all duration-200 ease-out z-50;
+		@apply absolute top-full left-0 pt-2 opacity-0 invisible pointer-events-none translate-y-[-8px] z-50;
+		transition:
+			opacity 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
+			transform 220ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+		will-change: opacity, transform;
 	}
 
 	.dropdown-container:hover .dropdown-menu,
@@ -152,6 +156,17 @@ const hasChildren = children.length > 0;
 
 	.dropdown-item {
 		@apply flex items-center justify-between px-4 py-2.5 text-black/75 dark:text-white/75 hover:text-[var(--primary)] hover:bg-[var(--btn-plain-bg-hover)] transition-colors duration-150 font-medium rounded-lg;
+	}
+
+	.dropdown-item-main {
+		min-height: 1.5rem;
+	}
+
+	.dropdown-item-icon {
+		@apply inline-flex items-center justify-center w-[1.25rem] h-[1.25rem] shrink-0;
+		line-height: 1;
+		transform: translateZ(0);
+		backface-visibility: hidden;
 	}
 
 	@media (max-width: 768px) {
