@@ -20,18 +20,18 @@ export interface Project {
 
 export const projectsData: Project[] = [
 	{
-		id: "anti-drone-cnn-model",
-		title: "反无小目标检测模型",
+		id: "SDD-YOLO",
+		title: "反无小目标检测平台",
 		description: "面向地对空反无人机的小目标检测算法",
 		image: "",
 		category: "mobile",
 		techStack: ["YOLO", "CNN", "Python", "TensorFlow"],
 		status: "in-progress",
 		liveDemo: "https://blog.example.com",
-		sourceCode: "https://github.com/Vedaru/YOLOv5-training", // 更改为GitHub链接
+		sourceCode: "https://github.com/SDD-YOLO", // 更改为GitHub链接
 		visitUrl: "https://blog.example.com", // 添加前往项目链接
-		startDate: "2024-01-01",
-		endDate: "2024-06-01",
+		startDate: "2026-03-01",
+		endDate: "2026-06-01",
 		featured: true,
 		tags: ["算法", "AI", "开源"],
 	},
