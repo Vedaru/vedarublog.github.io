@@ -349,119 +349,56 @@ const transparentClass = shouldEnableTransparency
 		var mainContent = document.querySelector('.absolute.w-full.z-30.pointer-events-none');
 		var tocWrapper = document.getElementById('toc-wrapper');
 		
-		// 强制重排以确保样式正确应用
-		var forceReflow = function() {
-			void document.body.offsetHeight;
-		};
-		
-		switch(wallpaperMode) {
-			case 'banner':
-				// 显示 banner，隐藏全屏壁纸
-				if (bannerWrapper) {
-					bannerWrapper.style.display = 'block';
-				}
-				if (fullscreenWallpaper) {
-					fullscreenWallpaper.style.display = 'none';
-				}
-				// 恢复 TOC 在 banner 模式下的隐藏状态，让滚动逻辑接管
-				if (tocWrapper) {
-					const scrollTop = document.documentElement.scrollTop;
-					const bannerHeight = window.innerHeight * (BANNER_HEIGHT / 100);
-					if (scrollTop <= bannerHeight) {
-						tocWrapper.classList.add('toc-hide');
+		// 批量 DOM 操作：先收集所有变更，再通过 requestAnimationFrame 一次性应用
+		requestAnimationFrame(function() {
+			switch(wallpaperMode) {
+				case 'banner':
+					if (bannerWrapper) bannerWrapper.style.display = 'block';
+					if (fullscreenWallpaper) fullscreenWallpaper.style.display = 'none';
+					if (tocWrapper) {
+						var scrollTop = document.documentElement.scrollTop;
+						var bannerHeight = window.innerHeight * (BANNER_HEIGHT / 100);
+						if (scrollTop <= bannerHeight) tocWrapper.classList.add('toc-hide');
 					}
-				}
-				// 先移除body类，避免CSS冲突
-				body.classList.remove('wallpaper-transparent');
-				body.classList.remove('no-banner-mode');
-				// 强制重排
-				forceReflow();
-				// 移除内联样式，让CSS完全接管
-				if (mainContent) {
-					mainContent.style.removeProperty('top');
-				}
-				// 再添加enable-banner类
-				body.classList.add('enable-banner');
-				// navbar 恢复原始透明模式（从 config 读取）
-				if (navbar) {
-					navbar.removeAttribute('data-dynamic-transparent');
-					// 恢复 config 中设置的 data-transparent-mode
-					navbar.setAttribute('data-transparent-mode', navbarTransparentMode);
-					// 如果是 semifull 模式，重新初始化滚动检测
-					if (navbarTransparentMode === 'semifull' && window.initSemifullScrollDetection) {
-						window.initSemifullScrollDetection();
+					body.classList.remove('wallpaper-transparent', 'no-banner-mode');
+					if (mainContent) mainContent.style.removeProperty('top');
+					body.classList.add('enable-banner');
+					if (navbar) {
+						navbar.removeAttribute('data-dynamic-transparent');
+						navbar.setAttribute('data-transparent-mode', navbarTransparentMode);
+						if (navbarTransparentMode === 'semifull' && window.initSemifullScrollDetection) {
+							window.initSemifullScrollDetection();
+						}
 					}
-				}
-				// 强制重排以确保CSS变量正确更新
-				forceReflow();
-				break;
-				
-			case 'fullscreen':
-				// 隐藏 banner，显示全屏壁纸
-				if (bannerWrapper) {
-					bannerWrapper.style.display = 'none';
-				}
-				if (fullscreenWallpaper) {
-					fullscreenWallpaper.style.display = 'block';
-				}
-				// 在全屏模式下始终显示 TOC
-				if (tocWrapper) {
-					tocWrapper.classList.remove('toc-hide');
-				}
-				// 先移除body类，避免CSS冲突
-				body.classList.remove('enable-banner');
-				// 强制重排
-				forceReflow();
-				// 移除内联样式，让CSS完全接管
-				if (mainContent) {
-					mainContent.style.removeProperty('top');
-				}
-				// 再添加wallpaper-transparent和no-banner-mode类
-				body.classList.add('wallpaper-transparent');
-				body.classList.add('no-banner-mode');
-				// navbar 强制设置为 semi 透明模式（忽略 config 配置）
-				if (navbar) {
-					navbar.setAttribute('data-dynamic-transparent', 'semi');
-					// 强制移除 config 中的 data-transparent-mode 影响
-					navbar.removeAttribute('data-transparent-mode');
-				}
-				// 强制重排以确保CSS变量正确更新
-				forceReflow();
-				break;
-				
-			case 'none':
-				// 隐藏所有壁纸
-				if (bannerWrapper) {
-					bannerWrapper.style.display = 'none';
-				}
-				if (fullscreenWallpaper) {
-					fullscreenWallpaper.style.display = 'none';
-				}
-				// 在无壁纸模式下也始终显示 TOC
-				if (tocWrapper) {
-					tocWrapper.classList.remove('toc-hide');
-				}
-				// 先移除body类，避免CSS冲突
-				body.classList.remove('enable-banner');
-				body.classList.remove('wallpaper-transparent');
-				// 强制重排
-				forceReflow();
-				// 移除内联样式，让CSS完全接管
-				if (mainContent) {
-					mainContent.style.removeProperty('top');
-				}
-				// 再添加no-banner-mode类
-				body.classList.add('no-banner-mode');
-				// navbar 强制设置为不透明（忽略 config 配置）
-				if (navbar) {
-					navbar.setAttribute('data-dynamic-transparent', 'none');
-					// 强制移除 config 中的 data-transparent-mode 影响
-					navbar.removeAttribute('data-transparent-mode');
-				}
-				// 强制重排以确保CSS变量正确更新
-				forceReflow();
-				break;
-		}
+					break;
+					
+				case 'fullscreen':
+					if (bannerWrapper) bannerWrapper.style.display = 'none';
+					if (fullscreenWallpaper) fullscreenWallpaper.style.display = 'block';
+					if (tocWrapper) tocWrapper.classList.remove('toc-hide');
+					body.classList.remove('enable-banner');
+					if (mainContent) mainContent.style.removeProperty('top');
+					body.classList.add('wallpaper-transparent', 'no-banner-mode');
+					if (navbar) {
+						navbar.setAttribute('data-dynamic-transparent', 'semi');
+						navbar.removeAttribute('data-transparent-mode');
+					}
+					break;
+					
+				case 'none':
+					if (bannerWrapper) bannerWrapper.style.display = 'none';
+					if (fullscreenWallpaper) fullscreenWallpaper.style.display = 'none';
+					if (tocWrapper) tocWrapper.classList.remove('toc-hide');
+					body.classList.remove('enable-banner', 'wallpaper-transparent');
+					if (mainContent) mainContent.style.removeProperty('top');
+					body.classList.add('no-banner-mode');
+					if (navbar) {
+						navbar.setAttribute('data-dynamic-transparent', 'none');
+						navbar.removeAttribute('data-transparent-mode');
+					}
+					break;
+			}
+		});
 	}
 	
 	// 监听壁纸模式变化，立即应用（不重载页面）
@@ -636,6 +573,7 @@ const transparentClass = shouldEnableTransparency
                                     src={Array.isArray(bannerImages.mobile) ? bannerImages.mobile[index] : (typeof bannerImages.mobile === 'string' ? bannerImages.mobile : '')} 
                                     position={siteConfig.banner.position}
                                     loading={index === 0 ? "eager" : "lazy"}
+                                    fetchpriority={index === 0 ? "high" : "low"}
                                 />
                             )}
                             <!-- Desktop/Tablet: use desktop-specific images -->
@@ -646,6 +584,7 @@ const transparentClass = shouldEnableTransparency
                                     src={Array.isArray(bannerImages.desktop) ? bannerImages.desktop[index] : (typeof bannerImages.desktop === 'string' ? bannerImages.desktop : '')} 
                                     position={siteConfig.banner.position}
                                     loading={index === 0 ? "eager" : "lazy"}
+                                    fetchpriority={index === 0 ? "high" : "low"}
                                 />
                             )}
                         </li>
@@ -687,6 +626,7 @@ const transparentClass = shouldEnableTransparency
                         mobileImg.className = 'block md:hidden object-cover h-full w-full transition duration-700 opacity-100';
                         mobileImg.src = mobileSrc;
                         mobileImg.loading = 'eager';
+                        mobileImg.fetchPriority = 'high';
                         mobileImg.dataset.position = position;
                         container.appendChild(mobileImg);
                     }
@@ -698,6 +638,7 @@ const transparentClass = shouldEnableTransparency
                         desktopImg.className = 'hidden md:block object-cover h-full w-full transition duration-700 opacity-100';
                         desktopImg.src = desktopSrc;
                         desktopImg.loading = 'eager';
+                        desktopImg.fetchPriority = 'high';
                         desktopImg.dataset.position = position;
                         container.appendChild(desktopImg);
                     }
@@ -876,8 +817,10 @@ const transparentClass = shouldEnableTransparency
 /* Banner text styles */
 .banner-title {
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
-    animation: fadeInUp 1s ease-out;
+    animation: fadeInUp 1s ease-out both;
     font-weight: bold;
+    /* transform-only 动画不触发 CLS */
+    will-change: transform, opacity;
 }
 
 .banner-subtitle {

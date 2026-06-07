@@ -478,21 +478,24 @@ class ThemeOptimizer {
 	}
 
 	forceCompositing() {
-		const criticalElements = document.querySelectorAll(`
-      .expressive-code,
-      .post-card,
-      .widget,
-      #navbar
-    `);
-
+		// 仅为视口内可见的关键元素创建合成层，避免过多合成层导致内存压力
+		const criticalSelectors = [".expressive-code", "#navbar"];
 		this.compositedElements = [];
 
-		criticalElements.forEach((element) => {
-			const original = element.style.transform;
-			element.style.transform = "translateZ(0)";
-			element.style.willChange = "transform";
-
-			this.compositedElements.push({ element, original });
+		criticalSelectors.forEach((selector) => {
+			const elements = document.querySelectorAll(selector);
+			elements.forEach((element) => {
+				const rect = element.getBoundingClientRect();
+				const isVisible =
+					rect.top < window.innerHeight + 100 &&
+					rect.bottom > -100;
+				if (isVisible) {
+					const original = element.style.transform;
+					element.style.transform = "translateZ(0)";
+					element.style.willChange = "transform";
+					this.compositedElements.push({ element, original });
+				}
+			});
 		});
 	}
 

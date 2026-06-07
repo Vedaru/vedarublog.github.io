@@ -267,47 +267,43 @@
 		true,
 	);
 
-	// 监听 DOM 变化，检测管理面板的关闭
+	// 监听 DOM 变化 - 仅观察 #tcomment 元素（缩小范围减少 INP 影响）
+	var domChangeDebounce = null;
 	const observer = new MutationObserver((mutations) => {
-		mutations.forEach((mutation) => {
-			if (mutation.type === "childList" || mutation.type === "attributes") {
-				const target = mutation.target;
+		// 防抖：合并短时间内的多次 DOM 变化
+		if (domChangeDebounce) return;
+		domChangeDebounce = setTimeout(function() {
+			domChangeDebounce = null;
+		}, 300);
 
-				// 检查是否是 Twikoo 相关的 DOM 变化
-				if (target.closest && target.closest("#tcomment")) {
-					// 检查是否有元素被移除或隐藏（可能是面板关闭）
-					if (
-						mutation.removedNodes.length > 0 ||
-						(mutation.type === "attributes" &&
-							mutation.attributeName === "style")
-					) {
-						enableScrollProtection(2000);
-						console.log(
-							"[强力滚动保护] 检测到 Twikoo DOM 变化（可能是面板关闭），启动保护",
-						);
-					}
-				}
+		for (var i = 0; i < mutations.length; i++) {
+			var mutation = mutations[i];
+			if (mutation.removedNodes.length > 0 ||
+				(mutation.type === "attributes" && mutation.attributeName === "style")) {
+				enableScrollProtection(2000);
+				console.log("[强力滚动保护] 检测到 Twikoo DOM 变化，启动保护");
+				break;
 			}
-		});
+		}
 	});
 
-	// 开始监听 DOM 变化
-	if (document.body) {
-		observer.observe(document.body, {
-			childList: true,
-			subtree: true,
-			attributes: true,
-			attributeFilter: ["style", "class"],
-		});
-	} else {
-		document.addEventListener("DOMContentLoaded", () => {
-			observer.observe(document.body, {
+	// 开始监听 DOM 变化 - 仅观察 #tcomment 而非整个 body
+	function startObserver() {
+		var tcommentEl = document.querySelector("#tcomment");
+		if (tcommentEl) {
+			observer.observe(tcommentEl, {
 				childList: true,
 				subtree: true,
 				attributes: true,
-				attributeFilter: ["style", "class"],
+				attributeFilter: ["style"],
 			});
-		});
+		}
+	}
+
+	if (document.body) {
+		startObserver();
+	} else {
+		document.addEventListener("DOMContentLoaded", startObserver);
 	}
 
 	// 提供全局接口
