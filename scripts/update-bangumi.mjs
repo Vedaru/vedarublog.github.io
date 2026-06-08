@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { fetchBangumi } from "./bangumi-fetch.mjs";
 import { loadEnv } from "./load-env.js";
+import { convertFileToWebp, saveBufferAsWebp } from "./image-to-webp.mjs";
 
 loadEnv();
 
@@ -220,12 +221,26 @@ async function downloadCover(subjectId, remoteUrl) {
 		return "/assets/anime/default.webp";
 	}
 
-	const coverFilename = `${subjectId}.jpg`;
+	const coverFilename = `${subjectId}.webp`;
 	const coverPath = path.join(COVER_DIR, coverFilename);
+	const legacyJpgPath = path.join(COVER_DIR, `${subjectId}.jpg`);
 	const localUrl = `/assets/anime/cover/${coverFilename}`;
 
 	if (fssync.existsSync(coverPath)) {
 		return localUrl;
+	}
+
+	if (fssync.existsSync(legacyJpgPath)) {
+		try {
+			await fs.mkdir(COVER_DIR, { recursive: true });
+			await convertFileToWebp(legacyJpgPath, coverPath);
+			await fs.unlink(legacyJpgPath);
+			return localUrl;
+		} catch (error) {
+			console.warn(
+				`\n⚠ Failed to convert legacy cover ${subjectId}: ${formatFetchError(error)}`,
+			);
+		}
 	}
 
 	try {
@@ -239,7 +254,7 @@ async function downloadCover(subjectId, remoteUrl) {
 		if (response.ok) {
 			const buffer = Buffer.from(await response.arrayBuffer());
 			await fs.mkdir(COVER_DIR, { recursive: true });
-			await fs.writeFile(coverPath, buffer);
+			await saveBufferAsWebp(buffer, coverPath);
 			return localUrl;
 		}
 		console.warn(

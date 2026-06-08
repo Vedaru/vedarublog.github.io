@@ -16,6 +16,7 @@ import fssync from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawnSync } from 'child_process';
+import { saveBufferAsWebp } from './image-to-webp.mjs';
 
 async function clearDirectory(dirPath) {
   try {
@@ -304,7 +305,7 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
       // Download cover image if available
       let coverUrl = '';
       if (song.pic) {
-        const coverFilename = `${id}-${safeTitle}.jpg`; // Assume jpg for covers
+        const coverFilename = `${id}-${safeTitle}.webp`;
         const coverPath = path.join(coverDir, coverFilename);
         if (!fssync.existsSync(coverPath)) {
           try {
@@ -320,7 +321,7 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
             });
             if (r.ok) {
               const arrayBuf = await r.arrayBuffer();
-              await fs.writeFile(coverPath, Buffer.from(arrayBuf));
+              await saveBufferAsWebp(Buffer.from(arrayBuf), coverPath);
               console.log(`✓ Saved cover ${coverFilename}`);
               coverUrl = `/assets/music/cover/${coverFilename}`;
             } else {
