@@ -386,10 +386,18 @@ const transparentClass = shouldEnableTransparency
 	
 	function applyWallpaperMode() {
 		var wallpaperMode = localStorage.getItem('wallpaperMode') || defaultWallpaperMode;
+		var body = document.body;
+		body.classList.add('wallpaper-switching');
+		if (window.__wallpaperSwitchTimer) {
+			window.clearTimeout(window.__wallpaperSwitchTimer);
+		}
+		window.__wallpaperSwitchTimer = window.setTimeout(function() {
+			body.classList.remove('wallpaper-switching');
+		}, 750);
+
 		var bannerWrapper = document.getElementById('banner-wrapper');
 		var fullscreenWallpaper = document.querySelector('[data-fullscreen-wallpaper]');
 		var navbar = document.getElementById('navbar');
-		var body = document.body;
 		var mainContent = document.querySelector('.absolute.w-full.z-30.pointer-events-none');
 		var tocWrapper = document.getElementById('toc-wrapper');
 		
@@ -783,8 +791,8 @@ const transparentClass = shouldEnableTransparency
 <!-- Main content -->
 <div class={`absolute w-full z-30 pointer-events-none ${mobileNonHomeBannerClass ? 'mobile-main-no-banner' : ''} ${siteConfig.wallpaperMode.defaultMode === 'none' ? 'no-banner-layout' : ''} ${transparentClass}`} style={`top: ${finalMainPanelTop}`}>
     <!-- The pointer-events-none here prevent blocking the click event of the TOC -->
-    <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto">
-        <div id="main-grid" class={`w-full left-0 right-0 grid ${gridCols} grid-rows-none md:grid-rows-[auto] mx-auto gap-4 px-2 md:px-4 ${!mobileShowSidebar || !hasMobileDrawerComponents ? 'mobile-no-sidebar' : ''} ${hasRightSidebarComponents ? 'mobile-both-sidebar' : ''}`}
+    <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto min-w-0 w-full overflow-x-clip">
+        <div id="main-grid" class={`w-full min-w-0 left-0 right-0 grid ${gridCols} grid-rows-none md:grid-rows-[auto] mx-auto gap-4 px-2 md:px-4 overflow-x-clip ${!mobileShowSidebar || !hasMobileDrawerComponents ? 'mobile-no-sidebar' : ''} ${hasRightSidebarComponents ? 'mobile-both-sidebar' : ''}`}
              data-layout-mode={defaultPostListLayout}
         >
             <!-- Banner image credit -->
@@ -1535,8 +1543,7 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
 
 /* 水波纹显示优化 */
 .waves {
-    /* 确保水波纹完整显示 */
-    overflow: visible;
+    overflow: hidden;
     z-index: 5;
     /* 硬件加速，确保与背景同步渲染 */
     transform: translateZ(0);
@@ -1584,8 +1591,8 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
 /* 移动端水波纹特殊优化 */
 @media (max-width: 1279px) {
     #header-waves {
-        /* 确保水波纹容器不被裁剪 */
-        overflow: visible;
+        /* 裁剪水波纹动画，避免切换页面时横向溢出 */
+        overflow: hidden;
         z-index: 5;
         /* 水波纹快速消失动画 */
         transition: transform 0.3s ease-in, opacity 0.2s ease-in;

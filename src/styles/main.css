@@ -4,6 +4,7 @@
 @import "./anime.css";
 /* 导入动画样式 */
 @import "./transition.css";
+@import "./mobile-transition-fix.css";
 @import "./animation-enhancements.css";
 /* 导入渐变按钮样式 */
 @import "./gradient-buttons.css";

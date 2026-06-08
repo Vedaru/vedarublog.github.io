@@ -158,11 +158,11 @@ html.is-animating.is-leaving .transition-leaving {
   }
 
   .transition-slide-in {
-    transform: translateY(8px) translateX(3px);
+    transform: translateY(8px);
   }
 
   .card-animation {
-    transform: translateY(10px) translateX(3px) scale(0.99);
+    transform: translateY(10px) scale(0.99);
   }
 
   /* 移动端优化：添加硬件加速和性能优化 */
