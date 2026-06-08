@@ -1,0 +1,16 @@
+# Netlify = CDN 入口（用户访问的域名指向 Netlify）
+# Cloudflare Pages = 源站（在此构建并托管 dist）
+#
+# 部署步骤:
+# 1. Cloudflare Pages 源站: https://vedarublog-github-io.pages.dev
+# 2. Netlify 连接同一仓库，构建后会生成全站回源代理规则
+# 3. 公网 DNS（如 www.vedaru.cn）CNAME 指向 Netlify 站点
+
+[build]
+  command = "node scripts/netlify-proxy-build.js"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+  # 源站地址（不含末尾斜杠），也可在 Netlify 环境变量中覆盖
+  CLOUDFLARE_ORIGIN = "https://vedarublog-github-io.pages.dev"
