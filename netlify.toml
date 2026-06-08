@@ -7,6 +7,8 @@
 # 3. 公网 DNS（如 www.vedaru.cn）CNAME 指向 Netlify 站点
 
 [build]
+  # 代理模式无需安装 Astro 依赖，跳过 pnpm install 加速部署
+  install = "true"
   command = "node scripts/netlify-proxy-build.js"
   publish = "dist"
 
@@ -14,3 +16,10 @@
   NODE_VERSION = "20"
   # 源站地址（不含末尾斜杠），也可在 Netlify 环境变量中覆盖
   CLOUDFLARE_ORIGIN = "https://vedarublog-github-io.pages.dev"
+
+# force = true：即使存在静态文件也强制回源代理
+[[redirects]]
+  from = "/*"
+  to = "https://vedarublog-github-io.pages.dev/:splat"
+  status = 200
+  force = true

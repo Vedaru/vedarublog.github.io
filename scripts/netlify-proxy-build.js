@@ -10,13 +10,7 @@ mkdirSync(distDir, { recursive: true });
 
 writeFileSync(
 	join(distDir, "_redirects"),
-	`/*  ${origin}/:splat  200\n`,
-	"utf8",
-);
-
-writeFileSync(
-	join(distDir, "index.html"),
-	"<!-- Netlify CDN proxy; content served from Cloudflare Pages origin -->\n",
+	`/*  ${origin}/:splat  200!\n`,
 	"utf8",
 );
 
