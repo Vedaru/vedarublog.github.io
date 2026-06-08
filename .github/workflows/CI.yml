@@ -59,6 +59,8 @@ jobs:
         run: |
           # 1. Set remote to HTTPS for pushing first
           git remote set-url origin https://github.com/Vedaru/vedarublog.github.io.git
+          git config user.name "Vedaru"
+          git config user.email "Vedaru@users.noreply.github.com"
 
           # 2. Stage all music changes (including deletions like .m4a)
           # We must stage/commit BEFORE pulling to avoid "unstaged changes" error during rebase
@@ -79,7 +81,7 @@ jobs:
           fi
 
           # 5. Commit changes locally
-          git -c user.name="Vedaru" -c user.email="Vedaru@users.noreply.github.com" commit -m "chore: update music — replace m4a with mp3 (automated)"
+          git commit -m "chore: update music — replace m4a with mp3 (automated)"
 
           # 6. Pull latest changes from remote and rebase our new commit on top
           # This handles the case where main updated while this job was running
@@ -124,6 +126,8 @@ jobs:
       - name: Commit and push bangumi-data.json (if changed)
         run: |
           git remote set-url origin https://github.com/${{ github.repository }}.git
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add src/data/bangumi-data.json
 
@@ -139,8 +143,7 @@ jobs:
             exit 0
           fi
 
-          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-            commit -m "chore: update bangumi-data.json (automated)"
+          git commit -m "chore: update bangumi-data.json (automated)"
 
           git pull --rebase origin main
           git push origin HEAD:main
