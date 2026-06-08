@@ -27,6 +27,10 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  scrollbar-gutter: stable;
+}
+
 /* 平滑滚动仅在锚点导航时通过 JS 按需启用，避免全局 CLS 影响 */
 
 /* 页面顶部渐变高光效果 */

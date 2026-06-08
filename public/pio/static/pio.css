@@ -16,15 +16,25 @@
 	color: #666;
 	position: fixed;
 	user-select: none;
+	font-size: 16px;
+	transform: translate3d(0, 0, 0);
+	backface-visibility: hidden;
+	overflow: visible;
+	transition: none !important;
+	left: auto;
+	right: auto;
+}
+
+html.is-changing .pio-container,
+html.is-animating .pio-container,
+html.is-leaving .pio-container {
+	position: fixed !important;
+	transform: translate3d(0, 0, 0) !important;
+	transition: none !important;
 }
 
 .pio-container .pio-show {
 	left: -1em;
-
-/* 移动端自动禁用（隐藏容器），与配置 hiddenOnMobile 协同 */
-@media (max-width: 768px) {
-  .pio-container { display: none !important; }
-}
 	bottom: 1em;
 	width: 3em;
 	height: 3em;
@@ -52,9 +62,11 @@
 
 .pio-container.left {
 	left: 0;
+	right: auto;
 }
 .pio-container.right {
 	right: 0;
+	left: auto;
 }
 .pio-container.active {
 	cursor: move;
@@ -130,6 +142,7 @@
 .pio-container .pio-dialog.active {
 	opacity: 1;
 	visibility: visible;
+	z-index: 10;
 }
 
 .pio-container.left .pio-dialog {
@@ -141,6 +154,13 @@
 
 #pio {
 	vertical-align: middle;
+}
+
+/* 移动端自动禁用（隐藏容器），与配置 hiddenOnMobile 协同 */
+@media (max-width: 768px) {
+	.pio-container {
+		display: none !important;
+	}
 }
 
 @media screen and (max-width: 768px) {

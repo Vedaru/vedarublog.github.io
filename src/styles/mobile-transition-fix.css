@@ -63,6 +63,14 @@
   .carousel-item.opacity-0.scale-110 {
     transform: scale(1.05) translateZ(0) !important;
   }
+
+  /* Pio 看板娘：切换页面时保持 fixed 定位，不受主内容 transform 影响 */
+  .pio-container {
+    position: fixed !important;
+    transform: translate3d(0, 0, 0) !important;
+    overflow: visible !important;
+    font-size: 16px;
+  }
 }
 
 @media (max-width: 768px) {

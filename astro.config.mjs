@@ -35,6 +35,10 @@ export default defineConfig({
 
 	output: "static",
 
+	build: {
+		inlineStylesheets: "always",
+	},
+
 	integrations: [
 		tailwind({
 			nesting: true,

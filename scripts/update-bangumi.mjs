@@ -1,4 +1,5 @@
 import fs from "fs/promises";
+import fssync from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { fetchBangumi } from "./bangumi-fetch.mjs";
@@ -15,6 +16,10 @@ const CONFIG_PATH = path.join(
 const OUTPUT_FILE = path.join(
 	path.dirname(fileURLToPath(import.meta.url)),
 	"../src/data/bangumi-data.json",
+);
+const COVER_DIR = path.join(
+	path.dirname(fileURLToPath(import.meta.url)),
+	"../public/assets/anime/cover",
 );
 
 async function getUserIdFromConfig() {
@@ -210,6 +215,45 @@ async function fetchCollection(userId, type) {
 	return allData;
 }
 
+async function downloadCover(subjectId, remoteUrl) {
+	if (!remoteUrl || !subjectId) {
+		return "/assets/anime/default.webp";
+	}
+
+	const coverFilename = `${subjectId}.jpg`;
+	const coverPath = path.join(COVER_DIR, coverFilename);
+	const localUrl = `/assets/anime/cover/${coverFilename}`;
+
+	if (fssync.existsSync(coverPath)) {
+		return localUrl;
+	}
+
+	try {
+		const response = await fetchBangumi(remoteUrl, {
+			signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+			headers: {
+				Accept: "image/*",
+				Referer: "https://bgm.tv/",
+			},
+		});
+		if (response.ok) {
+			const buffer = Buffer.from(await response.arrayBuffer());
+			await fs.mkdir(COVER_DIR, { recursive: true });
+			await fs.writeFile(coverPath, buffer);
+			return localUrl;
+		}
+		console.warn(
+			`\n⚠ Failed to download cover ${subjectId}: HTTP ${response.status}`,
+		);
+	} catch (error) {
+		console.warn(
+			`\n⚠ Error downloading cover ${subjectId}: ${formatFetchError(error)}`,
+		);
+	}
+
+	return remoteUrl;
+}
+
 async function processData(items, status) {
 	const results = [];
 	let count = 0;
@@ -248,12 +292,15 @@ async function processData(items, status) {
 			""
 		).trimStart();
 
+		const remoteCover = item.subject?.images?.medium || "";
+		const cover = await downloadCover(item.subject_id, remoteCover);
+
 		results.push({
 			title:
 				item.subject?.name_cn || item.subject?.name || "Unknown Title",
 			status: status,
 			rating: rating,
-			cover: item.subject?.images?.medium || "/assets/anime/default.webp",
+			cover: cover,
 			description: description,
 			episodes: `${totalEpisodes} episodes`,
 			year: year,
@@ -358,6 +405,7 @@ async function main() {
 	await fs.writeFile(OUTPUT_FILE, JSON.stringify(finalAnimeList, null, 2));
 	console.log(`\nUpdate complete! Data saved to: ${OUTPUT_FILE}`);
 	console.log(`Total collected: ${finalAnimeList.length} anime series`);
+	console.log(`Cover images saved to: ${COVER_DIR}`);
 }
 
 main().catch((err) => {
