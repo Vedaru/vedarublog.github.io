@@ -167,6 +167,11 @@ function renderComponent(component: any, index: number, _components: any[]) {
     }
   }
   
-  // 初始化右侧边栏管理器
-  new RightSidebarManager();
+  // 初始化右侧边栏管理器（延迟到空闲时，缩短关键请求链）
+  const initRightSidebar = () => new RightSidebarManager();
+  if ("requestIdleCallback" in window) {
+    requestIdleCallback(initRightSidebar, { timeout: 2000 });
+  } else {
+    setTimeout(initRightSidebar, 200);
+  }
 </script>

@@ -88,11 +88,68 @@ jobs:
           # 7. Push the unified history
           git push origin HEAD:main
 
+  update-bangumi:
+    name: Update Bangumi Data
+    runs-on: ubuntu-latest
+    needs: download-music
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: "10.22.0"
+
+      - name: Configure Git to use HTTPS for GitHub
+        run: |
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Fetch Bangumi collections
+        run: pnpm update-anime
+        env:
+          CI: true
+          BANGUMI_ACCESS_TOKEN: ${{ secrets.BANGUMI_ACCESS_TOKEN }}
+
+      - name: Commit and push bangumi-data.json (if changed)
+        run: |
+          git remote set-url origin https://github.com/${{ github.repository }}.git
+
+          git add src/data/bangumi-data.json
+
+          if git diff --staged --quiet; then
+            echo "No Bangumi data changes to commit"
+            exit 0
+          fi
+
+          LATEST_MSG=$(git log -1 --pretty=%B 2>/dev/null || true)
+          echo "Latest commit message: $LATEST_MSG"
+          if echo "$LATEST_MSG" | grep -q -E '^chore:.*bangumi'; then
+            echo "Skipping commit because latest commit is an automated bangumi update"
+            exit 0
+          fi
+
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "chore: update bangumi-data.json (automated)"
+
+          git pull --rebase origin main
+          git push origin HEAD:main
+
   check:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     name: Astro Check
     runs-on: ubuntu-latest
-    needs: download-music
+    needs: [download-music, update-bangumi]
     steps:
       - name: Checkout
         uses: actions/checkout@v4

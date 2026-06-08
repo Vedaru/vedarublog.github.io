@@ -1,8 +1,13 @@
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
+import { fetchBangumi } from "./bangumi-fetch.mjs";
+import { loadEnv } from "./load-env.js";
+
+loadEnv();
 
 const API_BASE = "https://api.bgm.tv";
+const FETCH_TIMEOUT_MS = 20_000;
 const CONFIG_PATH = path.join(
 	path.dirname(fileURLToPath(import.meta.url)),
 	"../src/config.ts",
@@ -22,7 +27,7 @@ async function getUserIdFromConfig() {
 		if (match && match[1]) {
 			const userId = match[1];
 			if (
-				userId === "vedaru" ||
+				userId === "your-bangumi-id" ||
 				userId === "your-user-id" ||
 				!userId
 			) {
@@ -33,9 +38,9 @@ async function getUserIdFromConfig() {
 			}
 			return userId;
 		}
-		throw new Error("Could not find bangumi.userId in config.ts");
+		throw new Error("Could not find bangumi.userId in src/config.ts");
 	} catch (error) {
-		console.error("✘ Failed to read Bangumi ID from config.ts");
+		console.error("✘ Failed to read Bangumi ID from src/config.ts");
 		throw error;
 	}
 }
@@ -59,9 +64,78 @@ async function getAnimeModeFromConfig() {
 // 模拟延迟防止 API 限制
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+async function fetchBgm(url) {
+	return fetchBangumi(url, {
+		signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+	});
+}
+
+function getFetchErrorCode(error) {
+	return error?.cause?.code || error?.code || "";
+}
+
+function formatFetchError(error) {
+	const code = getFetchErrorCode(error);
+	return code ? `${error.message} (code=${code})` : error.message;
+}
+
+function printNetworkHelp(errorText) {
+	const proxy = process.env.BANGUMI_PROXY;
+	console.error(
+		"提示: /calendar 能打开不代表 /v0/* 可直连，v0 接口在国内通常需要代理。",
+	);
+
+	if (errorText.includes("ECONNREFUSED")) {
+		console.error(
+			`代理连接被拒绝${proxy ? `（当前 BANGUMI_PROXY=${proxy}）` : ""}：`,
+		);
+		console.error("  1. 确认 Clash / V2Ray 等代理软件已启动");
+		console.error(
+			"  2. 在代理软件设置里查看 HTTP 代理端口（常见 7890、7897、10809，不一定是 7890）",
+		);
+		console.error(
+			"  3. 在 .env 写入正确端口，例如 BANGUMI_PROXY=http://127.0.0.1:7897",
+		);
+		return;
+	}
+
+	if (errorText.includes("CONNECT_TIMEOUT") || errorText.includes("ETIMEDOUT")) {
+		if (!proxy) {
+			console.error(
+				"当前为直连（未设置 BANGUMI_PROXY），请在 .env 添加代理，例如：",
+			);
+			console.error("  BANGUMI_PROXY=http://127.0.0.1:7890");
+		} else {
+			console.error(
+				`已配置代理但仍超时（BANGUMI_PROXY=${proxy}），请检查代理规则是否放行 api.bgm.tv`,
+			);
+		}
+	}
+}
+
+async function probeV0Api(userId) {
+	const url = `${API_BASE}/v0/users/${userId}/collections?subject_type=2&type=3&limit=1&offset=0`;
+	try {
+		const response = await fetchBgm(url);
+		return { ok: response.ok, status: response.status };
+	} catch (error) {
+		return { ok: false, error: formatFetchError(error) };
+	}
+}
+
+async function readExistingDataCount() {
+	try {
+		const raw = await fs.readFile(OUTPUT_FILE, "utf-8");
+		const data = JSON.parse(raw);
+		return Array.isArray(data) ? data.length : 0;
+	} catch {
+		return 0;
+	}
+}
+
 async function fetchSubjectDetail(subjectId) {
 	try {
-		const response = await fetch(`${API_BASE}/v0/subjects/${subjectId}`);
+		const response = await fetchBgm(`${API_BASE}/v0/subjects/${subjectId}`);
 		if (!response.ok) return null;
 		return await response.json();
 	} catch (error) {
@@ -100,7 +174,7 @@ async function fetchCollection(userId, type) {
 	while (hasMore) {
 		const url = `${API_BASE}/v0/users/${userId}/collections?subject_type=2&type=${type}&limit=${limit}&offset=${offset}`;
 		try {
-			const response = await fetch(url);
+			const response = await fetchBgm(url);
 
 			if (!response.ok) {
 				if (response.status === 404) {
@@ -128,7 +202,7 @@ async function fetchCollection(userId, type) {
 				await delay(300);
 			}
 		} catch (e) {
-			console.error(`\nFetch failed (Type ${type}):`, e.message);
+			console.error(`\nFetch failed (Type ${type}):`, formatFetchError(e));
 			hasMore = false;
 		}
 	}
@@ -203,6 +277,20 @@ async function processData(items, status) {
 async function main() {
 	console.log("Initializing Bangumi data update script...");
 
+	const isCi = process.env.CI === "true";
+	const forceUpdate = process.env.FORCE_BANGUMI_UPDATE === "true";
+
+	if (!isCi && !forceUpdate) {
+		const existingCount = await readExistingDataCount();
+		console.log(
+			`跳过 Bangumi 拉取（非 CI 环境）。使用仓库内 bangumi-data.json（${existingCount} 条）。`,
+		);
+		console.log(
+			"番剧数据由 GitHub Actions 定时更新；本地强制刷新: FORCE_BANGUMI_UPDATE=true pnpm update-anime",
+		);
+		return;
+	}
+
 	const animeMode = await getAnimeModeFromConfig();
 	if (animeMode !== "bangumi") {
 		console.log(
@@ -213,6 +301,24 @@ async function main() {
 
 	const USER_ID = await getUserIdFromConfig();
 	console.log(`Read User ID: ${USER_ID}`);
+	console.log(
+		`Network: ${process.env.BANGUMI_PROXY ? `proxy → ${process.env.BANGUMI_PROXY}` : "direct (no BANGUMI_PROXY)"}`,
+	);
+
+	const probe = await probeV0Api(USER_ID);
+	if (!probe.ok) {
+		const existingCount = await readExistingDataCount();
+		const errorText = probe.error ?? `HTTP ${probe.status}`;
+		console.error(`\n✘ 无法访问 Bangumi v0 API: ${errorText}`);
+		printNetworkHelp(errorText);
+		if (existingCount > 0) {
+			console.warn(
+				`保留现有 bangumi-data.json（${existingCount} 条），构建可继续。`,
+			);
+			return;
+		}
+		process.exit(1);
+	}
 
 	const collections = [
 		{ type: 3, status: "watching" },
@@ -237,6 +343,16 @@ async function main() {
 		await fs.access(dir);
 	} catch {
 		await fs.mkdir(dir, { recursive: true });
+	}
+
+	if (finalAnimeList.length === 0) {
+		const existingCount = await readExistingDataCount();
+		if (existingCount > 0) {
+			console.warn(
+				`\n未拉取到任何数据，保留现有 bangumi-data.json（${existingCount} 条）。`,
+			);
+			return;
+		}
 	}
 
 	await fs.writeFile(OUTPUT_FILE, JSON.stringify(finalAnimeList, null, 2));

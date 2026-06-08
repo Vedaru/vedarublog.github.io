@@ -25,7 +25,6 @@ import type { Favicon } from "../types/config";
 import { pathsEqual, url } from "../utils/url-utils";
 import "../styles/mobile-navbar.css";
 import "../styles/wallpaper-navbar-transparent.css";
-import "../styles/fancybox-custom.css";
 import "../styles/expressive-code.css";
 import "../styles/panel-animations.css";
 
@@ -363,12 +362,33 @@ if (siteConfig.font) {
 		></style>
 
 		<!-- defines global css variables. This will be applied to <html> <body> and some other elements idk why -->
+		<link
+			rel="preload"
+			href="/assets/font/ZenMaruGothic-Medium.woff2"
+			as="font"
+			type="font/woff2"
+			crossorigin="anonymous"
+		/>
+
 		<slot name="head" />
 
 		<!-- Pio 看板娘样式 - 仅在启用时加载 -->
 		{
 			pioConfig.enable && (
-				<link rel="stylesheet" href="/pio/static/pio.css" />
+				<link
+					rel="preload"
+					href="/pio/static/pio.css"
+					as="style"
+					fetchpriority="low"
+					onload="this.onload=null;this.rel='stylesheet'"
+				/>
+			)
+		}
+		{
+			pioConfig.enable && (
+				<noscript>
+					<link rel="stylesheet" href="/pio/static/pio.css" />
+				</noscript>
 			)
 		}
 
@@ -842,8 +862,9 @@ function disableAnimation() {
 				});
 			}
 
-			// 开始自动轮播
-			startCarousel();
+			// LCP 测量窗口内保持首张 banner，避免 lazy 图片成为 LCP
+			const carouselStartDelay = Math.max(interval * 1000, 5000);
+			setTimeout(startCarousel, carouselStartDelay);
 		}
 	}
 
@@ -887,7 +908,10 @@ function disableAnimation() {
 		if (!Fancybox) {
 			const mod = await import("@fancyapps/ui");
 			Fancybox = mod.Fancybox;
-			await import("@fancyapps/ui/dist/fancybox/fancybox.css");
+			await Promise.all([
+				import("@fancyapps/ui/dist/fancybox/fancybox.css"),
+				import("../styles/fancybox-custom.css"),
+			]);
 		}
 
 		if (fancyboxSelectors.length > 0) {

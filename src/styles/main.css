@@ -14,16 +14,11 @@
   font-family: "ZenMaruGothic-Medium";
   src: url("/assets/font/ZenMaruGothic-Medium.woff2") format("woff2");
   font-weight: 500;
-  font-display: swap;
-}
-
-/* 导入 萝莉体 第二版 字体 */
-@font-face {
-  font-family: "萝莉体 第二版";
-  src: url("/assets/font/萝莉体 第二版.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
+  font-display: optional;
+  ascent-override: 90%;
+  descent-override: 22%;
+  line-gap-override: 0%;
+  size-adjust: 100%;
 }
 
 

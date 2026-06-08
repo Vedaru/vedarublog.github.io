@@ -43,9 +43,11 @@ export default defineConfig({
 			theme: false,
 			animationClass: "transition-swup-",
 			containers: ["main"],
-			smoothScrolling: false, // 禁用平滑滚动以提升性能，避免与锚点导航冲突
+			smoothScrolling: false,
 			cache: true,
-			preload: true, // swup 默认鼠标悬停预加载
+			// 仅悬停预加载，避免首屏拉取 archive 等页面的脚本链
+			preload: { hover: true, visible: false },
+			loadOnIdle: true,
 			accessibility: true,
 			updateHead: true,
 			updateBodyClass: false,

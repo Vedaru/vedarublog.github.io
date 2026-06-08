@@ -23,7 +23,16 @@ import {
 	// MAIN_PANEL_OVERLAPS_BANNER_HEIGHT,
 } from "../constants/constants";
 import { widgetManager } from "../utils/widget-manager";
+import { url } from "../utils/url-utils";
 import Layout from "./Layout.astro";
+
+const getFirstBannerUrl = (
+	images: string | string[] | undefined,
+): string | null => {
+	if (Array.isArray(images)) return images[0] ?? null;
+	if (typeof images === "string") return images;
+	return null;
+};
 
 // TOC模式配置
 const tocMode = siteConfig.toc.mode || "float";
@@ -97,6 +106,20 @@ const getBannerImages = async () => {
 };
 
 const bannerImages = await getBannerImages();
+const lcpDesktopBanner = getFirstBannerUrl(
+	Array.isArray(bannerImages.desktop)
+		? bannerImages.desktop
+		: typeof bannerImages.desktop === "string"
+			? bannerImages.desktop
+			: undefined,
+);
+const lcpMobileBanner = getFirstBannerUrl(
+	Array.isArray(bannerImages.mobile)
+		? bannerImages.mobile
+		: typeof bannerImages.mobile === "string"
+			? bannerImages.mobile
+			: undefined,
+);
 
 const {
 	title,
@@ -244,6 +267,27 @@ const transparentClass = shouldEnableTransparency
 ---
 
 <Layout title={title} banner={banner} description={description} lang={lang} setOGTypeArticle={setOGTypeArticle} postSlug={postSlug}>
+
+{isHomePage && lcpDesktopBanner && (
+	<link
+		slot="head"
+		rel="preload"
+		as="image"
+		href={url(lcpDesktopBanner)}
+		fetchpriority="high"
+		media="(min-width: 768px)"
+	/>
+)}
+{isHomePage && lcpMobileBanner && (
+	<link
+		slot="head"
+		rel="preload"
+		as="image"
+		href={url(lcpMobileBanner)}
+		fetchpriority="high"
+		media="(max-width: 767px)"
+	/>
+)}
 
 <script type="module" is:inline define:vars={{navbarTransparentMode: siteConfig.banner?.navbar?.transparentMode || "semi", defaultWallpaperMode: siteConfig.wallpaperMode.defaultMode, defaultPostListLayout: siteConfig.postListLayout?.defaultMode || "list", BANNER_HEIGHT: BANNER_HEIGHT, pageScaling: siteConfig.pageScaling}}>
 
@@ -573,7 +617,7 @@ const transparentClass = shouldEnableTransparency
                                     src={Array.isArray(bannerImages.mobile) ? bannerImages.mobile[index] : (typeof bannerImages.mobile === 'string' ? bannerImages.mobile : '')} 
                                     position={siteConfig.banner.position}
                                     loading={index === 0 ? "eager" : "lazy"}
-                                    fetchpriority={index === 0 ? "high" : "low"}
+                                    fetchpriority={index === 0 ? "high" : undefined}
                                 />
                             )}
                             <!-- Desktop/Tablet: use desktop-specific images -->
@@ -584,7 +628,7 @@ const transparentClass = shouldEnableTransparency
                                     src={Array.isArray(bannerImages.desktop) ? bannerImages.desktop[index] : (typeof bannerImages.desktop === 'string' ? bannerImages.desktop : '')} 
                                     position={siteConfig.banner.position}
                                     loading={index === 0 ? "eager" : "lazy"}
-                                    fetchpriority={index === 0 ? "high" : "low"}
+                                    fetchpriority={index === 0 ? "high" : undefined}
                                 />
                             )}
                         </li>

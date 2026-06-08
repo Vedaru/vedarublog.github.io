@@ -11,7 +11,7 @@
 		"start": "astro dev",
 		"check": "astro check",
 		"update-anime": "node scripts/update-bangumi.mjs",
-		"build": "node scripts/update-bangumi.mjs && astro build && pagefind --site dist && node scripts/compress-fonts.js",
+		"build": "astro build && pagefind --site dist && node scripts/compress-fonts.js",
 		"submit": "node scripts/indexnow-submit.js",
 		"preview": "astro preview",
 		"astro": "astro",
@@ -88,7 +88,8 @@
 		"fontmin": "^1.1.1",
 		"postcss-import": "^16.1.1",
 		"postcss-nesting": "^13.0.2",
-		"prettier": "^3.7.4"
+		"prettier": "^3.7.4",
+		"undici": "^8.4.1"
 	},
 	"packageManager": "pnpm@10.22.0",
 	"pnpm": {

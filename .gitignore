@@ -42,5 +42,4 @@ fuwari/
 src/data/myself.ts
 src/pages/myself.astro
 
-# Bangumi generated data
-src/data/bangumi-data.json
+# Bangumi 缓存数据已纳入版本控制，构建失败时仍可展示
