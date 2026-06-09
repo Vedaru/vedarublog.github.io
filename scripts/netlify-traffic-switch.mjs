@@ -1,30 +1,17 @@
 /**
- * Netlify ↔ Cloudflare Pages DNS 自动切换
+ * Netlify ↔ Cloudflare Pages 全自动切换（DNS + Pages 自定义域名）
  *
- * 触发条件（auto 模式，满足任一即切到 CF 直连）：
- * - 本月 production deploy 估算 credits 剩余 ≤ NETLIFY_CREDITS_RESERVE
- * - Netlify 站点 paused / 不可用
- * - https://www 探测失败
+ * 切到 Cloudflare 时会：
+ * 1. 在 Pages 项目注册 www（及 apex）自定义域名
+ * 2. www CNAME → pages.dev，强制 proxied（橙云）
+ * 3. apex A/CNAME → Netlify IP 或 pages.dev
  *
- * 恢复条件：
- * - 月初 credits 估算充足且当前在 CF 模式 → 切回 Netlify
- *
- * 所需 GitHub Secrets / 环境变量：
- * - CF_API_TOKEN        Cloudflare API Token（Zone DNS Edit）
- * - CF_ZONE_ID          vedaru.cn 的 Zone ID
- * - NETLIFY_AUTH_TOKEN  Netlify Personal Access Token
- * - NETLIFY_SITE_ID     Netlify Site ID
- * - NETLIFY_CNAME_TARGET  如 xxx.netlify.app
- * - NETLIFY_A_IPS         Netlify A 记录 IP，逗号分隔，默认 75.2.60.5
- *
- * 可选：
- * - SITE_DOMAIN=vedaru.cn
- * - CF_PAGES_CNAME=vedarublog-github-io.pages.dev
- * - NETLIFY_MONTHLY_CREDITS=300
- * - NETLIFY_DEPLOY_CREDIT_COST=15
- * - NETLIFY_CREDITS_RESERVE=45
- * - NETLIFY_TRAFFIC_MODE=auto|netlify|cloudflare
- * - DRY_RUN=1
+ * Secrets:
+ * - CF_API_TOKEN（Zone DNS Edit + Account Cloudflare Pages Edit）
+ * - CF_ZONE_ID
+ * - CF_PAGES_PROJECT（默认 vedarublog-github-io）
+ * - CF_ACCOUNT_ID（可选，可从 Zone 自动读取）
+ * - NETLIFY_*（auto 模式检测 credits 用）
  */
 import { appendFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -45,13 +32,11 @@ async function netlifyFetch(path, token) {
 	const response = await fetch(`${NETLIFY_API}${path}`, {
 		headers: { Authorization: `Bearer ${token}` },
 	});
-
 	if (!response.ok) {
 		throw new Error(
 			`Netlify API ${path}: ${response.status} ${await response.text()}`,
 		);
 	}
-
 	return response.json();
 }
 
@@ -64,14 +49,12 @@ async function cfRequest(method, path, token, body) {
 		},
 		body: body ? JSON.stringify(body) : undefined,
 	});
-
 	const data = await response.json();
 	if (!data.success) {
 		throw new Error(
 			`Cloudflare API ${method} ${path}: ${JSON.stringify(data.errors)}`,
 		);
 	}
-
 	return data;
 }
 
@@ -84,27 +67,22 @@ async function estimateNetlifyCredits(siteId, token) {
 	const monthlyCredits = envInt("NETLIFY_MONTHLY_CREDITS", 300);
 	const deployCost = envInt("NETLIFY_DEPLOY_CREDIT_COST", 15);
 	const start = monthStartUtc();
-
 	let productionDeploys = 0;
+
 	for (let page = 1; page <= 10; page++) {
 		const deploys = await netlifyFetch(
 			`/sites/${siteId}/deploys?page=${page}&per_page=100`,
 			token,
 		);
-
 		if (!Array.isArray(deploys) || deploys.length === 0) break;
-
 		let reachedOlder = false;
 		for (const deploy of deploys) {
 			if (new Date(deploy.created_at) < start) {
 				reachedOlder = true;
 				break;
 			}
-			if (deploy.context === "production") {
-				productionDeploys += 1;
-			}
+			if (deploy.context === "production") productionDeploys += 1;
 		}
-
 		if (reachedOlder) break;
 	}
 
@@ -181,18 +159,12 @@ function parseNetlifyIps() {
 
 function inferModeFromRecord(record, netlifyTarget, cfTarget, netlifyIps) {
 	if (!record) return "unknown";
-
 	const content = normalizeDns(record.content);
 
-	if (record.type === "A" && netlifyIps.has(content)) {
-		return "netlify";
-	}
+	if (record.type === "A" && netlifyIps.has(content)) return "netlify";
 
 	if (record.type === "CNAME") {
-		if (
-			content.includes("netlify") ||
-			content === normalizeDns(netlifyTarget)
-		) {
+		if (content.includes("netlify") || content === normalizeDns(netlifyTarget)) {
 			return "netlify";
 		}
 		if (content.includes("pages.dev") || content === normalizeDns(cfTarget)) {
@@ -201,6 +173,13 @@ function inferModeFromRecord(record, netlifyTarget, cfTarget, netlifyIps) {
 	}
 
 	return "unknown";
+}
+
+async function getAccountId(zoneId, token) {
+	const configured = env("CF_ACCOUNT_ID");
+	if (configured) return configured;
+	const data = await cfRequest("GET", `/zones/${zoneId}`, token);
+	return data.result.account.id;
 }
 
 async function listDnsRecordsByName(zoneId, name, token) {
@@ -220,38 +199,35 @@ async function getWwwDnsRecord(zoneId, wwwFqdn, domain, token) {
 	for (const name of candidates) {
 		if (seen.has(name)) continue;
 		seen.add(name);
-		const found = await listDnsRecordsByName(zoneId, name, token);
-		records.push(...found);
+		records.push(...(await listDnsRecordsByName(zoneId, name, token)));
 	}
 
-	const preferred = records.find(
-		(record) =>
-			record.type === "CNAME" ||
-			record.type === "A" ||
-			record.type === "AAAA",
+	const preferred = records.find((r) =>
+		["CNAME", "A", "AAAA"].includes(r.type),
 	);
-
 	if (preferred) return preferred;
-
 	if (records.length > 0) return records[0];
 
-	// 列出 zone 内含 www 的记录，便于排查
 	const all = await cfRequest(
 		"GET",
 		`/zones/${zoneId}/dns_records?per_page=100`,
 		token,
 	);
 	const hints = (all.result ?? [])
-		.filter((record) => /www/i.test(record.name))
-		.map((record) => `${record.type} ${record.name} → ${record.content}`)
+		.filter((r) => /www/i.test(r.name))
+		.map((r) => `${r.type} ${r.name} → ${r.content} (proxied=${r.proxied})`)
 		.slice(0, 8);
 
-	const hintText =
-		hints.length > 0
-			? `\nZone 内与 www 相关的记录:\n${hints.join("\n")}`
-			: "\nZone 内未找到任何 www 相关 DNS 记录。请确认域名 DNS 托管在 Cloudflare。";
+	throw new Error(
+		`DNS record not found for ${wwwFqdn}.${hints.length ? `\n${hints.join("\n")}` : ""}`,
+	);
+}
 
-	throw new Error(`DNS record not found for ${wwwFqdn}.${hintText}`);
+async function getApexDnsRecord(zoneId, domain, token) {
+	const records = await listDnsRecordsByName(zoneId, domain, token);
+	return (
+		records.find((r) => r.type === "A" || r.type === "CNAME") ?? null
+	);
 }
 
 async function replaceDnsRecord(zoneId, record, next, token) {
@@ -260,10 +236,9 @@ async function replaceDnsRecord(zoneId, record, next, token) {
 		normalizeDns(record.content) === normalizeDns(next.content) &&
 		(record.proxied ?? false) === (next.proxied ?? false)
 	) {
-		return record;
+		return { record, changed: false };
 	}
 
-	// Cloudflare 不允许 PATCH 改类型，A ↔ CNAME 需删后重建
 	if (record.type !== next.type) {
 		await cfRequest(
 			"DELETE",
@@ -276,7 +251,7 @@ async function replaceDnsRecord(zoneId, record, next, token) {
 			token,
 			next,
 		);
-		return created.result;
+		return { record: created.result, changed: true };
 	}
 
 	const updated = await cfRequest(
@@ -285,69 +260,184 @@ async function replaceDnsRecord(zoneId, record, next, token) {
 		token,
 		next,
 	);
-	return updated.result;
+	return { record: updated.result, changed: true };
 }
 
-function recordNameForApi(record, wwwFqdn) {
-	// 创建/更新时沿用 Cloudflare 已有记录的 name 格式（www 或 FQDN）
-	return record.name.includes(".") ? record.name : wwwFqdn.split(".")[0];
+async function listPagesDomainNames(accountId, project, token) {
+	const list = await cfRequest(
+		"GET",
+		`/accounts/${accountId}/pages/projects/${project}/domains`,
+		token,
+	);
+	return (list.result ?? []).map((d) => d.name || d.domain).filter(Boolean);
 }
 
-async function applyWwwTarget(
-	zoneId,
-	record,
-	wwwFqdn,
-	targetMode,
-	token,
-	{ netlifyTarget, cfTarget, netlifyIps },
-) {
-	const name = recordNameForApi(record, wwwFqdn);
-	const proxied = record.proxied ?? true;
+async function missingPagesHostnames(accountId, project, hostnames, token) {
+	const registered = new Set(
+		(await listPagesDomainNames(accountId, project, token)).map((h) =>
+			h.toLowerCase(),
+		),
+	);
+	return hostnames.filter((h) => !registered.has(h.toLowerCase()));
+}
 
-	if (targetMode === "cloudflare") {
-		return replaceDnsRecord(
-			zoneId,
-			record,
-			{
-				type: "CNAME",
-				name,
-				content: cfTarget,
-				proxied,
-				ttl: 1,
-			},
-			token,
-		);
+async function ensurePagesDomains(accountId, project, hostnames, token, dryRun) {
+	const results = [];
+	const registered = new Set(
+		(await listPagesDomainNames(accountId, project, token)).map((h) =>
+			h.toLowerCase(),
+		),
+	);
+
+	for (const hostname of hostnames) {
+		try {
+			if (registered.has(hostname.toLowerCase())) {
+				console.log(`[pages] Domain already registered: ${hostname}`);
+				results.push({ hostname, status: "exists" });
+				continue;
+			}
+
+			if (dryRun) {
+				console.log(`[DRY_RUN] Would register Pages domain: ${hostname}`);
+				results.push({ hostname, status: "dry-run" });
+				continue;
+			}
+
+			await cfRequest(
+				"POST",
+				`/accounts/${accountId}/pages/projects/${project}/domains`,
+				token,
+				{ name: hostname },
+			);
+			console.log(`[pages] ✓ Registered domain: ${hostname}`);
+			results.push({ hostname, status: "registered" });
+		} catch (error) {
+			console.warn(`[pages] Register ${hostname} failed: ${error.message}`);
+			results.push({ hostname, status: "error", error: error.message });
+		}
 	}
 
-	// netlify：优先 CNAME 到 netlify.app；若原本是 A 记录且无 CNAME target 则回退 A
-	if (netlifyTarget) {
-		return replaceDnsRecord(
-			zoneId,
-			record,
-			{
-				type: "CNAME",
-				name,
-				content: netlifyTarget,
-				proxied,
-				ttl: 1,
-			},
-			token,
-		);
-	}
+	return results;
+}
 
-	const netlifyIp = [...netlifyIps][0];
-	return replaceDnsRecord(
+async function applyCloudflareMode(ctx) {
+	const { zoneId, token, wwwRecord, cfTarget, apexRecord } = ctx;
+	const changes = [];
+
+	const wwwResult = await replaceDnsRecord(
 		zoneId,
-		record,
+		wwwRecord,
 		{
-			type: "A",
-			name,
-			content: netlifyIp,
-			proxied,
+			type: "CNAME",
+			name: wwwRecord.name,
+			content: cfTarget,
+			proxied: true,
 			ttl: 1,
 		},
 		token,
 	);
+	if (wwwResult.changed) {
+		changes.push(
+			`www: ${wwwRecord.type} ${wwwRecord.content} → CNAME ${cfTarget} (proxied)`,
+		);
+	}
+
+	if (apexRecord) {
+		const apexResult = await replaceDnsRecord(
+			zoneId,
+			apexRecord,
+			{
+				type: "CNAME",
+				name: apexRecord.name,
+				content: cfTarget,
+				proxied: true,
+				ttl: 1,
+			},
+			token,
+		);
+		if (apexResult.changed) {
+			changes.push(
+				`apex: ${apexRecord.type} ${apexRecord.content} → CNAME ${cfTarget} (proxied)`,
+			);
+		}
+	}
+
+	return changes;
+}
+
+async function applyNetlifyMode(ctx) {
+	const { zoneId, token, wwwRecord, netlifyTarget, netlifyIps, apexRecord } =
+		ctx;
+	const changes = [];
+	const netlifyIp = [...netlifyIps][0];
+
+	if (netlifyTarget) {
+		const wwwResult = await replaceDnsRecord(
+			zoneId,
+			wwwRecord,
+			{
+				type: "CNAME",
+				name: wwwRecord.name,
+				content: netlifyTarget,
+				proxied: false,
+				ttl: 1,
+			},
+			token,
+		);
+		if (wwwResult.changed) {
+			changes.push(`www: → CNAME ${netlifyTarget} (dns-only)`);
+		}
+	} else {
+		const wwwResult = await replaceDnsRecord(
+			zoneId,
+			wwwRecord,
+			{
+				type: "A",
+				name: wwwRecord.name,
+				content: netlifyIp,
+				proxied: false,
+				ttl: 1,
+			},
+			token,
+		);
+		if (wwwResult.changed) changes.push(`www: → A ${netlifyIp}`);
+	}
+
+	if (apexRecord) {
+		const apexResult = await replaceDnsRecord(
+			zoneId,
+			apexRecord,
+			{
+				type: "A",
+				name: apexRecord.name,
+				content: netlifyIp,
+				proxied: false,
+				ttl: 1,
+			},
+			token,
+		);
+		if (apexResult.changed) {
+			changes.push(`apex: → A ${netlifyIp} (dns-only)`);
+		}
+	}
+
+	return changes;
+}
+
+function needsSwitch(record, targetMode, targetContent, targetType, netlifyIps) {
+	const contentMatch =
+		normalizeDns(record.content) === normalizeDns(targetContent);
+	const typeMatch = record.type === targetType;
+	const proxiedMatch =
+		targetMode === "cloudflare"
+			? record.proxied === true
+			: true;
+
+	if (targetMode === "netlify" && record.type === "A") {
+		return !netlifyIps.has(normalizeDns(record.content));
+	}
+
+	return !(typeMatch && contentMatch && proxiedMatch);
 }
 
 function writeState(state) {
@@ -355,7 +445,6 @@ function writeState(state) {
 		logSummary(state);
 		return;
 	}
-
 	const path = join(process.cwd(), ".github/netlify-traffic-state.json");
 	writeFileSync(path, `${JSON.stringify(state, null, 2)}\n`, "utf8");
 	console.log(`State written to ${path}`);
@@ -378,6 +467,18 @@ function logSummary(state) {
 		`| 检查时间 | ${state.checkedAt} |`,
 	];
 
+	if (state.changes?.length) {
+		lines.push("", "**变更：**", ...state.changes.map((c) => `- ${c}`));
+	}
+	if (state.pagesDomains?.length) {
+		lines.push("", "**Pages 域名：**", ...state.pagesDomains.map(
+			(d) => `- ${d.hostname}: ${d.status}`,
+		));
+	}
+	if (state.probe) {
+		lines.push("", `**探测 https://${state.wwwFqdn}:** ${state.probe.status ?? state.probe.error}`);
+	}
+
 	appendFileSync(summaryPath, `${lines.join("\n")}\n`);
 }
 
@@ -385,37 +486,51 @@ async function main() {
 	const dryRun = ["1", "true", "yes"].includes(
 		env("DRY_RUN", "").toLowerCase(),
 	);
-	console.log(`[traffic] DRY_RUN=${dryRun ? "yes (no DNS changes)" : "no (will update DNS if needed)"}`);
-	const forceMode = env("NETLIFY_TRAFFIC_MODE", "auto").toLowerCase();
+	console.log(
+		`[traffic] DRY_RUN=${dryRun ? "yes" : "no (will update DNS + Pages domains)"}`,
+	);
 
+	const forceMode = env("NETLIFY_TRAFFIC_MODE", "auto").toLowerCase();
 	const cfToken = env("CF_API_TOKEN");
 	const zoneId = env("CF_ZONE_ID");
 	const netlifyToken = env("NETLIFY_AUTH_TOKEN");
 	const siteId = env("NETLIFY_SITE_ID");
 	const netlifyTarget = env("NETLIFY_CNAME_TARGET");
 	const cfTarget = env("CF_PAGES_CNAME", "vedarublog-github-io.pages.dev");
+	const cfProject = env("CF_PAGES_PROJECT", "vedarublog-github-io");
 	const domain = env("SITE_DOMAIN", "vedaru.cn");
 	const wwwFqdn = `${env("DNS_WWW_NAME", "www")}.${domain}`;
 	const reserve = envInt("NETLIFY_CREDITS_RESERVE", 45);
 	const restoreBuffer = envInt("NETLIFY_CREDITS_RESTORE_BUFFER", 60);
 	const netlifyIps = parseNetlifyIps();
+	const registerApex = env("CF_PAGES_REGISTER_APEX", "true") !== "false";
 
 	if (!cfToken || !zoneId) {
 		throw new Error("Missing CF_API_TOKEN or CF_ZONE_ID");
 	}
 
-	const record = await getWwwDnsRecord(zoneId, wwwFqdn, domain, cfToken);
+	const accountId = await getAccountId(zoneId, cfToken);
+	console.log(`[traffic] CF account=${accountId}, project=${cfProject}`);
+
+	const wwwRecord = await getWwwDnsRecord(zoneId, wwwFqdn, domain, cfToken);
+	const apexRecord = await getApexDnsRecord(zoneId, domain, cfToken);
+
 	console.log(
-		`Found DNS: ${record.type} ${record.name} → ${record.content} (proxied=${record.proxied ?? false})`,
+		`[dns] www: ${wwwRecord.type} ${wwwRecord.content} proxied=${wwwRecord.proxied ?? false}`,
 	);
+	if (apexRecord) {
+		console.log(
+			`[dns] apex: ${apexRecord.type} ${apexRecord.content} proxied=${apexRecord.proxied ?? false}`,
+		);
+	}
 
 	const currentMode = inferModeFromRecord(
-		record,
+		wwwRecord,
 		netlifyTarget,
 		cfTarget,
 		netlifyIps,
 	);
-	console.log(`Current mode: ${currentMode}`);
+	console.log(`[traffic] Current mode: ${currentMode}`);
 
 	let targetMode = "netlify";
 	let reason = "default netlify";
@@ -433,12 +548,11 @@ async function main() {
 		if (netlifyToken && siteId) {
 			credits = await estimateNetlifyCredits(siteId, netlifyToken);
 			console.log(
-				`Credits estimate: deploys=${credits.productionDeploys}, used≈${credits.usedEstimate}, remaining≈${credits.remaining}/${credits.monthlyCredits}`,
+				`[netlify] deploys=${credits.productionDeploys}, credits≈${credits.usedEstimate}/${credits.monthlyCredits}, remaining≈${credits.remaining}`,
 			);
-
 			if (credits.remaining <= reserve) {
 				switchToCloudflare = true;
-				reason = `credits low (remaining≈${credits.remaining} ≤ reserve ${reserve})`;
+				reason = `credits low (remaining≈${credits.remaining} ≤ ${reserve})`;
 			}
 
 			const siteMeta = await netlifyFetch(`/sites/${siteId}`, netlifyToken);
@@ -451,15 +565,15 @@ async function main() {
 				switchToCloudflare = true;
 				reason = unavailable.reason;
 			}
-		} else {
-			console.warn("NETLIFY_AUTH_TOKEN or NETLIFY_SITE_ID missing — skip credit checks");
 		}
 
 		const probe = await probeHttps(`https://${wwwFqdn}`);
-		console.log(`HTTPS probe https://${wwwFqdn}:`, probe);
+		console.log(`[probe] https://${wwwFqdn}:`, probe);
 		if (!probe.ok && currentMode === "netlify") {
 			switchToCloudflare = true;
-			reason = reason || `custom domain probe failed (${probe.error ?? probe.status})`;
+			reason =
+				reason ||
+				`www probe failed (${probe.error ?? probe.status})`;
 		}
 
 		if (switchToCloudflare) {
@@ -474,13 +588,56 @@ async function main() {
 		}
 	}
 
-	const targetCname =
-		targetMode === "cloudflare" ? cfTarget : netlifyTarget || [...netlifyIps][0];
+	const targetContent =
+		targetMode === "cloudflare"
+			? cfTarget
+			: netlifyTarget || [...netlifyIps][0];
 	const targetType =
 		targetMode === "cloudflare" || netlifyTarget ? "CNAME" : "A";
-	const alreadyOnTarget =
-		record.type === targetType &&
-		normalizeDns(record.content) === normalizeDns(targetCname);
+
+	const wwwNeedsUpdate = needsSwitch(
+		wwwRecord,
+		targetMode,
+		targetContent,
+		targetType,
+		netlifyIps,
+	);
+
+	const apexTargetContent =
+		targetMode === "cloudflare"
+			? cfTarget
+			: [...netlifyIps][0];
+	const apexTargetType = targetMode === "cloudflare" ? "CNAME" : "A";
+
+	const apexNeedsUpdate =
+		!!apexRecord &&
+		needsSwitch(
+			apexRecord,
+			targetMode,
+			apexTargetContent,
+			apexTargetType,
+			netlifyIps,
+		);
+
+	const cloudflareHostnames =
+		targetMode === "cloudflare"
+			? [wwwFqdn, ...(registerApex ? [domain] : [])]
+			: [];
+
+	let pagesToRegister = [];
+	if (targetMode === "cloudflare" && cloudflareHostnames.length) {
+		pagesToRegister = await missingPagesHostnames(
+			accountId,
+			cfProject,
+			cloudflareHostnames,
+			cfToken,
+		);
+		if (pagesToRegister.length) {
+			console.log(
+				`[pages] Missing custom domains: ${pagesToRegister.join(", ")}`,
+			);
+		}
+	}
 
 	const state = {
 		checkedAt: new Date().toISOString(),
@@ -488,39 +645,75 @@ async function main() {
 		targetMode,
 		reason,
 		wwwFqdn,
-		currentRecord: `${record.type} ${record.content}`,
-		targetRecord: `${targetType} ${targetCname}`,
 		dryRun,
+		changes: [],
+		pagesDomains: [],
 	};
 
-	if (alreadyOnTarget) {
-		console.log(`No DNS change needed (already ${targetMode}).`);
-		writeState({ ...state, action: "none" });
+	const needsWork =
+		wwwNeedsUpdate ||
+		apexNeedsUpdate ||
+		pagesToRegister.length > 0 ||
+		targetMode !== currentMode;
+
+	if (!needsWork) {
+		console.log(`[traffic] Already on ${targetMode}, no changes needed.`);
+		writeState({
+			...state,
+			action: "none",
+			probe: await probeHttps(`https://${wwwFqdn}`),
+		});
 		return;
 	}
 
-	console.log(
-		`Switching ${wwwFqdn}: ${record.type} ${record.content} → ${targetType} ${targetCname}`,
-	);
-	console.log(`Reason: ${reason}`);
+	console.log(`[traffic] Switching to ${targetMode}: ${reason}`);
 
 	if (dryRun) {
-		console.log("[DRY_RUN] DNS update skipped.");
+		console.log("[DRY_RUN] Skipping DNS/Pages updates.");
 		writeState({ ...state, action: "dry-run" });
 		return;
 	}
 
-	await applyWwwTarget(zoneId, record, wwwFqdn, targetMode, cfToken, {
-		netlifyTarget,
-		cfTarget,
-		netlifyIps,
-	});
-	console.log(`✓ DNS switched to ${targetMode}`);
-	writeState({
-		...state,
-		action: "switched",
-		previousRecord: `${record.type} ${record.content}`,
-	});
+	if (targetMode === "cloudflare") {
+		state.pagesDomains = await ensurePagesDomains(
+			accountId,
+			cfProject,
+			cloudflareHostnames,
+			cfToken,
+			false,
+		);
+		state.changes = await applyCloudflareMode({
+			zoneId,
+			token: cfToken,
+			wwwRecord,
+			cfTarget,
+			apexRecord,
+		});
+	} else {
+		if (!netlifyTarget) {
+			console.warn("[traffic] NETLIFY_CNAME_TARGET missing, using A record for www");
+		}
+		state.changes = await applyNetlifyMode({
+			zoneId,
+			token: cfToken,
+			wwwRecord,
+			netlifyTarget,
+			netlifyIps,
+			apexRecord,
+		});
+	}
+
+	// Pages 证书/DNS 传播需要一点时间
+	await new Promise((r) => setTimeout(r, 5000));
+	state.probe = await probeHttps(`https://${wwwFqdn}`);
+
+	console.log(`[traffic] ✓ Switched to ${targetMode}`);
+	if (state.changes.length) {
+		for (const c of state.changes) console.log(`  - ${c}`);
+	}
+	console.log(`[probe] after switch:`, state.probe);
+
+	writeState({ ...state, action: "switched" });
 }
 
 main().catch((error) => {

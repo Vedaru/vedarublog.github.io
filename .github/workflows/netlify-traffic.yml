@@ -1,9 +1,17 @@
+# 全自动 Netlify ↔ Cloudflare Pages 切换（无需手动改 DNS / Pages 面板）
+#
+# 定时任务默认 mode=auto，会：
+#   1. 检测 Netlify credits / 站点可用性 / HTTPS 探测
+#   2. 注册 Pages 自定义域名（www + apex）
+#   3. 修改 Cloudflare DNS（CNAME + 橙云 proxied）
+#
+# CF_API_TOKEN 需含：Zone DNS Edit + Account Cloudflare Pages Edit
 name: Netlify Traffic Switch
 
 on:
   schedule:
-    # 每 6 小时检查 credits / 可用性，必要时切到 CF 直连
-    - cron: "0 */6 * * *"
+    # 每 2 小时自动巡检（无需人工 Run workflow）
+    - cron: "0 */2 * * *"
   workflow_dispatch:
     inputs:
       mode:
@@ -42,16 +50,18 @@ jobs:
         env:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_PAGES_PROJECT: vedarublog-github-io
+          CF_PAGES_CNAME: vedarublog-github-io.pages.dev
+          CF_PAGES_REGISTER_APEX: "true"
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
           NETLIFY_CNAME_TARGET: ${{ secrets.NETLIFY_CNAME_TARGET }}
-          CF_PAGES_CNAME: vedarublog-github-io.pages.dev
           SITE_DOMAIN: vedaru.cn
           NETLIFY_MONTHLY_CREDITS: "300"
           NETLIFY_DEPLOY_CREDIT_COST: "15"
           NETLIFY_CREDITS_RESERVE: "45"
           NETLIFY_TRAFFIC_MODE: ${{ github.event.inputs.mode || 'auto' }}
-          # boolean 输入在 GHA 里可能是 false 或字符串 "false"；后者对 && 为 truthy，必须显式比较
           DRY_RUN: ${{ (github.event.inputs.dry_run == true || github.event.inputs.dry_run == 'true') && '1' || '' }}
         run: |
           echo "DRY_RUN env='${DRY_RUN:-}' (empty means real DNS update)"
@@ -70,6 +80,7 @@ jobs:
           if git diff --staged --quiet; then
             exit 0
           fi
-          git commit -m "chore: netlify traffic switched to CF fallback [skip netlify]"
+          TARGET=$(node -p "JSON.parse(require('fs').readFileSync('.github/netlify-traffic-state.json','utf8')).targetMode")
+          git commit -m "chore: netlify traffic switched to ${TARGET} [skip netlify]"
           git pull --rebase origin main
           git push origin HEAD:main
