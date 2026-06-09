@@ -6,6 +6,7 @@
 @import "./transition.css";
 @import "./banner-drift.css";
 @import "./mobile-transition-fix.css";
+@import "./layout-stable.css";
 @import "./animation-enhancements.css";
 /* 导入渐变按钮样式 */
 @import "./gradient-buttons.css";

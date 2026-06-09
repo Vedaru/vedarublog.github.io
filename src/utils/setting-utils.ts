@@ -160,6 +160,7 @@ export function getStoredWallpaperMode(): WALLPAPER_MODE {
 
 export function setWallpaperMode(mode: WALLPAPER_MODE): void {
 	localStorage.setItem("wallpaperMode", mode);
+	document.documentElement.setAttribute("data-wallpaper-mode", mode);
 	// 触发自定义事件通知其他组件壁纸模式已改变
 	window.dispatchEvent(
 		new CustomEvent("wallpaper-mode-change", { detail: { mode } }),

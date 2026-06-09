@@ -78,16 +78,6 @@ const positionClass = (() => {
 	style={`z-index: ${zIndex}; opacity: ${opacity}; transform: translateZ(0); perspective: 1000px;`}
 	data-fullscreen-wallpaper
 >
-	<script is:inline define:vars={{ defaultWallpaperMode: siteConfig.wallpaperMode.defaultMode }}>
-		(function () {
-			const mode =
-				localStorage.getItem("wallpaperMode") || defaultWallpaperMode;
-			const root = document.currentScript?.parentElement;
-			if (!root) return;
-			root.style.display = mode === "fullscreen" ? "block" : "none";
-		})();
-	</script>
-
 	<div id="wallpaper-single-container" class="relative w-full h-full">
 		{imageSources.desktop && (
 			<div class="hidden md:block absolute inset-0">

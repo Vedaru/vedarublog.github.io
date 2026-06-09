@@ -147,19 +147,6 @@ const showHomeText = siteConfig.banner.homeText?.enable && isHomePage;
 // 手机端非首页不显示banner的CSS类
 const mobileNonHomeBannerClass = !isHomePage ? "mobile-hide-banner" : "";
 
-// 计算主内容区域位置，考虑手机端非首页时banner被隐藏
-// 当默认模式为 banner 时，使用banner高度；否则使用顶栏高度
-// 让主内容区域紧贴波浪线下方，波浪线高度约为10-15vh，所以主内容从banner顶部开始
-const mainPanelTop =
-	siteConfig.wallpaperMode.defaultMode === "banner"
-		? `${BANNER_HEIGHT}vh`
-		: "5.5rem";
-// const mobileNonHomeMainTop = !isHomePage ? "5.5rem" : mainPanelTop;
-
-// 当默认模式不是 banner 时，主内容区域应该始终从顶栏下面开始
-const finalMainPanelTop =
-	siteConfig.wallpaperMode.defaultMode === "banner" ? mainPanelTop : "5.5rem";
-
 // 检查左侧边栏是否有组件
 const hasLeftSidebarComponents =
 	widgetManager.getComponentsByPosition("top", "left", "desktop").length > 0 ||
@@ -297,7 +284,7 @@ const transparentClass = shouldEnableTransparency
 	/>
 )}
 
-<script type="module" is:inline define:vars={{navbarTransparentMode: siteConfig.banner?.navbar?.transparentMode || "semi", defaultWallpaperMode: siteConfig.wallpaperMode.defaultMode, defaultPostListLayout: siteConfig.postListLayout?.defaultMode || "list", BANNER_HEIGHT: BANNER_HEIGHT, pageScaling: siteConfig.pageScaling}}>
+<script type="module" is:inline define:vars={{navbarTransparentMode: siteConfig.banner?.navbar?.transparentMode || "semi", defaultWallpaperMode: siteConfig.wallpaperMode.defaultMode, defaultPostListLayout: siteConfig.postListLayout?.defaultMode || "list", allowPostListSwitch: siteConfig.postListLayout?.allowSwitch ?? false, BANNER_HEIGHT: BANNER_HEIGHT}}>
 
 	function setMainGridLayout(mainGrid, layout) {
 		if (!mainGrid) return;
@@ -305,95 +292,128 @@ const transparentClass = shouldEnableTransparency
 		mainGrid.setAttribute("data-layout-mode", layout);
 	}
 
-	// 立即执行，在页面渲染前应用壁纸模式和布局模式，避免闪烁
-	(function() {
-		const wallpaperMode = localStorage.getItem('wallpaperMode') || defaultWallpaperMode;
-		const body = document.body;
-		
-		// 定义 banner 高度常量（与 constants.ts 保持一致）
-		// const BANNER_HEIGHT = 35;
-		// const BANNER_HEIGHT_EXTEND = 30;
-		// const BANNER_HEIGHT_HOME = BANNER_HEIGHT + BANNER_HEIGHT_EXTEND;
-		// const MAIN_PANEL_OVERLAPS_BANNER_HEIGHT = 3.5;
-		
-		// 立即应用 body 类，确保首次渲染就是正确的状态
-		switch(wallpaperMode) {
+	function getWallpaperMode() {
+		return localStorage.getItem('wallpaperMode') || defaultWallpaperMode;
+	}
+
+	function getPostListLayout() {
+		if (allowPostListSwitch) {
+			return localStorage.getItem('postListLayout') || defaultPostListLayout;
+		}
+		return defaultPostListLayout;
+	}
+
+	function syncWallpaperDataset(mode) {
+		document.documentElement.setAttribute('data-wallpaper-mode', mode);
+	}
+
+	function syncPostListDataset(layout) {
+		document.documentElement.setAttribute('data-post-list-layout', layout);
+	}
+
+	function applyWallpaperBodyClasses(mode) {
+		var body = document.body;
+		body.classList.remove('enable-banner', 'wallpaper-transparent', 'no-banner-mode');
+		switch (mode) {
 			case 'banner':
 				body.classList.add('enable-banner');
-				body.classList.remove('wallpaper-transparent', 'no-banner-mode');
 				break;
 			case 'fullscreen':
-				body.classList.remove('enable-banner');
 				body.classList.add('wallpaper-transparent', 'no-banner-mode');
 				break;
 			case 'none':
-				body.classList.remove('enable-banner', 'wallpaper-transparent');
 				body.classList.add('no-banner-mode');
 				break;
 		}
-		
-		// 立即调整主内容区域位置和布局模式（避免闪烁和位置错误）
-		// 使用 requestAnimationFrame 确保 DOM 准备好
-		requestAnimationFrame(function() {
-			const mainContent = document.querySelector('.absolute.w-full.z-30.pointer-events-none');
-			if (mainContent) {
-				if (wallpaperMode === 'banner') {
-					// 让主内容区域从banner顶部开始，这样波浪线会自然覆盖内容上部
-					mainContent.style.top = `${BANNER_HEIGHT}vh`;
-				} else {
-					// fullscreen 或 none 模式
-					mainContent.style.top = '5.5rem';
-				}
-			}
-			
-			// 立即应用布局模式，避免闪烁
-			const mainGrid = document.getElementById('main-grid');
-			if (mainGrid) {
-				const savedLayout = localStorage.getItem('postListLayout');
-				const currentLayout = savedLayout || defaultPostListLayout;
-				setMainGridLayout(mainGrid, currentLayout);
-				
-				// 根据布局模式显示或隐藏右侧边栏
-				const rightSidebar = document.querySelector('.right-sidebar-container');
-				if (rightSidebar) {
-					if (currentLayout === 'grid') {
-						rightSidebar.classList.add('hidden-in-grid-mode');
-					} else {
-						rightSidebar.classList.remove('hidden-in-grid-mode');
-					}
-				}
-				
-				// 同时更新文章列表容器的CSS类
-				const postListContainer = document.getElementById('post-list-container');
-				if (postListContainer) {
-					postListContainer.classList.remove('list-mode', 'grid-mode');
-					
-					if (currentLayout === 'grid') {
-						postListContainer.classList.add('grid-mode');
-						postListContainer.classList.add('grid', 'grid-cols-1', 'lg:grid-cols-2', 'gap-6');
-						postListContainer.classList.remove('flex', 'flex-col');
-					} else {
-						postListContainer.classList.add('list-mode');
-						postListContainer.classList.add('flex', 'flex-col');
-						postListContainer.classList.remove('grid', 'grid-cols-1', 'lg:grid-cols-2', 'gap-6');
-					}
-				}
-			}
-		});
-	})();
-	
-	// 根据壁纸模式动态设置 banner 和全屏壁纸的显示
-	// const wallpaperMode = localStorage.getItem('wallpaperMode') || defaultWallpaperMode;
-	
-	// 在 DOM 加载后执行
-	if (document.readyState === 'loading') {
-		document.addEventListener('DOMContentLoaded', applyWallpaperMode);
-	} else {
-		applyWallpaperMode();
 	}
-	
-	function applyWallpaperMode() {
-		var wallpaperMode = localStorage.getItem('wallpaperMode') || defaultWallpaperMode;
+
+	function isWallpaperBodySynced(mode) {
+		var body = document.body;
+		switch (mode) {
+			case 'banner':
+				return body.classList.contains('enable-banner') &&
+					!body.classList.contains('no-banner-mode') &&
+					!body.classList.contains('wallpaper-transparent');
+			case 'fullscreen':
+				return body.classList.contains('wallpaper-transparent') &&
+					body.classList.contains('no-banner-mode') &&
+					!body.classList.contains('enable-banner');
+			case 'none':
+				return body.classList.contains('no-banner-mode') &&
+					!body.classList.contains('enable-banner') &&
+					!body.classList.contains('wallpaper-transparent');
+			default:
+				return false;
+		}
+	}
+
+	function initWallpaperNavbarAndToc(wallpaperMode) {
+		var navbar = document.getElementById('navbar');
+		var tocWrapper = document.getElementById('toc-wrapper');
+		if (wallpaperMode === 'banner') {
+			if (tocWrapper) {
+				var scrollTop = document.documentElement.scrollTop;
+				var bannerHeight = window.innerHeight * (BANNER_HEIGHT / 100);
+				if (scrollTop <= bannerHeight) tocWrapper.classList.add('toc-hide');
+			}
+			if (navbar) {
+				navbar.removeAttribute('data-dynamic-transparent');
+				navbar.setAttribute('data-transparent-mode', navbarTransparentMode);
+				if (navbarTransparentMode === 'semifull' && window.initSemifullScrollDetection) {
+					window.initSemifullScrollDetection();
+				}
+			}
+		} else if (wallpaperMode === 'fullscreen') {
+			if (tocWrapper) tocWrapper.classList.remove('toc-hide');
+			if (navbar) {
+				navbar.setAttribute('data-dynamic-transparent', 'semi');
+				navbar.removeAttribute('data-transparent-mode');
+			}
+		} else {
+			if (tocWrapper) tocWrapper.classList.remove('toc-hide');
+			if (navbar) {
+				navbar.setAttribute('data-dynamic-transparent', 'none');
+				navbar.removeAttribute('data-transparent-mode');
+			}
+		}
+	}
+
+	function syncMainGridLayoutFromDataset() {
+		var layout = document.documentElement.getAttribute('data-post-list-layout') || getPostListLayout();
+		var mainGrid = document.getElementById('main-grid');
+		if (mainGrid) {
+			setMainGridLayout(mainGrid, layout);
+		}
+	}
+
+	// 在 DOM 加载后执行（首屏若 body bootstrap 已同步则跳过布局改写）
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', function() {
+			applyWallpaperMode(true);
+			syncMainGridLayoutFromDataset();
+		});
+	} else {
+		applyWallpaperMode(true);
+		syncMainGridLayoutFromDataset();
+	}
+
+	function applyWallpaperMode(isInitialLoad) {
+		var wallpaperMode = getWallpaperMode();
+		syncWallpaperDataset(wallpaperMode);
+
+		var mainContent = document.querySelector('.main-panel');
+		if (mainContent) {
+			mainContent.classList.toggle(
+				'wallpaper-transparent',
+				wallpaperMode === 'fullscreen',
+			);
+		}
+
+		if (isInitialLoad && isWallpaperBodySynced(wallpaperMode)) {
+			initWallpaperNavbarAndToc(wallpaperMode);
+			return;
+		}
+
 		var body = document.body;
 		body.classList.add('wallpaper-switching');
 		if (window.__wallpaperSwitchTimer) {
@@ -403,76 +423,15 @@ const transparentClass = shouldEnableTransparency
 			body.classList.remove('wallpaper-switching');
 		}, 750);
 
-		var bannerWrapper = document.getElementById('banner-wrapper');
-		var fullscreenWallpaper = document.querySelector('[data-fullscreen-wallpaper]');
-		var navbar = document.getElementById('navbar');
-		var mainContent = document.querySelector('.absolute.w-full.z-30.pointer-events-none');
-		var tocWrapper = document.getElementById('toc-wrapper');
-		
-		// 批量 DOM 操作：先收集所有变更，再通过 requestAnimationFrame 一次性应用
 		requestAnimationFrame(function() {
-			if (mainContent) {
-				mainContent.classList.toggle(
-					'wallpaper-transparent',
-					wallpaperMode === 'fullscreen',
-				);
-			}
-
-			switch(wallpaperMode) {
-				case 'banner':
-					if (bannerWrapper) bannerWrapper.style.display = 'block';
-					if (fullscreenWallpaper) fullscreenWallpaper.style.display = 'none';
-					if (tocWrapper) {
-						var scrollTop = document.documentElement.scrollTop;
-						var bannerHeight = window.innerHeight * (BANNER_HEIGHT / 100);
-						if (scrollTop <= bannerHeight) tocWrapper.classList.add('toc-hide');
-					}
-					body.classList.remove('wallpaper-transparent', 'no-banner-mode');
-					if (mainContent) mainContent.style.removeProperty('top');
-					body.classList.add('enable-banner');
-					if (navbar) {
-						navbar.removeAttribute('data-dynamic-transparent');
-						navbar.setAttribute('data-transparent-mode', navbarTransparentMode);
-						if (navbarTransparentMode === 'semifull' && window.initSemifullScrollDetection) {
-							window.initSemifullScrollDetection();
-						}
-					}
-					break;
-					
-				case 'fullscreen':
-					if (bannerWrapper) bannerWrapper.style.display = 'none';
-					if (fullscreenWallpaper) {
-						fullscreenWallpaper.style.display = 'block';
-					}
-					if (tocWrapper) tocWrapper.classList.remove('toc-hide');
-					body.classList.remove('enable-banner');
-					if (mainContent) mainContent.style.removeProperty('top');
-					body.classList.add('wallpaper-transparent', 'no-banner-mode');
-					if (navbar) {
-						navbar.setAttribute('data-dynamic-transparent', 'semi');
-						navbar.removeAttribute('data-transparent-mode');
-					}
-					break;
-					
-				case 'none':
-					if (bannerWrapper) bannerWrapper.style.display = 'none';
-					if (fullscreenWallpaper) fullscreenWallpaper.style.display = 'none';
-					if (tocWrapper) tocWrapper.classList.remove('toc-hide');
-					body.classList.remove('enable-banner', 'wallpaper-transparent');
-					if (mainContent) mainContent.style.removeProperty('top');
-					body.classList.add('no-banner-mode');
-					if (navbar) {
-						navbar.setAttribute('data-dynamic-transparent', 'none');
-						navbar.removeAttribute('data-transparent-mode');
-					}
-					break;
-			}
+			applyWallpaperBodyClasses(wallpaperMode);
+			initWallpaperNavbarAndToc(wallpaperMode);
 		});
 	}
 	
 	// 监听壁纸模式变化，立即应用（不重载页面）
 	window.addEventListener('wallpaper-mode-change', function(_event) {
-		applyWallpaperMode();
+		applyWallpaperMode(false);
 	});
 	
 	// 支持 Swup 页面过渡 - 在内容替换之前就应用布局，避免闪烁
@@ -482,11 +441,10 @@ const transparentClass = shouldEnableTransparency
 			// 关键：在 content:replace 之前（animation:out:start）就准备好布局状态
 			// @ts-ignore
 			window.swup.hooks.on('animation:out:start', function() {
-				// 保存当前布局状态，以便在新页面中立即应用
-				const savedLayout = localStorage.getItem('postListLayout');
-				if (savedLayout) {
+				var pendingLayout = getPostListLayout();
+				if (pendingLayout) {
 					// @ts-ignore
-					window.__pendingLayoutMode = savedLayout;
+					window.__pendingLayoutMode = pendingLayout;
 				}
 			});
 			
@@ -496,19 +454,9 @@ const transparentClass = shouldEnableTransparency
 				const mainGrid = document.getElementById('main-grid');
 				if (mainGrid) {
 					// @ts-ignore
-					const currentLayout = window.__pendingLayoutMode || localStorage.getItem('postListLayout') || defaultPostListLayout;
+					const currentLayout = window.__pendingLayoutMode || getPostListLayout();
 					setMainGridLayout(mainGrid, currentLayout);
-					
-					const rightSidebar = document.querySelector('.right-sidebar-container');
-					if (rightSidebar) {
-						if (currentLayout === 'grid') {
-							rightSidebar.classList.add('hidden-in-grid-mode');
-						} else {
-							rightSidebar.classList.remove('hidden-in-grid-mode');
-						}
-					}
-					
-					// 关键：同时更新文章列表容器的CSS类
+					syncPostListDataset(currentLayout);
 					const postListContainer = document.getElementById('post-list-container');
 					if (postListContainer) {
 						// 移除现有布局类
@@ -551,48 +499,12 @@ const transparentClass = shouldEnableTransparency
 	
 	// 支持 Swup 页面过渡
 	document.addEventListener('swup:page:view', function() {
-		applyWallpaperMode();
-		
-		// 在Swup页面切换时也要重新应用布局模式
+		applyWallpaperMode(false);
+
 		requestAnimationFrame(function() {
-			const mainGrid = document.getElementById('main-grid');
-			if (mainGrid) {
-				const savedLayout = localStorage.getItem('postListLayout');
-				const currentLayout = savedLayout || defaultPostListLayout;
-				setMainGridLayout(mainGrid, currentLayout);
-				
-				if (currentLayout === 'grid') {
-					const rightSidebar = document.querySelector('.right-sidebar-container');
-					if (rightSidebar) {
-						rightSidebar.classList.add('hidden-in-grid-mode');
-					}
-				} else {
-					const rightSidebar = document.querySelector('.right-sidebar-container');
-					if (rightSidebar) {
-						rightSidebar.classList.remove('hidden-in-grid-mode');
-					}
-				}
-			}
+			syncMainGridLayoutFromDataset();
 		});
 	});
-	// 在页面完全加载后，再次确认布局模式是否正确
-	if (document.readyState === 'loading') {
-		document.addEventListener('DOMContentLoaded', function() {
-			const mainGrid = document.getElementById('main-grid');
-			if (mainGrid) {
-				const savedLayout = localStorage.getItem('postListLayout');
-				const currentLayout = savedLayout || defaultPostListLayout;
-				setMainGridLayout(mainGrid, currentLayout);
-				
-				if (currentLayout === 'grid') {
-					const rightSidebar = document.querySelector('.right-sidebar-container');
-					if (rightSidebar) {
-						rightSidebar.classList.add('hidden-in-grid-mode');
-					}
-				}
-			}
-		});
-	}
 </script>
 
 <!-- 全局图标加载器 -->
@@ -748,7 +660,12 @@ const transparentClass = shouldEnableTransparency
 </div>
 
 <!-- Main content -->
-<div class={`absolute w-full z-30 pointer-events-none ${mobileNonHomeBannerClass ? 'mobile-main-no-banner' : ''} ${siteConfig.wallpaperMode.defaultMode === 'none' ? 'no-banner-layout' : ''} ${transparentClass}`} style={`top: ${finalMainPanelTop}`}>
+<div
+	class:list={[
+		"main-panel absolute w-full z-30 pointer-events-none",
+		mobileNonHomeBannerClass ? "mobile-main-no-banner" : "",
+	]}
+>
     <!-- The pointer-events-none here prevent blocking the click event of the TOC -->
     <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto min-w-0 w-full overflow-x-clip">
         <div id="main-grid" class={`w-full min-w-0 left-0 right-0 grid ${gridCols} grid-rows-none md:grid-rows-[auto] mx-auto gap-4 px-2 md:px-4 overflow-x-clip ${!mobileShowSidebar || !hasMobileDrawerComponents ? 'mobile-no-sidebar' : ''} ${hasRightSidebarComponents ? 'mobile-both-sidebar' : ''}`}

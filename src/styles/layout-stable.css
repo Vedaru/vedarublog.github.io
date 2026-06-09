@@ -1,0 +1,62 @@
+/**
+ * 首屏布局稳定样式 — 由 head 阻塞脚本设置的 html data 属性驱动，
+ * 避免 SSR 与 localStorage 不一致导致 CLS。
+ */
+
+/* 主内容 top — 替代 inline style + JS 改写 */
+html[data-wallpaper-mode="banner"] .main-panel {
+  top: var(--banner-height, 35vh);
+}
+
+html[data-wallpaper-mode="fullscreen"] .main-panel,
+html[data-wallpaper-mode="none"] .main-panel {
+  top: 5.5rem;
+  min-height: calc(100vh - 5.5rem);
+}
+
+/* Banner / 全屏壁纸 visibility */
+html[data-wallpaper-mode="banner"] #banner-wrapper {
+  display: block;
+}
+
+html[data-wallpaper-mode="fullscreen"] #banner-wrapper,
+html[data-wallpaper-mode="none"] #banner-wrapper {
+  display: none;
+}
+
+[data-fullscreen-wallpaper] {
+  display: none;
+}
+
+html[data-wallpaper-mode="fullscreen"] [data-fullscreen-wallpaper] {
+  display: block;
+}
+
+/* Grid 模式侧栏 — 替代 JS 首屏 classList 改写 */
+html[data-post-list-layout="grid"] .right-sidebar-container {
+  display: none !important;
+}
+
+/* 平板设备 Grid 模式 */
+@media (min-width: 768px) and (max-width: 1279px) {
+  html[data-post-list-layout="grid"] #main-grid {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto 1fr auto !important;
+  }
+
+  html[data-post-list-layout="grid"] #main-grid #swup-container {
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+  }
+}
+
+/* 桌面设备 Grid 模式 */
+@media (min-width: 1280px) {
+  html[data-post-list-layout="grid"] #main-grid {
+    grid-template-columns: 17.5rem 1fr !important;
+  }
+
+  html[data-post-list-layout="grid"] #main-grid #swup-container {
+    grid-column: 2 / 3;
+  }
+}

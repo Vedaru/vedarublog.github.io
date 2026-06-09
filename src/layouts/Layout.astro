@@ -282,6 +282,11 @@ if (siteConfig.font) {
 				BANNER_HEIGHT_EXTEND,
 				PAGE_WIDTH,
 				configHue,
+				defaultWallpaperMode: siteConfig.wallpaperMode.defaultMode,
+				defaultPostListLayout:
+					siteConfig.postListLayout?.defaultMode || "list",
+				allowPostListSwitch:
+					siteConfig.postListLayout?.allowSwitch ?? false,
 				pageScaling: siteConfig.pageScaling,
 			}}
 		>
@@ -322,54 +327,77 @@ if (siteConfig.font) {
 				`${BANNER_HEIGHT_EXTEND}dvh`,
 			);
 
-			// 自动缩放逻辑 - 延迟到浏览器空闲时执行，避免阻塞首屏渲染
-			(function() {
-				if (pageScaling && pageScaling.enable) {
-					function adjustPageScale() {
-						var isTouch =
-							(window.matchMedia &&
-								(window.matchMedia("(pointer:coarse)").matches ||
-									window.matchMedia("(hover: none)").matches)) ||
-							("ontouchstart" in window);
-						var isPortrait =
-							window.matchMedia &&
-							window.matchMedia("(orientation: portrait)").matches;
-						var isTabletLike = isTouch || window.innerWidth <= 1280;
-						if (isTabletLike || isPortrait) {
-							document.documentElement.style.fontSize = "";
-							return;
-						}
-						var targetWidth = pageScaling.targetWidth || 2000;
-						var currentWidth = document.documentElement.clientWidth;
-						var scale = currentWidth / targetWidth;
-						if (scale > 1) scale = 1;
-						if (scale < 0.85) scale = 0.85;
-						document.documentElement.style.fontSize = (scale * 100) + "%";
-					}
+			// 壁纸模式 — 首屏前写入 html data 属性，CSS 驱动布局（避免 CLS）
+			var wallpaperMode =
+				localStorage.getItem("wallpaperMode") || defaultWallpaperMode;
+			if (
+				wallpaperMode !== "banner" &&
+				wallpaperMode !== "fullscreen" &&
+				wallpaperMode !== "none"
+			) {
+				wallpaperMode = defaultWallpaperMode;
+			}
+			document.documentElement.setAttribute(
+				"data-wallpaper-mode",
+				wallpaperMode,
+			);
 
-					function initPageScaling() {
-						adjustPageScale();
-						window.addEventListener('resize', adjustPageScale);
-						window.addEventListener('orientationchange', adjustPageScale);
-						if (window.swup?.hooks) {
-							window.swup.hooks.on('visit:end', () => {
-								requestAnimationFrame(() => adjustPageScale());
-							});
-						} else {
-							document.addEventListener('swup:enable', () => {
-								window.swup?.hooks?.on('visit:end', () => {
-									requestAnimationFrame(() => adjustPageScale());
-								});
-							});
-						}
-					}
+			// 文章列表布局 — allowSwitch 关闭时忽略 localStorage 陈旧值
+			var postListLayout = defaultPostListLayout;
+			if (allowPostListSwitch) {
+				postListLayout =
+					localStorage.getItem("postListLayout") ||
+					defaultPostListLayout;
+			}
+			if (postListLayout !== "grid" && postListLayout !== "list") {
+				postListLayout = defaultPostListLayout;
+			}
+			document.documentElement.setAttribute(
+				"data-post-list-layout",
+				postListLayout,
+			);
 
-					// 延迟执行页面缩放，不阻塞首屏渲染
-					if ('requestIdleCallback' in window) {
-						requestIdleCallback(initPageScaling, { timeout: 2000 });
-					} else {
-						setTimeout(initPageScaling, 200);
+			// pageScaling — 同步 inline 设置（优先级高于 md:text-[16px]），避免 CLS
+			(function () {
+				if (!pageScaling || !pageScaling.enable) return;
+
+				function adjustPageScale() {
+					var isTouch =
+						(window.matchMedia &&
+							(window.matchMedia("(pointer:coarse)").matches ||
+								window.matchMedia("(hover: none)").matches)) ||
+						"ontouchstart" in window;
+					var isPortrait =
+						window.matchMedia &&
+						window.matchMedia("(orientation: portrait)").matches;
+					var isTabletLike = isTouch || window.innerWidth <= 1280;
+					if (isTabletLike || isPortrait) {
+						document.documentElement.style.fontSize = "";
+						return;
 					}
+					var targetWidth = pageScaling.targetWidth || 2000;
+					var currentWidth = document.documentElement.clientWidth;
+					var scale = currentWidth / targetWidth;
+					if (scale > 1) scale = 1;
+					if (scale < 0.85) scale = 0.85;
+					document.documentElement.style.fontSize = scale * 100 + "%";
+				}
+
+				adjustPageScale();
+				window.addEventListener("resize", adjustPageScale);
+				window.addEventListener("orientationchange", adjustPageScale);
+				if (window.swup && window.swup.hooks) {
+					window.swup.hooks.on("visit:end", function () {
+						requestAnimationFrame(adjustPageScale);
+					});
+				} else {
+					document.addEventListener("swup:enable", function () {
+						window.swup &&
+							window.swup.hooks &&
+							window.swup.hooks.on("visit:end", function () {
+								requestAnimationFrame(adjustPageScale);
+							});
+					});
 				}
 			})();
 		</script>
@@ -469,11 +497,37 @@ if (siteConfig.font) {
 	</head>
 	<body
 		class="min-h-screen"
-		class:list={[
-			{ "lg:is-home": isHomePage, "enable-banner": enableBanner },
-		]}
+		class:list={[{ "lg:is-home": isHomePage }]}
 		data-overlayscrollbars-initialize
 	>
+		<script is:inline>
+			(function () {
+				var mode =
+					document.documentElement.getAttribute(
+						"data-wallpaper-mode",
+					) || "banner";
+				var body = document.body;
+				body.classList.remove(
+					"enable-banner",
+					"wallpaper-transparent",
+					"no-banner-mode",
+				);
+				switch (mode) {
+					case "banner":
+						body.classList.add("enable-banner");
+						break;
+					case "fullscreen":
+						body.classList.add(
+							"wallpaper-transparent",
+							"no-banner-mode",
+						);
+						break;
+					case "none":
+						body.classList.add("no-banner-mode");
+						break;
+				}
+			})();
+		</script>
 		<noscript
 			><iframe
 				src="https://www.googletagmanager.com/ns.html?id=GTM-KRX3XGVH"
