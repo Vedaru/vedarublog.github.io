@@ -20,7 +20,7 @@ if (commentConfig?.enable && commentConfig?.twikoo) {
 }
 ---
 {commentConfig?.enable && (
-  <div class="card-base p-6 mb-4">
+  <div class="card-base comment-card p-6 mb-4">
     {commentService === 'twikoo' && <Twikoo path={path} />}
     {commentService === '' && null}
   </div>

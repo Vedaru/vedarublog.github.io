@@ -1,91 +1,18 @@
 ---
 import { commentConfig } from "@/config";
+import "../../styles/twikoo.css";
 
 interface Props {
 	path: string;
 }
 
-const config = {
-	...commentConfig.twikoo,
-	el: "#tcomment",
-	path: Astro.props.path,
-};
+const twikooOptions = commentConfig.twikoo;
 ---
 
-<div id="tcomment"></div>
-<script is:inline src="/scroll-protection.js"></script>
-<script is:inline src="/assets/js/twikoo.all.min.js"></script>
-<script is:inline define:vars={{ config }}>
-  // 获取当前页面路径
-  function getCurrentPath() {
-    const pathname = window.location.pathname;
-    return pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname;
-  }
-  
-  // 动态创建配置对象
-  function createTwikooConfig() {
-    return {
-      ...config,
-      path: getCurrentPath(),
-      el: '#tcomment'
-    };
-  }
-  
-  // 初始化 Twikoo（带重试上限与友好失败提示）
-  let twikooAttempts = 0;
-  const TWIKOO_MAX_ATTEMPTS = 6;
-  function initTwikoo() {
-    const commentEl = document.getElementById('tcomment');
-    if (!commentEl) return;
-
-    if (typeof twikoo !== 'undefined') {
-      commentEl.innerHTML = '';
-
-      const dynamicConfig = createTwikooConfig();
-      console.log('[Twikoo] 初始化配置:', dynamicConfig);
-
-      twikoo.init(dynamicConfig).then(() => {
-        console.log('[Twikoo] 初始化完成');
-      }).catch((error) => {
-        console.error('[Twikoo] 初始化失败:', error);
-        commentEl.innerHTML = '<div class="twikoo-error">评论加载失败，请稍后再试。</div>';
-      });
-    } else {
-      // 如果 Twikoo 未加载，有限次重试后给出提示
-      twikooAttempts++;
-      if (twikooAttempts < TWIKOO_MAX_ATTEMPTS) {
-        setTimeout(initTwikoo, 500);
-      } else {
-        console.warn('[Twikoo] Twikoo 脚本未加载，放弃初始化');
-        commentEl.innerHTML = '<div class="twikoo-error">评论服务不可用。</div>';
-      }
-    }
-  }
-  
-  // 页面加载时初始化
-  document.addEventListener('DOMContentLoaded', initTwikoo);
-  
-  // Swup 页面切换后重新初始化
-  if (window.swup && window.swup.hooks) {
-    window.swup.hooks.on('content:replace', function() {
-      setTimeout(initTwikoo, 200);
-    });
-  } else {
-    document.addEventListener('swup:enable', function() {
-      if (window.swup && window.swup.hooks) {
-        window.swup.hooks.on('content:replace', function() {
-          setTimeout(initTwikoo, 200);
-        });
-      }
-    });
-  }
-  
-  // 自定义事件监听
-  document.addEventListener('mizuki:page:loaded', function() {
-    const commentEl = document.getElementById('tcomment');
-    if (commentEl) {
-      console.log('[Twikoo] 通过自定义事件重新初始化');
-      initTwikoo();
-    }
-  });
-</script>
+<div
+	id="tcomment"
+	class="twikoo-root"
+	data-twikoo-env={twikooOptions?.envId}
+	data-twikoo-lang={twikooOptions?.lang ?? "zh-CN"}
+	data-twikoo-path={Astro.props.path}
+></div>

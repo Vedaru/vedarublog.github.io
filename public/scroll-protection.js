@@ -289,16 +289,24 @@
 
 	// 开始监听 DOM 变化 - 仅观察 #tcomment 而非整个 body
 	function startObserver() {
-		var tcommentEl = document.querySelector("#tcomment");
-		if (tcommentEl) {
-			observer.observe(tcommentEl, {
-				childList: true,
-				subtree: true,
-				attributes: true,
-				attributeFilter: ["style"],
-			});
+		if (observerTarget) {
+			observer.disconnect();
+			observerTarget = null;
 		}
+
+		const tcommentEl = document.querySelector("#tcomment");
+		if (!tcommentEl) return;
+
+		observerTarget = tcommentEl;
+		observer.observe(tcommentEl, {
+			childList: true,
+			subtree: true,
+			attributes: true,
+			attributeFilter: ["style"],
+		});
 	}
+
+	let observerTarget = null;
 
 	if (document.body) {
 		startObserver();
@@ -306,9 +314,14 @@
 		document.addEventListener("DOMContentLoaded", startObserver);
 	}
 
+	document.addEventListener("swup:enable", () => {
+		setTimeout(startObserver, 200);
+	});
+
 	// 提供全局接口
 	window.scrollProtectionManager = {
 		enable: enableScrollProtection,
+		observeTwikoo: startObserver,
 		disable: () => {
 			scrollProtection.enabled = false;
 			if (scrollProtection.timeout) {

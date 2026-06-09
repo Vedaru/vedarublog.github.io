@@ -154,8 +154,70 @@ html.dark {
 /* by @SirTamago 
 Make the emoji component display correctly when there are too many emoji packs
 */
-.card-base {
-  overflow: visible;
+.comment-card {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+#tcomment,
+.twikoo-root {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+#tcomment.twikoo-ready .twikoo,
+#tcomment .tk-comments {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.twikoo-loading,
+.twikoo-error {
+  @apply text-sm text-black/60 dark:text-white/60 py-4 text-center;
+}
+
+.twikoo-error-state {
+  min-height: 3rem;
+}
+
+/* 评论内容内长代码/图片不撑破容器 */
+.tk-content,
+.tk-preview-container,
+.tk-preview {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.tk-content pre,
+.tk-preview pre,
+.twikoo .code-block pre {
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.tk-content img:not([class*="owo"]),
+.tk-preview img:not([class*="owo"]) {
+  max-width: 100%;
+  height: auto;
+}
+
+.tk-row,
+.tk-meta-input,
+.tk-input,
+.tk-submit-wrapper {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.tk-meta-input .el-input-group,
+.tk-meta-input input {
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* 防止 Twikoo 操作时的意外滚动 */
