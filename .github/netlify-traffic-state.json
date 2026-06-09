@@ -1,8 +1,8 @@
 {
-  "checkedAt": "2026-06-09T04:46:48.036Z",
+  "checkedAt": "2026-06-09T04:52:08.245Z",
   "currentMode": "netlify",
   "targetMode": "cloudflare",
-  "reason": "credits low (remaining≈-60 ≤ reserve 45)",
+  "reason": "credits low (remaining≈-90 ≤ reserve 45)",
   "wwwFqdn": "www.vedaru.cn",
   "currentRecord": "A 75.2.60.5",
   "targetRecord": "CNAME vedarublog-github-io.pages.dev",
