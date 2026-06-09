@@ -33,6 +33,8 @@ declare global {
 		initLastModifiedPage?: () => void;
 		__twikooInitBootstrapped?: boolean;
 		initTwikooPage?: () => void;
+		__archiveFilterBootstrapped?: boolean;
+		initArchiveFilter?: () => void;
 		scrollProtectionManager?: {
 			observeTwikoo?: () => void;
 		};

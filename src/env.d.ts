@@ -3,6 +3,7 @@
 
 interface ImportMetaEnv {
 	readonly UMAMI_API_KEY?: string;
+	readonly PUBLIC_SITE_BUILD_ID?: string;
 }
 
 interface ImportMeta {

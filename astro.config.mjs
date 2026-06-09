@@ -28,6 +28,11 @@ import { remarkMermaid } from "./src/plugins/remark-mermaid.js";
 import { remarkContent } from "./src/plugins/remark-content.mjs";
 import { rehypeImageWidth } from "./src/plugins/rehype-image-width.mjs";
 
+const SITE_BUILD_ID =
+	process.env.CF_PAGES_COMMIT_SHA ||
+	process.env.GITHUB_SHA ||
+	String(Date.now());
+
 // https://astro.build/config
 export default defineConfig({
 	site: siteConfig.siteURL,
@@ -188,9 +193,14 @@ export default defineConfig({
 		],
 	},
 	vite: {
+		define: {
+			"import.meta.env.PUBLIC_SITE_BUILD_ID": JSON.stringify(SITE_BUILD_ID),
+		},
 		build: {
 			// 静态资源处理优化，防止小图片转 base64 导致 HTML 体积过大（可选，根据需要调整）
 			assetsInlineLimit: 4096,
+			// 减少 modulepreload 与 script 的 credentials mode 不一致警告
+			modulePreload: { polyfill: false },
 
 			rollupOptions: {
 				onwarn(warning, warn) {

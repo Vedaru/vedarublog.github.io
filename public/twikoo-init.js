@@ -8,15 +8,25 @@ if (window.__twikooInitBootstrapped) {
 	let debounceTimer = null;
 	let initRunning = false;
 	let lastInitPath = "";
+	let initGeneration = 0;
 	let swupListenersRegistered = false;
 
 	const TWIKOO_SCRIPT = "/assets/js/twikoo.all.min.js";
+
+	function getNavDelay() {
+		return window.matchMedia("(max-width: 768px)").matches ? 220 : 100;
+	}
 
 	function getCurrentPath() {
 		const pathname = window.location.pathname;
 		return pathname.endsWith("/") && pathname.length > 1
 			? pathname.slice(0, -1)
 			: pathname;
+	}
+
+	function getTwikooPath() {
+		const el = document.getElementById("tcomment");
+		return el?.dataset.twikooPath || getCurrentPath();
 	}
 
 	function getTwikooConfig() {
@@ -27,7 +37,7 @@ if (window.__twikooInitBootstrapped) {
 			envId: el.dataset.twikooEnv,
 			lang: el.dataset.twikooLang || "zh-CN",
 			el: "#tcomment",
-			path: getCurrentPath(),
+			path: getTwikooPath(),
 		};
 	}
 
@@ -91,51 +101,95 @@ if (window.__twikooInitBootstrapped) {
 	function isTwikooRendered(commentEl) {
 		return Boolean(
 			commentEl.querySelector(
-				".twikoo .tk-meta-input, .twikoo .tk-input, .twikoo .tk-comments",
+				".twikoo .tk-input, .twikoo .tk-meta-input, .twikoo .tk-comments, .twikoo .tk-submit",
 			),
 		);
 	}
 
-	async function runTwikooInit() {
-		const commentEl = document.getElementById("tcomment");
-		if (!commentEl) return;
+	function prepareTwikooContainer(commentEl) {
+		commentEl.classList.remove("twikoo-ready", "twikoo-error-state");
+		if (commentEl.querySelector(".twikoo")) {
+			commentEl.innerHTML = "";
+		} else if (!commentEl.querySelector(".twikoo-loading")) {
+			showTwikooLoading(commentEl);
+		}
+	}
 
-		const path = getCurrentPath();
+	function isStaleInit(generation) {
+		return generation !== initGeneration;
+	}
+
+	function abortIfStale(generation, commentEl) {
+		if (!isStaleInit(generation)) return false;
+		if (commentEl?.isConnected && !commentEl.querySelector(".twikoo")) {
+			showTwikooLoading(commentEl);
+		}
+		return true;
+	}
+
+	async function runTwikooInit(retryCount = 0) {
+		const generation = initGeneration;
+		const commentEl = document.getElementById("tcomment");
+		if (!commentEl || !commentEl.isConnected) return;
+
+		const path = getTwikooPath();
 		const config = getTwikooConfig();
 		if (!config) return;
 
-		if (path === lastInitPath && isTwikooRendered(commentEl)) {
-			commentEl.classList.add("twikoo-ready");
+		if (
+			path === lastInitPath &&
+			commentEl.classList.contains("twikoo-ready") &&
+			isTwikooRendered(commentEl)
+		) {
 			return;
 		}
 
-		if (initRunning) return;
+		if (initRunning) {
+			scheduleTwikooInit(120);
+			return;
+		}
+
 		initRunning = true;
 		lastInitPath = path;
 
 		try {
-			showTwikooLoading(commentEl);
+			prepareTwikooContainer(commentEl);
+			if (abortIfStale(generation, commentEl)) return;
 
 			const scriptReady = await ensureTwikooScript();
+			if (abortIfStale(generation, commentEl)) return;
+
 			if (!scriptReady || !isTwikooScriptReady()) {
 				showTwikooError(commentEl, "评论服务不可用。");
 				return;
 			}
 
-			commentEl.innerHTML = "";
-			commentEl.classList.remove("twikoo-error-state", "twikoo-ready");
+			// 仅清除旧实例，保留 loading 占位，避免空白卡片
+			if (commentEl.querySelector(".twikoo")) {
+				commentEl.innerHTML = "";
+			}
+			if (abortIfStale(generation, commentEl)) return;
 
 			await Promise.resolve(
-				twikoo.init({ ...config, path: getCurrentPath() }),
+				twikoo.init({ ...config, path: getTwikooPath() }),
 			);
 
-			const deadline = Date.now() + 5000;
+			const deadline = Date.now() + 10000;
 			while (Date.now() < deadline) {
+				if (abortIfStale(generation, commentEl)) return;
 				if (isTwikooRendered(commentEl)) break;
 				await new Promise((r) => setTimeout(r, 100));
 			}
 
-			if (!commentEl.querySelector(".twikoo")) {
+			if (abortIfStale(generation, commentEl)) return;
+
+			if (!isTwikooRendered(commentEl)) {
+				if (retryCount < 1) {
+					lastInitPath = "";
+					initRunning = false;
+					setTimeout(() => runTwikooInit(retryCount + 1), 200);
+					return;
+				}
 				showTwikooError(commentEl, "评论加载失败，请稍后再试。");
 				return;
 			}
@@ -143,17 +197,24 @@ if (window.__twikooInitBootstrapped) {
 			commentEl.classList.add("twikoo-ready");
 			window.scrollProtectionManager?.observeTwikoo?.();
 		} catch (error) {
+			if (abortIfStale(generation, commentEl)) return;
 			console.error("[Twikoo] 初始化失败:", error);
+			if (retryCount < 1) {
+				lastInitPath = "";
+				initRunning = false;
+				setTimeout(() => runTwikooInit(retryCount + 1), 200);
+				return;
+			}
 			showTwikooError(commentEl, "评论加载失败，请稍后再试。");
 		} finally {
 			initRunning = false;
 		}
 	}
 
-	function scheduleTwikooInit(delay = 80) {
+	function scheduleTwikooInit(delay = getNavDelay()) {
 		if (!document.getElementById("tcomment")) return;
 		clearTimeout(debounceTimer);
-		debounceTimer = setTimeout(runTwikooInit, delay);
+		debounceTimer = setTimeout(() => runTwikooInit(0), delay);
 	}
 
 	function registerTwikooSwupListeners() {
@@ -162,41 +223,42 @@ if (window.__twikooInitBootstrapped) {
 
 		window.swup.hooks.on("visit:start", () => {
 			clearTimeout(debounceTimer);
+			initGeneration += 1;
+			initRunning = false;
+			lastInitPath = "";
 		});
 
 		window.swup.hooks.on("content:replace", () => {
-			lastInitPath = "";
-			scheduleTwikooInit(120);
+			scheduleTwikooInit(getNavDelay());
 		});
 
-		window.swup.hooks.on("page:view", () => scheduleTwikooInit(150));
-		window.swup.hooks.on("animation:in:end", () => scheduleTwikooInit(100));
-	}
-
-	function observeSwupContainer() {
-		const root =
-			document.getElementById("swup-container") ||
-			document.getElementById("content-wrapper") ||
-			document.body;
-
-		const observer = new MutationObserver(() => {
-			if (document.getElementById("tcomment")) {
-				scheduleTwikooInit(80);
-			}
-		});
-
-		observer.observe(root, { childList: true, subtree: true });
+		window.swup.hooks.on("page:view", () => scheduleTwikooInit(getNavDelay() + 80));
+		window.swup.hooks.on("animation:in:end", () =>
+			scheduleTwikooInit(getNavDelay()),
+		);
+		window.swup.hooks.on("visit:end", () =>
+			scheduleTwikooInit(getNavDelay() + 120),
+		);
 	}
 
 	function bootstrapTwikoo() {
 		registerTwikooSwupListeners();
-		observeSwupContainer();
 		scheduleTwikooInit(0);
 	}
 
-	window.initTwikooPage = () => scheduleTwikooInit(0);
+	window.initTwikooPage = () => scheduleTwikooInit(getNavDelay());
 
 	document.addEventListener("swup:enable", registerTwikooSwupListeners);
+	document.addEventListener("mizuki:page:loaded", () =>
+		scheduleTwikooInit(getNavDelay()),
+	);
+	window.addEventListener("pageshow", (event) => {
+		if (event.persisted) {
+			initGeneration += 1;
+			lastInitPath = "";
+			scheduleTwikooInit(0);
+		}
+	});
 
 	if (document.readyState === "loading") {
 		document.addEventListener("DOMContentLoaded", bootstrapTwikoo);

@@ -220,6 +220,10 @@ if (siteConfig.font) {
 
 		<title>{pageTitle}</title>
 		<meta charset="UTF-8" />
+		<meta
+			name="site-build-id"
+			content={import.meta.env.PUBLIC_SITE_BUILD_ID}
+		/>
 		<meta name="description" content={description || pageTitle} />
 		{
 			siteConfig.keywords && siteConfig.keywords.length > 0 && (
@@ -898,7 +902,50 @@ function disableAnimation() {
 	}
 
 	let fancyboxSelectors: string[] = [];
-	let Fancybox: any;
+	let Fancybox: any = null;
+
+	const DYNAMIC_STYLE_PATTERN = /\/_astro\/.*(fancybox|katex|fancybox-custom)/i;
+
+	function removeViteInjectedStyles() {
+		document
+			.querySelectorAll('link[rel="stylesheet"][href*="/_astro/"]')
+			.forEach((link) => {
+				const href = link.getAttribute("href") || "";
+				if (DYNAMIC_STYLE_PATTERN.test(href)) {
+					link.remove();
+				}
+			});
+	}
+
+	function invalidateSwupCacheIfStale() {
+		const buildId = document
+			.querySelector('meta[name="site-build-id"]')
+			?.getAttribute("content");
+		if (!buildId || !window.swup?.cache?.clear) return;
+
+		const storageKey = "vedaru-swup-build-id";
+		const previous = sessionStorage.getItem(storageKey);
+		if (previous && previous !== buildId) {
+			window.swup.cache.clear();
+		}
+		sessionStorage.setItem(storageKey, buildId);
+	}
+
+	function attachStylesheetErrorGuard() {
+		document
+			.querySelectorAll('link[rel="stylesheet"][href*="/_astro/"]')
+			.forEach((link) => {
+				if ((link as HTMLElement).dataset.staleGuard === "1") return;
+				(link as HTMLElement).dataset.staleGuard = "1";
+				link.addEventListener(
+					"error",
+					() => {
+						link.remove();
+					},
+					{ once: true },
+				);
+			});
+	}
 
 	// 数学公式按需加载
 	function checkKatex() {
@@ -995,16 +1042,22 @@ function disableAnimation() {
 		fancyboxSelectors.push(singleFancyboxSelector);
 	}
 
-	// 清理 Fancybox 实例
+	// 清理 Fancybox 实例与动态注入的样式
 	function cleanupFancybox() {
-		if (!Fancybox) return; // 如果从未加载过，无需清理
-		fancyboxSelectors.forEach((selector) => {
-			Fancybox.unbind(selector);
-		});
+		if (Fancybox) {
+			fancyboxSelectors.forEach((selector) => {
+				Fancybox.unbind(selector);
+			});
+		}
 		fancyboxSelectors = [];
+		Fancybox = null;
+		removeViteInjectedStyles();
 	}
 
 	const setup = () => {
+		invalidateSwupCacheIfStale();
+		attachStylesheetErrorGuard();
+
 		// TODO: temp solution to change the height of the banner
 		/*
     window.swup.hooks.on('animation:out:start', () => {
@@ -1038,6 +1091,11 @@ function disableAnimation() {
 		});
 
 		window.swup.hooks.on("content:replace", () => {
+			attachStylesheetErrorGuard();
+			window.initLastModifiedPage?.();
+			window.initTwikooPage?.();
+			window.initArchiveFilter?.();
+
 			// 初始化新页面的图片、公式、滚动条和TOC
 			initFancybox();
 			checkKatex();

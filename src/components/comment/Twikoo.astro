@@ -14,4 +14,6 @@ const twikooOptions = commentConfig.twikoo;
 	data-twikoo-env={twikooOptions?.envId}
 	data-twikoo-lang={twikooOptions?.lang ?? "zh-CN"}
 	data-twikoo-path={Astro.props.path}
-></div>
+>
+	<div class="twikoo-loading" aria-busy="true">加载评论中…</div>
+</div>
