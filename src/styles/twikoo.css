@@ -168,23 +168,6 @@ Make the emoji component display correctly when there are too many emoji packs
   overflow-x: clip;
 }
 
-/* Swup 跳入文章页时，Twikoo 渲染完成前隐藏未样式化 UI */
-#tcomment:not(.twikoo-ready) .twikoo,
-#tcomment:not(.twikoo-ready) .el-loading-mask,
-#tcomment:not(.twikoo-ready) .el-loading-spinner {
-  opacity: 0 !important;
-  visibility: hidden !important;
-  pointer-events: none;
-}
-
-#tcomment .twikoo {
-  transition: opacity 0.2s ease;
-}
-
-#tcomment.twikoo-ready .twikoo {
-  opacity: 1;
-}
-
 #tcomment.twikoo-ready .twikoo,
 #tcomment .tk-comments {
   min-width: 0;
