@@ -7,8 +7,8 @@
 # 3. 公网 DNS（如 www.vedaru.cn）CNAME 指向 Netlify 站点
 
 [build]
-  # 代理模式无需安装 Astro 依赖，跳过 pnpm install 加速部署
-  install = "true"
+  # 仅代理配置变更时才 deploy（见 scripts/netlify-should-build.mjs），每次可省 15 credits
+  ignore = "node scripts/netlify-should-build.mjs"
   command = "node scripts/netlify-proxy-build.js"
   publish = "dist"
 

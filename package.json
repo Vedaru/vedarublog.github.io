@@ -21,7 +21,8 @@
 		"lint": "eslint ./src --fix",
 		"preinstall": "npx only-allow pnpm",
 		"compress-fonts": "node scripts/compress-fonts.js",
-		"test-font-compression": "node scripts/test-font-compression.js"
+		"test-font-compression": "node scripts/test-font-compression.js",
+		"netlify-traffic": "node scripts/netlify-traffic-switch.mjs"
 	},
 	"dependencies": {
 		"@astrojs/check": "^0.9.6",

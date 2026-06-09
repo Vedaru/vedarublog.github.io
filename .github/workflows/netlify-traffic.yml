@@ -1,0 +1,69 @@
+name: Netlify Traffic Switch
+
+on:
+  schedule:
+    # 每 6 小时检查 credits / 可用性，必要时切到 CF 直连
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Traffic mode override"
+        required: false
+        default: "auto"
+        type: choice
+        options:
+          - auto
+          - netlify
+          - cloudflare
+      dry_run:
+        description: "Dry run (no DNS changes)"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  switch-traffic:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run traffic switch
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          NETLIFY_CNAME_TARGET: ${{ secrets.NETLIFY_CNAME_TARGET }}
+          CF_PAGES_CNAME: vedarublog-github-io.pages.dev
+          SITE_DOMAIN: vedaru.cn
+          NETLIFY_MONTHLY_CREDITS: "300"
+          NETLIFY_DEPLOY_CREDIT_COST: "15"
+          NETLIFY_CREDITS_RESERVE: "45"
+          NETLIFY_TRAFFIC_MODE: ${{ github.event.inputs.mode || 'auto' }}
+          DRY_RUN: ${{ github.event.inputs.dry_run && '1' || '' }}
+        run: node scripts/netlify-traffic-switch.mjs
+
+      - name: Commit traffic state (only when switched)
+        if: github.event.inputs.dry_run != true
+        run: |
+          if [ ! -f .github/netlify-traffic-state.json ]; then
+            echo "No state file update"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/netlify-traffic-state.json
+          if git diff --staged --quiet; then
+            exit 0
+          fi
+          git commit -m "chore: netlify traffic switched to CF fallback [skip netlify]"
+          git push
