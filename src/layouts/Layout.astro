@@ -26,6 +26,7 @@ import {
 import { defaultFavicons } from "../constants/icon";
 import type { Favicon } from "../types/config";
 import { pathsEqual, url } from "../utils/url-utils";
+import "../styles/main.css";
 import "../styles/mobile-navbar.css";
 import "../styles/wallpaper-navbar-transparent.css";
 import "../styles/expressive-code.css";
@@ -146,6 +147,8 @@ if (siteConfig.font) {
 		// 如果字体名包含空格，需要用引号包围
 		fonts.push(asciiFont.includes(" ") ? `"${asciiFont}"` : asciiFont);
 	}
+	// 再添加 CJK webfont（预加载，减少 swap CLS）
+	fonts.push('"Microsoft YaHei Web"');
 	// 再添加 CJK 字体（作为回退）
 	if (siteConfig.font.cjkFont?.fontFamily) {
 		const cjkFont = siteConfig.font.cjkFont.fontFamily;
@@ -279,6 +282,7 @@ if (siteConfig.font) {
 				DEFAULT_THEME,
 				LIGHT_MODE,
 				DARK_MODE,
+				BANNER_HEIGHT,
 				BANNER_HEIGHT_EXTEND,
 				PAGE_WIDTH,
 				configHue,
@@ -325,6 +329,14 @@ if (siteConfig.font) {
 			document.documentElement.style.setProperty(
 				"--banner-height-extend",
 				`${BANNER_HEIGHT_EXTEND}dvh`,
+			);
+			document.documentElement.style.setProperty(
+				"--banner-height-home",
+				`${BANNER_HEIGHT + BANNER_HEIGHT_EXTEND}vh`,
+			);
+			document.documentElement.style.setProperty(
+				"--banner-height",
+				`${BANNER_HEIGHT}vh`,
 			);
 
 			// 壁纸模式 — 首屏前写入 html data 属性，CSS 驱动布局（避免 CLS）
@@ -401,6 +413,70 @@ if (siteConfig.font) {
 				}
 			})();
 		</script>
+		<style is:global>
+			/* Critical layout — 与 data-wallpaper-mode 同步，避免首屏 banner/main 高度跳变 */
+			html[data-wallpaper-mode="banner"] .main-panel {
+				top: var(--banner-height, 35vh);
+			}
+			html[data-wallpaper-mode="banner"] #banner-wrapper {
+				display: block;
+				height: var(--banner-height-home, 65vh);
+			}
+			html[data-wallpaper-mode="fullscreen"] .main-panel,
+			html[data-wallpaper-mode="none"] .main-panel {
+				top: calc(5.5rem + 1rem);
+				min-height: calc(100vh - 6.5rem);
+			}
+			@media (max-width: 479px) {
+				html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
+					height: 70vh;
+					min-height: 450px;
+					top: 0;
+				}
+				html[data-wallpaper-mode="banner"] .main-panel:not(.mobile-main-no-banner) {
+					top: 70vh;
+					min-height: calc(100vh - 70vh);
+				}
+			}
+			@media (min-width: 480px) and (max-width: 767px) {
+				html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
+					height: 75vh;
+					min-height: 500px;
+					top: 0;
+				}
+				html[data-wallpaper-mode="banner"] .main-panel:not(.mobile-main-no-banner) {
+					top: 75vh;
+					min-height: calc(100vh - 75vh);
+				}
+			}
+			@media (min-width: 768px) and (max-width: 1279px) {
+				html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
+					height: 70vh;
+					min-height: 500px;
+					top: 0;
+				}
+				html[data-wallpaper-mode="banner"] .main-panel:not(.mobile-main-no-banner) {
+					top: 70vh;
+					min-height: calc(100vh - 70vh);
+				}
+			}
+			@media (min-width: 1280px) {
+				html[data-wallpaper-mode="banner"] .main-panel {
+					top: 35vh;
+				}
+				html[data-wallpaper-mode="banner"] body.enable-banner #top-row {
+					height: calc(var(--banner-height-home, 65vh) - 4.5rem);
+				}
+				html[data-wallpaper-mode="banner"] body.enable-banner.is-home #main-grid,
+				html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #main-grid {
+					transform: translateY(var(--banner-height-extend, 30dvh));
+				}
+			}
+			html[data-wallpaper-mode="fullscreen"] #main-grid,
+			html[data-wallpaper-mode="none"] #main-grid {
+				padding-top: 1rem;
+			}
+		</style>
 		<style
 			define:vars={{
 				configHue,
@@ -425,6 +501,13 @@ if (siteConfig.font) {
 		<link
 			rel="preload"
 			href="/assets/font/ZenMaruGothic-Medium.woff2"
+			as="font"
+			type="font/woff2"
+			crossorigin="anonymous"
+		/>
+		<link
+			rel="preload"
+			href="/assets/font/微软雅黑.woff2"
 			as="font"
 			type="font/woff2"
 			crossorigin="anonymous"
@@ -497,7 +580,7 @@ if (siteConfig.font) {
 	</head>
 	<body
 		class="min-h-screen"
-		class:list={[{ "lg:is-home": isHomePage }]}
+		class:list={[{ "lg:is-home": isHomePage, "is-home": isHomePage }]}
 		data-overlayscrollbars-initialize
 	>
 		<script is:inline>
@@ -548,8 +631,8 @@ if (siteConfig.font) {
 		<!-- Pio 看板娘组件 - 仅在启用时加载 -->
 		{pioConfig.enable && <Pio client:idle />}
 
-		<!-- increase the page height during page transition to prevent the scrolling animation from jumping -->
-		<div id="page-height-extend" class="hidden h-[300vh]"></div>
+		<!-- Swup 换页滚动锁占位（不参与文档流，避免 300vh 撑高引发 CLS） -->
+		<div id="page-height-extend" aria-hidden="true"></div>
 	</body>
 </html>
 
@@ -991,14 +1074,17 @@ function disableAnimation() {
 				"0ms",
 			);
 
-			// 简化navbar处理逻辑
+			// 深滚动换页由 pre-scroll 按帧同步 navbar；此处仅处理浅滚动场景
 			if (bannerEnabled) {
-				const navbar = document.getElementById("navbar-wrapper");
-				if (navbar && document.body.classList.contains("lg:is-home")) {
-					const threshold =
-						window.innerHeight * (BANNER_HEIGHT / 100) - 88;
-					if (document.documentElement.scrollTop >= threshold) {
-						navbar.classList.add("navbar-hidden");
+				const scrollY = document.documentElement.scrollTop;
+				if (scrollY <= 80) {
+					const navbar = document.getElementById("navbar-wrapper");
+					if (navbar && document.body.classList.contains("lg:is-home")) {
+						const threshold =
+							window.innerHeight * (BANNER_HEIGHT / 100) - 88;
+						if (scrollY >= threshold) {
+							navbar.classList.add("navbar-hidden");
+						}
 					}
 				}
 			}
@@ -1009,6 +1095,13 @@ function disableAnimation() {
 			window.initLastModifiedPage?.();
 			window.initTwikooPage?.();
 			window.initArchiveFilter?.();
+
+			if (
+				window.__homePreScrollWasUsed &&
+				(window as any).__pendingVisitBodyLayout
+			) {
+				flushPendingVisitBodyLayout();
+			}
 		});
 
 		let deferredPageInitTimer: ReturnType<typeof setTimeout> | undefined;
@@ -1043,7 +1136,8 @@ function disableAnimation() {
 					if (
 						transparentMode === "semifull" &&
 						typeof (window as any).initSemifullScrollDetection ===
-							"function"
+							"function" &&
+						!(window as any).__suppressSemifullNavbarReinit
 					) {
 						(window as any).initSemifullScrollDetection();
 					}
@@ -1053,19 +1147,17 @@ function disableAnimation() {
 
 		document.addEventListener("swup:transition-ready", runDeferredPageInits);
 
-		function applyVisitStartLayout(visit: { to: { url: string } }) {
-			// 处理 Banner class 和显示状态
+		function applyVisitBodyLayout(visit: { to: { url: string } }) {
 			const bodyElement = document.querySelector("body");
 			const isHomePage = pathsEqual(visit.to.url, url("/"));
 			if (bodyElement) {
 				if (isHomePage) {
-					bodyElement.classList.add("lg:is-home");
+					bodyElement.classList.add("lg:is-home", "is-home");
 				} else {
-					bodyElement.classList.remove("lg:is-home");
+					bodyElement.classList.remove("lg:is-home", "is-home");
 				}
 			}
 
-			// Control banner text visibility based on page
 			const bannerTextOverlay = document.querySelector(
 				".banner-text-overlay",
 			);
@@ -1077,25 +1169,6 @@ function disableAnimation() {
 				}
 			}
 
-			// Control navbar transparency based on page
-			const navbar = document.getElementById("navbar");
-			if (navbar) {
-				navbar.setAttribute("data-is-home", isHomePage.toString());
-				// 重新初始化semifull模式的滚动检测
-				const transparentMode = navbar.getAttribute(
-					"data-transparent-mode",
-				);
-				if (transparentMode === "semifull") {
-					if (
-						typeof (window as any)
-							.initSemifullScrollDetection === "function"
-					) {
-						(window as any).initSemifullScrollDetection();
-					}
-				}
-			}
-
-			// Control mobile banner visibility based on page with improved staging animation
 			const bannerWrapper = document.getElementById("banner-wrapper");
 			const mainContentWrapper = document.querySelector(
 				".absolute.w-full.z-30",
@@ -1114,11 +1187,61 @@ function disableAnimation() {
 					);
 				}
 			}
+		}
 
-			// 已从首页滚回顶部时无需垫高页面，避免 300vh 撑高引发滚动卡顿
-			const heightExtend = document.getElementById("page-height-extend");
-			if (heightExtend && !window.__homePreScrollWasUsed) {
-				heightExtend.classList.remove("hidden");
+		function flushPendingVisitBodyLayout() {
+			const visit = (window as any).__pendingVisitBodyLayout as
+				| { to: { url: string } }
+				| undefined;
+			if (!visit) return;
+
+			(window as any).__pendingVisitBodyLayout = undefined;
+			window.__lockSwupScroll?.();
+			window.__pinPageScrollTop?.();
+			applyVisitBodyLayout(visit);
+			requestAnimationFrame(() => {
+				window.__pinPageScrollTop?.();
+				requestAnimationFrame(() => {
+					window.__pinPageScrollTop?.();
+				});
+			});
+		}
+
+		function applyVisitStartLayout(
+			visit: { to: { url: string } },
+			options?: { deferBodyLayout?: boolean },
+		) {
+			const isHomePage = pathsEqual(visit.to.url, url("/"));
+
+			if (options?.deferBodyLayout) {
+				(window as any).__pendingVisitBodyLayout = visit;
+			} else {
+				applyVisitBodyLayout(visit);
+				if (!window.__homePreScrollWasUsed) {
+					window.__lockSwupScrollAndPin?.();
+				}
+			}
+
+			// Control navbar transparency based on page
+			const navbar = document.getElementById("navbar");
+			if (navbar) {
+				navbar.setAttribute("data-is-home", isHomePage.toString());
+				const transparentMode = navbar.getAttribute(
+					"data-transparent-mode",
+				);
+				if (transparentMode === "semifull") {
+					if ((window as any).__suppressSemifullNavbarReinit) {
+						(window as any).applySemifullNavbarVisualState?.(
+							0,
+							isHomePage,
+						);
+					} else if (
+						typeof (window as any)
+							.initSemifullScrollDetection === "function"
+					) {
+						(window as any).initSemifullScrollDetection();
+					}
+				}
 			}
 
 			const navbarWrapper = document.getElementById("navbar-wrapper");
@@ -1133,12 +1256,15 @@ function disableAnimation() {
 		}
 
 		window.__applyVisitStartLayout = applyVisitStartLayout;
+		window.__flushPendingVisitBodyLayout = flushPendingVisitBodyLayout;
 
 		document.addEventListener(
 			"vedaru:home-pre-scroll-done",
 			((event: CustomEvent<{ visit: { to: { url: string } } }>) => {
 				if (event.detail?.visit) {
-					applyVisitStartLayout(event.detail.visit);
+					applyVisitStartLayout(event.detail.visit, {
+						deferBodyLayout: true,
+					});
 				}
 			}) as EventListener,
 		);
@@ -1149,7 +1275,7 @@ function disableAnimation() {
 				// 清理上一页的 Fancybox
 				cleanupFancybox();
 
-				// 首页先回顶：banner / 垫高页布局延至 home-pre-scroll 完成后再应用
+				// 预滚动 hook（priority -100）会先设置 __homePreScrollWasUsed
 				if (window.__homePreScrollWasUsed) {
 					const tocEarly = document.getElementById("toc-wrapper");
 					if (tocEarly) {
@@ -1160,27 +1286,19 @@ function disableAnimation() {
 
 				applyVisitStartLayout(visit);
 			},
+			{ priority: 0 },
 		);
 
 		window.swup.hooks.on("page:view", () => {
 			const hadHomePreScroll = !!window.__homePreScrollWasUsed;
 
 			if (hadHomePreScroll) {
+				if (window.__homePreScrollActive) {
+					return;
+				}
 				window.__pinPageScrollTop?.();
 			} else {
-				const heightExtend = document.getElementById("page-height-extend");
-				if (heightExtend) {
-					heightExtend.classList.add("hidden");
-				}
-
-				const currentScrollY =
-					window.scrollY || document.documentElement.scrollTop || 0;
-				if (currentScrollY > 8) {
-					window.scrollTo({
-						top: 0,
-						behavior: "instant",
-					});
-				}
+				window.__unlockSwupScroll?.();
 			}
 
 			// 同步主题状态 - 解决从首页进入文章页面时代码块渲染问题
@@ -1238,13 +1356,11 @@ function disableAnimation() {
 		});
 
 		window.swup.hooks.on("visit:end", (_visit: { to: { url: string } }) => {
+			(window as any).__pendingVisitBodyLayout = undefined;
+
 			setTimeout(() => {
 				if (!window.__homePreScrollWasUsed) {
-					const heightExtend =
-						document.getElementById("page-height-extend");
-					if (heightExtend) {
-						heightExtend.classList.add("hidden");
-					}
+					window.__unlockSwupScroll?.();
 				}
 
 				// Just make the transition looks better
@@ -1313,7 +1429,12 @@ function disableAnimation() {
 
 	function scrollFunction() {
 		if (
-			document.documentElement.classList.contains("is-home-pre-scrolling")
+			document.documentElement.classList.contains(
+				"is-home-pre-scrolling",
+			) ||
+			document.documentElement.classList.contains(
+				"is-visit-pre-scrolling",
+			)
 		) {
 			return;
 		}

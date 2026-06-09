@@ -37,7 +37,9 @@
 				stack.includes("TOC.astro") ||
 				stack.includes("MobileTOC") ||
 				stack.includes("FloatingTOC") ||
-				stack.includes("__smoothScrollToElement"))
+				stack.includes("__smoothScrollToElement") ||
+				stack.includes("__smoothScrollToTop") ||
+				stack.includes("__smoothScrollToY"))
 		) {
 			return true;
 		}
@@ -87,6 +89,11 @@
 	// 检查滚动是否被允许
 	function isScrollAllowed(x, y) {
 		if (!scrollProtection.enabled) {
+			return true;
+		}
+
+		// 换页预滚动 / 平滑回顶组件自行驱动 scrollTop
+		if (window.__homePreScrollActive) {
 			return true;
 		}
 

@@ -1,22 +1,34 @@
 /**
  * 首屏布局稳定样式 — 由 head 阻塞脚本设置的 html data 属性驱动，
  * 避免 SSR 与 localStorage 不一致导致 CLS。
+ * Banner / 主内容高度规则的唯一数据源。
  */
 
-/* 主内容 top — 替代 inline style + JS 改写 */
+/* 主内容 top — desktop banner 重叠布局 */
 html[data-wallpaper-mode="banner"] .main-panel {
   top: var(--banner-height, 35vh);
 }
 
 html[data-wallpaper-mode="fullscreen"] .main-panel,
 html[data-wallpaper-mode="none"] .main-panel {
-  top: 5.5rem;
-  min-height: calc(100vh - 5.5rem);
+  top: calc(5.5rem + 1rem);
+  min-height: calc(100vh - 6.5rem);
 }
 
-/* Banner / 全屏壁纸 visibility */
+/* mobile-main-no-banner 仅作用于移动端；桌面端非首页仍用 banner 重叠布局 (35vh) */
+@media (max-width: 1279px) {
+  html[data-wallpaper-mode="banner"] .main-panel.mobile-main-no-banner,
+  html[data-wallpaper-mode="fullscreen"] .main-panel.mobile-main-no-banner,
+  html[data-wallpaper-mode="none"] .main-panel.mobile-main-no-banner {
+    top: calc(5.5rem + 1rem) !important;
+    min-height: calc(100vh - 6.5rem) !important;
+  }
+}
+
+/* Banner 基础高度（与 Layout.astro enable-banner 一致） */
 html[data-wallpaper-mode="banner"] #banner-wrapper {
   display: block;
+  height: var(--banner-height-home, 65vh);
 }
 
 html[data-wallpaper-mode="fullscreen"] #banner-wrapper,
@@ -30,6 +42,139 @@ html[data-wallpaper-mode="none"] #banner-wrapper {
 
 html[data-wallpaper-mode="fullscreen"] [data-fullscreen-wallpaper] {
   display: block;
+}
+
+/* 桌面端 banner 模式主内容 + 首页 banner 重叠布局 */
+@media (min-width: 1280px) {
+  html[data-wallpaper-mode="banner"] body.enable-banner .main-panel {
+    top: 35vh !important;
+  }
+
+  html[data-wallpaper-mode="banner"] body.enable-banner #top-row {
+    height: calc(var(--banner-height-home, 65vh) - 4.5rem);
+  }
+
+  html[data-wallpaper-mode="banner"] body.enable-banner.is-home #banner-wrapper:not(.mobile-hide-banner),
+  html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #banner-wrapper:not(.mobile-hide-banner) {
+    transform: translateY(var(--banner-height-extend, 30dvh));
+  }
+
+  html[data-wallpaper-mode="banner"] body.enable-banner.is-home #main-grid,
+  html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #main-grid {
+    transform: translateY(var(--banner-height-extend, 30dvh));
+  }
+}
+
+/* 全屏 / 无壁纸：主内容区与 navbar 保留间距 */
+html[data-wallpaper-mode="fullscreen"] #main-grid,
+html[data-wallpaper-mode="none"] #main-grid {
+  padding-top: 1rem;
+}
+
+/* 小屏手机 (320px - 479px) */
+@media (max-width: 479px) {
+  html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
+    height: 70vh;
+    min-height: 450px;
+    max-height: none;
+    top: 0;
+  }
+
+  html[data-wallpaper-mode="banner"] .main-panel:not(.mobile-main-no-banner) {
+    top: 70vh;
+    min-height: calc(100vh - 70vh);
+  }
+}
+
+/* 大屏手机 (480px - 767px) */
+@media (min-width: 480px) and (max-width: 767px) {
+  html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
+    height: 75vh;
+    min-height: 500px;
+    max-height: none;
+    top: 0;
+  }
+
+  html[data-wallpaper-mode="banner"] .main-panel:not(.mobile-main-no-banner) {
+    top: 75vh;
+    min-height: calc(100vh - 75vh);
+  }
+}
+
+/* 平板 (768px - 1279px) */
+@media (min-width: 768px) and (max-width: 1279px) {
+  html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
+    height: 70vh;
+    min-height: 500px;
+    top: 0;
+  }
+
+  html[data-wallpaper-mode="banner"] .main-panel:not(.mobile-main-no-banner) {
+    top: 70vh;
+    min-height: calc(100vh - 70vh);
+  }
+}
+
+/* 移动端横屏 */
+@media (max-width: 1279px) and (orientation: landscape) {
+  html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
+    top: 0;
+    height: 60vh;
+  }
+
+  html[data-wallpaper-mode="banner"] .main-panel:not(.mobile-main-no-banner) {
+    top: 60vh;
+    min-height: calc(100vh - 60vh);
+  }
+}
+
+/* 极小高度屏幕 */
+@media (max-height: 500px) {
+  html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
+    height: 85vh;
+    min-height: 350px;
+  }
+
+  html[data-wallpaper-mode="banner"] .main-panel:not(.mobile-main-no-banner) {
+    top: 85vh;
+    min-height: calc(100vh - 85vh);
+  }
+}
+
+@media (min-height: 501px) and (max-height: 600px) {
+  html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
+    height: 80vh;
+    min-height: 400px;
+  }
+
+  html[data-wallpaper-mode="banner"] .main-panel:not(.mobile-main-no-banner) {
+    top: 80vh;
+    min-height: calc(100vh - 80vh);
+  }
+}
+
+@media (min-height: 601px) and (max-height: 700px) {
+  html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
+    height: 75vh;
+    min-height: 450px;
+  }
+
+  html[data-wallpaper-mode="banner"] .main-panel:not(.mobile-main-no-banner) {
+    top: 75vh;
+    min-height: calc(100vh - 75vh);
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
+    height: 90vh;
+    min-height: 300px;
+  }
+
+  html[data-wallpaper-mode="banner"] .main-panel:not(.mobile-main-no-banner) {
+    top: 90vh;
+    min-height: calc(100vh - 90vh);
+  }
 }
 
 /* Grid 模式侧栏 — 替代 JS 首屏 classList 改写 */

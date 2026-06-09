@@ -52,11 +52,7 @@
 
 	function settlePageLayoutBeforeResume(done) {
 		window.__pinPageScrollTop?.();
-
-		const heightExtend = document.getElementById("page-height-extend");
-		if (heightExtend) {
-			heightExtend.classList.add("hidden");
-		}
+		window.__unlockSwupScroll?.();
 
 		requestAnimationFrame(() => {
 			window.__pinPageScrollTop?.();

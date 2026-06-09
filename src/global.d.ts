@@ -21,6 +21,11 @@ declare global {
 
 		mobileTOCInit?: () => void;
 		initSemifullScrollDetection?: () => void;
+		applySemifullNavbarVisualState?: (
+			scrollTop: number,
+			isHomePage: boolean,
+		) => void;
+		__suppressSemifullNavbarReinit?: boolean;
 		iconifyLoaded?: boolean;
 		__iconifyLoader?: {
 			load: () => Promise<void>;
@@ -53,6 +58,7 @@ declare global {
 		__bannerDriftResume?: () => void;
 		__bannerDriftBootstrapped?: boolean;
 		__homePreScrollActive?: boolean;
+		__smoothScrollActive?: boolean;
 		__smoothScrollBootstrapped?: boolean;
 		__smoothScrollToY?: (targetY: number, duration?: number) => Promise<void>;
 		__smoothScrollToTop?: (
@@ -69,8 +75,16 @@ declare global {
 		__homePreScrollCompleted?: boolean;
 		__homePreScrollWasUsed?: boolean;
 		__shouldHomePreScroll?: (visit: { to?: { url?: string } }) => boolean;
-		__applyVisitStartLayout?: (visit: { to: { url: string } }) => void;
+		__applyVisitStartLayout?: (
+			visit: { to: { url: string } },
+			options?: { deferBodyLayout?: boolean },
+		) => void;
+		__flushPendingVisitBodyLayout?: () => void;
+		__pendingVisitBodyLayout?: { to: { url: string } };
 		__pinPageScrollTop?: () => void;
+		__lockSwupScroll?: () => void;
+		__lockSwupScrollAndPin?: () => void;
+		__unlockSwupScroll?: () => void;
 		__resetHomePreScrollState?: () => void;
 		__nativeScrollTo?: typeof window.scrollTo;
 		__nativeScrollBy?: typeof window.scrollBy;

@@ -24,6 +24,18 @@
   size-adjust: 100%;
 }
 
+/* 微软雅黑 webfont — 与 ZenMaru 度量对齐，减少 CJK 换字 CLS */
+@font-face {
+  font-family: "Microsoft YaHei Web";
+  src: url("/assets/font/微软雅黑.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+  ascent-override: 90%;
+  descent-override: 22%;
+  line-gap-override: 0%;
+  size-adjust: 100%;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

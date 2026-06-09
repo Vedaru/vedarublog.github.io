@@ -8,7 +8,10 @@ import { siteConfig } from "@/config";
 import type { LIGHT_DARK_MODE, WALLPAPER_MODE } from "@/types/config";
 
 export function getDefaultHue(): number {
-	const fallback = "250";
+	const fallback = String(siteConfig.themeColor?.hue ?? 250);
+	if (typeof document === "undefined") {
+		return Number.parseInt(fallback);
+	}
 	const configCarrier = document.getElementById("config-carrier");
 	// 在Swup页面切换时，config-carrier可能不存在，使用默认值
 	if (!configCarrier) {
@@ -18,6 +21,9 @@ export function getDefaultHue(): number {
 }
 
 export function getHue(): number {
+	if (typeof localStorage === "undefined") {
+		return getDefaultHue();
+	}
 	const stored = localStorage.getItem("hue");
 	return stored ? Number.parseInt(stored) : getDefaultHue();
 }
@@ -148,10 +154,16 @@ export function setTheme(theme: LIGHT_DARK_MODE): void {
 }
 
 export function getStoredTheme(): LIGHT_DARK_MODE {
+	if (typeof localStorage === "undefined") {
+		return DEFAULT_THEME;
+	}
 	return (localStorage.getItem("theme") as LIGHT_DARK_MODE) || DEFAULT_THEME;
 }
 
 export function getStoredWallpaperMode(): WALLPAPER_MODE {
+	if (typeof localStorage === "undefined") {
+		return siteConfig.wallpaperMode.defaultMode;
+	}
 	return (
 		(localStorage.getItem("wallpaperMode") as WALLPAPER_MODE) ||
 		siteConfig.wallpaperMode.defaultMode

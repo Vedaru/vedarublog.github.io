@@ -7,12 +7,19 @@
 	window.__smoothScrollBootstrapped = true;
 
 	function getScrollY() {
-		return window.scrollY || document.documentElement.scrollTop || 0;
+		return Math.max(
+			window.scrollY || 0,
+			document.documentElement.scrollTop || 0,
+			document.body.scrollTop || 0,
+		);
 	}
 
 	function setDocumentScrollTop(y) {
-		document.documentElement.scrollTop = y;
-		document.body.scrollTop = y;
+		const top = Math.max(0, y);
+		document.documentElement.scrollTop = top;
+		if (document.body && document.body.scrollTop !== top) {
+			document.body.scrollTop = top;
+		}
 	}
 
 	function easeOutCubic(t) {
@@ -25,7 +32,7 @@
 			: 1 - Math.pow(-2 * t + 2, 3) / 2;
 	}
 
-	function smoothScrollToY(targetY, duration, easingFn) {
+	function smoothScrollToY(targetY, duration, easingFn, onProgress) {
 		const resolvedDuration =
 			typeof duration === "number" && duration > 0 ? duration : 650;
 		const ease = typeof easingFn === "function" ? easingFn : easeOutCubic;
@@ -34,6 +41,9 @@
 
 		if (Math.abs(goalY - startY) <= 8) {
 			setDocumentScrollTop(goalY);
+			if (typeof onProgress === "function") {
+				onProgress(1, goalY);
+			}
 			return Promise.resolve();
 		}
 
@@ -42,10 +52,14 @@
 				window.matchMedia("(prefers-reduced-motion: reduce)").matches
 			) {
 				setDocumentScrollTop(goalY);
+				if (typeof onProgress === "function") {
+					onProgress(1, goalY);
+				}
 				resolve();
 				return;
 			}
 
+			window.__smoothScrollActive = true;
 			const startTime = performance.now();
 
 			const step = function (now) {
@@ -58,6 +72,9 @@
 				);
 
 				setDocumentScrollTop(nextY);
+				if (typeof onProgress === "function") {
+					onProgress(progress, nextY);
+				}
 
 				if (progress < 1) {
 					requestAnimationFrame(step);
@@ -65,6 +82,7 @@
 				}
 
 				setDocumentScrollTop(goalY);
+				window.__smoothScrollActive = false;
 				resolve();
 			};
 
@@ -72,8 +90,8 @@
 		});
 	}
 
-	function smoothScrollToTop(duration, easingFn) {
-		return smoothScrollToY(0, duration, easingFn);
+	function smoothScrollToTop(duration, easingFn, onProgress) {
+		return smoothScrollToY(0, duration, easingFn, onProgress);
 	}
 
 	function smoothScrollToElement(element, offset, duration) {
@@ -96,5 +114,20 @@
 	window.__easeInOutCubic = easeInOutCubic;
 	window.__pinPageScrollTop = function () {
 		setDocumentScrollTop(0);
+	};
+
+	/** 仅冻结 overflow，不改动 scrollTop（供预滚动动画使用） */
+	window.__lockSwupScroll = function () {
+		document.documentElement.classList.add("swup-scroll-lock");
+	};
+
+	/** 换页瞬间回顶 + 冻结（无预滚动、且已在顶部附近时使用） */
+	window.__lockSwupScrollAndPin = function () {
+		window.__pinPageScrollTop?.();
+		window.__lockSwupScroll();
+	};
+
+	window.__unlockSwupScroll = function () {
+		document.documentElement.classList.remove("swup-scroll-lock");
 	};
 })();

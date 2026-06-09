@@ -59,7 +59,10 @@ import { Icon } from "astro-icon/components";
 
 <script is:raw is:inline>
     function backToTop() {
-        // 直接使用原生滚动，避免OverlayScrollbars冲突
-        window.scroll({top: 0, behavior: 'smooth'});
+        if (typeof window.__smoothScrollToTop === 'function') {
+            window.__smoothScrollToTop(650);
+            return;
+        }
+        window.scroll({ top: 0, behavior: 'smooth' });
     }
 </script>

@@ -359,7 +359,11 @@ const transparentClass = shouldEnableTransparency
 			if (navbar) {
 				navbar.removeAttribute('data-dynamic-transparent');
 				navbar.setAttribute('data-transparent-mode', navbarTransparentMode);
-				if (navbarTransparentMode === 'semifull' && window.initSemifullScrollDetection) {
+				if (
+					navbarTransparentMode === 'semifull' &&
+					window.initSemifullScrollDetection &&
+					!window.__suppressSemifullNavbarReinit
+				) {
 					window.initSemifullScrollDetection();
 				}
 			}
@@ -513,7 +517,7 @@ const transparentClass = shouldEnableTransparency
 <!-- Navbar -->
 <slot slot="head" name="head"></slot>
 <div id="top-row" class="z-50 pointer-events-none relative transition-all duration-700 max-w-[var(--page-width)] px-0 md:px-4 mx-auto" class:list={[""]}>
-    <div id="navbar-wrapper" class="pointer-events-auto sticky top-0 transition-all">
+    <div id="navbar-wrapper" class="pointer-events-auto sticky top-0 transition-[opacity,background-color,box-shadow] duration-300">
         <Navbar></Navbar>
     </div>
 </div>
@@ -522,15 +526,17 @@ const transparentClass = shouldEnableTransparency
 <div id="banner-wrapper" class={`absolute z-10 w-full overflow-hidden ${mobileNonHomeBannerClass}`}>
 
     <!-- Banner 单图 -->
-    <div id="banner-single-container" class="relative h-full w-full">
+    <div id="banner-single-container" class="relative h-full w-full min-h-[inherit]">
         {singleDesktopBanner && (
             <div class="hidden md:block absolute inset-0">
                 <div class="banner-breathe-wrap h-full w-full overflow-hidden">
                     <img
                         id="banner"
                         alt="Desktop banner image of the blog"
-                        class="object-cover"
+                        class="object-cover w-full h-full"
                         src={url(singleDesktopBanner)}
+                        width={1920}
+                        height={1080}
                         style={`object-position: ${siteConfig.banner.position || "center"}`}
                         loading="eager"
                         fetchpriority="high"
@@ -543,8 +549,10 @@ const transparentClass = shouldEnableTransparency
                 <div class="banner-breathe-wrap h-full w-full overflow-hidden">
                     <img
                         alt="Mobile banner image of the blog"
-                        class="object-cover"
+                        class="object-cover w-full h-full"
                         src={url(singleMobileBanner)}
+                        width={1920}
+                        height={1080}
                         style={`object-position: ${siteConfig.banner.position || "center"}`}
                         loading="eager"
                         fetchpriority="high"
@@ -771,7 +779,7 @@ const transparentClass = shouldEnableTransparency
 
 /* 当没有 banner 时，主内容区域移到顶部 */
 body.no-banner-mode .absolute.w-full.z-30 {
-    top: 5.5rem !important;
+    top: calc(5.5rem + 1rem) !important;
 }
 
 /* TOC 垂直对齐优化 */
@@ -790,12 +798,7 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
     box-shadow: var(--shadow-lg);
 }
 
-/* 桌面端 banner 模式下的主内容区域位置 */
-@media (min-width: 1280px) {
-    body.enable-banner .absolute.w-full.z-30 {
-        top: 35vh !important;
-    }
-}
+/* 桌面端 banner 模式下的主内容位置 — 见 layout-stable.css */
 
 /* 移动端无侧边栏布局优化 */
 @media (max-width: 767px) {
@@ -840,22 +843,8 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
     }
 }
 
-/* 移动端横幅优化 - 小屏手机 (320px - 479px) */
+/* 移动端横幅优化 - 小屏手机 (320px - 479px) — 布局高度见 layout-stable.css */
 @media (max-width: 479px) {
-    /* Banner wrapper 高度优化 - 优先保持banner显示 */
-    body.enable-banner #banner-wrapper:not(.mobile-hide-banner) {
-        height: 70vh !important; /* 保持较大高度优先显示banner */
-        min-height: 450px;
-        max-height: none; /* 移除最大高度限制 */
-        top: 0 !important; /* 移动端从顶部开始，避免被导航栏覆盖 */
-    }
-    
-    /* 主内容区域位置调整 - 确保在banner下面 */
-    body.enable-banner .absolute.w-full.z-30:not(.mobile-main-no-banner) {
-        top: 70vh !important; /* 与banner高度对应 */
-        min-height: calc(100vh - 70vh) !important;
-    }
-    
     /* 横幅文本覆盖层优化 */
     .banner-text-overlay {
         align-items: center !important; /* 垂直居中 */
@@ -894,22 +883,8 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
     }
 }
 
-/* 移动端横幅优化 - 大屏手机 (480px - 767px) */
+/* 移动端横幅优化 - 大屏手机 (480px - 767px) — 布局高度见 layout-stable.css */
 @media (min-width: 480px) and (max-width: 767px) {
-    /* Banner wrapper 高度优化 - 优先保持banner显示 */
-    body.enable-banner #banner-wrapper:not(.mobile-hide-banner) {
-        height: 75vh !important;
-        min-height: 500px;
-        max-height: none; /* 移除最大高度限制 */
-        top: 0 !important; /* 移动端从顶部开始，避免被导航栏覆盖 */
-    }
-    
-    /* 主内容区域位置调整 - 确保在banner下面 */
-    body.enable-banner .absolute.w-full.z-30:not(.mobile-main-no-banner) {
-        top: 75vh !important; /* 与banner高度对应 */
-        min-height: calc(100vh - 75vh) !important;
-    }
-    
     /* 横幅文本覆盖层优化 */
     .banner-text-overlay {
         align-items: center !important; /* 垂直居中 */
@@ -948,21 +923,8 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
     }
 }
 
-/* 平板设备横幅优化 (768px - 1279px) */
+/* 平板设备横幅优化 (768px - 1279px) — 布局高度见 layout-stable.css */
 @media (min-width: 768px) and (max-width: 1279px) {
-    /* Banner wrapper 高度优化 */
-    body.enable-banner #banner-wrapper:not(.mobile-hide-banner) {
-        height: 70vh !important;
-        min-height: 500px;
-        top: 0 !important; /* 移动端从顶部开始，避免被导航栏覆盖 */
-    }
-    
-    /* 主内容区域位置调整 - 确保在banner下面 */
-    body.enable-banner .absolute.w-full.z-30:not(.mobile-main-no-banner) {
-        top: 70vh !important; /* 与banner高度对应 */
-        min-height: calc(100vh - 70vh) !important;
-    }
-    
     /* 横幅文本覆盖层优化 */
     .banner-text-overlay {
         align-items: center !important; /* 垂直居中 */
@@ -1268,19 +1230,8 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
     }
 }
 
-/* 移动端横屏优化 */
+/* 移动端横屏优化 — 布局高度见 layout-stable.css */
 @media (max-width: 1279px) and (orientation: landscape) {
-    #banner-wrapper:not(.mobile-hide-banner) {
-        top: 0 !important; /* 横屏模式从顶部开始，避免被导航栏覆盖 */
-        height: 60vh !important;
-    }
-    
-    /* 主内容区域位置调整 - 确保在banner下面，但不影响非首页 */
-    .absolute.w-full.z-30:not(.mobile-main-no-banner) {
-        top: 60vh !important; /* 与banner高度对应 */
-        min-height: calc(100vh - 60vh) !important;
-    }
-    
     .banner-container {
         height: 60vh;
         min-height: 300px;
@@ -1410,14 +1361,9 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
     }
 }
 
-/* 基于屏幕高度的banner优化 - 优先显示banner */
+/* 基于屏幕高度的 banner 文本优化 — 布局高度见 layout-stable.css */
 /* 极小高度屏幕 (高度 ≤ 500px) */
 @media (max-height: 500px) {
-    #banner-wrapper {
-        height: 85vh !important; /* 占用更多高度确保banner显示 */
-        min-height: 350px !important;
-    }
-    
     .banner-text-overlay {
         padding: 1rem !important;
         align-items: center !important; /* 垂直居中 */
@@ -1445,11 +1391,6 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
 
 /* 小高度屏幕 (高度 501px - 600px) */
 @media (min-height: 501px) and (max-height: 600px) {
-    #banner-wrapper {
-        height: 80vh !important;
-        min-height: 400px !important;
-    }
-    
     .banner-text-overlay {
         padding: 1.5rem !important;
         align-items: center !important; /* 垂直居中 */
@@ -1477,11 +1418,6 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
 
 /* 中等高度屏幕 (高度 601px - 700px) */
 @media (min-height: 601px) and (max-height: 700px) {
-    #banner-wrapper {
-        height: 75vh !important;
-        min-height: 450px !important;
-    }
-    
     .banner-text-overlay {
         padding: 2rem !important;
         align-items: center !important; /* 垂直居中 */
@@ -1507,13 +1443,8 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
     }
 }
 
-/* 横屏模式特殊处理 - 优先显示banner */
+/* 横屏模式特殊处理 - 优先显示banner — 布局高度见 layout-stable.css */
 @media (orientation: landscape) and (max-height: 500px) {
-    #banner-wrapper {
-        height: 90vh !important; /* 横屏时占用更多高度 */
-        min-height: 300px !important;
-    }
-    
     .banner-text-overlay {
         padding: 1rem 2rem !important;
         align-items: center !important; /* 垂直居中 */
