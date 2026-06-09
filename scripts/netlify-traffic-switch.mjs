@@ -15,6 +15,7 @@
  * - NETLIFY_AUTH_TOKEN  Netlify Personal Access Token
  * - NETLIFY_SITE_ID     Netlify Site ID
  * - NETLIFY_CNAME_TARGET  如 xxx.netlify.app
+ * - NETLIFY_A_IPS         Netlify A 记录 IP，逗号分隔，默认 75.2.60.5
  *
  * 可选：
  * - SITE_DOMAIN=vedaru.cn
@@ -164,45 +165,188 @@ async function probeHttps(url) {
 	}
 }
 
-function normalizeCname(value) {
+function normalizeDns(value) {
 	return value.toLowerCase().replace(/\.$/, "");
 }
 
-function inferMode(recordContent, netlifyTarget, cfTarget) {
-	const content = normalizeCname(recordContent);
-	if (
-		content.includes("netlify") ||
-		content === normalizeCname(netlifyTarget)
-	) {
+function parseNetlifyIps() {
+	const raw = env("NETLIFY_A_IPS", "75.2.60.5");
+	return new Set(
+		raw
+			.split(",")
+			.map((ip) => ip.trim())
+			.filter(Boolean),
+	);
+}
+
+function inferModeFromRecord(record, netlifyTarget, cfTarget, netlifyIps) {
+	if (!record) return "unknown";
+
+	const content = normalizeDns(record.content);
+
+	if (record.type === "A" && netlifyIps.has(content)) {
 		return "netlify";
 	}
-	if (content.includes("pages.dev") || content === normalizeCname(cfTarget)) {
-		return "cloudflare";
+
+	if (record.type === "CNAME") {
+		if (
+			content.includes("netlify") ||
+			content === normalizeDns(netlifyTarget)
+		) {
+			return "netlify";
+		}
+		if (content.includes("pages.dev") || content === normalizeDns(cfTarget)) {
+			return "cloudflare";
+		}
 	}
+
 	return "unknown";
 }
 
-async function getDnsRecord(zoneId, fqdn, token) {
+async function listDnsRecordsByName(zoneId, name, token) {
 	const data = await cfRequest(
 		"GET",
-		`/zones/${zoneId}/dns_records?type=CNAME&name=${encodeURIComponent(fqdn)}`,
+		`/zones/${zoneId}/dns_records?name=${encodeURIComponent(name)}`,
 		token,
 	);
-	return data.result[0] ?? null;
+	return data.result ?? [];
 }
 
-async function updateDnsCname(zoneId, record, content, token) {
-	return cfRequest(
+async function getWwwDnsRecord(zoneId, wwwFqdn, domain, token) {
+	const candidates = [wwwFqdn, `www.${domain}`, "www"];
+	const seen = new Set();
+	const records = [];
+
+	for (const name of candidates) {
+		if (seen.has(name)) continue;
+		seen.add(name);
+		const found = await listDnsRecordsByName(zoneId, name, token);
+		records.push(...found);
+	}
+
+	const preferred = records.find(
+		(record) =>
+			record.type === "CNAME" ||
+			record.type === "A" ||
+			record.type === "AAAA",
+	);
+
+	if (preferred) return preferred;
+
+	if (records.length > 0) return records[0];
+
+	// 列出 zone 内含 www 的记录，便于排查
+	const all = await cfRequest(
+		"GET",
+		`/zones/${zoneId}/dns_records?per_page=100`,
+		token,
+	);
+	const hints = (all.result ?? [])
+		.filter((record) => /www/i.test(record.name))
+		.map((record) => `${record.type} ${record.name} → ${record.content}`)
+		.slice(0, 8);
+
+	const hintText =
+		hints.length > 0
+			? `\nZone 内与 www 相关的记录:\n${hints.join("\n")}`
+			: "\nZone 内未找到任何 www 相关 DNS 记录。请确认域名 DNS 托管在 Cloudflare。";
+
+	throw new Error(`DNS record not found for ${wwwFqdn}.${hintText}`);
+}
+
+async function replaceDnsRecord(zoneId, record, next, token) {
+	if (
+		record.type === next.type &&
+		normalizeDns(record.content) === normalizeDns(next.content) &&
+		(record.proxied ?? false) === (next.proxied ?? false)
+	) {
+		return record;
+	}
+
+	// Cloudflare 不允许 PATCH 改类型，A ↔ CNAME 需删后重建
+	if (record.type !== next.type) {
+		await cfRequest(
+			"DELETE",
+			`/zones/${zoneId}/dns_records/${record.id}`,
+			token,
+		);
+		const created = await cfRequest(
+			"POST",
+			`/zones/${zoneId}/dns_records`,
+			token,
+			next,
+		);
+		return created.result;
+	}
+
+	const updated = await cfRequest(
 		"PATCH",
 		`/zones/${zoneId}/dns_records/${record.id}`,
 		token,
+		next,
+	);
+	return updated.result;
+}
+
+function recordNameForApi(record, wwwFqdn) {
+	// 创建/更新时沿用 Cloudflare 已有记录的 name 格式（www 或 FQDN）
+	return record.name.includes(".") ? record.name : wwwFqdn.split(".")[0];
+}
+
+async function applyWwwTarget(
+	zoneId,
+	record,
+	wwwFqdn,
+	targetMode,
+	token,
+	{ netlifyTarget, cfTarget, netlifyIps },
+) {
+	const name = recordNameForApi(record, wwwFqdn);
+	const proxied = record.proxied ?? true;
+
+	if (targetMode === "cloudflare") {
+		return replaceDnsRecord(
+			zoneId,
+			record,
+			{
+				type: "CNAME",
+				name,
+				content: cfTarget,
+				proxied,
+				ttl: 1,
+			},
+			token,
+		);
+	}
+
+	// netlify：优先 CNAME 到 netlify.app；若原本是 A 记录且无 CNAME target 则回退 A
+	if (netlifyTarget) {
+		return replaceDnsRecord(
+			zoneId,
+			record,
+			{
+				type: "CNAME",
+				name,
+				content: netlifyTarget,
+				proxied,
+				ttl: 1,
+			},
+			token,
+		);
+	}
+
+	const netlifyIp = [...netlifyIps][0];
+	return replaceDnsRecord(
+		zoneId,
+		record,
 		{
-			type: "CNAME",
-			name: record.name,
-			content,
-			proxied: record.proxied ?? true,
+			type: "A",
+			name,
+			content: netlifyIp,
+			proxied,
 			ttl: 1,
 		},
+		token,
 	);
 }
 
@@ -253,21 +397,24 @@ async function main() {
 	const wwwFqdn = `${env("DNS_WWW_NAME", "www")}.${domain}`;
 	const reserve = envInt("NETLIFY_CREDITS_RESERVE", 45);
 	const restoreBuffer = envInt("NETLIFY_CREDITS_RESTORE_BUFFER", 60);
+	const netlifyIps = parseNetlifyIps();
 
 	if (!cfToken || !zoneId) {
 		throw new Error("Missing CF_API_TOKEN or CF_ZONE_ID");
 	}
-	if (!netlifyTarget) {
-		throw new Error("Missing NETLIFY_CNAME_TARGET (e.g. your-site.netlify.app)");
-	}
 
-	const record = await getDnsRecord(zoneId, wwwFqdn, cfToken);
-	if (!record) {
-		throw new Error(`CNAME record not found for ${wwwFqdn}`);
-	}
+	const record = await getWwwDnsRecord(zoneId, wwwFqdn, domain, cfToken);
+	console.log(
+		`Found DNS: ${record.type} ${record.name} → ${record.content} (proxied=${record.proxied ?? false})`,
+	);
 
-	const currentMode = inferMode(record.content, netlifyTarget, cfTarget);
-	console.log(`Current mode: ${currentMode} (${record.content})`);
+	const currentMode = inferModeFromRecord(
+		record,
+		netlifyTarget,
+		cfTarget,
+		netlifyIps,
+	);
+	console.log(`Current mode: ${currentMode}`);
 
 	let targetMode = "netlify";
 	let reason = "default netlify";
@@ -326,9 +473,13 @@ async function main() {
 		}
 	}
 
-	const targetCname = targetMode === "cloudflare" ? cfTarget : netlifyTarget;
-	const normalizedCurrent = normalizeCname(record.content);
-	const normalizedTarget = normalizeCname(targetCname);
+	const targetCname =
+		targetMode === "cloudflare" ? cfTarget : netlifyTarget || [...netlifyIps][0];
+	const targetType =
+		targetMode === "cloudflare" || netlifyTarget ? "CNAME" : "A";
+	const alreadyOnTarget =
+		record.type === targetType &&
+		normalizeDns(record.content) === normalizeDns(targetCname);
 
 	const state = {
 		checkedAt: new Date().toISOString(),
@@ -336,18 +487,20 @@ async function main() {
 		targetMode,
 		reason,
 		wwwFqdn,
-		currentCname: record.content,
-		targetCname,
+		currentRecord: `${record.type} ${record.content}`,
+		targetRecord: `${targetType} ${targetCname}`,
 		dryRun,
 	};
 
-	if (normalizedCurrent === normalizedTarget) {
+	if (alreadyOnTarget) {
 		console.log(`No DNS change needed (already ${targetMode}).`);
 		writeState({ ...state, action: "none" });
 		return;
 	}
 
-	console.log(`Switching ${wwwFqdn}: ${record.content} → ${targetCname}`);
+	console.log(
+		`Switching ${wwwFqdn}: ${record.type} ${record.content} → ${targetType} ${targetCname}`,
+	);
 	console.log(`Reason: ${reason}`);
 
 	if (dryRun) {
@@ -356,9 +509,17 @@ async function main() {
 		return;
 	}
 
-	await updateDnsCname(zoneId, record, targetCname, cfToken);
+	await applyWwwTarget(zoneId, record, wwwFqdn, targetMode, cfToken, {
+		netlifyTarget,
+		cfTarget,
+		netlifyIps,
+	});
 	console.log(`✓ DNS switched to ${targetMode}`);
-	writeState({ ...state, action: "switched", previousCname: record.content });
+	writeState({
+		...state,
+		action: "switched",
+		previousRecord: `${record.type} ${record.content}`,
+	});
 }
 
 main().catch((error) => {
