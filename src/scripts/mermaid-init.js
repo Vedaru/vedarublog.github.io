@@ -1,21 +1,11 @@
-(() => {
-	// 单例模式：检查是否已经初始化过
-	if (window.mermaidInitialized) {
-		// 如果已经初始化过，只确保 renderMermaidDiagrams 函数可用
-		if (typeof window.renderMermaidDiagrams !== "function") {
-			window.renderMermaidDiagrams = renderMermaidDiagrams;
-		}
-		return;
-	}
+/** Mermaid 图表：全局初始化，Swup 换页后重新渲染 */
 
-	window.mermaidInitialized = true;
-
-	// 记录当前主题状态，避免不必要的重新渲染
-	let currentTheme = null;
-	let isRendering = false; // 防止并发渲染
-	let retryCount = 0;
-	const MAX_RETRIES = 3;
-	const RETRY_DELAY = 1000; // 1秒
+let currentTheme = null;
+let isRendering = false;
+let retryCount = 0;
+let swupListenersRegistered = false;
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000;
 
 	// 检查主题是否真的发生了变化
 	function hasThemeChanged() {
@@ -72,8 +62,13 @@
 
 					if (wasDark !== isDark) {
 						if (hasThemeChanged()) {
-							// 延迟渲染，避免主题切换时的闪烁
-							setTimeout(() => renderMermaidDiagrams(), 150);
+							setTimeout(
+								() =>
+									renderMermaidDiagrams({
+										forceThemeRefresh: true,
+									}),
+								150,
+							);
 						}
 					}
 				}
@@ -224,24 +219,37 @@
 		});
 	}
 
-	// 设置其他事件监听器
 	function setupEventListeners() {
-		// 监听页面切换
 		document.addEventListener("astro:page-load", () => {
-			// 重新初始化主题状态
 			currentTheme = null;
-			retryCount = 0; // 重置重试计数
-			if (hasThemeChanged()) {
-				setTimeout(() => renderMermaidDiagrams(), 100);
-			}
+			retryCount = 0;
+			scheduleMermaidRender(100);
 		});
 
-		// 监听页面可见性变化，页面重新可见时重新渲染
 		document.addEventListener("visibilitychange", () => {
 			if (!document.hidden) {
-				setTimeout(() => renderMermaidDiagrams(), 200);
+				scheduleMermaidRender(200);
 			}
 		});
+	}
+
+	function scheduleMermaidRender(delay = 150) {
+		setTimeout(() => renderMermaidDiagrams(), delay);
+	}
+
+	function registerSwupListeners() {
+		if (swupListenersRegistered || !window.swup?.hooks) return;
+		swupListenersRegistered = true;
+
+		window.swup.hooks.on("content:replace", () => {
+			isRendering = false;
+			currentTheme = null;
+			scheduleMermaidRender(200);
+		});
+		window.swup.hooks.on("page:view", () => scheduleMermaidRender(300));
+		window.swup.hooks.on("animation:in:end", () =>
+			scheduleMermaidRender(100),
+		);
 	}
 
 	async function initializeMermaid() {
@@ -274,30 +282,41 @@
 		}
 	}
 
-	async function renderMermaidDiagrams() {
-		// 防止并发渲染
+	async function renderMermaidDiagrams(options = {}) {
+		const { forceThemeRefresh = false } = options;
+
 		if (isRendering) {
 			return;
 		}
 
-		// 检查 Mermaid 是否可用
 		if (!window.mermaid || typeof window.mermaid.render !== "function") {
-			console.warn("Mermaid not available, skipping render");
+			try {
+				await loadMermaid();
+				await waitForMermaid();
+			} catch (error) {
+				console.warn("Mermaid not available, skipping render", error);
+				return;
+			}
+		}
+
+		const mermaidElements = document.querySelectorAll(
+			".mermaid[data-mermaid-code]",
+		);
+		const pending = forceThemeRefresh
+			? Array.from(mermaidElements)
+			: Array.from(mermaidElements).filter(
+					(el) =>
+						el.querySelector(".mermaid-loading") ||
+						!el.querySelector("svg"),
+				);
+
+		if (pending.length === 0) {
 			return;
 		}
 
 		isRendering = true;
 
 		try {
-			const mermaidElements = document.querySelectorAll(
-				".mermaid[data-mermaid-code]",
-			);
-
-			if (mermaidElements.length === 0) {
-				isRendering = false;
-				return;
-			}
-
 			// 延迟检测主题，确保 DOM 已经更新
 			await new Promise((resolve) => setTimeout(resolve, 100));
 
@@ -325,8 +344,8 @@
 				logLevel: "error",
 			});
 
-			// 批量渲染所有图表，添加重试机制
-			const renderPromises = Array.from(mermaidElements).map(
+			// 批量渲染待处理图表，添加重试机制
+			const renderPromises = pending.map(
 				async (element, index) => {
 					let attempts = 0;
 					const maxAttempts = 3;
@@ -482,31 +501,24 @@
 		});
 	}
 
-	// 主初始化函数
-	async function initialize() {
-		try {
-			// 设置监听器
-			setupMutationObserver();
-			setupEventListeners();
-
-			// 初始化主题状态
-			initializeThemeState();
-
-			// 加载并初始化 Mermaid
-			await loadMermaid();
-			await initializeMermaid();
-
-			// 将 renderMermaidDiagrams 暴露到全局作用域，以便在解密后调用
-			window.renderMermaidDiagrams = renderMermaidDiagrams;
-		} catch (error) {
-			console.error("Failed to initialize Mermaid system:", error);
-		}
+	function bootstrapMermaid() {
+		registerSwupListeners();
+		setupMutationObserver();
+		setupEventListeners();
+		initializeThemeState();
+		loadMermaid()
+			.then(() => initializeMermaid())
+			.catch((error) => {
+				console.error("Failed to bootstrap Mermaid:", error);
+			});
 	}
 
-	// 启动初始化
+	window.renderMermaidDiagrams = renderMermaidDiagrams;
+
 	if (document.readyState === "loading") {
-		document.addEventListener("DOMContentLoaded", initialize);
+		document.addEventListener("DOMContentLoaded", bootstrapMermaid);
 	} else {
-		initialize();
+		bootstrapMermaid();
 	}
-})();
+
+	document.addEventListener("swup:enable", registerSwupListeners);
