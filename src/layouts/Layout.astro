@@ -146,13 +146,12 @@ if (siteConfig.font) {
 		// 如果字体名包含空格，需要用引号包围
 		fonts.push(cjkFont.includes(" ") ? `"${cjkFont}"` : cjkFont);
 	}
-	// 添加系统字体作为最终回退
+	// 添加系统字体作为最终回退（不含未加载的 Roboto，避免与正文栈不一致）
 	fonts.push(
 		"system-ui",
 		"-apple-system",
 		"BlinkMacSystemFont",
 		"'Segoe UI'",
-		"Roboto",
 		"Oxygen",
 		"Ubuntu",
 		"Cantarell",
@@ -368,8 +367,21 @@ if (siteConfig.font) {
 			define:vars={{
 				configHue,
 				"page-width": `${PAGE_WIDTH}rem`,
+				"font-sans": bodyFontFamily,
 			}}
-		></style>
+			is:global
+		>
+			html,
+			body {
+				font-family: var(
+					--font-sans,
+					"ZenMaruGothic-Medium",
+					"Microsoft YaHei",
+					system-ui,
+					sans-serif
+				);
+			}
+		</style>
 
 		<!-- defines global css variables. This will be applied to <html> <body> and some other elements idk why -->
 		<link
@@ -421,7 +433,6 @@ if (siteConfig.font) {
 		class:list={[
 			{ "lg:is-home": isHomePage, "enable-banner": enableBanner },
 		]}
-		style={bodyFontFamily ? `font-family: ${bodyFontFamily};` : ""}
 		data-overlayscrollbars-initialize
 	>
 		<noscript
@@ -1265,8 +1276,12 @@ function disableAnimation() {
 		}
 	}
 	cacheContentWrapperOffset();
-	// Swup 页面切换后重新缓存
-	document.addEventListener("swup:page:view", cacheContentWrapperOffset);
+	// Swup 页面切换后等布局稳定再缓存
+	document.addEventListener("swup:page:view", () => {
+		requestAnimationFrame(() => {
+			requestAnimationFrame(cacheContentWrapperOffset);
+		});
+	});
 
 	// 节流函数
 	function throttle(func: Function, limit: number) {

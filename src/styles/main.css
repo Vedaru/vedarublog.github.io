@@ -15,7 +15,7 @@
   font-family: "ZenMaruGothic-Medium";
   src: url("/assets/font/ZenMaruGothic-Medium.woff2") format("woff2");
   font-weight: 500;
-  font-display: optional;
+  font-display: swap;
   ascent-override: 90%;
   descent-override: 22%;
   line-gap-override: 0%;

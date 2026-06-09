@@ -11,7 +11,7 @@
 		"start": "astro dev",
 		"check": "astro check",
 		"update-anime": "node scripts/update-bangumi.mjs",
-		"build": "astro build && pagefind --site dist && node scripts/compress-fonts.js",
+		"build": "astro build && pagefind --site dist && node scripts/compress-pagefind.mjs && node scripts/compress-fonts.js",
 		"submit": "node scripts/indexnow-submit.js",
 		"preview": "astro preview",
 		"astro": "astro",
@@ -79,6 +79,7 @@
 	"devDependencies": {
 		"@astrojs/ts-plugin": "^1.10.6",
 		"@iconify-json/mdi": "^1.2.3",
+		"@playform/compress": "^0.2.3",
 		"@rollup/plugin-yaml": "^4.1.2",
 		"@types/hast": "^3.0.4",
 		"@types/markdown-it": "^14.1.2",

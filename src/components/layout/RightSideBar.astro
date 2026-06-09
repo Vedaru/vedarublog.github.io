@@ -123,23 +123,30 @@ function renderComponent(component: any, index: number, _components: any[]) {
   
   // 响应式布局管理
   class RightSidebarManager {
+    pendingUpdate = 0;
+
     constructor() {
       this.init();
     }
     
     init() {
-      this.updateResponsiveDisplay();
-      window.addEventListener('resize', () => this.updateResponsiveDisplay());
+      this.scheduleUpdate();
+      window.addEventListener('resize', () => this.scheduleUpdate());
       
       // 监听SWUP内容替换事件
       if (typeof window !== 'undefined' && (window as any).swup) {
         (window as any).swup.hooks.on('content:replace', () => {
-          // 延迟执行以确保DOM已更新
-          setTimeout(() => {
-            this.updateResponsiveDisplay();
-          }, 100);
+          this.scheduleUpdate();
         });
       }
+    }
+
+    scheduleUpdate() {
+      if (this.pendingUpdate) cancelAnimationFrame(this.pendingUpdate);
+      this.pendingUpdate = requestAnimationFrame(() => {
+        this.pendingUpdate = 0;
+        this.updateResponsiveDisplay();
+      });
     }
     
     updateResponsiveDisplay() {

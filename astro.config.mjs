@@ -16,6 +16,7 @@ import remarkGithubAdmonitionsToDirectives from "remark-github-admonitions-to-di
 import remarkMath from "remark-math";
 import remarkSectionize from "remark-sectionize";
 import { siteConfig } from "./src/config.ts";
+import compress from "@playform/compress";
 import { pluginCustomCopyButton } from "./src/plugins/expressive-code/custom-copy-button.js";
 import { pluginLanguageBadge } from "./src/plugins/expressive-code/language-badge.ts";
 import { AdmonitionComponent } from "./src/plugins/rehype-component-admonition.mjs";
@@ -120,6 +121,21 @@ export default defineConfig({
 			preprocess: vitePreprocess(),
 		}),
 		sitemap(),
+		compress({
+			Image: false,
+			SVG: false,
+			Exclude: [
+				(file) => /\.min\.(js|css)$/i.test(file.replace(/\\/g, "/")),
+				(file) => /\/pio\//.test(file.replace(/\\/g, "/")),
+			],
+			HTML: {
+				"html-minifier-terser": {
+					removeAttributeQuotes: false,
+					collapseWhitespace: true,
+					removeComments: true,
+				},
+			},
+		}),
 	],
 	markdown: {
 		remarkPlugins: [
