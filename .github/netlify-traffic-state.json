@@ -1,12 +1,28 @@
 {
-  "checkedAt": "2026-06-09T04:55:31.612Z",
-  "currentMode": "netlify",
+  "checkedAt": "2026-06-09T05:14:05.550Z",
+  "currentMode": "cloudflare",
   "targetMode": "cloudflare",
-  "reason": "NETLIFY_TRAFFIC_MODE=cloudflare",
+  "reason": "netlify url status=522",
   "wwwFqdn": "www.vedaru.cn",
-  "currentRecord": "A 75.2.60.5",
-  "targetRecord": "CNAME vedarublog-github-io.pages.dev",
   "dryRun": false,
+  "changes": [
+    "www: CNAME vedarublog-github-io.pages.dev → CNAME vedarublog-github-io.pages.dev (proxied)",
+    "apex: A 75.2.60.5 → CNAME vedarublog-github-io.pages.dev (proxied)"
+  ],
+  "pagesDomains": [
+    {
+      "hostname": "www.vedaru.cn",
+      "status": "registered"
+    },
+    {
+      "hostname": "vedaru.cn",
+      "status": "registered"
+    }
+  ],
+  "probe": {
+    "ok": false,
+    "status": 522
+  },
   "action": "switched",
-  "previousRecord": "A 75.2.60.5"
+  "pagesAuthOk": true
 }
