@@ -385,6 +385,7 @@ async function main() {
 	const dryRun = ["1", "true", "yes"].includes(
 		env("DRY_RUN", "").toLowerCase(),
 	);
+	console.log(`[traffic] DRY_RUN=${dryRun ? "yes (no DNS changes)" : "no (will update DNS if needed)"}`);
 	const forceMode = env("NETLIFY_TRAFFIC_MODE", "auto").toLowerCase();
 
 	const cfToken = env("CF_API_TOKEN");

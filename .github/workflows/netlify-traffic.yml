@@ -51,11 +51,14 @@ jobs:
           NETLIFY_DEPLOY_CREDIT_COST: "15"
           NETLIFY_CREDITS_RESERVE: "45"
           NETLIFY_TRAFFIC_MODE: ${{ github.event.inputs.mode || 'auto' }}
-          DRY_RUN: ${{ github.event.inputs.dry_run && '1' || '' }}
-        run: node scripts/netlify-traffic-switch.mjs
+          # boolean 输入在 GHA 里可能是 false 或字符串 "false"；后者对 && 为 truthy，必须显式比较
+          DRY_RUN: ${{ (github.event.inputs.dry_run == true || github.event.inputs.dry_run == 'true') && '1' || '' }}
+        run: |
+          echo "DRY_RUN env='${DRY_RUN:-}' (empty means real DNS update)"
+          node scripts/netlify-traffic-switch.mjs
 
       - name: Commit traffic state (only when switched)
-        if: github.event.inputs.dry_run != true
+        if: ${{ github.event.inputs.dry_run != true && github.event.inputs.dry_run != 'true' }}
         run: |
           if [ ! -f .github/netlify-traffic-state.json ]; then
             echo "No state file update"
