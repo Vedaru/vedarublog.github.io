@@ -5,11 +5,17 @@
 # 1. Cloudflare Pages 源站: https://vedarublog-github-io.pages.dev
 # 2. Netlify 连接同一仓库，构建后会生成全站回源代理规则
 # 3. 公网 DNS（如 www.vedaru.cn）CNAME 指向 Netlify 站点
+#
+# 减少 deploy：ignore 脚本仅对比代理层文件（见 scripts/netlify-should-build.mjs）。
+#   - 改文章/前端/CI 等 → 不 deploy
+#   - 改 netlify.toml / netlify-proxy-build.js / netlify-should-build.mjs → deploy
+# 手动 deploy：Netlify Build Hook，或 UI「Retry deploy」
+# credits 用尽：Netlify UI → Build & deploy → Stop builds
 
 [build]
-  # 仅代理配置变更时才 deploy（见 scripts/netlify-should-build.mjs），每次可省 15 credits
-  ignore = "node scripts/netlify-should-build.mjs"
-  command = "node scripts/netlify-proxy-build.js"
+  # exit 0 = 跳过；仅代理层文件 git diff 有变更时才 deploy
+  ignore = "node ./scripts/netlify-should-build.mjs"
+  command = "node ./scripts/netlify-proxy-build.js"
   publish = "dist"
 
 [build.environment]

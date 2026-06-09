@@ -1,54 +1,98 @@
 /**
- * Netlify build ignore hook.
- * Exit 0 → skip build (save 15 credits/deploy).
- * Exit 1 → run build.
+ * Netlify build ignore hook
  *
- * Proxy 站点只转发到 Cloudflare Pages，内容变更无需重新 deploy。
- * 仅当代理配置本身变更时才构建。
+ * 规则：仅当「代理层」文件相对上次 deploy 有变更时才构建。
+ *   exit 0 → 跳过 deploy
+ *   exit 1 → 执行 deploy
+ *
+ * 代理层文件（与 netlify.toml 中 command/publish/redirects 相关）：
+ *   - netlify.toml
+ *   - scripts/netlify-proxy-build.js
+ *   - scripts/netlify-should-build.mjs
  */
 import { execSync } from "node:child_process";
 
-const PROXY_FILES = new Set([
+/** 与 Netlify 代理/回源相关的文件，增删请同步改 netlify.toml 注释 */
+const PROXY_PATHS = [
 	"netlify.toml",
 	"scripts/netlify-proxy-build.js",
 	"scripts/netlify-should-build.mjs",
-]);
+];
 
-function getChangedFiles() {
+function allowBuild(reason) {
+	console.log(`[netlify] ✓ Deploy allowed: ${reason}`);
+	process.exit(1);
+}
+
+function skipBuild(reason) {
+	console.log(`[netlify] ✗ Deploy skipped: ${reason}`);
+	console.log(
+		"[netlify]   站点内容由 Cloudflare Pages 托管，代理层未变更则无需 rebuild。",
+	);
+	process.exit(0);
+}
+
+// Netlify Build Hook（手动触发）
+if (process.env.INCOMING_HOOK_URL || process.env.INCOMING_HOOK_TITLE) {
+	allowBuild("build hook");
+}
+
+// Netlify UI「Retry deploy / Clear cache and deploy」
+if (
+	process.env.CACHED_COMMIT_REF &&
+	process.env.COMMIT_REF &&
+	process.env.CACHED_COMMIT_REF === process.env.COMMIT_REF
+) {
+	allowBuild("manual rebuild from Netlify UI");
+}
+
+function hasProxyChanges() {
 	const cached = process.env.CACHED_COMMIT_REF;
 	const commit = process.env.COMMIT_REF;
 
 	if (!cached || !commit) {
-		console.log("[netlify] First deploy or missing refs, building once.");
-		return PROXY_FILES;
+		console.warn(
+			"[netlify] CACHED_COMMIT_REF or COMMIT_REF missing, cannot diff proxy paths.",
+		);
+		return false;
 	}
 
+	const pathArgs = PROXY_PATHS.map((p) => `"${p}"`).join(" ");
+
 	try {
-		const output = execSync(`git diff --name-only ${cached} ${commit}`, {
-			encoding: "utf8",
+		// 只比较代理路径：exit 0 = 无变更，exit 1 = 有变更
+		execSync(`git diff --quiet ${cached} ${commit} -- ${pathArgs}`, {
+			stdio: "pipe",
 		});
+		return false;
+	} catch {
+		return true;
+	}
+}
+
+function listProxyDiffFiles() {
+	const cached = process.env.CACHED_COMMIT_REF;
+	const commit = process.env.COMMIT_REF;
+	const pathArgs = PROXY_PATHS.map((p) => `"${p}"`).join(" ");
+
+	try {
+		const output = execSync(
+			`git diff --name-only ${cached} ${commit} -- ${pathArgs}`,
+			{ encoding: "utf8" },
+		);
 		return output
 			.trim()
 			.split("\n")
 			.map((line) => line.trim())
 			.filter(Boolean);
-	} catch (error) {
-		console.warn("[netlify] git diff failed, building to be safe:", error.message);
-		return [...PROXY_FILES];
+	} catch {
+		return PROXY_PATHS;
 	}
 }
 
-const changed = getChangedFiles();
-const shouldBuild = changed.some((file) => PROXY_FILES.has(file));
-
-if (shouldBuild) {
-	console.log("[netlify] Proxy config changed, running deploy.");
-	console.log("[netlify] Changed:", changed.filter((f) => PROXY_FILES.has(f)).join(", ") || "(all)");
-	process.exit(1);
+if (hasProxyChanges()) {
+	const files = listProxyDiffFiles();
+	allowBuild(`proxy files changed: ${files.join(", ")}`);
 }
 
-console.log(
-	"[netlify] No proxy config changes — skipping deploy (saves ~15 credits).",
-);
-console.log("[netlify] Content updates are served via Cloudflare Pages origin.");
-process.exit(0);
+skipBuild("no changes in proxy files");
