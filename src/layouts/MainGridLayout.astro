@@ -144,6 +144,9 @@ const hasBannerLink = !!siteConfig.banner.credit.url;
 // 检查是否为首页
 const isHomePage = Astro.url.pathname === "/" || Astro.url.pathname === "";
 const showHomeText = siteConfig.banner.homeText?.enable && isHomePage;
+const bannerObjectPosition = siteConfig.banner.position || "center";
+const mobileBannerObjectPosition =
+	siteConfig.banner.mobilePosition || "left center";
 // 手机端非首页不显示banner的CSS类
 const mobileNonHomeBannerClass = !isHomePage ? "mobile-hide-banner" : "";
 
@@ -273,6 +276,11 @@ const transparentClass = shouldEnableTransparency
 		media="(min-width: 768px)"
 	/>
 )}
+<style
+	slot="head"
+	is:inline
+	set:html={`@media (max-width:1279px){#banner-mobile{object-position:${mobileBannerObjectPosition}!important;-o-object-position:${mobileBannerObjectPosition}!important}}`}
+></style>
 {isHomePage && lcpMobileBanner && (
 	<link
 		slot="head"
@@ -537,7 +545,7 @@ const transparentClass = shouldEnableTransparency
                         src={url(singleDesktopBanner)}
                         width={1920}
                         height={1080}
-                        style={`object-position: ${siteConfig.banner.position || "center"}`}
+                        style={`object-position: ${bannerObjectPosition}`}
                         loading="eager"
                         fetchpriority="high"
                     />
@@ -548,12 +556,13 @@ const transparentClass = shouldEnableTransparency
             <div class="block md:hidden absolute inset-0">
                 <div class="banner-breathe-wrap h-full w-full overflow-hidden">
                     <img
+                        id="banner-mobile"
                         alt="Mobile banner image of the blog"
                         class="object-cover w-full h-full"
                         src={url(singleMobileBanner)}
                         width={1920}
                         height={1080}
-                        style={`object-position: ${siteConfig.banner.position || "center"}`}
+                        style={`object-position: ${mobileBannerObjectPosition}`}
                         loading="eager"
                         fetchpriority="high"
                     />
@@ -1014,10 +1023,7 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
 
 /* 移动端图片优化 */
 @media (max-width: 1279px) {
-    /* 移动端图片容器优化 */
-    #banner img {
-        object-position: center center !important;
-    }
+    /* object-position 由 head 内 is:inline 按 config.mobilePosition 注入 */
     
     /* 移动端banner加载动画优化 */
     .onload-animation-fade-in {
@@ -1052,6 +1058,12 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
 @media (max-width: 1279px) {
     #banner-wrapper {
         top: 0 !important;
+        transform: none !important;
+    }
+
+    body.enable-banner.is-home #banner-wrapper:not(.mobile-hide-banner),
+    body.enable-banner.is-home #main-grid {
+        transform: none !important;
     }
     
     .mobile-hide-banner {

@@ -144,6 +144,8 @@ export type SiteConfig = {
 					mobile?: string | string[];
 			  }; // 支持单个图片、图片数组或分别设置桌面端和移动端图片
 		position?: "top" | "center" | "bottom";
+		/** 移动端 object-position，如 "30% center"、"left center" */
+		mobilePosition?: string;
 		waves?: {
 			enable: boolean; // 是否启用水波纹效果
 			performanceMode?: boolean; // 性能模式：减少动画复杂度

@@ -109,6 +109,7 @@ export const siteConfig: SiteConfig = {
 		},
 
 		position: "center", // 等同于 object-position，仅支持 'top', 'center', 'bottom'。默认为 'center'
+		mobilePosition: "left center", // 移动端横幅裁剪焦点（0% 最左，可用 "20% center" 微调）
 
 		waves: {
 			enable: false, // 是否启用水波纹效果（注意：此功能性能开销较大）

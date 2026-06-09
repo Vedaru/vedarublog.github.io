@@ -71,6 +71,19 @@ html[data-wallpaper-mode="none"] #main-grid {
   padding-top: 1rem;
 }
 
+/* 移动端禁用桌面首页 banner 延伸位移，避免顶部留白 */
+@media (max-width: 1279px) {
+  html[data-wallpaper-mode="banner"] body.enable-banner.is-home #banner-wrapper:not(.mobile-hide-banner),
+  html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #banner-wrapper:not(.mobile-hide-banner) {
+    transform: none !important;
+  }
+
+  html[data-wallpaper-mode="banner"] body.enable-banner.is-home #main-grid,
+  html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #main-grid {
+    transform: none !important;
+  }
+}
+
 /* 小屏手机 (320px - 479px) */
 @media (max-width: 479px) {
   html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
