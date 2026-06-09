@@ -1,3 +1,11 @@
 {
-  "note": "由 scripts/netlify-traffic-switch.mjs 自动更新，记录最近一次 DNS 切换状态"
+  "checkedAt": "2026-06-09T04:38:57.816Z",
+  "currentMode": "netlify",
+  "targetMode": "cloudflare",
+  "reason": "credits low (remaining≈-30 ≤ reserve 45)",
+  "wwwFqdn": "www.vedaru.cn",
+  "currentRecord": "A 75.2.60.5",
+  "targetRecord": "CNAME vedarublog-github-io.pages.dev",
+  "dryRun": true,
+  "action": "dry-run"
 }
