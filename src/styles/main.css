@@ -23,7 +23,6 @@
   size-adjust: 100%;
 }
 
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -665,3 +664,4 @@ html {
 :root:not(.dark) .custom-md spoiler {
   --_spoiler-mask: color-mix(in oklch, var(--primary) 55%, white 45%);
 }
+
