@@ -1419,6 +1419,10 @@ function disableAnimation() {
 	import "../scripts/mermaid-init.js";
 </script>
 
+{siteConfig.showLastModified && (
+	<script is:inline src="/last-modified.js" data-cfasync="false"></script>
+)}
+
 {commentConfig.enable && (
 	<>
 		<script is:inline src="/scroll-protection.js" data-cfasync="false"

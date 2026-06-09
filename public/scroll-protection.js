@@ -5,6 +5,12 @@
  */
 
 (() => {
+	if (window.__scrollProtectionBootstrapped) {
+		window.scrollProtectionManager?.observeTwikoo?.();
+		return;
+	}
+	window.__scrollProtectionBootstrapped = true;
+
 	// 保存原始的滚动方法
 	const originalScrollTo = window.scrollTo;
 	const originalScrollBy = window.scrollBy;

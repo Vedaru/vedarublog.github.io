@@ -29,6 +29,13 @@ declare global {
 			isLoaded: boolean;
 		};
 		siteConfig: any;
+		__lastModifiedBootstrapped?: boolean;
+		initLastModifiedPage?: () => void;
+		__twikooInitBootstrapped?: boolean;
+		initTwikooPage?: () => void;
+		scrollProtectionManager?: {
+			observeTwikoo?: () => void;
+		};
 	}
 }
 
