@@ -1,0 +1,122 @@
+/**
+ * Shell 关键样式 — 静态文件、head 末尾加载，优先级高于 /_astro/*.css。
+ * Swup 换页 / 切壁纸 / 切布局 / 切主题时侧栏与 navbar 仍在 #swup-container 外，
+ * 必须保证 .card-base 背景不被 transition-colors 或外链 CSS 卸载打断。
+ */
+
+:root {
+	--radius-large: 1rem;
+	--page-bg: oklch(0.95 0.01 var(--hue, 60));
+	--card-bg: white;
+	--card-bg-transparent: var(--card-bg);
+}
+
+:root.dark {
+	--page-bg: oklch(0.16 0.014 var(--hue, 60));
+	--card-bg: oklch(0.23 0.015 var(--hue, 60));
+}
+
+body.wallpaper-transparent {
+	--card-bg-transparent: rgba(255, 255, 255, 0.8);
+}
+
+:root.dark body.wallpaper-transparent {
+	--card-bg-transparent: rgba(23, 23, 23, 0.8);
+}
+
+html,
+body {
+	background-color: var(--page-bg);
+}
+
+.card-base {
+	overflow: hidden;
+	border-radius: var(--radius-large);
+	background-color: var(--card-bg) !important;
+	/* 禁止背景色过渡，避免切换时经过透明态出现线框 */
+	transition-property: opacity, transform, box-shadow, filter, color !important;
+}
+
+.wallpaper-transparent .card-base,
+body.wallpaper-transparent .card-base,
+.wallpaper-transparent .card-base .card-base,
+body.wallpaper-transparent .card-base .card-base {
+	background: var(--card-bg-transparent) !important;
+	backdrop-filter: blur(8px);
+	-webkit-backdrop-filter: blur(8px);
+}
+
+#navbar > div {
+	background-color: var(--card-bg) !important;
+}
+
+.wallpaper-transparent #navbar > div,
+body.wallpaper-transparent #navbar > div {
+	background: var(--card-bg-transparent) !important;
+	backdrop-filter: blur(4px);
+	-webkit-backdrop-filter: blur(4px);
+}
+
+body.wallpaper-transparent .main-panel.wallpaper-transparent {
+	background-color: var(--card-bg-transparent);
+}
+
+/* 界面变化期间锁定 shell 背景 */
+html.is-changing .card-base,
+html.is-animating .card-base,
+html.is-leaving .card-base,
+html.is-theme-transitioning .card-base,
+html.is-home-pre-scrolling .card-base,
+html.is-visit-pre-scrolling .card-base,
+html.swup-perf-active .card-base,
+body.wallpaper-switching .card-base,
+body.layout-switching .card-base,
+#main-grid.layout-switching .card-base {
+	background-color: var(--card-bg) !important;
+	transition: none !important;
+}
+
+html.is-changing body.wallpaper-transparent .card-base,
+html.is-animating body.wallpaper-transparent .card-base,
+html.is-leaving body.wallpaper-transparent .card-base,
+html.is-theme-transitioning body.wallpaper-transparent .card-base,
+html.is-home-pre-scrolling body.wallpaper-transparent .card-base,
+html.is-visit-pre-scrolling body.wallpaper-transparent .card-base,
+html.swup-perf-active body.wallpaper-transparent .card-base,
+body.wallpaper-transparent.wallpaper-switching .card-base,
+body.wallpaper-transparent.layout-switching .card-base,
+body.wallpaper-transparent #main-grid.layout-switching .card-base {
+	background: var(--card-bg-transparent) !important;
+	backdrop-filter: blur(8px) !important;
+	-webkit-backdrop-filter: blur(8px) !important;
+	transition: none !important;
+}
+
+html.is-changing #navbar > div,
+html.is-animating #navbar > div,
+html.is-theme-transitioning #navbar > div,
+html.is-home-pre-scrolling #navbar > div,
+html.is-visit-pre-scrolling #navbar > div,
+body.wallpaper-switching #navbar > div {
+	background-color: var(--card-bg) !important;
+	transition: none !important;
+}
+
+html.is-changing body.wallpaper-transparent #navbar > div,
+html.is-animating body.wallpaper-transparent #navbar > div,
+html.is-theme-transitioning body.wallpaper-transparent #navbar > div,
+html.is-home-pre-scrolling body.wallpaper-transparent #navbar > div,
+html.is-visit-pre-scrolling body.wallpaper-transparent #navbar > div,
+body.wallpaper-transparent.wallpaper-switching #navbar > div {
+	background: var(--card-bg-transparent) !important;
+	backdrop-filter: blur(4px) !important;
+	-webkit-backdrop-filter: blur(4px) !important;
+	transition: none !important;
+}
+
+@media (max-width: 1279px) {
+	html.is-changing #swup-container,
+	html.is-animating #swup-container {
+		contain: none !important;
+	}
+}

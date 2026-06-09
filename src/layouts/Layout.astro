@@ -413,8 +413,8 @@ if (siteConfig.font) {
 				}
 			})();
 		</script>
-		<style is:global>
-			/* Critical layout — 与 data-wallpaper-mode 同步，避免首屏 banner/main 高度跳变 */
+		<style is:inline>
+			/* Critical layout + shell — is:inline 强制留在 HTML，auto 模式下不被打包成外链 */
 			html[data-wallpaper-mode="banner"] .main-panel {
 				top: var(--banner-height, 35vh);
 			}
@@ -577,12 +577,15 @@ if (siteConfig.font) {
 				}
 			</script>
 		)}
+
 	</head>
 	<body
 		class="min-h-screen"
 		class:list={[{ "lg:is-home": isHomePage, "is-home": isHomePage }]}
 		data-overlayscrollbars-initialize
 	>
+		<!-- Shell 关键样式：置于 body 首行，晚于 head 内 /_astro/*.css 解析，覆盖 transition-colors 线框 -->
+		<link rel="stylesheet" href="/assets/css/shell-critical.css" />
 		<script is:inline>
 			(function () {
 				var mode =
@@ -903,6 +906,20 @@ function disableAnimation() {
 
 	const DYNAMIC_STYLE_PATTERN = /\/_astro\/.*(fancybox|katex|fancybox-custom)/i;
 
+	function loadPublicStylesheet(href: string) {
+		if (document.querySelector(`link[rel="stylesheet"][href="${href}"]`)) {
+			return Promise.resolve();
+		}
+		return new Promise<void>((resolve, reject) => {
+			const link = document.createElement("link");
+			link.rel = "stylesheet";
+			link.href = href;
+			link.onload = () => resolve();
+			link.onerror = () => reject(new Error(`Failed to load ${href}`));
+			document.head.appendChild(link);
+		});
+	}
+
 	function removeViteInjectedStyles() {
 		document
 			.querySelectorAll('link[rel="stylesheet"][href*="/_astro/"]')
@@ -937,6 +954,11 @@ function disableAnimation() {
 				link.addEventListener(
 					"error",
 					() => {
+						const href = link.getAttribute("href") || "";
+						// 保留全站主样式，避免 404 时卸载导致整页线框 FOUC
+						if (/\/_astro\/style\.[a-zA-Z0-9_-]+\.css/.test(href)) {
+							return;
+						}
 						link.remove();
 					},
 					{ once: true },
@@ -970,7 +992,7 @@ function disableAnimation() {
 			Fancybox = mod.Fancybox;
 			await Promise.all([
 				import("@fancyapps/ui/dist/fancybox/fancybox.css"),
-				import("../styles/fancybox-custom.css"),
+				loadPublicStylesheet("/assets/css/fancybox-custom.css"),
 			]);
 		}
 
@@ -1039,7 +1061,7 @@ function disableAnimation() {
 		fancyboxSelectors.push(singleFancyboxSelector);
 	}
 
-	// 清理 Fancybox 实例与动态注入的样式
+	// 清理 Fancybox 实例（样式清理延后到 animation:in:end，避免换页动画期间 FOUC）
 	function cleanupFancybox() {
 		if (Fancybox) {
 			fancyboxSelectors.forEach((selector) => {
@@ -1048,7 +1070,6 @@ function disableAnimation() {
 		}
 		fancyboxSelectors = [];
 		Fancybox = null;
-		removeViteInjectedStyles();
 	}
 
 	const setup = () => {
@@ -1116,11 +1137,26 @@ function disableAnimation() {
 				const tocWrapper = document.getElementById("toc-wrapper");
 				if (tocWrapper) {
 					const tocElement = document.querySelector("table-of-contents");
-					if (
-						tocElement &&
-						typeof (tocElement as any).init === "function"
-					) {
-						(tocElement as any).init();
+					const path = window.location.pathname;
+					const shouldInitToc =
+						path.includes("/posts/") ||
+						path.includes("/diary") ||
+						document.querySelector(
+							".custom-md, .markdown-content",
+						) !== null;
+
+					if (tocElement) {
+						if (shouldInitToc) {
+							if (typeof (tocElement as any).init === "function") {
+								(tocElement as any).init();
+							}
+						} else if (
+							typeof (tocElement as any).teardown === "function"
+						) {
+							(tocElement as any).teardown();
+							tocElement.innerHTML = "";
+							delete (tocElement as HTMLElement).dataset.loaded;
+						}
 					}
 
 					if (typeof (window as any).mobileTOCInit === "function") {
@@ -1289,7 +1325,12 @@ function disableAnimation() {
 			{ priority: 0 },
 		);
 
-		window.swup.hooks.on("page:view", () => {
+		window.swup.hooks.on("page:view", (visit: { to: { document?: Document } }) => {
+			const nextTitle = visit?.to?.document?.title;
+			if (nextTitle && document.title !== nextTitle) {
+				document.title = nextTitle;
+			}
+
 			const hadHomePreScroll = !!window.__homePreScrollWasUsed;
 
 			if (hadHomePreScroll) {
@@ -1369,6 +1410,10 @@ function disableAnimation() {
 					toc.classList.remove("toc-not-ready");
 				}
 			}, 200);
+		});
+
+		window.swup.hooks.on("animation:in:end", () => {
+			removeViteInjectedStyles();
 		});
 	};
 

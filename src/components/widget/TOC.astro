@@ -64,7 +64,7 @@ class TableOfContents extends HTMLElement {
         entries.forEach((entry) => {
             const id = entry.target.children[0]?.getAttribute("id");
             const idx = id ? this.headingIdxMap.get(id) : undefined;
-            if (idx != undefined)
+            if (idx != undefined && idx < this.active.length)
                 this.active[idx] = entry.isIntersecting;
 
             if (entry.isIntersecting && this.anchorNavTarget == entry.target.firstChild)
@@ -168,12 +168,13 @@ class TableOfContents extends HTMLElement {
         if (!this.sections.length) return;
 
         const viewportHeight = window.innerHeight;
-        const sectionRects = this.sections.map((section) =>
-            section.getBoundingClientRect(),
-        );
 
         for (let i = 0; i < this.sections.length; i++) {
-            const { top: offsetTop, bottom: offsetBottom } = sectionRects[i];
+            const section = this.sections[i];
+            if (!section) continue;
+
+            const { top: offsetTop, bottom: offsetBottom } =
+                section.getBoundingClientRect();
 
             if (
                 this.isInRange(offsetTop, 0, viewportHeight) ||
@@ -241,7 +242,33 @@ class TableOfContents extends HTMLElement {
         }
     };
 
+    teardown() {
+        if (this.updateRaf) cancelAnimationFrame(this.updateRaf);
+        if (this.layoutRaf) cancelAnimationFrame(this.layoutRaf);
+        this.updateRaf = 0;
+        this.layoutRaf = 0;
+
+        this.sections.forEach((section) => {
+            if (section) this.observer.unobserve(section);
+        });
+
+        this.tocEl?.removeEventListener("click", this.handleAnchorClick, {
+            capture: true,
+        });
+
+        this.sections = [];
+        this.headings = [];
+        this.tocEntries = [];
+        this.active = [];
+        this.headingIdxMap.clear();
+        this.anchorNavTarget = null;
+        this.tocEl = null;
+        this.activeIndicator = null;
+    }
+
     init() {
+        this.teardown();
+
         // 重新生成TOC内容
         this.regenerateTOC();
 
@@ -273,9 +300,9 @@ class TableOfContents extends HTMLElement {
         }
         this.active = new Array(this.tocEntries.length).fill(false);
 
-        this.sections.forEach((section) =>
-            this.observer.observe(section)
-        );
+        this.sections.forEach((section) => {
+            if (section) this.observer.observe(section);
+        });
 
         this.fallback();
         this.update();
@@ -318,9 +345,6 @@ class TableOfContents extends HTMLElement {
         const siteConfig = (window as any).siteConfig || {};
         const maxLevel = siteConfig.toc?.depth || 3;
         const useJapaneseBadge = siteConfig.toc?.useJapaneseBadge || false;
-        
-        // 添加调试信息
-        console.log('TOC Config in regenerateTOC:', { siteConfig: siteConfig.toc, maxLevel, useJapaneseBadge });
         
         // 日语片假名字符集
         const japaneseKatakana = [
@@ -369,13 +393,8 @@ class TableOfContents extends HTMLElement {
     }
 
     disconnectedCallback() {
-        if (this.updateRaf) cancelAnimationFrame(this.updateRaf);
-        if (this.layoutRaf) cancelAnimationFrame(this.layoutRaf);
-        this.sections.forEach((section) =>
-            this.observer.unobserve(section)
-        );
+        this.teardown();
         this.observer.disconnect();
-        this.tocEl?.removeEventListener("click", this.handleAnchorClick);
     };
 }
 

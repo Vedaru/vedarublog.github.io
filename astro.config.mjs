@@ -42,7 +42,8 @@ export default defineConfig({
 	output: "static",
 
 	build: {
-		inlineStylesheets: "always",
+		// auto：大 CSS 外链并可跨页缓存；always 会撑大 HTML，且破坏 fancybox/katex 动态 CSS
+		inlineStylesheets: "auto",
 	},
 
 	integrations: [
@@ -59,7 +60,8 @@ export default defineConfig({
 			preload: { hover: true, visible: false },
 			loadOnIdle: true,
 			accessibility: true,
-			updateHead: true,
+			// 各页 CSS head 一致；关闭 head 交换避免换页/切壁纸时外链样式短暂卸载导致线框 FOUC
+			updateHead: false,
 			updateBodyClass: false,
 			globalInstance: true,
 			// 滚动相关配置优化
@@ -197,6 +199,8 @@ export default defineConfig({
 			"import.meta.env.PUBLIC_SITE_BUILD_ID": JSON.stringify(SITE_BUILD_ID),
 		},
 		build: {
+			// 全站单 CSS：Swup updateHead 换页时不卸载侧栏/shell 仍依赖的样式，避免切页线框 FOUC
+			cssCodeSplit: false,
 			// 静态资源处理优化，防止小图片转 base64 导致 HTML 体积过大（可选，根据需要调整）
 			assetsInlineLimit: 4096,
 			// 减少 modulepreload 与 script 的 credentials mode 不一致警告
