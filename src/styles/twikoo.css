@@ -168,10 +168,55 @@ Make the emoji component display correctly when there are too many emoji packs
   overflow-x: clip;
 }
 
+/* Swup 跳入文章页时，Twikoo 渲染完成前隐藏未样式化 UI，避免巨型图标/表单溢出 */
+#tcomment .twikoo {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+#tcomment.twikoo-ready .twikoo {
+  opacity: 1;
+}
+
 #tcomment.twikoo-ready .twikoo,
 #tcomment .tk-comments {
   min-width: 0;
   max-width: 100%;
+}
+
+/* 限制 Twikoo / Element UI 图标与空状态插图尺寸 */
+#tcomment .twikoo svg {
+  max-width: 100%;
+  flex-shrink: 0;
+}
+
+#tcomment .tk-action-icon svg,
+#tcomment .tk-owo svg,
+#tcomment .tk-meta svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  max-width: 1.125rem;
+  max-height: 1.125rem;
+}
+
+#tcomment .tk-empty svg,
+#tcomment .tk-loading svg,
+#tcomment .tk-submit-action-icon svg {
+  width: 2.5rem !important;
+  height: 2.5rem !important;
+  max-width: 2.5rem !important;
+  max-height: 2.5rem !important;
+  margin-inline: auto;
+  display: block;
+}
+
+#tcomment .el-textarea__inner,
+#tcomment .tk-input textarea {
+  width: 100% !important;
+  max-width: 100%;
+  box-sizing: border-box;
+  background-color: var(--btn-regular-bg);
+  color: var(--btn-content);
 }
 
 .twikoo-loading,

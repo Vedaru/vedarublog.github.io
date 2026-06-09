@@ -28,6 +28,9 @@ import "../styles/mobile-navbar.css";
 import "../styles/wallpaper-navbar-transparent.css";
 import "../styles/expressive-code.css";
 import "../styles/panel-animations.css";
+if (commentConfig.enable) {
+	await import("../styles/twikoo.css");
+}
 
 interface Props {
 	title?: string;
@@ -404,6 +407,14 @@ if (siteConfig.font) {
 			title={profileConfig.name}
 			href={`${Astro.site}rss.xml`}
 		/>
+
+		{commentConfig.enable && (
+			<link
+				rel="preload"
+				href="/assets/js/twikoo.all.min.js"
+				as="script"
+			/>
+		)}
 
 		<!-- Umami Analytics - 延迟加载 -->
 		{umamiEnabled && umamiScripts && (

@@ -49,20 +49,20 @@ Netlify 边缘节点（`75.2.60.5:443`）在国内经常连不上，表现为 `E
 
 ```mermaid
 flowchart TB
-  subgraph save [① 减少 Netlify deploy]
+  subgraph save [减少 Netlify deploy]
     push[git push] --> diff{代理层文件有变更?}
-    diff -->|否| skip[跳过 deploy · 节省 credits]
-    diff -->|是| deploy[仅更新代理配置]
+    diff -->|否| skip[跳过 deploy]
+    diff -->|是| deploy[更新代理配置]
   end
 
-  subgraph switch [② GitHub Actions 自动切流量]
-    gha[netlify-traffic-switch · auto] --> cond{credits 不足<br/>或 HTTPS 失败?}
-    cond -->|否| modeA[Netlify 回源模式]
-    cond -->|是| modeB[Cloudflare 直连模式]
+  subgraph switch [Actions 自动切流量]
+    gha[traffic-switch auto] --> cond{credits 不足或 HTTPS 失败?}
+    cond -->|否| modeA[Netlify 回源]
+    cond -->|是| modeB[CF 直连]
   end
 
-  modeA --> pathA["访客 → www.vedaru.cn → Netlify CDN → CF Pages 源站"]
-  modeB --> pathB["访客 → www.vedaru.cn → CF DNS 橙云 → CF Pages 源站"]
+  modeA --> pathA[访客 - Netlify - CF Pages]
+  modeB --> pathB[访客 - CF 橙云 - CF Pages]
 ```
 
 ## 一、跳过无意义的 Netlify deploy
