@@ -84,7 +84,9 @@ function ensureTwikooScript() {
 				waitReady();
 				return;
 			}
-			existing.addEventListener("load", () => waitReady(), { once: true });
+			existing.addEventListener("load", () => waitReady(), {
+				once: true,
+			});
 			existing.addEventListener("error", () => settle(false), {
 				once: true,
 			});
@@ -268,3 +270,4 @@ if (document.readyState === "loading") {
 } else {
 	bootstrapTwikoo();
 }
+
