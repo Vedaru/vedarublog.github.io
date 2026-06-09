@@ -19,8 +19,33 @@ import { join } from "node:path";
 const CF_API = "https://api.cloudflare.com/client/v4";
 const NETLIFY_API = "https://api.netlify.com/api/v1";
 
+const PAGES_TOKEN_HELP = `
+[pages] CF_API_TOKEN 无法访问 Cloudflare Pages API（Authentication error）。
+
+请在 Cloudflare → My Profile → API Tokens → 编辑/重建 Token，添加：
+
+  Account → Cloudflare Pages → Edit
+  Account Resources → Include → 你的 Cloudflare 账号
+
+  Zone → DNS → Edit（已有，用于改 DNS）
+  Zone Resources → Include → vedaru.cn
+
+或单独创建 Pages Token 填入 GitHub Secret：CF_PAGES_API_TOKEN
+
+创建后更新仓库 Settings → Secrets → Actions 中的 CF_API_TOKEN（或新增 CF_PAGES_API_TOKEN），再重新运行 workflow。
+`.trim();
+
 function env(name, fallback = "") {
 	return process.env[name]?.trim() || fallback;
+}
+
+function cfDnsToken() {
+	return env("CF_API_TOKEN");
+}
+
+/** Pages 域名注册可用独立 Token，否则复用 CF_API_TOKEN */
+function cfPagesToken() {
+	return env("CF_PAGES_API_TOKEN") || env("CF_API_TOKEN");
 }
 
 function envInt(name, fallback) {
@@ -40,6 +65,14 @@ async function netlifyFetch(path, token) {
 	return response.json();
 }
 
+function isCfAuthError(errors) {
+	return (errors ?? []).some(
+		(e) =>
+			e.code === 10000 ||
+			/authentication error|unauthorized|permission/i.test(String(e.message)),
+	);
+}
+
 async function cfRequest(method, path, token, body) {
 	const response = await fetch(`${CF_API}${path}`, {
 		method,
@@ -51,9 +84,14 @@ async function cfRequest(method, path, token, body) {
 	});
 	const data = await response.json();
 	if (!data.success) {
-		throw new Error(
-			`Cloudflare API ${method} ${path}: ${JSON.stringify(data.errors)}`,
-		);
+		const errors = data.errors ?? [];
+		const base = `Cloudflare API ${method} ${path}: ${JSON.stringify(errors)}`;
+		if (isCfAuthError(errors) && path.includes("/pages/")) {
+			const err = new Error(`${base}\n\n${PAGES_TOKEN_HELP}`);
+			err.pagesAuth = true;
+			throw err;
+		}
+		throw new Error(base);
 	}
 	return data;
 }
@@ -281,13 +319,43 @@ async function missingPagesHostnames(accountId, project, hostnames, token) {
 	return hostnames.filter((h) => !registered.has(h.toLowerCase()));
 }
 
+/** Pages API 鉴权失败时不阻断 DNS 切换，返回待注册列表 */
+async function safeMissingPagesHostnames(accountId, project, hostnames, token) {
+	try {
+		return { missing: await missingPagesHostnames(accountId, project, hostnames, token), pagesAuthOk: true };
+	} catch (error) {
+		if (error.pagesAuth) {
+			console.error(error.message);
+			return { missing: hostnames, pagesAuthOk: false };
+		}
+		throw error;
+	}
+}
+
 async function ensurePagesDomains(accountId, project, hostnames, token, dryRun) {
 	const results = [];
-	const registered = new Set(
-		(await listPagesDomainNames(accountId, project, token)).map((h) =>
-			h.toLowerCase(),
-		),
-	);
+	let registered;
+
+	try {
+		registered = new Set(
+			(await listPagesDomainNames(accountId, project, token)).map((h) =>
+				h.toLowerCase(),
+			),
+		);
+	} catch (error) {
+		if (error.pagesAuth) {
+			console.error(error.message);
+			for (const hostname of hostnames) {
+				results.push({
+					hostname,
+					status: "error",
+					error: "Pages API authentication failed — update CF token permissions",
+				});
+			}
+			return { results, pagesAuthOk: false };
+		}
+		throw error;
+	}
 
 	for (const hostname of hostnames) {
 		try {
@@ -317,7 +385,7 @@ async function ensurePagesDomains(accountId, project, hostnames, token, dryRun) 
 		}
 	}
 
-	return results;
+	return { results, pagesAuthOk: true };
 }
 
 async function applyCloudflareMode(ctx) {
@@ -491,7 +559,8 @@ async function main() {
 	);
 
 	const forceMode = env("NETLIFY_TRAFFIC_MODE", "auto").toLowerCase();
-	const cfToken = env("CF_API_TOKEN");
+	const cfToken = cfDnsToken();
+	const pagesToken = cfPagesToken();
 	const zoneId = env("CF_ZONE_ID");
 	const netlifyToken = env("NETLIFY_AUTH_TOKEN");
 	const siteId = env("NETLIFY_SITE_ID");
@@ -625,13 +694,16 @@ async function main() {
 			: [];
 
 	let pagesToRegister = [];
+	let pagesAuthOk = true;
 	if (targetMode === "cloudflare" && cloudflareHostnames.length) {
-		pagesToRegister = await missingPagesHostnames(
+		const pagesCheck = await safeMissingPagesHostnames(
 			accountId,
 			cfProject,
 			cloudflareHostnames,
-			cfToken,
+			pagesToken,
 		);
+		pagesToRegister = pagesCheck.missing;
+		pagesAuthOk = pagesCheck.pagesAuthOk;
 		if (pagesToRegister.length) {
 			console.log(
 				`[pages] Missing custom domains: ${pagesToRegister.join(", ")}`,
@@ -675,13 +747,7 @@ async function main() {
 	}
 
 	if (targetMode === "cloudflare") {
-		state.pagesDomains = await ensurePagesDomains(
-			accountId,
-			cfProject,
-			cloudflareHostnames,
-			cfToken,
-			false,
-		);
+		// 先改 DNS（开橙云），Pages 域名注册失败也不应阻断
 		state.changes = await applyCloudflareMode({
 			zoneId,
 			token: cfToken,
@@ -689,6 +755,16 @@ async function main() {
 			cfTarget,
 			apexRecord,
 		});
+
+		const pagesResult = await ensurePagesDomains(
+			accountId,
+			cfProject,
+			cloudflareHostnames,
+			pagesToken,
+			false,
+		);
+		state.pagesDomains = pagesResult.results;
+		pagesAuthOk = pagesAuthOk && pagesResult.pagesAuthOk;
 	} else {
 		if (!netlifyTarget) {
 			console.warn("[traffic] NETLIFY_CNAME_TARGET missing, using A record for www");
@@ -713,10 +789,28 @@ async function main() {
 	}
 	console.log(`[probe] after switch:`, state.probe);
 
-	writeState({ ...state, action: "switched" });
+	writeState({
+		...state,
+		action: "switched",
+		pagesAuthOk,
+	});
+
+	if (targetMode === "cloudflare" && !pagesAuthOk) {
+		console.error(
+			"\n❌ DNS 已更新，但 Pages 自定义域名未能通过 API 注册，站点可能仍返回 522。",
+		);
+		console.error(PAGES_TOKEN_HELP);
+		process.exit(1);
+	}
+
+	if (targetMode === "cloudflare" && !state.probe.ok) {
+		console.warn(
+			"[traffic] 切换后探测仍未成功，Pages 证书激活可能需要 5～15 分钟，稍后会自动重试。",
+		);
+	}
 }
 
 main().catch((error) => {
-	console.error("❌ netlify-traffic-switch failed:", error);
+	console.error("❌ netlify-traffic-switch failed:", error.message ?? error);
 	process.exit(1);
 });

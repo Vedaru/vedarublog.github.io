@@ -5,7 +5,9 @@
 #   2. 注册 Pages 自定义域名（www + apex）
 #   3. 修改 Cloudflare DNS（CNAME + 橙云 proxied）
 #
-# CF_API_TOKEN 需含：Zone DNS Edit + Account Cloudflare Pages Edit
+# Secrets:
+#   CF_API_TOKEN       Zone DNS Edit（vedaru.cn）
+#   CF_PAGES_API_TOKEN 可选；Account Cloudflare Pages Edit（与 CF_API_TOKEN 二选一或合并到同一 Token）
 name: Netlify Traffic Switch
 
 on:
@@ -49,6 +51,7 @@ jobs:
       - name: Run traffic switch
         env:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_PAGES_API_TOKEN: ${{ secrets.CF_PAGES_API_TOKEN }}
           CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CF_PAGES_PROJECT: vedarublog-github-io
