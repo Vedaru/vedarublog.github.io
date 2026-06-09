@@ -3,11 +3,10 @@
 let initTimer = null;
 let initGeneration = 0;
 let swupListenersRegistered = false;
-let scriptLoadPromise = null;
 
 const TWIKOO_SCRIPT = "/assets/js/twikoo.all.min.js";
-/** Swup 换页后等待 head/样式就绪再 init */
-const SWUP_INIT_DELAY = 320;
+/** Swup 动画结束后再 init，避免 DOM/样式未稳定 */
+const SWUP_INIT_DELAY = 80;
 
 function getCurrentPath() {
 	const pathname = window.location.pathname;
@@ -28,20 +27,24 @@ function getTwikooConfig() {
 	};
 }
 
+function isTwikooScriptReady() {
+	return typeof twikoo !== "undefined";
+}
+
 function ensureTwikooScript() {
-	if (typeof twikoo !== "undefined") return Promise.resolve(true);
+	if (isTwikooScriptReady()) return Promise.resolve(true);
 
-	if (scriptLoadPromise) return scriptLoadPromise;
-
-	scriptLoadPromise = new Promise((resolve) => {
-		const existing = document.querySelector("script[data-twikoo-loader]");
+	return new Promise((resolve) => {
+		const existing = document.querySelector(
+			'script[src*="twikoo.all.min.js"]',
+		);
 		if (existing) {
-			if (typeof twikoo !== "undefined") {
+			if (isTwikooScriptReady()) {
 				resolve(true);
 				return;
 			}
 			existing.addEventListener("load", () =>
-				resolve(typeof twikoo !== "undefined"),
+				resolve(isTwikooScriptReady()),
 			);
 			existing.addEventListener("error", () => resolve(false));
 			return;
@@ -50,12 +53,10 @@ function ensureTwikooScript() {
 		const script = document.createElement("script");
 		script.src = TWIKOO_SCRIPT;
 		script.dataset.twikooLoader = "1";
-		script.onload = () => resolve(typeof twikoo !== "undefined");
+		script.onload = () => resolve(isTwikooScriptReady());
 		script.onerror = () => resolve(false);
 		document.head.appendChild(script);
 	});
-
-	return scriptLoadPromise;
 }
 
 function showTwikooLoading(commentEl) {
@@ -68,6 +69,43 @@ function showTwikooError(commentEl, message) {
 	commentEl.classList.remove("twikoo-ready");
 	commentEl.classList.add("twikoo-error-state");
 	commentEl.innerHTML = `<div class="twikoo-error">${message}</div>`;
+}
+
+function waitForTwikooMount(commentEl, timeout = 8000) {
+	return new Promise((resolve) => {
+		const started = Date.now();
+
+		const isReady = () => {
+			const root = commentEl.querySelector(".twikoo");
+			if (!root) return false;
+			if (root.querySelector(".tk-meta-input, .tk-comments, .tk-input")) {
+				return true;
+			}
+			return false;
+		};
+
+		if (isReady()) {
+			resolve(true);
+			return;
+		}
+
+		const observer = new MutationObserver(() => {
+			if (isReady()) {
+				observer.disconnect();
+				resolve(true);
+			} else if (Date.now() - started > timeout) {
+				observer.disconnect();
+				resolve(false);
+			}
+		});
+
+		observer.observe(commentEl, { childList: true, subtree: true });
+
+		setTimeout(() => {
+			observer.disconnect();
+			resolve(isReady());
+		}, timeout);
+	});
 }
 
 function markTwikooReady(commentEl) {
@@ -90,7 +128,7 @@ async function initTwikooPage(generation) {
 	const scriptReady = await ensureTwikooScript();
 	if (generation !== initGeneration) return;
 
-	if (!scriptReady || typeof twikoo === "undefined") {
+	if (!scriptReady || !isTwikooScriptReady()) {
 		showTwikooError(commentEl, "评论服务不可用。");
 		return;
 	}
@@ -100,6 +138,9 @@ async function initTwikooPage(generation) {
 
 	try {
 		await twikoo.init({ ...config, path: getCurrentPath() });
+		if (generation !== initGeneration) return;
+
+		await waitForTwikooMount(commentEl);
 		if (generation !== initGeneration) return;
 
 		markTwikooReady(commentEl);
@@ -138,13 +179,12 @@ function registerTwikooSwupListeners() {
 
 	window.swup.hooks.on("visit:start", cancelTwikooInit);
 	window.swup.hooks.on("content:replace", () => {
-		// 不在 content:replace 立即 init，等 page:view / mizuki:page:loaded
 		setTimeout(
 			() => window.scrollProtectionManager?.observeTwikoo?.(),
-			SWUP_INIT_DELAY,
+			200,
 		);
 	});
-	window.swup.hooks.on("page:view", () =>
+	window.swup.hooks.on("animation:in:end", () =>
 		scheduleTwikooInit(SWUP_INIT_DELAY),
 	);
 }
@@ -158,9 +198,6 @@ function bootstrapTwikoo() {
 
 window.initTwikooPage = () => scheduleTwikooInit(0);
 
-document.addEventListener("mizuki:page:loaded", () =>
-	scheduleTwikooInit(SWUP_INIT_DELAY),
-);
 document.addEventListener("swup:enable", registerTwikooSwupListeners);
 
 if (document.readyState === "loading") {

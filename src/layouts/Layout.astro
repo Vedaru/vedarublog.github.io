@@ -409,11 +409,7 @@ if (siteConfig.font) {
 		/>
 
 		{commentConfig.enable && (
-			<link
-				rel="preload"
-				href="/assets/js/twikoo.all.min.js"
-				as="script"
-			/>
+			<script is:inline src="/assets/js/twikoo.all.min.js" defer></script>
 		)}
 
 		<!-- Umami Analytics - 延迟加载 -->

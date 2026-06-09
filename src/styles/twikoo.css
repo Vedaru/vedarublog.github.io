@@ -168,7 +168,7 @@ Make the emoji component display correctly when there are too many emoji packs
   overflow-x: clip;
 }
 
-/* Swup 跳入文章页时，Twikoo 渲染完成前隐藏未样式化 UI，避免巨型图标/表单溢出 */
+/* Swup 跳入文章页时，Twikoo 渲染完成前隐藏未样式化 UI */
 #tcomment .twikoo {
   opacity: 0;
   transition: opacity 0.2s ease;
@@ -184,12 +184,7 @@ Make the emoji component display correctly when there are too many emoji packs
   max-width: 100%;
 }
 
-/* 限制 Twikoo / Element UI 图标与空状态插图尺寸 */
-#tcomment .twikoo svg {
-  max-width: 100%;
-  flex-shrink: 0;
-}
-
+/* 勿对全部 svg 设 max-width:100%，否则无尺寸的 Element UI 图标会被撑满容器 */
 #tcomment .tk-action-icon svg,
 #tcomment .tk-owo svg,
 #tcomment .tk-meta svg {
@@ -201,7 +196,9 @@ Make the emoji component display correctly when there are too many emoji packs
 
 #tcomment .tk-empty svg,
 #tcomment .tk-loading svg,
-#tcomment .tk-submit-action-icon svg {
+#tcomment .tk-submit-action-icon svg,
+#tcomment .el-loading-spinner svg,
+#tcomment .el-icon svg {
   width: 2.5rem !important;
   height: 2.5rem !important;
   max-width: 2.5rem !important;
@@ -210,13 +207,49 @@ Make the emoji component display correctly when there are too many emoji packs
   display: block;
 }
 
+#tcomment .el-loading-spinner .circular {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+/* Element UI 表单基础样式（Twikoo 脚本/CSS 未就绪时的兜底） */
+#tcomment .el-input-group {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  line-height: normal;
+}
+
+#tcomment .el-input-group__prepend {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.75rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+#tcomment .el-input__inner,
+#tcomment .el-textarea__inner {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+}
+
+#tcomment .el-textarea {
+  width: 100%;
+}
+
 #tcomment .el-textarea__inner,
 #tcomment .tk-input textarea {
   width: 100% !important;
   max-width: 100%;
+  min-height: 150px;
   box-sizing: border-box;
   background-color: var(--btn-regular-bg);
   color: var(--btn-content);
+  border: 1px solid var(--line-divider, rgba(144, 147, 153, 0.31));
+  border-radius: var(--radius-large, 0.75rem);
+  padding: 1rem 1.5rem;
 }
 
 .twikoo-loading,
