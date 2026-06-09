@@ -1,11 +1,12 @@
 {
-  "checkedAt": "2026-06-09T04:52:08.245Z",
+  "checkedAt": "2026-06-09T04:55:31.612Z",
   "currentMode": "netlify",
   "targetMode": "cloudflare",
-  "reason": "credits low (remaining≈-90 ≤ reserve 45)",
+  "reason": "NETLIFY_TRAFFIC_MODE=cloudflare",
   "wwwFqdn": "www.vedaru.cn",
   "currentRecord": "A 75.2.60.5",
   "targetRecord": "CNAME vedarublog-github-io.pages.dev",
-  "dryRun": true,
-  "action": "dry-run"
+  "dryRun": false,
+  "action": "switched",
+  "previousRecord": "A 75.2.60.5"
 }
