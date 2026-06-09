@@ -1,4 +1,5 @@
 <script lang="ts">
+import "@/lib/iconify-offline";
 import Icon from "@iconify/svelte";
 import { onDestroy, onMount } from "svelte";
 import { slide } from "svelte/transition";
@@ -488,7 +489,7 @@ onDestroy(() => {
          role="button"
          tabindex="0">
         {#if isLoading}
-            <Icon icon="eos-icons:loading" class="text-white text-lg" />
+            <Icon icon="material-symbols:progress-activity" class="text-white text-lg" />
         {:else if isPlaying}
             <div class="flex space-x-0.5">
                 <div class="w-0.5 h-3 bg-white rounded-full animate-pulse"></div>
@@ -516,7 +517,7 @@ onDestroy(() => {
                      class:animate-pulse={isLoading} />
                 <div class="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                     {#if isLoading}
-                        <Icon icon="eos-icons:loading" class="text-white text-xl" />
+                        <Icon icon="material-symbols:progress-activity" class="text-white text-xl" />
                     {:else if isPlaying}
                         <Icon icon="material-symbols:pause" class="text-white text-xl" />
                     {:else}
@@ -624,7 +625,7 @@ onDestroy(() => {
                     disabled={isLoading}
                     on:click={togglePlay}>
                 {#if isLoading}
-                    <Icon icon="eos-icons:loading" class="text-xl" />
+                    <Icon icon="material-symbols:progress-activity" class="text-xl" />
                 {:else if isPlaying}
                     <Icon icon="material-symbols:pause" class="text-xl" />
                 {:else}

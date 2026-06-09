@@ -1,4 +1,5 @@
 <script lang="ts">
+import "@/lib/iconify-offline";
 import Icon from "@iconify/svelte";
 import { onMount } from "svelte";
 import I18nKey from "../i18n/i18nKey";
@@ -142,17 +143,8 @@ const checkIsHomePage = () => {
 const scrollToHeading = (id: string) => {
 	const element = document.getElementById(id);
 	if (element) {
-		// 关闭面板
 		setPanelVisibility(false);
-
-		// 滚动到目标位置，考虑导航栏高度
-		const offset = 80;
-		const elementPosition = element.offsetTop - offset;
-
-		window.scrollTo({
-			top: elementPosition,
-			behavior: "smooth",
-		});
+		window.__smoothScrollToElement?.(element, 80, 650);
 	}
 };
 

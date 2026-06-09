@@ -7,13 +7,11 @@ import Navbar from "@components/Navbar.astro";
 import SideBar from "@components/widget/SideBar.astro";
 import type { MarkdownHeading } from "astro";
 import { Icon } from "astro-icon/components";
-import FullscreenWallpaper from "../components/misc/FullscreenWallpaper.astro";
 import IconifyLoader from "../components/misc/IconifyLoader.astro";
 import ImageWrapper from "../components/misc/ImageWrapper.astro";
 import TypewriterText from "../components/TypewriterText.astro";
 import TOC from "../components/widget/TOC.astro";
 import {
-	fullscreenWallpaperConfig,
 	siteConfig,
 } from "../config";
 import {
@@ -106,6 +104,16 @@ const getBannerImages = async () => {
 };
 
 const bannerImages = await getBannerImages();
+const toBannerSrcList = (src: string | string[] | undefined): string[] =>
+	Array.isArray(src) ? src : typeof src === "string" && src ? [src] : [];
+const desktopBannerList = toBannerSrcList(
+	bannerImages.desktop as string | string[] | undefined,
+);
+const mobileBannerList = toBannerSrcList(
+	bannerImages.mobile as string | string[] | undefined,
+);
+const singleDesktopBanner = desktopBannerList[0];
+const singleMobileBanner = mobileBannerList[0];
 const lcpDesktopBanner = getFirstBannerUrl(
 	Array.isArray(bannerImages.desktop)
 		? bannerImages.desktop
@@ -403,6 +411,13 @@ const transparentClass = shouldEnableTransparency
 		
 		// 批量 DOM 操作：先收集所有变更，再通过 requestAnimationFrame 一次性应用
 		requestAnimationFrame(function() {
+			if (mainContent) {
+				mainContent.classList.toggle(
+					'wallpaper-transparent',
+					wallpaperMode === 'fullscreen',
+				);
+			}
+
 			switch(wallpaperMode) {
 				case 'banner':
 					if (bannerWrapper) bannerWrapper.style.display = 'block';
@@ -426,7 +441,9 @@ const transparentClass = shouldEnableTransparency
 					
 				case 'fullscreen':
 					if (bannerWrapper) bannerWrapper.style.display = 'none';
-					if (fullscreenWallpaper) fullscreenWallpaper.style.display = 'block';
+					if (fullscreenWallpaper) {
+						fullscreenWallpaper.style.display = 'block';
+					}
 					if (tocWrapper) tocWrapper.classList.remove('toc-hide');
 					body.classList.remove('enable-banner');
 					if (mainContent) mainContent.style.removeProperty('top');
@@ -578,9 +595,6 @@ const transparentClass = shouldEnableTransparency
 	}
 </script>
 
-<!-- 全屏壁纸 - 始终渲染，通过 JS 控制显示隐藏 -->
-<FullscreenWallpaper config={fullscreenWallpaperConfig} />
-
 <!-- 全局图标加载器 -->
 <IconifyLoader />
 
@@ -593,111 +607,56 @@ const transparentClass = shouldEnableTransparency
 </div>
 
 <!-- Banner - 始终渲染，通过 JS 控制显示隐藏 -->
-<div id="banner-wrapper" class={`absolute z-10 w-full transition duration-700 overflow-hidden ${mobileNonHomeBannerClass}`} style={`top: -${BANNER_HEIGHT_EXTEND}vh`}>
+<div id="banner-wrapper" class={`absolute z-10 w-full overflow-hidden ${mobileNonHomeBannerClass}`}>
 
-    {siteConfig.banner.carousel?.enable && ((bannerImages.desktop && Array.isArray(bannerImages.desktop) && bannerImages.desktop.length > 1) || (bannerImages.mobile && Array.isArray(bannerImages.mobile) && bannerImages.mobile.length > 1)) ? (
-        <!-- Carousel mode for multiple images -->
-        <div id="banner-carousel" class="relative h-full w-full">
-            <ul class="carousel-list h-full w-full">
-                {Math.max(
-                    Array.isArray(bannerImages.desktop) ? bannerImages.desktop.length : 0,
-                    Array.isArray(bannerImages.mobile) ? bannerImages.mobile.length : 0
-                ) && Array.from({ length: Math.max(
-                    Array.isArray(bannerImages.desktop) ? bannerImages.desktop.length : 0,
-                    Array.isArray(bannerImages.mobile) ? bannerImages.mobile.length : 0
-                ) }).map((_, index) => {
-                    // 确保至少有一个平台有对应索引的图片
-                    const hasDesktopImage = Array.isArray(bannerImages.desktop) && bannerImages.desktop[index];
-                    const hasMobileImage = Array.isArray(bannerImages.mobile) && bannerImages.mobile[index];
-                    
-                    // 如果两个平台都没有对应索引的图片，跳过这个轮播项
-                    if (!hasDesktopImage && !hasMobileImage) {
-                        return null;
-                    }
-                    
-                    return (
-                        <li class={`carousel-item absolute inset-0 transition-all duration-500 ${index === 0 ? 'opacity-100 scale-100' : 'opacity-0 scale-110'}`}>
-                            <!-- Mobile: use mobile-specific images -->
-                            {hasMobileImage && (
-                                <ImageWrapper 
-                                    alt={`Mobile banner image ${index + 1}`} 
-                                    class:list={["block md:hidden object-cover h-full w-full transition-transform duration-500 ease-out"]}
-                                    src={Array.isArray(bannerImages.mobile) ? bannerImages.mobile[index] : (typeof bannerImages.mobile === 'string' ? bannerImages.mobile : '')} 
-                                    position={siteConfig.banner.position}
-                                    loading={index === 0 ? "eager" : "lazy"}
-                                    fetchpriority={index === 0 ? "high" : undefined}
-                                />
-                            )}
-                            <!-- Desktop/Tablet: use desktop-specific images -->
-                            {hasDesktopImage && (
-                                <ImageWrapper 
-                                    alt={`Desktop banner image ${index + 1}`} 
-                                    class:list={["hidden md:block object-cover h-full w-full transition-transform duration-500 ease-out"]}
-                                    src={Array.isArray(bannerImages.desktop) ? bannerImages.desktop[index] : (typeof bannerImages.desktop === 'string' ? bannerImages.desktop : '')} 
-                                    position={siteConfig.banner.position}
-                                    loading={index === 0 ? "eager" : "lazy"}
-                                    fetchpriority={index === 0 ? "high" : undefined}
-                                />
-                            )}
-                        </li>
+    <!-- Banner 单图 -->
+    <div id="banner-single-container" class="relative h-full w-full">
+        {singleDesktopBanner && (
+            <div class="hidden md:block absolute inset-0">
+                <div class="banner-breathe-wrap h-full w-full overflow-hidden">
+                    <img
+                        id="banner"
+                        alt="Desktop banner image of the blog"
+                        class="object-cover"
+                        src={url(singleDesktopBanner)}
+                        style={`object-position: ${siteConfig.banner.position || "center"}`}
+                        loading="eager"
+                        fetchpriority="high"
+                    />
+                </div>
+            </div>
+        )}
+        {singleMobileBanner && (
+            <div class="block md:hidden absolute inset-0">
+                <div class="banner-breathe-wrap h-full w-full overflow-hidden">
+                    <img
+                        alt="Mobile banner image of the blog"
+                        class="object-cover"
+                        src={url(singleMobileBanner)}
+                        style={`object-position: ${siteConfig.banner.position || "center"}`}
+                        loading="eager"
+                        fetchpriority="high"
+                    />
+                </div>
+            </div>
+        )}
+        <script is:inline>
+            (function () {
+                const run = () => {
+                    window.__bannerSessionApplyDrift?.(
+                        document.getElementById("banner-single-container"),
                     );
-                }).filter(Boolean)}
-            </ul>
-        </div>
-    ) : (
-        <!-- Single image mode -->
-        <div id="banner-single-container" class="relative h-full w-full">
-            <script is:inline define:vars={{ desktopImages: bannerImages.desktop, mobileImages: bannerImages.mobile, position: siteConfig.banner.position }}>
-                (function() {
-                    const getRandomImage = (images, storageKey) => {
-                        if (Array.isArray(images)) {
-                            if (images.length === 0) return null;
-                            if (images.length === 1) return images[0];
-                            
-                            const lastIndex = sessionStorage.getItem(storageKey);
-                            let newIndex;
-                            
-                            do {
-                                newIndex = Math.floor(Math.random() * images.length);
-                            } while (newIndex === parseInt(lastIndex || '-1'));
-                            
-                            sessionStorage.setItem(storageKey, newIndex.toString());
-                            return images[newIndex];
-                        }
-                        return images || null;
-                    };
-                    
-                    const desktopSrc = getRandomImage(desktopImages, 'banner_desktop_index');
-                    const mobileSrc = getRandomImage(mobileImages, 'banner_mobile_index');
-                    
-                    const container = document.getElementById('banner-single-container');
-                    
-                    if (mobileSrc) {
-                        const mobileImg = document.createElement('img');
-                        mobileImg.alt = 'Mobile banner image of the blog';
-                        mobileImg.className = 'block md:hidden object-cover h-full w-full transition duration-700 opacity-100';
-                        mobileImg.src = mobileSrc;
-                        mobileImg.loading = 'eager';
-                        mobileImg.fetchPriority = 'high';
-                        mobileImg.dataset.position = position;
-                        container.appendChild(mobileImg);
-                    }
-                    
-                    if (desktopSrc) {
-                        const desktopImg = document.createElement('img');
-                        desktopImg.id = 'banner';
-                        desktopImg.alt = 'Desktop banner image of the blog';
-                        desktopImg.className = 'hidden md:block object-cover h-full w-full transition duration-700 opacity-100';
-                        desktopImg.src = desktopSrc;
-                        desktopImg.loading = 'eager';
-                        desktopImg.fetchPriority = 'high';
-                        desktopImg.dataset.position = position;
-                        container.appendChild(desktopImg);
-                    }
-                })();
-            </script>
-        </div>
-    )}
+                };
+                if (document.readyState === "loading") {
+                    document.addEventListener("DOMContentLoaded", run, {
+                        once: true,
+                    });
+                } else {
+                    run();
+                }
+            })();
+        </script>
+    </div>
     
     <!-- Home page text overlay -->
     {siteConfig.banner.homeText?.enable && (
@@ -1162,33 +1121,8 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
     }
     
     /* 桌面端图片容器优化 */
-    .carousel-item img,
     #banner img {
-        object-position: center center !important; /* 确保图片居中显示 */
-        transition: transform 1s ease-out !important; /* 与移动端保持一致的过渡时间 */
-    }
-    
-    /* 桌面端轮播图片过渡优化 - 与移动端保持一致 */
-    .carousel-item {
-        transition: all 0.5s ease-out !important; /* 优化过渡时间，避免与轮播间隔冲突 */
-        transform-origin: center center !important; /* 确保缩放从中心开始 */
-    }
-    
-    /* 桌面端当前图片缩放效果 */
-    .carousel-item.opacity-100.scale-100 {
-        transform: scale(1) !important; /* 当前图片正常大小 */
-        opacity: 1 !important;
-    }
-    
-    /* 桌面端非当前图片缩放效果 */
-    .carousel-item.opacity-0.scale-110 {
-        transform: scale(1.15) !important; /* 非当前图片明显放大 */
-        opacity: 0 !important;
-    }
-    
-    /* 确保轮播容器有正确的overflow设置 */
-    #banner-carousel {
-        overflow: hidden !important;
+        object-position: center center !important;
     }
     
     /* 波浪效果恢复默认 */
@@ -1202,33 +1136,8 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
 /* 移动端图片优化 */
 @media (max-width: 1279px) {
     /* 移动端图片容器优化 */
-    .carousel-item img,
     #banner img {
-        object-position: center center !important; /* 确保图片居中显示 */
-        transition: transform 0.5s ease-out !important; /* 优化过渡时间，避免与轮播间隔冲突 */
-    }
-    
-    /* 轮播图片过渡优化 - 与电脑端保持一致 */
-    .carousel-item {
-        transition: all 1s ease-out !important; /* 包含opacity和transform的过渡 */
-        transform-origin: center center !important; /* 确保缩放从中心开始 */
-    }
-    
-    /* 移动端当前图片缩放效果 */
-    .carousel-item.opacity-100.scale-100 {
-        transform: scale(1) !important; /* 当前图片正常大小 */
-        opacity: 1 !important;
-    }
-    
-    /* 移动端非当前图片缩放效果 */
-    .carousel-item.opacity-0.scale-110 {
-        transform: scale(1.15) !important; /* 非当前图片明显放大 */
-        opacity: 0 !important;
-    }
-    
-    /* 确保轮播容器有正确的overflow设置 */
-    #banner-carousel {
-        overflow: hidden !important;
+        object-position: center center !important;
     }
     
     /* 移动端banner加载动画优化 */
@@ -1249,23 +1158,25 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
     }
 }
 
+#banner-wrapper {
+    top: calc(-1 * var(--banner-height-extend));
+    transform: translate3d(0, 0, 0);
+    transform-origin: top center;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transition:
+        transform var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94)),
+        opacity var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
+}
+
 /* 手机端非首页隐藏banner - 改进的分阶段动画 */
 @media (max-width: 1279px) {
     #banner-wrapper {
-        transition:
-            transform var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94)),
-            opacity var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
-        transform-origin: top center;
-        /* 硬件加速优化 */
-        will-change: transform, opacity;
-        backface-visibility: hidden;
-        -webkit-backface-visibility: hidden;
-        transform: translateZ(0);
-        -webkit-transform: translateZ(0);
+        top: 0 !important;
     }
     
     .mobile-hide-banner {
-        transform: translateY(-100%) translateZ(0) !important;
+        transform: translate3d(0, -100%, 0) !important;
         opacity: 0 !important;
         pointer-events: none !important;
         transition:
@@ -1276,12 +1187,6 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
     /* 手机端非首页时主内容区域从顶部开始 - 延迟出现的动画 */
     .absolute.w-full.z-30 {
         transition: top var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
-        /* 硬件加速优化 */
-        will-change: top;
-        /* 禁用transform以保证back to top 按钮可以显示
-        transform: translateZ(0);
-        -webkit-transform: translateZ(0);
-        */
     }
     
     .absolute.w-full.z-30.mobile-main-no-banner {
@@ -1309,7 +1214,6 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
         /* 启用硬件加速 */
         transform: translateZ(0);
         -webkit-transform: translateZ(0);
-        will-change: transform, opacity;
         
         /* 优化渲染性能 */
         contain: layout style paint;
@@ -1317,19 +1221,6 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
         /* 减少重绘 */
         backface-visibility: hidden;
         -webkit-backface-visibility: hidden;
-    }
-
-    .carousel-item {
-        /* 硬件加速 */
-        transform: translateZ(0);
-        -webkit-transform: translateZ(0);
-        will-change: transform, opacity;
-        
-        /* 优化触摸响应 */
-        touch-action: pan-y;
-        -webkit-touch-callout: none;
-        -webkit-user-select: none;
-        user-select: none;
     }
 
     .banner-text-overlay {
@@ -1357,31 +1248,6 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
         
         /* 触摸优化 */
         pointer-events: none;
-    }
-
-    /* 移动端轮播指示器 */
-    .carousel-indicators {
-        position: absolute;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        display: flex;
-        gap: 8px;
-        z-index: 10;
-    }
-
-    .carousel-indicator {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.5);
-        transition: all 0.3s ease;
-        cursor: pointer;
-    }
-
-    .carousel-indicator.active {
-        background: rgba(255, 255, 255, 0.9);
-        transform: scale(1.2);
     }
 }
 

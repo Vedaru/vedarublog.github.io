@@ -144,10 +144,6 @@ export type SiteConfig = {
 					mobile?: string | string[];
 			  }; // 支持单个图片、图片数组或分别设置桌面端和移动端图片
 		position?: "top" | "center" | "bottom";
-		carousel?: {
-			enable: boolean; // 是否启用轮播
-			interval: number; // 轮播间隔时间（秒）
-		};
 		waves?: {
 			enable: boolean; // 是否启用水波纹效果
 			performanceMode?: boolean; // 性能模式：减少动画复杂度
@@ -436,10 +432,6 @@ export type FullscreenWallpaperConfig = {
 				mobile?: string | string[];
 		  }; // 支持单个图片、图片数组或分别设置桌面端和移动端图片
 	position?: "top" | "center" | "bottom"; // 壁纸位置，等同于 object-position
-	carousel?: {
-		enable: boolean; // 是否启用轮播
-		interval: number; // 轮播间隔时间（秒）
-	};
 	zIndex?: number; // 层级，确保壁纸在合适的层级显示
 	opacity?: number; // 壁纸透明度，0-1之间
 	blur?: number; // 背景模糊程度，单位px

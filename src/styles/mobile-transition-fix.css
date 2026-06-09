@@ -23,7 +23,6 @@
   }
 
   #banner-wrapper,
-  #banner-carousel,
   .banner-container {
     overflow: hidden !important;
   }
@@ -59,17 +58,33 @@
     transform: translateY(0);
   }
 
-  /* 轮播隐藏项缩放不超出 banner 容器 */
-  .carousel-item.opacity-0.scale-110 {
-    transform: scale(1.05) translateZ(0) !important;
-  }
-
   /* Pio 看板娘：切换页面时保持 fixed 定位，不受主内容 transform 影响 */
   .pio-container {
     position: fixed !important;
     transform: translate3d(0, 0, 0) !important;
     overflow: visible !important;
     font-size: 16px;
+  }
+
+  /* 首页离开前先归零 scroll：冻结布局过渡，减轻回顶卡顿 */
+  html.is-home-pre-scrolling #banner-wrapper,
+  html.is-home-pre-scrolling .absolute.w-full.z-30,
+  html.is-home-pre-scrolling #navbar-wrapper,
+  html.is-home-pre-scrolling #main-grid,
+  html.is-home-pre-scrolling .banner-breathe-wrap img {
+    transition: none !important;
+  }
+
+  html.is-home-pre-scrolling #swup-container {
+    pointer-events: none;
+  }
+
+  /* Swup 换页期间：banner 保持常驻合成层，避免 toggling contain/will-change 导致换页结束时抽动 */
+  html.is-changing #swup-container,
+  html.is-animating #swup-container,
+  html.swup-perf-active #swup-container {
+    contain: paint;
+    pointer-events: none;
   }
 }
 

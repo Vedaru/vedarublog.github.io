@@ -11,10 +11,12 @@
 	}
 	window.__scrollProtectionBootstrapped = true;
 
-	// 保存原始的滚动方法
-	const originalScrollTo = window.scrollTo;
-	const originalScrollBy = window.scrollBy;
+	// 保存原始的滚动方法（供预滚动等需要绕过劫持的场景使用）
+	const originalScrollTo = window.scrollTo.bind(window);
+	const originalScrollBy = window.scrollBy.bind(window);
 	const originalScrollIntoView = Element.prototype.scrollIntoView;
+	window.__nativeScrollTo = originalScrollTo;
+	window.__nativeScrollBy = originalScrollBy;
 
 	// 滚动保护状态
 	const scrollProtection = {
@@ -31,7 +33,11 @@
 		const stack = new Error().stack;
 		if (
 			stack &&
-			(stack.includes("handleAnchorClick") || stack.includes("TOC.astro"))
+			(stack.includes("handleAnchorClick") ||
+				stack.includes("TOC.astro") ||
+				stack.includes("MobileTOC") ||
+				stack.includes("FloatingTOC") ||
+				stack.includes("__smoothScrollToElement"))
 		) {
 			return true;
 		}
@@ -113,37 +119,57 @@
 		return true;
 	}
 
+	function getScrollTargetY(x, y) {
+		if (typeof x === "object" && x !== null) {
+			return typeof x.top === "number" ? x.top : window.scrollY || 0;
+		}
+		return typeof y === "number" ? y : window.scrollY || 0;
+	}
+
 	// 劫持 window.scrollTo
 	window.scrollTo = (x, y) => {
-		// 处理参数为对象的情况
-		if (typeof x === "object") {
-			const options = x;
-			x = options.left || 0;
-			y = options.top || 0;
+		const targetY = getScrollTargetY(x, y);
+
+		if (typeof x === "object" && x !== null) {
+			if (isScrollAllowed(x.left || 0, targetY)) {
+				originalScrollTo(x);
+			} else {
+				console.log("[强力滚动保护] 阻止 scrollTo:", x);
+				originalScrollTo({
+					...x,
+					top: scrollProtection.allowedY,
+				});
+			}
+			return;
 		}
 
-		if (isScrollAllowed(x, y)) {
-			originalScrollTo.call(window, x, y);
+		if (isScrollAllowed(x, targetY)) {
+			originalScrollTo(x, y);
 		} else {
 			console.log("[强力滚动保护] 阻止 scrollTo:", x, y);
-			// 如果被阻止，滚动到允许的位置
-			originalScrollTo.call(window, x, scrollProtection.allowedY);
+			originalScrollTo(x, scrollProtection.allowedY);
 		}
 	};
 
 	// 劫持 window.scrollBy
 	window.scrollBy = (x, y) => {
+		if (typeof x === "object" && x !== null) {
+			const currentY = window.scrollY || window.pageYOffset;
+			const targetY = currentY + (typeof x.top === "number" ? x.top : 0);
+
+			if (isScrollAllowed(x.left || 0, targetY)) {
+				originalScrollBy(x);
+			} else {
+				console.log("[强力滚动保护] 阻止 scrollBy:", x);
+			}
+			return;
+		}
+
 		const currentY = window.scrollY || window.pageYOffset;
 		const targetY = currentY + y;
 
-		if (typeof x === "object") {
-			const options = x;
-			x = options.left || 0;
-			y = options.top || 0;
-		}
-
 		if (isScrollAllowed(x, targetY)) {
-			originalScrollBy.call(window, x, y);
+			originalScrollBy(x, y);
 		} else {
 			console.log("[强力滚动保护] 阻止 scrollBy:", x, y);
 		}

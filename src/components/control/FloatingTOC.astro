@@ -494,11 +494,7 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 					if (id) {
 						const element = document.getElementById(id);
 						if (element) {
-							const top =
-								element.getBoundingClientRect().top +
-								window.scrollY -
-								80;
-							window.scrollTo({ top, behavior: "smooth" });
+							window.__smoothScrollToElement?.(element, 80, 650);
 							this.close();
 						}
 					}

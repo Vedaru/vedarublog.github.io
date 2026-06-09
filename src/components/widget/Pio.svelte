@@ -41,6 +41,7 @@ function initPio() {
 			if (pioContainer && pioCanvas && !pioInitialized) {
 				pioInstance = new Paul_Pio(pioOptions);
 				pioInitialized = true;
+				window.__pioInstance = pioInstance;
 				mountPioPortal();
 				window.__PIO_MOUSE_HOVER = false;
 				console.log("Pio initialized successfully (Svelte)");

@@ -197,23 +197,16 @@ class TableOfContents extends HTMLElement {
             .find((element) => element instanceof HTMLAnchorElement);
 
         if (anchor) {
-            event.preventDefault(); // 阻止默认的锚点跳转
-            
+            event.preventDefault();
+
             const id = decodeURIComponent(anchor.hash?.substring(1));
             const targetElement = document.getElementById(id);
-            
+
             if (targetElement) {
-                // 计算目标位置，与移动端保持一致
-                const navbarHeight = 80; // 导航栏高度
-                const targetTop = targetElement.getBoundingClientRect().top + window.scrollY - navbarHeight;
-                
-                // 使用与移动端相同的滚动方式
-                window.scrollTo({
-                    top: targetTop,
-                    behavior: "smooth"
-                });
+                (window as any).tocClickTimestamp = Date.now();
+                window.__smoothScrollToElement?.(targetElement, 80, 650);
             }
-            
+
             const idx = this.headingIdxMap.get(id);
             if (idx !== undefined) {
                 this.anchorNavTarget = this.headings[idx];

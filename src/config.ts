@@ -102,30 +102,13 @@ export const siteConfig: SiteConfig = {
 	},
 
 	banner: {
-		// 支持单张图片或图片数组，当数组长度 > 1 时自动启用轮播
+		// 单张横幅/壁纸图片
 		src: {
-			desktop: [
-				"/assets/desktop-banner/8b31043a430bb793c6bd2949adb5ae1bb0825f25.webp",
-				"/assets/desktop-banner/54ae9fc257542e969dda9d9bcf07405999facb13.webp",
-				"/assets/desktop-banner/703c235a202e38293fa8037d04fc44500256417f.webp",
-				"/assets/desktop-banner/831fb1cdaeead8de1cae31354771e244290750052.webp",
-				"/assets/desktop-banner/be809be42311aa693fc459cf189339c36ca3ecbb.webp",
-			], // 桌面横幅图片
-			mobile: [
-				"/assets/desktop-banner/8b31043a430bb793c6bd2949adb5ae1bb0825f25.webp",
-				"/assets/desktop-banner/54ae9fc257542e969dda9d9bcf07405999facb13.webp",
-				"/assets/desktop-banner/703c235a202e38293fa8037d04fc44500256417f.webp",
-				"/assets/desktop-banner/831fb1cdaeead8de1cae31354771e244290750052.webp",
-				"/assets/desktop-banner/be809be42311aa693fc459cf189339c36ca3ecbb.webp",
-			], // 移动横幅图片
-		}, // 使用本地横幅图片
+			desktop: "/assets/desktop-banner/138800451_p0.webp",
+			mobile: "/assets/desktop-banner/138800451_p0.webp",
+		},
 
 		position: "center", // 等同于 object-position，仅支持 'top', 'center', 'bottom'。默认为 'center'
-
-		carousel: {
-			enable: true, // 为 true 时：为多张图片启用轮播。为 false 时：从数组中随机显示一张图片
-			interval: 1.5, // 轮播间隔时间（秒）
-		},
 
 		waves: {
 			enable: false, // 是否启用水波纹效果（注意：此功能性能开销较大）
@@ -208,23 +191,13 @@ export const siteConfig: SiteConfig = {
 };
 export const fullscreenWallpaperConfig: FullscreenWallpaperConfig = {
 	src: {
-		desktop: [
-			"/assets/desktop-banner/8b31043a430bb793c6bd2949adb5ae1bb0825f25.webp",
-			"/assets/desktop-banner/54ae9fc257542e969dda9d9bcf07405999facb13.webp",
-			"/assets/desktop-banner/703c235a202e38293fa8037d04fc44500256417f.webp",
-			"/assets/desktop-banner/831fb1cdaeead8de1cae31354771e244290750052.webp",
-			"/assets/desktop-banner/be809be42311aa693fc459cf189339c36ca3ecbb.webp",
-		], // 桌面壁纸图片
-		mobile: [], // 移动壁纸图片
-	}, // 使用本地横幅图片
-	position: "center", // 壁纸位置，等同于 object-position
-	carousel: {
-		enable: true, // 启用轮播
-		interval: 5, // 轮播间隔时间（秒）
+		desktop: "/assets/desktop-banner/138800451_p0.webp",
+		mobile: "/assets/desktop-banner/138800451_p0.webp",
 	},
-	zIndex: -1, // 层级，确保壁纸在背景层
-	opacity: 1, // 壁纸透明度
-	blur: 1, // 背景模糊程度
+	position: "center",
+	zIndex: 0,
+	opacity: 1,
+	blur: 1,
 };
 
 export const navBarConfig: NavBarConfig = {

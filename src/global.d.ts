@@ -35,6 +35,48 @@ declare global {
 		initTwikooPage?: () => void;
 		__archiveFilterBootstrapped?: boolean;
 		initArchiveFilter?: () => void;
+		__pioInstance?: {
+			pauseRendering?: () => void;
+			resumeRendering?: () => void;
+			reduceRendering?: (fps?: number) => void;
+		};
+		__PIO_RENDER_CONTROL?: {
+			mode: string;
+			reduceFPS?: number;
+			_lastRender?: number;
+			_wasPaused?: boolean;
+			_softResumeUntil?: number;
+		};
+		__PIO_RESET_ANIMATION_DELTA?: () => void;
+		__bannerSessionApplyDrift?: (root?: ParentNode | null) => void;
+		__bannerDriftPause?: () => void;
+		__bannerDriftResume?: () => void;
+		__bannerDriftBootstrapped?: boolean;
+		__homePreScrollActive?: boolean;
+		__smoothScrollBootstrapped?: boolean;
+		__smoothScrollToY?: (targetY: number, duration?: number) => Promise<void>;
+		__smoothScrollToTop?: (
+			duration?: number,
+			easingFn?: (t: number) => number,
+		) => Promise<void>;
+		__easeInOutCubic?: (t: number) => number;
+		__smoothScrollToElement?: (
+			element: Element | null,
+			offset?: number,
+			duration?: number,
+		) => Promise<void>;
+		__homePreScrollBootstrapped?: boolean;
+		__homePreScrollCompleted?: boolean;
+		__homePreScrollWasUsed?: boolean;
+		__shouldHomePreScroll?: (visit: { to?: { url?: string } }) => boolean;
+		__applyVisitStartLayout?: (visit: { to: { url: string } }) => void;
+		__pinPageScrollTop?: () => void;
+		__resetHomePreScrollState?: () => void;
+		__nativeScrollTo?: typeof window.scrollTo;
+		__nativeScrollBy?: typeof window.scrollBy;
+		__swupPerfBootstrapped?: boolean;
+		__swupPerfPause?: () => void;
+		__swupPerfResume?: () => void;
 		scrollProtectionManager?: {
 			observeTwikoo?: () => void;
 		};
@@ -68,3 +110,4 @@ interface SearchResult {
 }
 
 export { SearchResult };
+
