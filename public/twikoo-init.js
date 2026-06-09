@@ -1,12 +1,13 @@
-/** Twikoo 评论：Swup 切换后可靠初始化，避免重复渲染与容器溢出 */
+/** Twikoo 评论：Swup 切换后可靠初始化（静态脚本，绕过 Cloudflare Rocket Loader） */
 
 let initTimer = null;
 let initGeneration = 0;
 let swupListenersRegistered = false;
 
 const TWIKOO_SCRIPT = "/assets/js/twikoo.all.min.js";
-/** Swup 动画结束后再 init，避免 DOM/样式未稳定 */
-const SWUP_INIT_DELAY = 80;
+const SWUP_INIT_DELAY = 150;
+const SCRIPT_POLL_INTERVAL = 50;
+const SCRIPT_POLL_TIMEOUT = 15000;
 
 function getCurrentPath() {
 	const pathname = window.location.pathname;
@@ -28,33 +29,78 @@ function getTwikooConfig() {
 }
 
 function isTwikooScriptReady() {
-	return typeof twikoo !== "undefined";
+	return typeof twikoo !== "undefined" && typeof twikoo.init === "function";
+}
+
+function isScriptElementLoaded(scriptEl) {
+	if (!scriptEl) return false;
+	return (
+		scriptEl.getAttribute("data-tw-loaded") === "1" ||
+		scriptEl.readyState === "complete" ||
+		scriptEl.readyState === "loaded"
+	);
+}
+
+function waitForTwikooGlobal(timeout = SCRIPT_POLL_TIMEOUT) {
+	if (isTwikooScriptReady()) return Promise.resolve(true);
+
+	return new Promise((resolve) => {
+		const started = Date.now();
+		const tick = () => {
+			if (isTwikooScriptReady()) {
+				resolve(true);
+				return;
+			}
+			if (Date.now() - started >= timeout) {
+				resolve(false);
+				return;
+			}
+			setTimeout(tick, SCRIPT_POLL_INTERVAL);
+		};
+		tick();
+	});
 }
 
 function ensureTwikooScript() {
 	if (isTwikooScriptReady()) return Promise.resolve(true);
 
 	return new Promise((resolve) => {
+		let settled = false;
+		const settle = (value) => {
+			if (settled) return;
+			settled = true;
+			resolve(value);
+		};
+
+		const waitReady = async () => {
+			settle(await waitForTwikooGlobal());
+		};
+
 		const existing = document.querySelector(
 			'script[src*="twikoo.all.min.js"]',
 		);
 		if (existing) {
-			if (isTwikooScriptReady()) {
-				resolve(true);
+			if (isScriptElementLoaded(existing)) {
+				waitReady();
 				return;
 			}
-			existing.addEventListener("load", () =>
-				resolve(isTwikooScriptReady()),
-			);
-			existing.addEventListener("error", () => resolve(false));
+			existing.addEventListener("load", () => waitReady(), { once: true });
+			existing.addEventListener("error", () => settle(false), {
+				once: true,
+			});
+			waitReady();
 			return;
 		}
 
 		const script = document.createElement("script");
 		script.src = TWIKOO_SCRIPT;
+		script.setAttribute("data-cfasync", "false");
 		script.dataset.twikooLoader = "1";
-		script.onload = () => resolve(isTwikooScriptReady());
-		script.onerror = () => resolve(false);
+		script.onload = () => {
+			script.setAttribute("data-tw-loaded", "1");
+			waitReady();
+		};
+		script.onerror = () => settle(false);
 		document.head.appendChild(script);
 	});
 }
@@ -71,26 +117,25 @@ function showTwikooError(commentEl, message) {
 	commentEl.innerHTML = `<div class="twikoo-error">${message}</div>`;
 }
 
-function waitForTwikooMount(commentEl, timeout = 8000) {
+function isTwikooMounted(commentEl) {
+	const root = commentEl.querySelector(".twikoo");
+	if (!root) return false;
+	if (root.querySelector(".el-loading-mask, .tk-loading")) return false;
+	return Boolean(
+		root.querySelector(".tk-meta-input, .tk-comments, .tk-input"),
+	);
+}
+
+function waitForTwikooMount(commentEl, timeout = 10000) {
 	return new Promise((resolve) => {
-		const started = Date.now();
-
-		const isReady = () => {
-			const root = commentEl.querySelector(".twikoo");
-			if (!root) return false;
-			if (root.querySelector(".tk-meta-input, .tk-comments, .tk-input")) {
-				return true;
-			}
-			return false;
-		};
-
-		if (isReady()) {
+		if (isTwikooMounted(commentEl)) {
 			resolve(true);
 			return;
 		}
 
+		const started = Date.now();
 		const observer = new MutationObserver(() => {
-			if (isReady()) {
+			if (isTwikooMounted(commentEl)) {
 				observer.disconnect();
 				resolve(true);
 			} else if (Date.now() - started > timeout) {
@@ -103,7 +148,7 @@ function waitForTwikooMount(commentEl, timeout = 8000) {
 
 		setTimeout(() => {
 			observer.disconnect();
-			resolve(isReady());
+			resolve(isTwikooMounted(commentEl));
 		}, timeout);
 	});
 }
@@ -140,8 +185,13 @@ async function initTwikooPage(generation) {
 		await twikoo.init({ ...config, path: getCurrentPath() });
 		if (generation !== initGeneration) return;
 
-		await waitForTwikooMount(commentEl);
+		const mounted = await waitForTwikooMount(commentEl);
 		if (generation !== initGeneration) return;
+
+		if (!mounted) {
+			showTwikooError(commentEl, "评论加载失败，请稍后再试。");
+			return;
+		}
 
 		markTwikooReady(commentEl);
 		window.scrollProtectionManager?.observeTwikoo?.();
@@ -179,10 +229,18 @@ function registerTwikooSwupListeners() {
 
 	window.swup.hooks.on("visit:start", cancelTwikooInit);
 	window.swup.hooks.on("content:replace", () => {
+		if (document.getElementById("tcomment")) {
+			scheduleTwikooInit(200);
+		}
 		setTimeout(
 			() => window.scrollProtectionManager?.observeTwikoo?.(),
 			200,
 		);
+	});
+	window.swup.hooks.on("page:view", () => {
+		if (document.getElementById("tcomment")) {
+			scheduleTwikooInit(250);
+		}
 	});
 	window.swup.hooks.on("animation:in:end", () =>
 		scheduleTwikooInit(SWUP_INIT_DELAY),
@@ -199,6 +257,11 @@ function bootstrapTwikoo() {
 window.initTwikooPage = () => scheduleTwikooInit(0);
 
 document.addEventListener("swup:enable", registerTwikooSwupListeners);
+document.addEventListener("mizuki:page:loaded", () => {
+	if (document.getElementById("tcomment")) {
+		scheduleTwikooInit(100);
+	}
+});
 
 if (document.readyState === "loading") {
 	document.addEventListener("DOMContentLoaded", bootstrapTwikoo);

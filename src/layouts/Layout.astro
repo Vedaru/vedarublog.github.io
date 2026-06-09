@@ -409,7 +409,11 @@ if (siteConfig.font) {
 		/>
 
 		{commentConfig.enable && (
-			<script is:inline src="/assets/js/twikoo.all.min.js" defer></script>
+			<script
+				is:inline
+				src="/assets/js/twikoo.all.min.js"
+				data-cfasync="false"
+			></script>
 		)}
 
 		<!-- Umami Analytics - 延迟加载 -->
@@ -1417,10 +1421,9 @@ function disableAnimation() {
 
 {commentConfig.enable && (
 	<>
-		<script is:inline src="/scroll-protection.js"></script>
-		<script>
-			import "../scripts/twikoo-init.js";
-		</script>
+		<script is:inline src="/scroll-protection.js" data-cfasync="false"
+		></script>
+		<script is:inline src="/twikoo-init.js" data-cfasync="false"></script>
 	</>
 )}
 

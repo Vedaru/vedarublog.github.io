@@ -169,8 +169,15 @@ Make the emoji component display correctly when there are too many emoji packs
 }
 
 /* Swup 跳入文章页时，Twikoo 渲染完成前隐藏未样式化 UI */
+#tcomment:not(.twikoo-ready) .twikoo,
+#tcomment:not(.twikoo-ready) .el-loading-mask,
+#tcomment:not(.twikoo-ready) .el-loading-spinner {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none;
+}
+
 #tcomment .twikoo {
-  opacity: 0;
   transition: opacity 0.2s ease;
 }
 
