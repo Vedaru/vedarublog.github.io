@@ -1,11 +1,21 @@
 import { clearBlendedLayoutInlineStyles } from "./blended-styles";
-import { isTargetMainHomePage, shouldHandleMobileEnteringHome } from "./visit";
+import { isTargetMainHomePage, shouldHandleEnteringHome } from "./visit";
 import type { HomePreScrollVisit } from "./types";
 
 let activePreScrollVisit: HomePreScrollVisit | null = null;
+let activeVisitGeneration = 0;
 
 export function getActivePreScrollVisit(): HomePreScrollVisit | null {
 	return activePreScrollVisit;
+}
+
+export function bumpPreScrollGeneration(): number {
+	activeVisitGeneration += 1;
+	return activeVisitGeneration;
+}
+
+export function getActivePreScrollGeneration(): number {
+	return activeVisitGeneration;
 }
 
 export function setActivePreScrollVisit(visit: HomePreScrollVisit | null): void {
@@ -48,7 +58,16 @@ function applyDeferredVisitLayout(visit: HomePreScrollVisit): void {
 	);
 }
 
-export function finishPreScrollTransition(visit: HomePreScrollVisit): void {
+export function finishPreScrollTransition(
+	visit: HomePreScrollVisit,
+	generation?: number,
+): void {
+	if (
+		typeof generation === "number" &&
+		generation !== activeVisitGeneration
+	) {
+		return;
+	}
 	window.__lockSwupScroll?.();
 	window.__pinPageScrollTop?.();
 
@@ -63,8 +82,7 @@ export function finishPreScrollTransition(visit: HomePreScrollVisit): void {
 	window.__clearNavbarWrapperInlineStyles?.();
 	window.__pinScrollTopWithFrames?.(2);
 
-	const keepLayoutShiftUntilVisitEnd =
-		shouldHandleMobileEnteringHome(visit);
+	const keepLayoutShiftUntilVisitEnd = shouldHandleEnteringHome(visit);
 
 	requestAnimationFrame(function () {
 		if (keepLayoutShiftUntilVisitEnd) {

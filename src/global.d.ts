@@ -70,6 +70,7 @@ declare global {
 		__homePreScrollActive?: boolean;
 		__smoothScrollActive?: boolean;
 		__smoothScrollBootstrapped?: boolean;
+		__cancelSmoothScroll?: () => void;
 		__smoothScrollToY?: (
 			targetY: number,
 			duration?: number,

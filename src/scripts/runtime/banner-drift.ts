@@ -122,6 +122,14 @@
 	function resumeBannerDrift() {
 		if (prefersReducedMotion()) return;
 
+		if (
+			window.__homePreScrollActive ||
+			window.__smoothScrollActive ||
+			document.documentElement.classList.contains("is-smooth-scrolling")
+		) {
+			return;
+		}
+
 		getDriftImages().forEach(function (img) {
 			const el = img as HTMLImageElement & {
 				__driftState?: ReturnType<typeof createDriftState>;

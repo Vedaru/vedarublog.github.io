@@ -3,7 +3,7 @@ import { getScrollY } from "./scroll";
 import type { HomePreScrollVisit } from "./types";
 
 function pathFromVisitUrl(url: string | undefined): string {
-	return window.__pathFromUrl?.(url) ?? url ?? "";
+	return window.__pathFromUrl?.(url || "") || url || "";
 }
 
 export function isMainHomePage(pathname: string): boolean {
@@ -64,10 +64,17 @@ export function isMobileLayoutShiftViewport(): boolean {
 	return window.matchMedia("(max-width: 1279px)").matches;
 }
 
+export function shouldHandleEnteringHome(
+	visit: HomePreScrollVisit,
+): boolean {
+	return isEnteringHomePage(visit);
+}
+
+/** @deprecated 使用 shouldHandleEnteringHome */
 export function shouldHandleMobileEnteringHome(
 	visit: HomePreScrollVisit,
 ): boolean {
-	return isMobileLayoutShiftViewport() && isEnteringHomePage(visit);
+	return shouldHandleEnteringHome(visit);
 }
 
 export function shouldPreScrollBeforeLeave(

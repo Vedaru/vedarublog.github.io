@@ -1,5 +1,11 @@
 /** 统一的平滑滚动（绕过 scroll-protection 对 behavior 的干扰） */
 
+import {
+	cancelActiveTween,
+	isAnimationCancelledError,
+	runCancellableTween,
+} from "./cancellable-tween";
+
 (function () {
 	if (window.__smoothScrollBootstrapped) {
 		return;
@@ -10,24 +16,28 @@
 		return window.scrollY || document.documentElement.scrollTop || 0;
 	}
 
-	function setDocumentScrollTop(y) {
+	function setDocumentScrollTop(y: number) {
 		const top = Math.max(0, y);
-		// 同时写入，避免 write→read(body.scrollTop) 每帧强制重排
 		document.documentElement.scrollTop = top;
 		if (document.body) {
 			document.body.scrollTop = top;
 		}
 	}
 
-	function easeOutCubic(t) {
+	function easeOutCubic(t: number) {
 		return 1 - Math.pow(1 - t, 3);
 	}
 
-	function easeInOutCubic(t) {
+	function easeInOutCubic(t: number) {
 		return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 	}
 
-	function syncNavbarDuringSmoothScroll(scrollY) {
+	let activeScrollTrip: {
+		goalY: number;
+		originalStartY: number;
+	} | null = null;
+
+	function syncNavbarDuringSmoothScroll(scrollY: number) {
 		if (window.__homePreScrollActive) {
 			return;
 		}
@@ -36,7 +46,7 @@
 		syncSemifullNavbarDuringSmoothScroll(scrollY);
 	}
 
-	function syncTocDuringSmoothScroll(scrollY) {
+	function syncTocDuringSmoothScroll(scrollY: number) {
 		if (window.__homePreScrollActive) {
 			return;
 		}
@@ -44,7 +54,7 @@
 		window.__syncTocHideForScroll?.(scrollY, window.innerHeight);
 	}
 
-	function finishSmoothScroll(goalY) {
+	function finishSmoothScroll(goalY: number) {
 		const navbar = document.getElementById("navbar");
 		const isHome = navbar?.getAttribute("data-is-home") === "true";
 
@@ -56,6 +66,7 @@
 		}
 
 		window.__smoothScrollActive = false;
+		activeScrollTrip = null;
 
 		if (
 			window.tocClickTimestamp &&
@@ -68,7 +79,7 @@
 		window.__syncTocHideForScroll?.(goalY, window.innerHeight);
 	}
 
-	function syncSemifullNavbarDuringSmoothScroll(scrollY) {
+	function syncSemifullNavbarDuringSmoothScroll(scrollY: number) {
 		if (window.__homePreScrollActive) {
 			return;
 		}
@@ -83,14 +94,21 @@
 		applyState(scrollY, isHome);
 	}
 
-	function smoothScrollToY(targetY, duration, easingFn, onProgress) {
+	function smoothScrollToY(
+		targetY: number,
+		duration?: number,
+		easingFn?: (t: number) => number,
+		onProgress?: (progress: number, scrollY: number) => void,
+	) {
 		const resolvedDuration =
 			typeof duration === "number" && duration > 0 ? duration : 650;
 		const ease = typeof easingFn === "function" ? easingFn : easeOutCubic;
 		const startY = getScrollY();
 		const goalY = Math.max(0, Math.round(targetY));
+		const distance = Math.abs(goalY - startY);
 
-		if (Math.abs(goalY - startY) <= 8) {
+		if (distance <= 8) {
+			activeScrollTrip = null;
 			syncNavbarDuringSmoothScroll(goalY);
 			syncTocDuringSmoothScroll(goalY);
 			setDocumentScrollTop(goalY);
@@ -100,58 +118,79 @@
 			return Promise.resolve();
 		}
 
-		return new Promise<void>(function (resolve) {
-			if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-				syncNavbarDuringSmoothScroll(goalY);
-				syncTocDuringSmoothScroll(goalY);
-				setDocumentScrollTop(goalY);
-				if (typeof onProgress === "function") {
-					onProgress(1, goalY);
-				}
-				resolve();
-				return;
+		if (
+			!activeScrollTrip ||
+			activeScrollTrip.goalY !== goalY
+		) {
+			activeScrollTrip = {
+				goalY,
+				originalStartY: startY,
+			};
+		}
+
+		const fullDistance = Math.abs(
+			goalY - activeScrollTrip.originalStartY,
+		);
+		const adjustedDuration =
+			fullDistance > 8
+				? resolvedDuration * (distance / fullDistance)
+				: resolvedDuration;
+
+		if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+			activeScrollTrip = null;
+			syncNavbarDuringSmoothScroll(goalY);
+			syncTocDuringSmoothScroll(goalY);
+			setDocumentScrollTop(goalY);
+			if (typeof onProgress === "function") {
+				onProgress(1, goalY);
 			}
+			return Promise.resolve();
+		}
 
-			window.__smoothScrollActive = true;
-			document.documentElement.classList.add("is-smooth-scrolling");
-			const startTime = performance.now();
+		window.__smoothScrollActive = true;
+		document.documentElement.classList.add("is-smooth-scrolling");
 
-			const step = function (now) {
-				const progress = Math.min(
-					(now - startTime) / resolvedDuration,
-					1,
-				);
-				const nextY = Math.round(
-					startY + (goalY - startY) * ease(progress),
-				);
+		const { promise } = runCancellableTween({
+			duration: adjustedDuration,
+			ease,
+			onFrame: function (t, progress) {
+				const nextY = Math.round(startY + (goalY - startY) * t);
 
-				// 先同步视觉状态再写 scrollTop，避免 write→read 同帧强制重排
 				syncNavbarDuringSmoothScroll(nextY);
 				syncTocDuringSmoothScroll(nextY);
 				if (typeof onProgress === "function") {
 					onProgress(progress, nextY);
 				}
 				setDocumentScrollTop(nextY);
-
-				if (progress < 1) {
-					requestAnimationFrame(step);
-					return;
-				}
-
+			},
+			onComplete: function () {
 				setDocumentScrollTop(goalY);
 				finishSmoothScroll(goalY);
-				resolve();
-			};
+			},
+		});
 
-			requestAnimationFrame(step);
+		return promise.catch(function (err) {
+			if (isAnimationCancelledError(err)) {
+				window.__smoothScrollActive = false;
+				return;
+			}
+			throw err;
 		});
 	}
 
-	function smoothScrollToTop(duration, easingFn, onProgress) {
+	function smoothScrollToTop(
+		duration?: number,
+		easingFn?: (t: number) => number,
+		onProgress?: (progress: number, scrollY: number) => void,
+	) {
 		return smoothScrollToY(0, duration, easingFn, onProgress);
 	}
 
-	function smoothScrollToElement(element, offset, duration) {
+	function smoothScrollToElement(
+		element: Element | null,
+		offset?: number,
+		duration?: number,
+	) {
 		if (!element) {
 			return Promise.resolve();
 		}
@@ -163,6 +202,13 @@
 		window.tocClickTimestamp = Date.now();
 		return smoothScrollToY(targetTop, duration, undefined, undefined);
 	}
+
+	window.__cancelSmoothScroll = function () {
+		cancelActiveTween("cancelled");
+		activeScrollTrip = null;
+		window.__smoothScrollActive = false;
+		document.documentElement.classList.remove("is-smooth-scrolling");
+	};
 
 	window.__smoothScrollToY = smoothScrollToY;
 	window.__smoothScrollToTop = smoothScrollToTop;
@@ -180,7 +226,6 @@
 		}
 	};
 
-	/** 冻结滚动（body fixed，保留 html scrollbar-gutter） */
 	window.__lockSwupScroll = function () {
 		if (isScrollLocked) return;
 		lockedScrollY =
@@ -192,7 +237,6 @@
 		isScrollLocked = true;
 	};
 
-	/** 换页瞬间回顶 + 冻结（无预滚动、且已在顶部附近时使用） */
 	window.__lockSwupScrollAndPin = function () {
 		window.__pinPageScrollTop?.();
 		lockedScrollY = 0;

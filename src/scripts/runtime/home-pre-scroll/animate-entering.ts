@@ -2,6 +2,8 @@ import {
 	applyBlendedEnteringShift,
 	clearBlendedLayoutInlineStyles,
 } from "./blended-styles";
+import { cancelActivePreScrollTween } from "./cancel-tween";
+import { getExpectedDesktopHomeGridShiftPx } from "./layout-measure";
 import {
 	beginEnteringHomeLayoutShift,
 	measureEnteringHomeLayoutDelta,
@@ -10,42 +12,43 @@ import { syncNavbarDuringBlendedEnteringHome } from "./navbar-sync";
 import { prefersReducedMotion, setScrollY } from "./scroll";
 import { isTargetMainHomePage } from "./visit";
 import type { HomePreScrollVisit, PreScrollProgressFn } from "./types";
+import {
+	isAnimationCancelledError,
+	runCancellableTween,
+} from "../cancellable-tween";
+
+export { cancelActivePreScrollTween };
 
 export function animateBlendedEnteringHome(
 	visit: HomePreScrollVisit,
 	layoutDelta: number,
+	gridExtendPx: number,
 	duration: number,
 	easing: ((t: number) => number) | undefined,
 	onProgress: PreScrollProgressFn | undefined,
 ): Promise<void> {
 	const ease = easing || window.__easeInOutCubic;
+	const isDesktop = window.innerWidth >= 1280;
 
 	window.__smoothScrollActive = true;
 	document.documentElement.classList.add("is-smooth-scrolling");
 	setScrollY(0);
-	applyBlendedEnteringShift(0, layoutDelta);
+	applyBlendedEnteringShift(0, layoutDelta, gridExtendPx, isDesktop);
 
-	return new Promise<void>(function (resolve) {
-		const startTime = performance.now();
-
-		function step(now: number) {
-			const progress = Math.min(1, (now - startTime) / duration);
-			const t = ease!(progress);
-
+	const { promise } = runCancellableTween({
+		duration,
+		ease,
+		onFrame: function (t, progress) {
 			setScrollY(0);
-			applyBlendedEnteringShift(t, layoutDelta);
+			applyBlendedEnteringShift(t, layoutDelta, gridExtendPx, isDesktop);
 
 			if (typeof onProgress === "function") {
 				onProgress(progress, 0);
 			}
 
 			syncNavbarDuringBlendedEnteringHome(visit, progress);
-
-			if (progress < 1) {
-				requestAnimationFrame(step);
-				return;
-			}
-
+		},
+		onComplete: function () {
 			clearBlendedLayoutInlineStyles();
 			setScrollY(0);
 			window.applySemifullNavbarVisualState?.(
@@ -54,14 +57,19 @@ export function animateBlendedEnteringHome(
 			);
 			document.documentElement.classList.remove("is-smooth-scrolling");
 			window.__smoothScrollActive = false;
-			resolve();
-		}
+		},
+	});
 
-		requestAnimationFrame(step);
+	return promise.catch(function (err) {
+		if (isAnimationCancelledError(err)) {
+			window.__smoothScrollActive = false;
+			return;
+		}
+		throw err;
 	});
 }
 
-export function runMobileEnteringHomeLayoutTransition(
+export function runEnteringHomeLayoutTransition(
 	visit: HomePreScrollVisit,
 	duration: number,
 	easing: ((t: number) => number) | undefined,
@@ -73,9 +81,14 @@ export function runMobileEnteringHomeLayoutTransition(
 		return Promise.resolve();
 	}
 
+	const isDesktop = window.innerWidth >= 1280;
 	const layoutDelta = measureEnteringHomeLayoutDelta(visit);
-	if (layoutDelta <= 1) {
-		window.__applyVisitBodyLayout?.(visit);
+	const gridExtendPx = getExpectedDesktopHomeGridShiftPx();
+	const shouldAnimate = isDesktop
+		? gridExtendPx > 1
+		: layoutDelta > 1;
+
+	if (!shouldAnimate) {
 		setScrollY(0);
 		return Promise.resolve();
 	}
@@ -83,8 +96,13 @@ export function runMobileEnteringHomeLayoutTransition(
 	return animateBlendedEnteringHome(
 		visit,
 		layoutDelta,
+		gridExtendPx,
 		duration,
 		easing,
 		onProgress,
 	);
 }
+
+/** @deprecated 使用 runEnteringHomeLayoutTransition */
+export const runMobileEnteringHomeLayoutTransition =
+	runEnteringHomeLayoutTransition;

@@ -55,9 +55,29 @@ export function applyBlendedLeavingShift(
 	}
 }
 
-export function applyBlendedEnteringShift(t: number, layoutDelta: number): void {
+export function applyBlendedEnteringShift(
+	t: number,
+	layoutDelta: number,
+	gridExtendPx = 0,
+	isDesktop = window.innerWidth >= 1280,
+): void {
+	const mainGrid = document.getElementById("main-grid");
 	const mainPanel = document.querySelector(".absolute.w-full.z-30");
 	const bannerWrapper = document.getElementById("banner-wrapper");
+
+	if (isDesktop && gridExtendPx > 0) {
+		const transform = "translateY(" + gridExtendPx * t + "px)";
+
+		if (mainGrid) {
+			mainGrid.style.transition = "none";
+			mainGrid.style.transform = transform;
+		}
+		if (bannerWrapper) {
+			bannerWrapper.style.transition = "none";
+			bannerWrapper.style.transform = transform;
+		}
+		return;
+	}
 
 	if (mainPanel instanceof HTMLElement && layoutDelta > 0) {
 		mainPanel.style.transition = "none";

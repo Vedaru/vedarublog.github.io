@@ -1,3 +1,4 @@
+import { applyBlendedEnteringShift } from "./blended-styles";
 import {
 	estimateLayoutShiftPx,
 	getExpectedDesktopHomeGridShiftPx,
@@ -79,11 +80,21 @@ export function measureEnteringHomeLayoutDelta(
 	const anchorTopAfter = anchor?.getBoundingClientRect().top ?? 0;
 	const measuredDelta = anchorTopAfter - anchorTopBefore;
 
-	if (measuredDelta > 1) {
-		return measuredDelta;
+	const layoutDelta =
+		measuredDelta > 1
+			? measuredDelta
+			: estimatedDelta > 1
+				? estimatedDelta
+				: Math.max(0, measuredDelta);
+
+	const gridExtendPx = getExpectedDesktopHomeGridShiftPx();
+	const isDesktop = window.innerWidth >= 1280;
+	const shouldPrimeEnteringOffset =
+		(isDesktop && gridExtendPx > 1) || layoutDelta > 1;
+
+	if (shouldPrimeEnteringOffset) {
+		applyBlendedEnteringShift(0, layoutDelta, gridExtendPx, isDesktop);
 	}
-	if (estimatedDelta > 1) {
-		return estimatedDelta;
-	}
-	return Math.max(0, measuredDelta);
+
+	return layoutDelta;
 }

@@ -2,14 +2,19 @@ import {
 	applyBlendedLeavingShift,
 	clearBlendedLayoutInlineStyles,
 } from "./blended-styles";
-import {
-	beginLeavingHomeLayoutShift,
-} from "./layout-shift";
+import { cancelActivePreScrollTween } from "./cancel-tween";
+import { beginLeavingHomeLayoutShift } from "./layout-shift";
 import { getExpectedDesktopHomeGridShiftPx } from "./layout-measure";
 import { syncNavbarDuringPreScroll } from "./navbar-sync";
 import { prefersReducedMotion, setScrollY } from "./scroll";
 import { isTargetMainHomePage } from "./visit";
 import type { HomePreScrollVisit, PreScrollProgressFn } from "./types";
+import {
+	isAnimationCancelledError,
+	runCancellableTween,
+} from "../cancellable-tween";
+
+export { cancelActivePreScrollTween };
 
 export function animateBlendedLeavingHome(
 	visit: HomePreScrollVisit,
@@ -33,12 +38,10 @@ export function animateBlendedLeavingHome(
 	window.__smoothScrollActive = true;
 	document.documentElement.classList.add("is-smooth-scrolling");
 
-	return new Promise<void>(function (resolve) {
-		const startTime = performance.now();
-
-		function step(now: number) {
-			const progress = Math.min(1, (now - startTime) / duration);
-			const t = ease!(progress);
+	const { promise } = runCancellableTween({
+		duration,
+		ease,
+		onFrame: function (t, progress) {
 			const scrollY = Math.round(scrollBefore * (1 - t));
 
 			setScrollY(scrollY);
@@ -54,12 +57,8 @@ export function animateBlendedLeavingHome(
 				sourceIsMainHome,
 				true,
 			);
-
-			if (progress < 1) {
-				requestAnimationFrame(step);
-				return;
-			}
-
+		},
+		onComplete: function () {
 			window.__applyVisitBodyLayout?.(visit);
 			clearBlendedLayoutInlineStyles();
 			setScrollY(0);
@@ -69,9 +68,14 @@ export function animateBlendedLeavingHome(
 			);
 			document.documentElement.classList.remove("is-smooth-scrolling");
 			window.__smoothScrollActive = false;
-			resolve();
-		}
+		},
+	});
 
-		requestAnimationFrame(step);
+	return promise.catch(function (err) {
+		if (isAnimationCancelledError(err)) {
+			window.__smoothScrollActive = false;
+			return;
+		}
+		throw err;
 	});
 }

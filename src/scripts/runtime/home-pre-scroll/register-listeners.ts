@@ -1,9 +1,12 @@
 import { animateBlendedLeavingHome } from "./animate-leaving";
-import { runMobileEnteringHomeLayoutTransition } from "./animate-entering";
+import { runEnteringHomeLayoutTransition } from "./animate-entering";
+import { cancelActivePreScrollTween } from "./cancel-tween";
 import {
 	addPreScrollClasses,
+	bumpPreScrollGeneration,
 	clearPreScrollOnVisitEnd,
 	finishPreScrollTransition,
+	getActivePreScrollGeneration,
 	setActivePreScrollVisit,
 } from "./dom-state";
 import { beginLeavingHomeLayoutShift } from "./layout-shift";
@@ -24,20 +27,93 @@ import {
 import {
 	isLeavingHomePage,
 	isMainHomePage,
-	shouldHandleMobileEnteringHome,
+	shouldHandleEnteringHome,
 	shouldPreScrollBeforeLeave,
 } from "./visit";
 import type { HomePreScrollVisit } from "./types";
 
 let listenersRegistered = false;
 
+async function runPreScrollChain(
+	visit: HomePreScrollVisit,
+	generation: number,
+	options: {
+		useBlendedShift: boolean;
+		enteringHome: boolean;
+		needsPreScroll: boolean;
+		leavingHome: boolean;
+		scrollBefore: number;
+		layoutDelta: number;
+		sourceIsMainHome: boolean;
+		duration: number;
+		easing: ((t: number) => number) | undefined;
+		onPreScrollProgress: (progress: number, scrollY: number) => void;
+		smoothScrollToY: (
+			targetY: number,
+			duration?: number,
+			easingFn?: (t: number) => number,
+			onProgress?: (progress: number, scrollY: number) => void,
+		) => Promise<void>;
+	},
+): Promise<void> {
+	const {
+		useBlendedShift,
+		enteringHome,
+		needsPreScroll,
+		scrollBefore,
+		layoutDelta,
+		sourceIsMainHome,
+		duration,
+		easing,
+		onPreScrollProgress,
+		smoothScrollToY,
+	} = options;
+
+	if (useBlendedShift) {
+		await animateBlendedLeavingHome(
+			visit,
+			scrollBefore,
+			layoutDelta,
+			duration,
+			easing,
+			onPreScrollProgress,
+			sourceIsMainHome,
+		);
+		return;
+	}
+
+	if (enteringHome) {
+		if (needsPreScroll) {
+			await smoothScrollToY(0, duration, easing, onPreScrollProgress);
+			if (generation !== getActivePreScrollGeneration()) {
+				return;
+			}
+		}
+
+		await runEnteringHomeLayoutTransition(
+			visit,
+			duration,
+			easing,
+			onPreScrollProgress,
+		);
+		return;
+	}
+
+	await smoothScrollToY(0, duration, easing, onPreScrollProgress);
+}
+
 function handleVisitStart(visit: HomePreScrollVisit): Promise<void> | undefined {
+	cancelActivePreScrollTween();
+	window.__cancelSmoothScroll?.();
+
+	const generation = bumpPreScrollGeneration();
+
 	window.__homePreScrollWasUsed = false;
 	window.__homePreScrollCompleted = false;
 	window.__suppressSemifullNavbarReinit = false;
 
 	const needsPreScroll = shouldPreScrollBeforeLeave(visit);
-	const enteringHome = shouldHandleMobileEnteringHome(visit);
+	const enteringHome = shouldHandleEnteringHome(visit);
 
 	if (!needsPreScroll && !enteringHome) {
 		return;
@@ -99,47 +175,23 @@ function handleVisitStart(visit: HomePreScrollVisit): Promise<void> | undefined 
 			return Promise.resolve();
 		};
 
-	let scrollPromise: Promise<void>;
-
-	if (useBlendedShift) {
-		scrollPromise = animateBlendedLeavingHome(
-			visit,
-			scrollBefore,
-			layoutDelta,
-			duration,
-			easing,
-			onPreScrollProgress,
-			sourceIsMainHome,
-		);
-	} else if (enteringHome) {
-		scrollPromise = needsPreScroll
-			? smoothScrollToY(0, duration, easing, onPreScrollProgress).then(
-					function () {
-						return runMobileEnteringHomeLayoutTransition(
-							visit,
-							duration,
-							easing,
-							onPreScrollProgress,
-						);
-					},
-				)
-			: runMobileEnteringHomeLayoutTransition(
-					visit,
-					duration,
-					easing,
-					onPreScrollProgress,
-				);
-	} else {
-		scrollPromise = smoothScrollToY(
-			0,
-			duration,
-			easing,
-			onPreScrollProgress,
-		);
-	}
-
-	return scrollPromise.then(function () {
-		finishPreScrollTransition(visit);
+	return runPreScrollChain(visit, generation, {
+		useBlendedShift,
+		enteringHome,
+		needsPreScroll,
+		leavingHome,
+		scrollBefore,
+		layoutDelta,
+		sourceIsMainHome,
+		duration,
+		easing,
+		onPreScrollProgress,
+		smoothScrollToY,
+	}).then(function () {
+		if (generation !== getActivePreScrollGeneration()) {
+			return;
+		}
+		finishPreScrollTransition(visit, generation);
 	});
 }
 
