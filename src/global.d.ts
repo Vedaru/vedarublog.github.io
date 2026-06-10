@@ -145,6 +145,7 @@ declare global {
 		__clearNavbarWrapperInlineStyles?: () => void;
 		__normalizePath?: (path: string) => string;
 		__isHomePagePath?: (pathname: string) => boolean;
+		__isMainHomePage?: (pathname: string) => boolean;
 		__pathFromUrl?: (url: string) => string;
 		__pathsEqual?: (path1: string, path2: string) => boolean;
 		onSwupReady?: (

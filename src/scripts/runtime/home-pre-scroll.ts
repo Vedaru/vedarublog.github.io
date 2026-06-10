@@ -48,6 +48,10 @@
 	let listenersRegistered = false;
 	let activePreScrollVisit = null;
 
+	function isMainHomePage(pathname) {
+		return window.__isMainHomePage?.(pathname) ?? false;
+	}
+
 	function isHomePagePath(pathname) {
 		return window.__isHomePagePath?.(pathname) ?? false;
 	}
@@ -64,16 +68,26 @@
 		return window.__pathsEqual?.(fromPathname, toUrl) ?? false;
 	}
 
-	function isTargetHomePage(visit) {
+	function isTargetMainHomePage(visit) {
 		const targetUrl = visit?.to?.url || "";
 		if (!targetUrl) return false;
-		return isHomePagePath(pathFromVisitUrl(targetUrl));
+		return isMainHomePage(pathFromVisitUrl(targetUrl));
 	}
 
 	function isLeavingHomePage(visit) {
-		return (
-			isHomePagePath(window.location.pathname) && !isTargetHomePage(visit)
-		);
+		const fromPath = window.location.pathname;
+		const targetPath = pathFromVisitUrl(visit?.to?.url || "");
+		if (!targetPath) return false;
+
+		if (isMainHomePage(fromPath) && !isMainHomePage(targetPath)) {
+			return true;
+		}
+
+		if (isHomePagePath(fromPath) && !isHomePagePath(targetPath)) {
+			return true;
+		}
+
+		return false;
 	}
 
 	function shouldPreScrollBeforeLeave(visit) {
@@ -113,7 +127,10 @@
 
 		const navbar = document.getElementById("navbar");
 		if (navbar) {
-			navbar.setAttribute("data-is-home", "false");
+			navbar.setAttribute(
+				"data-is-home",
+				isTargetMainHomePage(visit) ? "true" : "false",
+			);
 		}
 
 		void document.documentElement.offsetHeight;
@@ -147,7 +164,7 @@
 
 		const navbar = document.getElementById("navbar");
 		const sourceIsHome = navbar?.getAttribute("data-is-home") === "true";
-		const targetIsHome = isTargetHomePage(visit);
+		const targetIsHome = isTargetMainHomePage(visit);
 
 		if (scrollY <= SEMIFULL_SCROLL_THRESHOLD) {
 			applyState(scrollY, targetIsHome);
@@ -166,7 +183,7 @@
 		window.__lockSwupScroll?.();
 		window.__pinPageScrollTop?.();
 
-		const targetIsHome = isTargetHomePage(visit);
+		const targetIsHome = isTargetMainHomePage(visit);
 		window.applySemifullNavbarVisualState?.(0, targetIsHome);
 
 		window.__homePreScrollCompleted = true;
@@ -254,16 +271,12 @@
 						window.__pinPageScrollTop?.();
 						return Promise.resolve();
 					};
-				const smoothScrollToTop =
-					window.__smoothScrollToTop ||
-					function () {
-						window.__pinPageScrollTop?.();
-						return Promise.resolve();
-					};
-
-				const scrollPromise = leavingHome
-					? smoothScrollToY(0, duration, easing, onProgress)
-					: smoothScrollToTop(duration, easing, onProgress);
+				const scrollPromise = smoothScrollToY(
+					0,
+					duration,
+					easing,
+					onProgress,
+				);
 
 				return scrollPromise.then(function () {
 					finishPreScrollTransition(visit);

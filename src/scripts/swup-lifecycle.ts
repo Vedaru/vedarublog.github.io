@@ -1,5 +1,6 @@
 import { BANNER_HEIGHT, DARK_MODE, DEFAULT_THEME } from "@constants";
 import { pathsEqual, url } from "../utils/url-utils";
+import { isMainHomePage, pathFromUrl } from "../utils/route-utils";
 import {
 	isTocOrInPageAnchorLink,
 	shouldInitTocForPath,
@@ -197,7 +198,7 @@ export function applyVisitStartLayout(
 	visit: { to: { url: string } },
 	options?: { deferBodyLayout?: boolean },
 ) {
-	const isHomePage = pathsEqual(visit.to.url, url("/"));
+	const isHomePage = isMainHomePage(pathFromUrl(visit.to.url));
 	const cachedScrollTop =
 		window.scrollY || document.documentElement.scrollTop || 0;
 

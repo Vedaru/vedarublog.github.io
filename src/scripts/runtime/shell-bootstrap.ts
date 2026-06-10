@@ -72,6 +72,9 @@
 	window.__normalizePath = normalizePath;
 	window.__isHomePagePath = isHomePagePath;
 	window.__resolveHomePageIndex = resolveHomePageIndex;
+	window.__isMainHomePage = function isMainHomePage(pathname) {
+		return resolveHomePageIndex(pathname) === 1;
+	};
 	window.__pathFromUrl = pathFromUrl;
 	window.__pathsEqual = pathsEqual;
 })();
@@ -169,7 +172,9 @@
 				0;
 
 			const navbarEl = document.getElementById("navbar");
-			if (navbarEl?.getAttribute("data-transparent-mode") === "semifull") {
+			if (
+				navbarEl?.getAttribute("data-transparent-mode") === "semifull"
+			) {
 				const isHome = navbarEl.getAttribute("data-is-home") === "true";
 				window.applySemifullNavbarVisualState?.(scrollY, isHome);
 			}
@@ -219,7 +224,10 @@
 					clearAfterTransition();
 				};
 
-				navbarWrapper.addEventListener("transitionend", onTransitionEnd);
+				navbarWrapper.addEventListener(
+					"transitionend",
+					onTransitionEnd,
+				);
 				navbarWrapper.style.opacity = "1";
 				window.setTimeout(clearAfterTransition, 350);
 				return;
@@ -334,7 +342,8 @@
 		if (!pathsEqual) return;
 
 		const bodyElement = document.querySelector("body");
-		const isHomePage = pathsEqual(visit.to.url, "/");
+		const targetPath = window.__pathFromUrl?.(visit.to.url) ?? visit.to.url;
+		const isHomePage = window.__isMainHomePage?.(targetPath) ?? false;
 
 		if (bodyElement) {
 			if (isHomePage) {
@@ -352,7 +361,8 @@
 		const pathsEqual = window.__pathsEqual;
 		if (!pathsEqual) return;
 
-		const isHomePage = pathsEqual(visit.to.url, "/");
+		const targetPath = window.__pathFromUrl?.(visit.to.url) ?? visit.to.url;
+		const isHomePage = window.__isMainHomePage?.(targetPath) ?? false;
 
 		const bannerTextOverlay = document.querySelector(
 			".banner-text-overlay",
@@ -390,4 +400,3 @@
 			window.__applyWallpaperBodyClasses(mode);
 		};
 })();
-

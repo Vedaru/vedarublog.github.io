@@ -16,6 +16,11 @@ export function isHomePagePath(pathname: string): boolean {
 	);
 }
 
+/** 是否为主界面（仅第 1 页 /）；分页 /2/ 等与文章页共用非主界面布局 */
+export function isMainHomePage(pathname: string): boolean {
+	return resolveHomePageIndex(pathname) === 1;
+}
+
 /** 解析分页首页页码；非首页路径返回 null */
 export function resolveHomePageIndex(path: string): number | null {
 	const normalized = normalizePath(path);

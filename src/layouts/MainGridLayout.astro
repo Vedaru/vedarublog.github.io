@@ -19,7 +19,7 @@ import {
 	getBannerResponsive,
 	toBannerSrcList,
 } from "../utils/banner-utils";
-import { isHomePagePath } from "../utils/route-utils";
+import { isMainHomePage } from "../utils/route-utils";
 import { url } from "../utils/url-utils";
 import Layout from "./Layout.astro";
 
@@ -65,7 +65,7 @@ const hasBannerCredit = siteConfig.banner.credit.enable;
 const hasBannerLink = !!siteConfig.banner.credit.url;
 
 // 检查是否为首页
-const isHomePage = isHomePagePath(Astro.url.pathname);
+const isHomePage = isMainHomePage(Astro.url.pathname);
 const shouldPreloadDesktopBanner = Boolean(desktopBannerResponsive);
 const shouldPreloadMobileBanner = isHomePage && Boolean(mobileBannerResponsive);
 const showHomeText = siteConfig.banner.homeText?.enable && isHomePage;
