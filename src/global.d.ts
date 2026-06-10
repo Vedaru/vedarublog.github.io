@@ -141,6 +141,7 @@ declare global {
 		__pinScrollTopWithFrames?: (count?: number) => void;
 		__getNavbarHideThreshold?: () => number;
 		__syncNavbarWrapperForScrollY?: (scrollY?: number) => void;
+		__finalizeNavbarWrapperAfterScroll?: () => void;
 		__clearNavbarWrapperInlineStyles?: () => void;
 		__normalizePath?: (path: string) => string;
 		__isHomePagePath?: (pathname: string) => boolean;

@@ -152,13 +152,62 @@ function isNavbarHomePage(navbar: HTMLElement) {
     return navbar.hasAttribute('data-is-home');
 }
 
+function isSemifullScrollSyncing() {
+    return (
+        document.documentElement.classList.contains('is-smooth-scrolling') ||
+        document.documentElement.classList.contains('is-manual-scroll-syncing')
+    );
+}
+
+function clearSemifullNavbarInlineStyles(innerDiv: HTMLElement) {
+    innerDiv.style.removeProperty('background');
+    innerDiv.style.removeProperty('backdrop-filter');
+    innerDiv.style.removeProperty('box-shadow');
+    innerDiv.style.removeProperty('border-color');
+}
+
+function applySemifullNavbarInlineFade(innerDiv: HTMLElement, progress: number) {
+    const isDark = document.documentElement.classList.contains('dark');
+    const rgb = isDark ? '0, 0, 0' : '255, 255, 255';
+    const alpha = 0.55 * progress;
+    const shadowAlpha = (isDark ? 0.2 : 0.1) * progress;
+
+    if (progress <= 0) {
+        clearSemifullNavbarInlineStyles(innerDiv);
+        return;
+    }
+
+    innerDiv.style.background = `rgba(${rgb}, ${alpha})`;
+    innerDiv.style.backdropFilter = `blur(${20 * progress}px)`;
+    innerDiv.style.boxShadow = `0 4px 16px rgba(0, 0, 0, ${shadowAlpha})`;
+    innerDiv.style.borderColor = `rgba(${rgb}, ${alpha})`;
+}
+
 function applySemifullNavbarVisualState(scrollTop: number, isHomePage: boolean) {
     const navbar = document.getElementById('navbar');
     if (!navbar || navbar.getAttribute('data-transparent-mode') !== 'semifull') {
         return;
     }
 
-    const shouldScroll = !isHomePage || scrollTop > 50;
+    const innerDiv = navbar.querySelector(':scope > div') as HTMLElement | null;
+    const fadeEnd = 50;
+    const syncing = isSemifullScrollSyncing();
+
+    if (isHomePage && scrollTop < fadeEnd) {
+        navbar.classList.remove('scrolled');
+        if (syncing && innerDiv) {
+            applySemifullNavbarInlineFade(innerDiv, Math.min(1, Math.max(0, scrollTop / fadeEnd)));
+        } else if (innerDiv) {
+            clearSemifullNavbarInlineStyles(innerDiv);
+        }
+        return;
+    }
+
+    if (innerDiv) {
+        clearSemifullNavbarInlineStyles(innerDiv);
+    }
+
+    const shouldScroll = !isHomePage || scrollTop >= fadeEnd;
     const hasScrolled = navbar.classList.contains('scrolled');
     if (hasScrolled !== shouldScroll) {
         navbar.classList.toggle('scrolled', shouldScroll);
@@ -201,7 +250,11 @@ function initSemifullScrollDetection(initialScrollTop?: number) {
     let ticking = false;
     
     function updateNavbarState() {
-        if (window.__homePreScrollActive || window.__smoothScrollActive) {
+        if (
+            window.__homePreScrollActive ||
+            window.__smoothScrollActive ||
+            document.documentElement.classList.contains('is-manual-scroll-syncing')
+        ) {
             ticking = false;
             return;
         }

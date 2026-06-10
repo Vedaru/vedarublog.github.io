@@ -36,6 +36,14 @@
 		syncSemifullNavbarDuringSmoothScroll(scrollY);
 	}
 
+	function syncTocDuringSmoothScroll(scrollY) {
+		if (window.__homePreScrollActive) {
+			return;
+		}
+
+		window.__syncTocHideForScroll?.(scrollY, window.innerHeight);
+	}
+
 	function finishSmoothScroll(goalY) {
 		const navbar = document.getElementById("navbar");
 		const isHome = navbar?.getAttribute("data-is-home") === "true";
@@ -84,6 +92,7 @@
 
 		if (Math.abs(goalY - startY) <= 8) {
 			syncNavbarDuringSmoothScroll(goalY);
+			syncTocDuringSmoothScroll(goalY);
 			setDocumentScrollTop(goalY);
 			if (typeof onProgress === "function") {
 				onProgress(1, goalY);
@@ -94,6 +103,7 @@
 		return new Promise<void>(function (resolve) {
 			if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
 				syncNavbarDuringSmoothScroll(goalY);
+				syncTocDuringSmoothScroll(goalY);
 				setDocumentScrollTop(goalY);
 				if (typeof onProgress === "function") {
 					onProgress(1, goalY);
@@ -117,6 +127,7 @@
 
 				// 先同步视觉状态再写 scrollTop，避免 write→read 同帧强制重排
 				syncNavbarDuringSmoothScroll(nextY);
+				syncTocDuringSmoothScroll(nextY);
 				if (typeof onProgress === "function") {
 					onProgress(progress, nextY);
 				}

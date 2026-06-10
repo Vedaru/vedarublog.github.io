@@ -14,6 +14,14 @@
 		return window.__getScrollY?.() ?? 0;
 	}
 
+	function setScrollY(y) {
+		const top = Math.max(0, Math.round(y));
+		document.documentElement.scrollTop = top;
+		if (document.body) {
+			document.body.scrollTop = top;
+		}
+	}
+
 	function getPreScrollDurationMs() {
 		const scrollY = getScrollY();
 		return Math.round(
@@ -22,6 +30,19 @@
 				Math.max(PRE_SCROLL_MIN_MS, scrollY * 0.48),
 			),
 		);
+	}
+
+	function getLayoutShiftDurationMs() {
+		if (!window.matchMedia("(max-width: 1279px)").matches) {
+			return getPreScrollDurationMs();
+		}
+
+		const raw = getComputedStyle(document.documentElement)
+			.getPropertyValue("--mobile-shift-duration")
+			.trim();
+		const parsed = Number.parseInt(raw, 10);
+		const mobileDuration = Number.isFinite(parsed) ? parsed : 700;
+		return Math.max(getPreScrollDurationMs(), mobileDuration);
 	}
 
 	let listenersRegistered = false;
@@ -49,6 +70,12 @@
 		return isHomePagePath(pathFromVisitUrl(targetUrl));
 	}
 
+	function isLeavingHomePage(visit) {
+		return (
+			isHomePagePath(window.location.pathname) && !isTargetHomePage(visit)
+		);
+	}
+
 	function shouldPreScrollBeforeLeave(visit) {
 		const targetUrl = visit?.to?.url || "";
 		if (!targetUrl) return false;
@@ -56,8 +83,58 @@
 			return false;
 		}
 
-		const scrollY = getScrollY();
-		return scrollY > 80;
+		return getScrollY() > 80;
+	}
+
+	function removePreScrollClasses() {
+		document.documentElement.classList.remove(
+			"is-home-pre-scrolling",
+			"is-visit-pre-scrolling",
+			"is-visit-layout-shifting",
+		);
+	}
+
+	function addPreScrollClasses(leavingHome) {
+		document.documentElement.classList.add(
+			"is-home-pre-scrolling",
+			"is-visit-pre-scrolling",
+		);
+		if (leavingHome) {
+			document.documentElement.classList.add("is-visit-layout-shifting");
+		}
+	}
+
+	function beginLeavingHomeLayoutShift(visit) {
+		const mainPanel = document.querySelector(".absolute.w-full.z-30");
+		const scrollBefore = getScrollY();
+		const panelTopBefore = mainPanel?.getBoundingClientRect().top ?? 0;
+
+		window.__applyVisitBodyLayout?.(visit);
+
+		const navbar = document.getElementById("navbar");
+		if (navbar) {
+			navbar.setAttribute("data-is-home", "false");
+		}
+
+		void document.documentElement.offsetHeight;
+
+		const panelTopAfter = mainPanel?.getBoundingClientRect().top ?? 0;
+		const layoutDelta = panelTopBefore - panelTopAfter;
+
+		if (layoutDelta > 1) {
+			const maxScroll = Math.max(
+				0,
+				document.documentElement.scrollHeight - window.innerHeight,
+			);
+			setScrollY(Math.min(maxScroll, Math.max(0, scrollBefore - layoutDelta)));
+			return;
+		}
+
+		const maxScroll = Math.max(
+			0,
+			document.documentElement.scrollHeight - window.innerHeight,
+		);
+		setScrollY(Math.min(scrollBefore, maxScroll));
 	}
 
 	function syncSemifullNavbarDuringPreScroll(visit, scrollY) {
@@ -67,6 +144,7 @@
 		if (typeof scrollY !== "number") {
 			scrollY = getScrollY();
 		}
+
 		const navbar = document.getElementById("navbar");
 		const sourceIsHome = navbar?.getAttribute("data-is-home") === "true";
 		const targetIsHome = isTargetHomePage(visit);
@@ -94,16 +172,13 @@
 		window.__homePreScrollCompleted = true;
 		window.__suppressSemifullNavbarReinit = true;
 		applyDeferredVisitLayout(visit);
+
 		window.__homePreScrollActive = false;
-
 		window.__clearNavbarWrapperInlineStyles?.();
-
 		window.__pinScrollTopWithFrames?.(2);
+
 		requestAnimationFrame(function () {
-			document.documentElement.classList.remove(
-				"is-home-pre-scrolling",
-				"is-visit-pre-scrolling",
-			);
+			removePreScrollClasses();
 			activePreScrollVisit = null;
 		});
 	}
@@ -146,11 +221,9 @@
 					return;
 				}
 
+				const leavingHome = isLeavingHomePage(visit);
 				activePreScrollVisit = visit;
-				document.documentElement.classList.add(
-					"is-home-pre-scrolling",
-					"is-visit-pre-scrolling",
-				);
+				addPreScrollClasses(leavingHome);
 				window.__homePreScrollWasUsed = true;
 				window.__homePreScrollActive = true;
 
@@ -159,8 +232,28 @@
 				}
 
 				window.__bannerDriftPause?.();
-				syncNavbarDuringPreScroll(visit, 0);
 
+				if (leavingHome) {
+					beginLeavingHomeLayoutShift(visit);
+				}
+
+				const startScrollY = getScrollY();
+				syncNavbarDuringPreScroll(visit, startScrollY);
+
+				const duration = leavingHome
+					? getLayoutShiftDurationMs()
+					: getPreScrollDurationMs();
+				const easing = window.__easeInOutCubic;
+				const onProgress = function (_progress, scrollY) {
+					syncNavbarDuringPreScroll(visit, scrollY);
+				};
+
+				const smoothScrollToY =
+					window.__smoothScrollToY ||
+					function () {
+						window.__pinPageScrollTop?.();
+						return Promise.resolve();
+					};
 				const smoothScrollToTop =
 					window.__smoothScrollToTop ||
 					function () {
@@ -168,13 +261,11 @@
 						return Promise.resolve();
 					};
 
-				return smoothScrollToTop(
-					getPreScrollDurationMs(),
-					window.__easeInOutCubic,
-					function (_progress, scrollY) {
-						syncNavbarDuringPreScroll(visit, scrollY);
-					},
-				).then(function () {
+				const scrollPromise = leavingHome
+					? smoothScrollToY(0, duration, easing, onProgress)
+					: smoothScrollToTop(duration, easing, onProgress);
+
+				return scrollPromise.then(function () {
 					finishPreScrollTransition(visit);
 				});
 			},
@@ -188,8 +279,7 @@
 					return false;
 				}
 
-				const scrollY = getScrollY();
-				if (scrollY <= 8) {
+				if (getScrollY() <= 8) {
 					visit.scroll.reset = false;
 				}
 			},
@@ -200,6 +290,7 @@
 			window.__homePreScrollCompleted = false;
 			window.__homePreScrollActive = false;
 			activePreScrollVisit = null;
+			removePreScrollClasses();
 		});
 
 		return true;

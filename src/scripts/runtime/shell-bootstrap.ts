@@ -162,6 +162,18 @@
 				"is-manual-scroll-syncing",
 			);
 
+			const scrollY =
+				window.__getScrollY?.() ??
+				window.scrollY ??
+				document.documentElement.scrollTop ??
+				0;
+
+			const navbarEl = document.getElementById("navbar");
+			if (navbarEl?.getAttribute("data-transparent-mode") === "semifull") {
+				const isHome = navbarEl.getAttribute("data-is-home") === "true";
+				window.applySemifullNavbarVisualState?.(scrollY, isHome);
+			}
+
 			const navbarWrapper = document.getElementById("navbar-wrapper");
 			if (
 				!navbarWrapper ||
@@ -170,11 +182,6 @@
 				return;
 			}
 
-			const scrollY =
-				window.__getScrollY?.() ??
-				window.scrollY ??
-				document.documentElement.scrollTop ??
-				0;
 			const threshold =
 				window.__getNavbarHideThreshold?.() ?? Number.POSITIVE_INFINITY;
 

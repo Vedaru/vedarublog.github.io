@@ -302,14 +302,8 @@ html.is-visit-pre-scrolling {
   overflow-anchor: none;
 }
 
-html.is-home-pre-scrolling #banner-wrapper,
-html.is-home-pre-scrolling .absolute.w-full.z-30,
 html.is-home-pre-scrolling #navbar-wrapper,
-html.is-home-pre-scrolling #main-grid,
-html.is-home-pre-scrolling #top-row,
-html.is-home-pre-scrolling #sidebar-sticky,
-html.is-home-pre-scrolling #right-sidebar-sticky,
-html.is-home-pre-scrolling .banner-breathe-wrap img,
+html.is-home-pre-scrolling #navbar > div,
 html.is-visit-pre-scrolling #banner-wrapper,
 html.is-visit-pre-scrolling .absolute.w-full.z-30,
 html.is-visit-pre-scrolling #navbar-wrapper,
@@ -318,7 +312,6 @@ html.is-visit-pre-scrolling #top-row,
 html.is-visit-pre-scrolling #sidebar-sticky,
 html.is-visit-pre-scrolling #right-sidebar-sticky,
 html.is-visit-pre-scrolling .banner-breathe-wrap img,
-html.is-home-pre-scrolling #navbar > div,
 html.is-visit-pre-scrolling #navbar > div {
   transition: none !important;
 }
@@ -331,6 +324,7 @@ html.is-smooth-scrolling #right-sidebar-sticky {
 }
 
 html.is-manual-scroll-syncing #navbar-wrapper,
+html.is-manual-scroll-syncing #navbar > div,
 html.is-manual-scroll-syncing #sidebar-sticky,
 html.is-manual-scroll-syncing #right-sidebar-sticky {
   transition: none !important;
@@ -357,14 +351,22 @@ html.is-visit-layout-shifting #right-sidebar-sticky {
   transition: none !important;
 }
 
-html.is-visit-layout-shifting #navbar-wrapper.navbar-hidden {
-  opacity: 1 !important;
+/* 离开首页布局切换：侧栏直接落到非首页 sticky 位置，避免随滚动出现下移错觉 */
+@media (min-width: 1280px) {
+  html.is-visit-layout-shifting body.enable-banner #sidebar-sticky {
+    top: 1rem !important;
+  }
+}
+
+html.is-visit-layout-shifting.is-home-pre-scrolling #sidebar-sticky,
+html.is-visit-layout-shifting.is-visit-pre-scrolling #sidebar-sticky {
   transform: none !important;
 }
 
 /* 预滚动期间禁用 navbar-hidden，避免解冻 transition-all 时 opacity 跳变 */
 html.is-home-pre-scrolling #navbar-wrapper.navbar-hidden,
-html.is-visit-pre-scrolling #navbar-wrapper.navbar-hidden {
+html.is-visit-pre-scrolling #navbar-wrapper.navbar-hidden,
+html.is-visit-layout-shifting #navbar-wrapper.navbar-hidden {
   opacity: 1 !important;
   transform: none !important;
 }

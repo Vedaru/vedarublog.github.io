@@ -1,8 +1,4 @@
-import {
-	BANNER_HEIGHT,
-	DARK_MODE,
-	DEFAULT_THEME,
-} from "@constants";
+import { BANNER_HEIGHT, DARK_MODE, DEFAULT_THEME } from "@constants";
 import { pathsEqual, url } from "../utils/url-utils";
 import {
 	isTocOrInPageAnchorLink,
@@ -16,7 +12,8 @@ import {
 	initFancybox,
 } from "./theme-bootstrap";
 
-const DYNAMIC_STYLE_PATTERN = /\/_astro\/.*(fancybox|katex|jetbrains|fancybox-custom)/i;
+const DYNAMIC_STYLE_PATTERN =
+	/\/_astro\/.*(fancybox|katex|jetbrains|fancybox-custom)/i;
 const bannerEnabled = !!document.getElementById("banner-wrapper");
 
 function removeViteInjectedStyles() {
@@ -93,7 +90,10 @@ export function runSwupPageLayoutPhase(detail?: { scrollTop?: number }) {
 	if (swupTransitionActive) {
 		tocWrapper?.classList.add("toc-not-ready");
 	} else {
-		window.__syncTocHideForScroll?.(scrollTop, window.__swupPhaseInnerHeight);
+		window.__syncTocHideForScroll?.(
+			scrollTop,
+			window.__swupPhaseInnerHeight,
+		);
 	}
 
 	if (tocWrapper && tocElement) {
@@ -101,7 +101,10 @@ export function runSwupPageLayoutPhase(detail?: { scrollTop?: number }) {
 			if (typeof tocElement.init === "function") {
 				tocElement.init();
 			}
-		} else if (typeof (tocElement as HTMLElement & { teardown?: () => void }).teardown === "function") {
+		} else if (
+			typeof (tocElement as HTMLElement & { teardown?: () => void })
+				.teardown === "function"
+		) {
 			(tocElement as HTMLElement & { teardown: () => void }).teardown();
 			tocElement.innerHTML = "";
 			delete tocElement.dataset.loaded;
@@ -115,7 +118,9 @@ export function runSwupPageLayoutPhase(detail?: { scrollTop?: number }) {
 			if (window.__suppressSemifullNavbarReinit) {
 				const isHome = navbar.getAttribute("data-is-home") === "true";
 				window.applySemifullNavbarVisualState?.(scrollTop, isHome);
-			} else if (typeof window.initSemifullScrollDetection === "function") {
+			} else if (
+				typeof window.initSemifullScrollDetection === "function"
+			) {
 				window.initSemifullScrollDetection(scrollTop);
 			}
 		}
@@ -217,7 +222,9 @@ export function applyVisitStartLayout(
 		if (transparentMode === "semifull") {
 			if (window.__suppressSemifullNavbarReinit) {
 				window.applySemifullNavbarVisualState?.(0, isHomePage);
-			} else if (typeof window.initSemifullScrollDetection === "function") {
+			} else if (
+				typeof window.initSemifullScrollDetection === "function"
+			) {
 				window.initSemifullScrollDetection(scrollForSemifull);
 			}
 		}
@@ -240,38 +247,42 @@ function setup() {
 
 	window.swup.hooks.on(
 		"link:click",
-		(
-			_visit: unknown,
-			context?: { el?: Element },
-		) => {
-		document.documentElement.style.setProperty("--content-delay", "0ms");
+		(_visit: unknown, context?: { el?: Element }) => {
+			document.documentElement.style.setProperty(
+				"--content-delay",
+				"0ms",
+			);
 
-		// 页内锚点 / TOC 点击不会触发 visit:end，不能加 toc-not-ready
-		if (
-			isTocOrInPageAnchorLink(context?.el) ||
-			(window.tocClickTimestamp &&
-				Date.now() - window.tocClickTimestamp < 200)
-		) {
-			return;
-		}
+			// 页内锚点 / TOC 点击不会触发 visit:end，不能加 toc-not-ready
+			if (
+				isTocOrInPageAnchorLink(context?.el) ||
+				(window.tocClickTimestamp &&
+					Date.now() - window.tocClickTimestamp < 200)
+			) {
+				return;
+			}
 
-		const tocOnClick = document.getElementById("toc-wrapper");
-		if (tocOnClick) {
-			tocOnClick.classList.add("toc-not-ready");
-		}
+			const tocOnClick = document.getElementById("toc-wrapper");
+			if (tocOnClick) {
+				tocOnClick.classList.add("toc-not-ready");
+			}
 
-		if (bannerEnabled) {
-			const scrollY = document.documentElement.scrollTop;
-			if (scrollY <= 80) {
-				const navbar = document.getElementById("navbar-wrapper");
-				if (navbar && document.body.classList.contains("lg:is-home")) {
-					const threshold = window.innerHeight * (BANNER_HEIGHT / 100) - 88;
-					if (scrollY >= threshold) {
-						navbar.classList.add("navbar-hidden");
+			if (bannerEnabled) {
+				const scrollY = document.documentElement.scrollTop;
+				if (scrollY <= 80) {
+					const navbar = document.getElementById("navbar-wrapper");
+					if (
+						navbar &&
+						document.body.classList.contains("lg:is-home")
+					) {
+						const threshold =
+							window.innerHeight * (BANNER_HEIGHT / 100) - 88;
+						if (scrollY >= threshold) {
+							navbar.classList.add("navbar-hidden");
+						}
 					}
 				}
 			}
-		}
 		},
 	);
 
@@ -293,16 +304,15 @@ function setup() {
 	window.__applyVisitStartLayout = applyVisitStartLayout;
 	window.__flushPendingVisitBodyLayout = flushPendingVisitBodyLayout;
 
-	document.addEventListener(
-		"vedaru:home-pre-scroll-done",
-		((event: CustomEvent<{ visit: { to: { url: string } } }>) => {
-			if (event.detail?.visit) {
-				applyVisitStartLayout(event.detail.visit, {
-					deferBodyLayout: true,
-				});
-			}
-		}) as EventListener,
-	);
+	document.addEventListener("vedaru:home-pre-scroll-done", ((
+		event: CustomEvent<{ visit: { to: { url: string } } }>,
+	) => {
+		if (event.detail?.visit) {
+			applyVisitStartLayout(event.detail.visit, {
+				deferBodyLayout: true,
+			});
+		}
+	}) as EventListener);
 
 	window.swup.hooks.on(
 		"visit:start",
@@ -322,62 +332,70 @@ function setup() {
 		{ priority: 0 },
 	);
 
-	window.swup.hooks.on("page:view", (visit: { to: { document?: Document } }) => {
-		const nextTitle = visit?.to?.document?.title;
-		if (nextTitle && document.title !== nextTitle) {
-			document.title = nextTitle;
-		}
-
-		const hadHomePreScroll = !!window.__homePreScrollWasUsed;
-
-		if (hadHomePreScroll) {
-			if (window.__homePreScrollActive) {
-				return;
+	window.swup.hooks.on(
+		"page:view",
+		(visit: { to: { document?: Document } }) => {
+			const nextTitle = visit?.to?.document?.title;
+			if (nextTitle && document.title !== nextTitle) {
+				document.title = nextTitle;
 			}
-			window.__pinPageScrollTop?.();
-		}
 
-		const storedTheme = localStorage.getItem("theme") || DEFAULT_THEME;
-		const isDark = storedTheme === DARK_MODE;
-		const expectedTheme = isDark ? "github-dark" : "github-light";
+			const hadHomePreScroll = !!window.__homePreScrollWasUsed;
 
-		const currentTheme = document.documentElement.getAttribute("data-theme");
-		const hasDarkClass = document.documentElement.classList.contains("dark");
+			if (hadHomePreScroll) {
+				if (window.__homePreScrollActive) {
+					return;
+				}
+				window.__pinPageScrollTop?.();
+			}
 
-		if (currentTheme !== expectedTheme || hasDarkClass !== isDark) {
-			requestAnimationFrame(() => {
-				if (currentTheme !== expectedTheme) {
-					document.documentElement.setAttribute(
-						"data-theme",
-						expectedTheme,
+			const storedTheme = localStorage.getItem("theme") || DEFAULT_THEME;
+			const isDark = storedTheme === DARK_MODE;
+			const expectedTheme = isDark ? "github-dark" : "github-light";
+
+			const currentTheme =
+				document.documentElement.getAttribute("data-theme");
+			const hasDarkClass =
+				document.documentElement.classList.contains("dark");
+
+			if (currentTheme !== expectedTheme || hasDarkClass !== isDark) {
+				requestAnimationFrame(() => {
+					if (currentTheme !== expectedTheme) {
+						document.documentElement.setAttribute(
+							"data-theme",
+							expectedTheme,
+						);
+					}
+					if (hasDarkClass !== isDark) {
+						if (isDark) {
+							document.documentElement.classList.add("dark");
+						} else {
+							document.documentElement.classList.remove("dark");
+						}
+					}
+				});
+			}
+
+			setTimeout(() => {
+				if (document.getElementById("tcomment")) {
+					const pageLoadedEvent = new CustomEvent(
+						"mizuki:page:loaded",
+						{
+							detail: {
+								path: window.location.pathname,
+								timestamp: Date.now(),
+							},
+						},
+					);
+					document.dispatchEvent(pageLoadedEvent);
+					console.log(
+						"Layout: 触发 mizuki:page:loaded 事件，路径:",
+						window.location.pathname,
 					);
 				}
-				if (hasDarkClass !== isDark) {
-					if (isDark) {
-						document.documentElement.classList.add("dark");
-					} else {
-						document.documentElement.classList.remove("dark");
-					}
-				}
-			});
-		}
-
-		setTimeout(() => {
-			if (document.getElementById("tcomment")) {
-				const pageLoadedEvent = new CustomEvent("mizuki:page:loaded", {
-					detail: {
-						path: window.location.pathname,
-						timestamp: Date.now(),
-					},
-				});
-				document.dispatchEvent(pageLoadedEvent);
-				console.log(
-					"Layout: 触发 mizuki:page:loaded 事件，路径:",
-					window.location.pathname,
-				);
-			}
-		}, 300);
-	});
+			}, 300);
+		},
+	);
 
 	window.swup.hooks.on("visit:end", () => {
 		window.__pendingVisitBodyLayout = undefined;
