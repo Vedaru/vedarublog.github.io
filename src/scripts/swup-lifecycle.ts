@@ -5,6 +5,7 @@ import {
 	isTocOrInPageAnchorLink,
 	shouldInitTocForPath,
 } from "../utils/toc-utils";
+import { shouldSmoothScrollSamePage } from "./runtime/home-pre-scroll/visit";
 import {
 	checkKatex,
 	ensureJetBrainsMono,
@@ -317,8 +318,15 @@ function setup() {
 
 	window.swup.hooks.on(
 		"visit:start",
-		(visit: { to: { url: string } }) => {
+		(visit: { to: { url: string }; scroll?: { reset?: boolean } }) => {
 			cleanupFancybox();
+
+			if (shouldSmoothScrollSamePage(visit)) {
+				if (visit.scroll) {
+					visit.scroll.reset = false;
+				}
+				return;
+			}
 
 			if (window.__homePreScrollWasUsed) {
 				const tocEarly = document.getElementById("toc-wrapper");

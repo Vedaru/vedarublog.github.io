@@ -22,6 +22,35 @@ function isSamePageNavigation(fromPathname: string, toUrl: string): boolean {
 	return window.__pathsEqual?.(fromPathname, toUrl) ?? false;
 }
 
+/** 已在当前页时再次点击同页导航：应平滑回顶，而非 Swup 瞬移 */
+export function shouldSmoothScrollSamePage(
+	visit: HomePreScrollVisit,
+): boolean {
+	const targetUrl = visit?.to?.url || "";
+	if (!targetUrl) return false;
+	if (!isSamePageNavigation(window.location.pathname, targetUrl)) {
+		return false;
+	}
+
+	return getScrollY() > PRE_SCROLL_Y_THRESHOLD;
+}
+
+export function shouldSmoothScrollSamePageHref(href: string): boolean {
+	if (!href || href.startsWith("#")) return false;
+	if (!isSamePageNavigation(window.location.pathname, href)) {
+		return false;
+	}
+
+	return getScrollY() > PRE_SCROLL_Y_THRESHOLD;
+}
+
+/** @deprecated 使用 shouldSmoothScrollSamePage */
+export const shouldSmoothScrollSamePageMainHome = shouldSmoothScrollSamePage;
+
+/** @deprecated 使用 shouldSmoothScrollSamePageHref */
+export const shouldSmoothScrollSamePageMainHomeHref =
+	shouldSmoothScrollSamePageHref;
+
 export function isTargetMainHomePage(visit: HomePreScrollVisit): boolean {
 	const targetUrl = visit?.to?.url || "";
 	if (!targetUrl) return false;

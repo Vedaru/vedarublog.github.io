@@ -29,10 +29,54 @@ import {
 	isMainHomePage,
 	shouldHandleEnteringHome,
 	shouldPreScrollBeforeLeave,
+	shouldSmoothScrollSamePage,
+	shouldSmoothScrollSamePageHref,
 } from "./visit";
 import type { HomePreScrollVisit } from "./types";
 
 let listenersRegistered = false;
+
+function runSamePageSmoothScrollToTop(): Promise<void> {
+	window.__cancelSmoothScroll?.();
+	const duration = getPreScrollDurationMs();
+	const easing = window.__easeInOutCubic;
+	document.documentElement.classList.add("is-smooth-scrolling");
+
+	const scrollPromise =
+		window.__smoothScrollToTop?.(duration, easing) ?? Promise.resolve();
+
+	return Promise.resolve(scrollPromise).finally(function () {
+		document.documentElement.classList.remove("is-smooth-scrolling");
+		const navbar = document.getElementById("navbar");
+		const isHome = navbar?.getAttribute("data-is-home") === "true";
+		window.applySemifullNavbarVisualState?.(0, isHome);
+		window.__syncNavbarWrapperForScrollY?.(0);
+		window.__syncTocHideForScroll?.(0, window.innerHeight);
+	});
+}
+
+function handleSamePageNavLinkClick(
+	_visit: unknown,
+	context?: { el?: Element; event?: Event },
+): boolean | void {
+	const el = context?.el;
+	if (!(el instanceof HTMLAnchorElement)) {
+		return;
+	}
+	if (el.target === "_blank" || el.hasAttribute("download")) {
+		return;
+	}
+
+	const href = el.getAttribute("href");
+	if (!shouldSmoothScrollSamePageHref(href || "")) {
+		return;
+	}
+
+	context?.event?.preventDefault();
+	context?.event?.stopPropagation();
+	void runSamePageSmoothScrollToTop();
+	return false;
+}
 
 async function runPreScrollChain(
 	visit: HomePreScrollVisit,
@@ -105,6 +149,18 @@ async function runPreScrollChain(
 function handleVisitStart(visit: HomePreScrollVisit): Promise<void> | undefined {
 	cancelActivePreScrollTween();
 	window.__cancelSmoothScroll?.();
+
+	if (shouldSmoothScrollSamePage(visit)) {
+		if (visit.scroll) {
+			visit.scroll.reset = false;
+		}
+		window.__homePreScrollWasUsed = true;
+		window.__homePreScrollActive = true;
+		return runSamePageSmoothScrollToTop().finally(function () {
+			window.__homePreScrollActive = false;
+			window.__homePreScrollWasUsed = false;
+		});
+	}
 
 	const generation = bumpPreScrollGeneration();
 
@@ -208,6 +264,11 @@ export function registerHomePreScrollListeners(swup: {
 		return listenersRegistered;
 	}
 	listenersRegistered = true;
+
+	swup.hooks.on("link:click", handleSamePageNavLinkClick, {
+		before: true,
+		priority: -200,
+	});
 
 	swup.hooks.on("visit:start", handleVisitStart, { priority: -100 });
 
