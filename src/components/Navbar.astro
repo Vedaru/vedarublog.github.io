@@ -35,7 +35,7 @@ let links: NavBarLink[] = navBarConfig.links.map(
 	},
 );
 ---
-<div id="navbar" class="z-50" data-transparent-mode={navbarTransparentMode} data-is-home={isHomePage}>
+<div id="navbar" class="z-50" data-transparent-mode={navbarTransparentMode} data-is-home={isHomePage ? "true" : "false"}>
     <div class:list={[className, "!overflow-visible max-w-[var(--page-width)] h-[4.5rem] mx-auto flex items-center justify-between px-4"]}>
         <a href={url('/')} class="btn-plain scale-animation rounded-lg h-[3.25rem] px-5 font-bold active:scale-95">
             <div class="flex flex-row items-center text-md">
@@ -44,7 +44,7 @@ let links: NavBarLink[] = navBarConfig.links.map(
                 ) : (
                     <>
                         {siteConfig.navbarTitle?.icon ? (
-                            <img src={url(siteConfig.navbarTitle.icon)} alt={siteConfig.navbarTitle?.text || siteConfig.title} class="h-[1.75rem] w-[1.75rem] mb-1 mr-2 object-contain rounded-md" loading="lazy" />
+                            <img src={url(siteConfig.navbarTitle.icon)} alt={siteConfig.navbarTitle?.text || siteConfig.title} class="h-[1.75rem] w-[1.75rem] mb-1 mr-2 object-contain rounded-md" width="28" height="28" loading="eager" decoding="async" />
                         ) : (
                             <Icon name="material-symbols:home-pin-outline" class="text-[1.75rem] mb-1 mr-2" />
                         )}
@@ -53,7 +53,7 @@ let links: NavBarLink[] = navBarConfig.links.map(
                 )}
             </div>
         </a>
-        <div class="hidden md:flex items-center space-x-1">
+        <div class="hidden md:flex items-center space-x-1 min-h-[2.5rem] shrink-0">
             {links.map((l) => {
                 return <DropdownMenu link={l} />;
             })}
@@ -144,6 +144,13 @@ async function loadButtonScript() {
 loadButtonScript();
 
 // 为semifull模式添加滚动检测逻辑
+function isNavbarHomePage(navbar) {
+    const value = navbar.getAttribute('data-is-home');
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return navbar.hasAttribute('data-is-home');
+}
+
 function applySemifullNavbarVisualState(scrollTop, isHomePage) {
     const navbar = document.getElementById('navbar');
     if (!navbar || navbar.getAttribute('data-transparent-mode') !== 'semifull') {
@@ -151,10 +158,17 @@ function applySemifullNavbarVisualState(scrollTop, isHomePage) {
     }
 
     const shouldScroll = !isHomePage || scrollTop > 50;
-    navbar.classList.toggle('scrolled', shouldScroll);
+    const hasScrolled = navbar.classList.contains('scrolled');
+    if (hasScrolled !== shouldScroll) {
+        navbar.classList.toggle('scrolled', shouldScroll);
+    }
 }
 
-function initSemifullScrollDetection() {
+function readDocumentScrollTop() {
+    return window.scrollY || document.documentElement.scrollTop || 0;
+}
+
+function initSemifullScrollDetection(initialScrollTop) {
     const navbar = document.getElementById('navbar');
     if (!navbar) return;
     
@@ -165,7 +179,9 @@ function initSemifullScrollDetection() {
         return;
     }
     
-    const isHomePage = navbar.getAttribute('data-is-home') === 'true';
+    const isHomePage = isNavbarHomePage(navbar);
+    const resolvedInitialScroll =
+        typeof initialScrollTop === 'number' ? initialScrollTop : readDocumentScrollTop();
     
     // 如果不是首页，移除滚动事件监听器并设置为半透明状态
     if (!isHomePage) {
@@ -177,7 +193,7 @@ function initSemifullScrollDetection() {
             // @ts-ignore
             window.semifullScrollHandler = null;
         }
-        applySemifullNavbarVisualState(window.scrollY || document.documentElement.scrollTop, false);
+        applySemifullNavbarVisualState(resolvedInitialScroll, false);
         return;
     }
     
@@ -189,8 +205,7 @@ function initSemifullScrollDetection() {
             return;
         }
 
-        const scrollTop = window.scrollY || document.documentElement.scrollTop;
-        applySemifullNavbarVisualState(scrollTop, true);
+        applySemifullNavbarVisualState(readDocumentScrollTop(), true);
         
         ticking = false;
     }
@@ -216,8 +231,8 @@ function initSemifullScrollDetection() {
     // 监听滚动事件
     window.addEventListener('scroll', requestTick, { passive: true });
     
-    // 初始化状态
-    updateNavbarState();
+    // 初始化状态（使用调用方预读的 scrollTop，避免 DOM 写入后强制重排）
+    applySemifullNavbarVisualState(resolvedInitialScroll, true);
 }
 
 // 将函数暴露到全局对象，供页面切换时调用

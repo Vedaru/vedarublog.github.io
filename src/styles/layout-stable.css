@@ -23,6 +23,14 @@ html[data-wallpaper-mode="none"] .main-panel {
     top: calc(5.5rem + 1rem) !important;
     min-height: calc(100vh - 6.5rem) !important;
   }
+
+  html[data-wallpaper-mode="banner"] #banner-wrapper.mobile-hide-banner {
+    height: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden;
+    visibility: hidden;
+    pointer-events: none;
+  }
 }
 
 /* Banner 基础高度（与 Layout.astro enable-banner 一致） */
@@ -50,8 +58,9 @@ html[data-wallpaper-mode="fullscreen"] [data-fullscreen-wallpaper] {
     top: 35vh !important;
   }
 
-  html[data-wallpaper-mode="banner"] body.enable-banner #top-row {
+  html[data-wallpaper-mode="banner"] #top-row {
     height: calc(var(--banner-height-home, 65vh) - 4.5rem);
+    min-height: calc(var(--banner-height-home, 65vh) - 4.5rem);
   }
 
   html[data-wallpaper-mode="banner"] body.enable-banner.is-home #banner-wrapper:not(.mobile-hide-banner),

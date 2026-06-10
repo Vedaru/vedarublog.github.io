@@ -58,7 +58,7 @@ export default defineConfig({
 			cache: true,
 			// 仅悬停预加载，避免首屏拉取 archive 等页面的脚本链
 			preload: { hover: true, visible: false },
-			loadOnIdle: true,
+			loadOnIdle: false,
 			accessibility: true,
 			// 各页 CSS head 一致；关闭 head 交换避免换页/切壁纸时外链样式短暂卸载导致线框 FOUC
 			updateHead: false,
@@ -199,6 +199,8 @@ export default defineConfig({
 			"import.meta.env.PUBLIC_SITE_BUILD_ID": JSON.stringify(SITE_BUILD_ID),
 		},
 		build: {
+			// 面向现代浏览器，减少不必要的 legacy polyfill
+			target: "es2022",
 			// 全站单 CSS：Swup updateHead 换页时不卸载侧栏/shell 仍依赖的样式，避免切页线框 FOUC
 			cssCodeSplit: false,
 			// 静态资源处理优化，防止小图片转 base64 导致 HTML 体积过大（可选，根据需要调整）

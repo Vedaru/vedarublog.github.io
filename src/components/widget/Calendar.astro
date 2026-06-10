@@ -403,27 +403,27 @@ const yearSuffix = isChinese ? "年" : " ";
 			const isSelected = selectedDateKey === dateKey;
 
 			let bgClass =
-				"hover:bg-[var(--btn-plain-bg-hover)] text-neutral-700 dark:text-neutral-300 border border-transparent";
+				"hover:bg-[var(--btn-plain-bg-hover)] text-neutral-700 dark:text-neutral-300";
 
 			if (isSelected) {
 				bgClass =
-					"bg-[var(--primary)] text-white shadow-md border border-transparent";
+					"is-selected bg-[var(--primary)] text-white shadow-md";
 			} else if (isToday) {
 				bgClass =
-					"text-[var(--primary)] font-bold bg-[var(--primary)]/10 ring-1 ring-[var(--primary)] ring-inset";
+					"is-today text-[var(--primary)] font-bold bg-[var(--primary)]/10 ring-1 ring-[var(--primary)] ring-inset";
 			} else if (hasPost) {
 				bgClass =
-					"font-bold text-neutral-900 dark:text-neutral-100 hover:bg-[var(--btn-plain-bg-hover)] border border-transparent";
+					"has-post font-bold text-neutral-900 dark:text-neutral-100 hover:bg-[var(--btn-plain-bg-hover)]";
 			}
 
-			html += `
-                <div class="calendar-day aspect-square flex items-center justify-center rounded-md cursor-pointer relative transition-colors duration-200 ${bgClass}"
-                    data-date="${dateKey}">
-                    ${day}
-                    ${hasPost && !isSelected ? `<span class="absolute bottom-1 w-1 h-1 rounded-full bg-[var(--primary)]"></span>` : ""}
-                    ${hasPost && count > 1 ? `<span class="absolute top-0.5 right-0.5 text-[9px] opacity-70 scale-75">${count}</span>` : ""}
-                </div>
-            `;
+			const attrs = [
+				`class="calendar-day aspect-square flex items-center justify-center rounded-md cursor-pointer relative transition-colors duration-200 ${bgClass}"`,
+				`data-date="${dateKey}"`,
+			];
+			if (hasPost && !isSelected) attrs.push('data-has-post="true"');
+			if (hasPost && count > 1) attrs.push(`data-count="${count}"`);
+
+			html += `<div ${attrs.join(" ")}>${day}</div>`;
 		}
 
 		dom.grid.innerHTML = html;
@@ -504,18 +504,14 @@ const yearSuffix = isChinese ? "年" : " ";
 			const isCurrentMonth = index === currentMonth;
 			const hasPost = stats.hasPostInMonth[`${currentYear}-${index + 1}`];
 			let cls =
-				"month-item cursor-pointer rounded-lg flex flex-col items-center justify-center p-2 transition-colors hover:bg-[var(--btn-plain-bg-hover)] relative border border-transparent";
+				"month-item cursor-pointer rounded-lg flex items-center justify-center p-2 transition-colors hover:bg-[var(--btn-plain-bg-hover)] relative text-sm font-bold";
 			if (isCurrentMonth)
 				cls +=
-					" border-[var(--primary)] text-[var(--primary)] bg-[var(--primary)]/5";
-			else cls += " text-neutral-700 dark:text-neutral-300";
+					" border border-[var(--primary)] text-[var(--primary)] bg-[var(--primary)]/5";
+			else cls += " text-neutral-700 dark:text-neutral-300 border border-transparent";
+			if (hasPost) cls += " has-post";
 
-			html += `
-                <div class="${cls}" data-month="${index}">
-                    <span class="text-sm font-bold">${name}</span>
-                    ${hasPost ? `<span class="w-1 h-1 rounded-full bg-[var(--primary)] mt-1"></span>` : `<span class="w-1 h-1 mt-1"></span>`}
-                </div>
-             `;
+			html += `<div class="${cls}" data-month="${index}">${name}</div>`;
 		});
 		dom.selectionContent.innerHTML = html;
 	}
@@ -531,18 +527,14 @@ const yearSuffix = isChinese ? "年" : " ";
 			const isCurrent = y === currentYear;
 			const hasPost = stats.hasPostInYear[y];
 			let cls =
-				"year-item cursor-pointer rounded-lg flex flex-col items-center justify-center py-3 transition-colors hover:bg-[var(--btn-plain-bg-hover)] relative border border-transparent";
+				"year-item cursor-pointer rounded-lg flex items-center justify-center py-3 transition-colors hover:bg-[var(--btn-plain-bg-hover)] relative text-sm font-bold";
 			if (isCurrent)
 				cls +=
-					" border-[var(--primary)] text-[var(--primary)] bg-[var(--primary)]/5";
-			else cls += " text-neutral-700 dark:text-neutral-300";
+					" border border-[var(--primary)] text-[var(--primary)] bg-[var(--primary)]/5";
+			else cls += " text-neutral-700 dark:text-neutral-300 border border-transparent";
+			if (hasPost) cls += " has-post";
 
-			html += `
-                <div class="${cls}" data-year="${y}" id="year-${y}">
-                    <span class="text-sm font-bold">${y}</span>
-                     ${hasPost ? `<span class="w-1.5 h-1.5 rounded-full bg-[var(--primary)] mt-1"></span>` : `<span class="w-1.5 h-1.5 mt-1"></span>`}
-                </div>
-            `;
+			html += `<div class="${cls}" data-year="${y}" id="year-${y}">${y}</div>`;
 		}
 		dom.selectionContent.innerHTML = html;
 
@@ -561,10 +553,76 @@ const yearSuffix = isChinese ? "年" : " ";
 		}, 200);
 	}
 
-	init();
+	function scheduleInit() {
+		const widgetRoot = document.getElementById("calendar-widget");
+		if (!widgetRoot || widgetRoot.dataset.calendarInitialized === "true") {
+			return;
+		}
+
+		const run = () => init();
+
+		const runWhenIdle = () => {
+			if ("requestIdleCallback" in window) {
+				requestIdleCallback(run, { timeout: 2500 });
+			} else {
+				setTimeout(run, 200);
+			}
+		};
+
+		if ("IntersectionObserver" in window) {
+			const observer = new IntersectionObserver(
+				(entries) => {
+					if (!entries.some((entry) => entry.isIntersecting)) return;
+					observer.disconnect();
+					runWhenIdle();
+				},
+				{ rootMargin: "120px 0px" },
+			);
+			observer.observe(widgetRoot);
+			return;
+		}
+
+		runWhenIdle();
+	}
+
+	scheduleInit();
+	document.addEventListener("swup:content:replace", scheduleInit);
 </script>
 
 <style>
+	.calendar-day[data-has-post]:not(.is-selected)::after {
+		content: "";
+		position: absolute;
+		bottom: 0.25rem;
+		width: 0.25rem;
+		height: 0.25rem;
+		border-radius: 9999px;
+		background: var(--primary);
+	}
+
+	.calendar-day[data-count]::before {
+		content: attr(data-count);
+		position: absolute;
+		top: 0.125rem;
+		right: 0.125rem;
+		font-size: 9px;
+		line-height: 1;
+		opacity: 0.7;
+		transform: scale(0.75);
+		transform-origin: top right;
+	}
+
+	.month-item.has-post::after,
+	.year-item.has-post::after {
+		content: "";
+		position: absolute;
+		bottom: 0.35rem;
+		width: 0.25rem;
+		height: 0.25rem;
+		border-radius: 9999px;
+		background: var(--primary);
+	}
+
 	.custom-scrollbar::-webkit-scrollbar {
 		width: 4px;
 	}

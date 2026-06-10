@@ -54,7 +54,7 @@ export const siteConfig: SiteConfig = {
 		// 顶栏标题文本
 		text: "Vedaru",
 		// 顶栏标题图标路径，默认使用 public/assets/home/home.png
-		icon: "assets/home/home.png",
+		icon: "assets/home/home-48.webp",
 		// 网站Logo图片路径
 		logo: "assets/home/default-logo.png",
 	},
@@ -290,7 +290,7 @@ export const navBarConfig: NavBarConfig = {
 };
 
 export const profileConfig: ProfileConfig = {
-	avatar: "assets/images/avatar.webp", // 相对于 /src 目录。如果以 '/' 开头，则相对于 /public 目录
+	avatar: "assets/images/avatar-384.webp", // 相对于 /src 目录。如果以 '/' 开头，则相对于 /public 目录
 	name: "Vedaru",
 	bio: `天亮 那路在呼唤 我的行囊和我的吉他`,
 	typewriter: {
@@ -358,7 +358,7 @@ export const expressiveCodeConfig: ExpressiveCodeConfig = {
 	// 请选择深色主题，因为此博客主题目前仅支持深色背景
 	theme: "github-dark",
 	// 是否在主题切换时隐藏代码块以避免卡顿问题
-	hideDuringThemeTransition: true,
+	hideDuringThemeTransition: false,
 };
 
 export const commentConfig: CommentConfig = {

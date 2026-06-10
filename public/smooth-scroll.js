@@ -7,17 +7,14 @@
 	window.__smoothScrollBootstrapped = true;
 
 	function getScrollY() {
-		return Math.max(
-			window.scrollY || 0,
-			document.documentElement.scrollTop || 0,
-			document.body.scrollTop || 0,
-		);
+		return window.scrollY || document.documentElement.scrollTop || 0;
 	}
 
 	function setDocumentScrollTop(y) {
 		const top = Math.max(0, y);
+		// 同时写入，避免 write→read(body.scrollTop) 每帧强制重排
 		document.documentElement.scrollTop = top;
-		if (document.body && document.body.scrollTop !== top) {
+		if (document.body) {
 			document.body.scrollTop = top;
 		}
 	}
@@ -71,10 +68,11 @@
 					startY + (goalY - startY) * ease(progress),
 				);
 
-				setDocumentScrollTop(nextY);
+				// 先同步视觉状态再写 scrollTop，避免 write→read 同帧强制重排
 				if (typeof onProgress === "function") {
 					onProgress(progress, nextY);
 				}
+				setDocumentScrollTop(nextY);
 
 				if (progress < 1) {
 					requestAnimationFrame(step);

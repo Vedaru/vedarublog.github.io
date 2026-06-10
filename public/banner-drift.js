@@ -133,10 +133,6 @@
 			{ priority: 110 },
 		);
 
-		document.addEventListener("swup:transition-ready", function () {
-			resumeBannerDrift();
-		});
-
 		return true;
 	}
 

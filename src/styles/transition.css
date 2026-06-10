@@ -63,10 +63,19 @@ html.is-animating.is-leaving .transition-leaving {
   }
 }
 
-/* 页面加载动画 - yukina风格 */
+/* 页面加载动画 - 仅 opacity，避免 translateY 在部分场景计入 CLS */
 .onload-animation {
   opacity: 0;
-  animation: fade-in-up 150ms ease-out forwards;
+  animation: fade-in-only 150ms ease-out forwards;
+}
+
+@keyframes fade-in-only {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .onload-animation-fade-in {

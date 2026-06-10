@@ -13,11 +13,7 @@
 	const SEMIFULL_SCROLL_THRESHOLD = 50;
 
 	function getScrollY() {
-		return Math.max(
-			window.scrollY || 0,
-			document.documentElement.scrollTop || 0,
-			document.body.scrollTop || 0,
-		);
+		return window.scrollY || document.documentElement.scrollTop || 0;
 	}
 	function getPreScrollDurationMs() {
 		const scrollY = getScrollY();
@@ -120,7 +116,7 @@
 		navbarWrapper.style.transform = "";
 	}
 
-	function syncNavbarWrapperDuringPreScroll() {
+	function syncNavbarWrapperDuringPreScroll(scrollY) {
 		const navbarWrapper = document.getElementById("navbar-wrapper");
 		if (!navbarWrapper || !document.body.classList.contains("enable-banner")) {
 			return;
@@ -129,7 +125,9 @@
 		// 预滚动期间不用 navbar-hidden（会触发 transition-all 在解冻时跳变）
 		navbarWrapper.classList.remove("navbar-hidden");
 
-		const scrollY = getScrollY();
+		if (typeof scrollY !== "number") {
+			scrollY = getScrollY();
+		}
 		const threshold = getNavbarHideThreshold();
 
 		if (scrollY >= threshold) {
@@ -148,11 +146,13 @@
 		}
 	}
 
-	function syncSemifullNavbarDuringPreScroll(visit) {
+	function syncSemifullNavbarDuringPreScroll(visit, scrollY) {
 		const applyState = window.applySemifullNavbarVisualState;
 		if (typeof applyState !== "function") return;
 
-		const scrollY = getScrollY();
+		if (typeof scrollY !== "number") {
+			scrollY = getScrollY();
+		}
 		const navbar = document.getElementById("navbar");
 		const sourceIsHome = navbar?.getAttribute("data-is-home") === "true";
 		const targetIsHome = isTargetHomePage(visit);
@@ -165,9 +165,9 @@
 		applyState(scrollY, sourceIsHome);
 	}
 
-	function syncNavbarDuringPreScroll(visit) {
-		syncNavbarWrapperDuringPreScroll();
-		syncSemifullNavbarDuringPreScroll(visit);
+	function syncNavbarDuringPreScroll(visit, scrollY) {
+		syncNavbarWrapperDuringPreScroll(scrollY);
+		syncSemifullNavbarDuringPreScroll(visit, scrollY);
 	}
 
 	function finishPreScrollTransition(visit) {
@@ -260,8 +260,8 @@
 				return smoothScrollToTop(
 					getPreScrollDurationMs(),
 					window.__easeInOutCubic,
-					function () {
-						syncNavbarDuringPreScroll(visit);
+					function (_progress, scrollY) {
+						syncNavbarDuringPreScroll(visit, scrollY);
 					},
 				).then(function () {
 					finishPreScrollTransition(visit);
@@ -290,17 +290,9 @@
 		);
 
 		window.swup.hooks.on("visit:end", function () {
-			const hadPreScrollNavbarLock = window.__suppressSemifullNavbarReinit;
 			window.__homePreScrollCompleted = false;
 			window.__homePreScrollActive = false;
-			window.__suppressSemifullNavbarReinit = false;
 			activePreScrollVisit = null;
-
-			if (hadPreScrollNavbarLock) {
-				requestAnimationFrame(function () {
-					window.initSemifullScrollDetection?.();
-				});
-			}
 		});
 
 		return true;

@@ -159,6 +159,7 @@ Make the emoji component display correctly when there are too many emoji packs
   max-width: 100%;
   overflow-x: clip;
   overflow-y: visible;
+  view-transition-name: twikoo-comments;
 }
 
 #tcomment,
@@ -216,6 +217,75 @@ Make the emoji component display correctly when there are too many emoji packs
   padding: 0 0.75rem;
   white-space: nowrap;
   flex-shrink: 0;
+  color: var(--primary);
+}
+
+#tcomment .el-input-group__prepend i,
+#tcomment .el-input-group__prepend .el-icon,
+#tcomment .tk-action-icon,
+#tcomment .tk-comments-title .__comments {
+  color: var(--primary);
+}
+
+/* Twikoo 运行时注入 Element UI 默认蓝 (#409eff)，须 !important 覆盖 */
+#tcomment .tk-action-link,
+#tcomment .tk-action-link:hover,
+#tcomment .tk-action-link:focus,
+#tcomment .tk-action-icon,
+#tcomment .tk-action-icon-solid,
+#tcomment .tk-icon.__comments,
+#tcomment .tk-icon.__comments:hover,
+#tcomment .tk-sort-item.__active,
+#tcomment .tk-sort-item:focus,
+#tcomment .tk-actions button,
+#tcomment .tk-nick-link:hover,
+#tcomment .tk-tag-blue {
+  color: var(--primary) !important;
+}
+
+#tcomment .tk-sort-item:not(.__active) {
+  color: color-mix(in srgb, var(--primary) 55%, transparent) !important;
+}
+
+#tcomment .tk-tag-blue {
+  background-color: color-mix(in srgb, var(--primary) 13%, transparent) !important;
+  border-color: color-mix(in srgb, var(--primary) 50%, transparent) !important;
+}
+
+#tcomment .tk-pagination-pager.__current {
+  background-color: var(--primary) !important;
+}
+
+#tcomment .el-loading-spinner .path {
+  stroke: var(--primary) !important;
+}
+
+#tcomment .el-textarea__inner:focus,
+#tcomment .el-input__inner:focus,
+#tcomment .el-input.is-focus .el-input__inner {
+  border-color: var(--primary) !important;
+}
+
+#tcomment .el-input-group__prepend svg,
+#tcomment .el-input-group__prepend svg path,
+#tcomment .tk-action-link svg,
+#tcomment .tk-action-link svg path,
+#tcomment .tk-action-icon svg,
+#tcomment .tk-action-icon svg path,
+#tcomment .tk-action-icon-solid svg,
+#tcomment .tk-action-icon-solid svg path,
+#tcomment .tk-meta svg,
+#tcomment .tk-meta svg path,
+#tcomment .tk-comments-title .__comments svg,
+#tcomment .tk-comments-title .__comments svg path,
+#tcomment .tk-icon.__comments svg,
+#tcomment .tk-icon.__comments svg path,
+#tcomment .tk-owo svg,
+#tcomment .tk-owo svg path,
+#tcomment svg,
+#tcomment svg path {
+  fill: currentColor !important;
+  stroke: currentColor !important;
 }
 
 #tcomment .el-input__inner,

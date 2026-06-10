@@ -20,7 +20,7 @@ class ThemeOptimizer {
 		this.codeBlockObserver = null;
 
 		// 从配置中获取是否在主题切换时隐藏代码块的设置
-		this.hideCodeBlocksDuringTransition = true; // 默认值为true
+		this.hideCodeBlocksDuringTransition = false; // 默认不隐藏，避免明暗切换闪烁
 		this.initFromConfig();
 
 		// 性能优化相关
@@ -125,10 +125,12 @@ class ThemeOptimizer {
 			} else {
 				block.classList.remove("hide-during-transition");
 			}
-
-			// 强制重新计算样式
-			void block.offsetWidth;
 		});
+
+		// 单次 flush 即可触发样式重算，避免对每个代码块分别强制重排
+		if (codeBlocks.length > 0) {
+			void codeBlocks[0].offsetWidth;
+		}
 
 		// 检查当前是否处于主题切换状态
 		const isTransitioning = document.documentElement.classList.contains(
@@ -173,7 +175,7 @@ class ThemeOptimizer {
 					"true";
 			}
 		} catch (error) {
-			this.hideCodeBlocksDuringTransition = true; // 默认启用隐藏
+			this.hideCodeBlocksDuringTransition = false;
 		}
 	}
 
@@ -202,21 +204,13 @@ class ThemeOptimizer {
 			let content = this.tempStyleSheet.textContent;
 
 			// 更新代码块隐藏规则
-			const hideRule = `.is-theme-transitioning .expressive-code {
+			const hideRule = `.is-theme-transitioning:not(.use-view-transition) .expressive-code.hide-during-transition {
         content-visibility: hidden !important;
-        /* 避免闪烁 */
         opacity: 0.99;
       }`;
 
-			const showRule = `.is-theme-transitioning .expressive-code:not(.hide-during-transition) {
-        /* 保持代码块可见，但禁用过渡效果 */
-        content-visibility: visible !important;
-        opacity: 1 !important;
-      }`;
-
-			// 检查是否已存在这些规则，如果不存在则添加
-			if (!content.includes(".is-theme-transitioning .expressive-code")) {
-				content += "\n" + hideRule + "\n" + showRule;
+			if (!content.includes(".expressive-code.hide-during-transition")) {
+				content += "\n" + hideRule;
 				this.tempStyleSheet.textContent = content;
 			}
 		}
@@ -429,19 +423,10 @@ class ThemeOptimizer {
         visibility: hidden !important;
       }
       
-      /* 在主题切换期间临时隐藏代码块以提升性能 */
-      /* 这个行为可以通过配置文件中的 expressiveCodeConfig.hideDuringThemeTransition 控制 */
-      .is-theme-transitioning .expressive-code {
+      /* 仅在显式启用时隐藏代码块（见 expressiveCodeConfig.hideDuringThemeTransition） */
+      .is-theme-transitioning:not(.use-view-transition) .expressive-code.hide-during-transition {
         content-visibility: hidden !important;
-        /* 避免闪烁 */
         opacity: 0.99;
-      }
-      
-      /* 当禁用隐藏代码块功能时（通过JavaScript动态控制） */
-      .is-theme-transitioning .expressive-code:not(.hide-during-transition) {
-        /* 保持代码块可见，但禁用过渡效果 */
-        content-visibility: visible !important;
-        opacity: 1 !important;
       }
       
       /* 确保打开的TOC面板在主题切换期间保持可点击 */
@@ -457,6 +442,8 @@ class ThemeOptimizer {
 
 		this.hiddenElements = [];
 
+		// 先批量读取几何信息，再批量写入，避免读写交错触发多次强制重排
+		const toHide = [];
 		this.heavySelectors.forEach((selector) => {
 			const elements = document.querySelectorAll(selector);
 			elements.forEach((element) => {
@@ -464,16 +451,21 @@ class ThemeOptimizer {
 				const elementTop = rect.top + scrollTop;
 				const elementBottom = elementTop + rect.height;
 
-				// 完全在视口外（增加200px边距）
 				if (
 					elementBottom < scrollTop - 200 ||
 					elementTop > scrollTop + viewportHeight + 200
 				) {
-					const originalVisibility = element.style.contentVisibility;
-					element.style.contentVisibility = "hidden";
-					this.hiddenElements.push({ element, originalVisibility });
+					toHide.push({
+						element,
+						originalVisibility: element.style.contentVisibility,
+					});
 				}
 			});
+		});
+
+		toHide.forEach(({ element, originalVisibility }) => {
+			element.style.contentVisibility = "hidden";
+			this.hiddenElements.push({ element, originalVisibility });
 		});
 	}
 
@@ -482,6 +474,7 @@ class ThemeOptimizer {
 		const criticalSelectors = [".expressive-code", "#navbar"];
 		this.compositedElements = [];
 
+		const toComposite = [];
 		criticalSelectors.forEach((selector) => {
 			const elements = document.querySelectorAll(selector);
 			elements.forEach((element) => {
@@ -490,12 +483,18 @@ class ThemeOptimizer {
 					rect.top < window.innerHeight + 100 &&
 					rect.bottom > -100;
 				if (isVisible) {
-					const original = element.style.transform;
-					element.style.transform = "translateZ(0)";
-					element.style.willChange = "transform";
-					this.compositedElements.push({ element, original });
+					toComposite.push({
+						element,
+						original: element.style.transform,
+					});
 				}
 			});
+		});
+
+		toComposite.forEach(({ element, original }) => {
+			element.style.transform = "translateZ(0)";
+			element.style.willChange = "transform";
+			this.compositedElements.push({ element, original });
 		});
 	}
 

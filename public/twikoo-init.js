@@ -243,7 +243,34 @@ if (window.__twikooInitBootstrapped) {
 
 	function bootstrapTwikoo() {
 		registerTwikooSwupListeners();
-		scheduleTwikooInit(0);
+
+		const commentEl = document.getElementById("tcomment");
+		if (!commentEl) return;
+
+		const startTwikoo = () => scheduleTwikooInit(0);
+
+		const runWhenIdle = () => {
+			if ("requestIdleCallback" in window) {
+				requestIdleCallback(startTwikoo, { timeout: 4000 });
+			} else {
+				setTimeout(startTwikoo, 1500);
+			}
+		};
+
+		if ("IntersectionObserver" in window) {
+			const observer = new IntersectionObserver(
+				(entries) => {
+					if (!entries.some((entry) => entry.isIntersecting)) return;
+					observer.disconnect();
+					runWhenIdle();
+				},
+				{ rootMargin: "120px 0px" },
+			);
+			observer.observe(commentEl);
+			return;
+		}
+
+		runWhenIdle();
 	}
 
 	window.initTwikooPage = () => scheduleTwikooInit(getNavDelay());

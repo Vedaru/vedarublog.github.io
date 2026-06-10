@@ -156,24 +156,6 @@ const navigateToPost = (url: string) => {
 	navigateToPage(url);
 };
 
-const updateActiveHeading = () => {
-	const headings = document.querySelectorAll("h1, h2, h3, h4, h5, h6");
-	const scrollTop = window.scrollY;
-	const offset = 100;
-
-	let currentActiveId = "";
-	headings.forEach((heading) => {
-		if (heading.id) {
-			const elementTop = (heading as HTMLElement).offsetTop - offset;
-			if (scrollTop >= elementTop) {
-				currentActiveId = heading.id;
-			}
-		}
-	});
-
-	activeId = currentActiveId;
-};
-
 const setupIntersectionObserver = () => {
 	const headings = document.querySelectorAll("h1, h2, h3, h4, h5, h6");
 
@@ -275,7 +257,6 @@ const init = () => {
 	} else {
 		generateTOC();
 		setupIntersectionObserver();
-		updateActiveHeading();
 	}
 };
 
@@ -283,14 +264,10 @@ onMount(() => {
 	// 延迟初始化，确保页面内容已加载
 	setTimeout(init, 100);
 
-	// 监听滚动事件作为备用
-	window.addEventListener("scroll", updateActiveHeading);
-
 	return () => {
 		if (observer) {
 			observer.disconnect();
 		}
-		window.removeEventListener("scroll", updateActiveHeading);
 
 		// 清理Swup事件监听器
 		if (typeof window !== "undefined" && (window as any).swup) {

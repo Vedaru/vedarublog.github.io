@@ -20,7 +20,7 @@ declare global {
 		};
 
 		mobileTOCInit?: () => void;
-		initSemifullScrollDetection?: () => void;
+		initSemifullScrollDetection?: (initialScrollTop?: number) => void;
 		applySemifullNavbarVisualState?: (
 			scrollTop: number,
 			isHomePage: boolean,
@@ -91,6 +91,19 @@ declare global {
 		__swupPerfBootstrapped?: boolean;
 		__swupPerfPause?: () => void;
 		__swupPerfResume?: () => void;
+		__onSwupPageWritePhase?: (fn: (detail: { scrollTop: number }) => void) => void;
+		__onSwupPageLayoutPhase?: (fn: (detail: { scrollTop: number }) => void) => void;
+		__onSwupPageIdlePhase?: (fn: () => void) => void;
+		__scheduleSwupIdleWork?: (fn: () => void) => void;
+		__deferWallpaperNavbarSync?: () => void;
+		__pendingWallpaperSync?: boolean;
+		__runWallpaperNavbarSyncOnTransition?: (scrollTop?: number) => void;
+		__swupPhaseScrollTop?: number;
+		__swupPhaseInnerHeight?: number;
+		__syncTocHideForScroll?: (
+			scrollTop: number,
+			innerHeight?: number,
+		) => void;
 		scrollProtectionManager?: {
 			observeTwikoo?: () => void;
 		};

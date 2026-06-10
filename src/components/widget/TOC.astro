@@ -52,6 +52,12 @@ class TableOfContents extends HTMLElement {
     activeIndicator: HTMLElement | null = null;
     updateRaf = 0;
     layoutRaf = 0;
+    sectionOffsets: Array<{ top: number; bottom: number } | null> = [];
+    resizeTimer = 0;
+    pendingUpdateAfterTransition = false;
+    transitionReadyHandler: (() => void) | null = null;
+    heavyLayoutReady = false;
+    heavyLayoutScheduled = false;
 
     constructor() {
         super();
@@ -60,7 +66,56 @@ class TableOfContents extends HTMLElement {
         );
     };
 
+    shouldSkipLayoutWork = () => {
+        const html = document.documentElement;
+        if (
+            html.classList.contains("is-changing") ||
+            html.classList.contains("is-animating") ||
+            html.classList.contains("swup-perf-active") ||
+            html.classList.contains("is-home-pre-scrolling") ||
+            html.classList.contains("is-visit-pre-scrolling")
+        ) {
+            return true;
+        }
+        const tocWrapper = document.getElementById("toc-wrapper");
+        return tocWrapper?.classList.contains("toc-not-ready") ?? false;
+    };
+
+    scheduleUpdateAfterTransition = () => {
+        if (this.pendingUpdateAfterTransition) return;
+        this.pendingUpdateAfterTransition = true;
+
+        const runPending = () => {
+            this.pendingUpdateAfterTransition = false;
+            if (this.transitionReadyHandler) {
+                document.removeEventListener(
+                    "swup:transition-ready",
+                    this.transitionReadyHandler,
+                );
+                this.transitionReadyHandler = null;
+            }
+            this.update();
+        };
+
+        if (typeof window.__scheduleSwupIdleWork === "function") {
+            window.__scheduleSwupIdleWork(runPending);
+            return;
+        }
+
+        this.transitionReadyHandler = runPending;
+        document.addEventListener(
+            "swup:transition-ready",
+            this.transitionReadyHandler,
+            { once: true },
+        );
+    };
+
     markVisibleSection = (entries: IntersectionObserverEntry[]) => {
+        if (this.shouldSkipLayoutWork()) {
+            this.scheduleUpdateAfterTransition();
+            return;
+        }
+
         entries.forEach((entry) => {
             const id = entry.target.children[0]?.getAttribute("id");
             const idx = id ? this.headingIdxMap.get(id) : undefined;
@@ -71,8 +126,11 @@ class TableOfContents extends HTMLElement {
                 this.anchorNavTarget = null;
         });
 
-        if (!this.active.includes(true))
-            this.fallback();
+        if (!this.heavyLayoutReady) {
+            return;
+        }
+
+        if (!this.active.includes(true)) this.fallback();
         this.update();
     };
 
@@ -101,7 +159,27 @@ class TableOfContents extends HTMLElement {
         return { min, max };
     };
 
-    updateActiveIndicator = (min: number, max: number) => {
+    cacheSectionOffsets = () => {
+        const scrollY = window.scrollY;
+        this.sectionOffsets = this.sections.map((section) => {
+            if (!section) return null;
+            const rect = section.getBoundingClientRect();
+            return {
+                top: rect.top + scrollY,
+                bottom: rect.bottom + scrollY,
+            };
+        });
+    };
+
+    handleResize = () => {
+        if (this.resizeTimer) window.clearTimeout(this.resizeTimer);
+        this.resizeTimer = window.setTimeout(() => {
+            this.resizeTimer = 0;
+            this.cacheSectionOffsets();
+        }, 150);
+    };
+
+    applyLayoutUpdate = (min: number, max: number) => {
         if (min > max || !this.tocEl) {
             this.activeIndicator?.setAttribute("style", "opacity: 0");
             return;
@@ -111,45 +189,64 @@ class TableOfContents extends HTMLElement {
         const maxEntry = this.tocEntries[max];
         if (!minEntry || !maxEntry) return;
 
-        const parentOffset = this.tocEl.getBoundingClientRect().top;
-        const scrollOffset = this.tocEl.scrollTop;
-        const minRect = minEntry.getBoundingClientRect();
-        const maxRect = maxEntry.getBoundingClientRect();
-        const top = minRect.top - parentOffset + scrollOffset;
-        const bottom = maxRect.bottom - parentOffset + scrollOffset;
+        // 批量读取几何属性，再统一写入，避免交错触发强制重排
+        const tocHeight = this.tocEl.clientHeight;
+        const entryMetrics: Array<{ top: number; height: number } | null> = [];
+        for (let i = 0; i < this.tocEntries.length; i++) {
+            const entry = this.tocEntries[i];
+            if (!entry) {
+                entryMetrics[i] = null;
+                continue;
+            }
+            entryMetrics[i] = {
+                top: entry.offsetTop,
+                height: entry.offsetHeight,
+            };
+        }
+
+        const minMetrics = entryMetrics[min];
+        const maxMetrics = entryMetrics[max];
+        if (!minMetrics || !maxMetrics) return;
+
+        const minTop = minMetrics.top;
+        const maxTop = maxMetrics.top;
+        const maxBottom = maxTop + maxMetrics.height;
+
         this.activeIndicator?.setAttribute(
             "style",
-            `top: ${top}px; height: ${bottom - top}px; opacity: 1`,
+            `top: ${minTop}px; height: ${maxBottom - minTop}px; opacity: 1`,
         );
+
+        if (!this.anchorNavTarget) {
+            const scrollTop =
+                maxBottom - minTop < 0.9 * tocHeight
+                    ? minTop - 32
+                    : maxTop - tocHeight * 0.8;
+            this.tocEl.scrollTo({
+                top: scrollTop,
+                left: 0,
+                behavior: "smooth",
+            });
+        }
     };
 
-    scrollToActiveHeading = () => {
-        if (this.anchorNavTarget || !this.tocEl) return;
-
-        const activeHeading = this.tocEl.querySelectorAll<HTMLDivElement>(
-            `a.${this.visibleClass}`,
-        );
-        if (!activeHeading.length) return;
-
-        const topmost = activeHeading[0];
-        const bottommost = activeHeading[activeHeading.length - 1];
-        const tocHeight = this.tocEl.clientHeight;
-        const topRect = topmost.getBoundingClientRect();
-        const bottomRect = bottommost.getBoundingClientRect();
-
-        const top =
-            bottomRect.bottom - topRect.top < 0.9 * tocHeight
-                ? topmost.offsetTop - 32
-                : bottommost.offsetTop - tocHeight * 0.8;
-
-        this.tocEl.scrollTo({
-            top,
-            left: 0,
-            behavior: "smooth",
+    observeSections = () => {
+        this.sections.forEach((section) => {
+            if (section) this.observer.observe(section);
         });
     };
 
     update = () => {
+        if (this.shouldSkipLayoutWork()) {
+            this.scheduleUpdateAfterTransition();
+            return;
+        }
+
+        if (!this.heavyLayoutReady) {
+            this.scheduleHeavyLayout();
+            return;
+        }
+
         if (this.updateRaf) cancelAnimationFrame(this.updateRaf);
         this.updateRaf = requestAnimationFrame(() => {
             this.updateRaf = 0;
@@ -158,31 +255,35 @@ class TableOfContents extends HTMLElement {
             if (this.layoutRaf) cancelAnimationFrame(this.layoutRaf);
             this.layoutRaf = requestAnimationFrame(() => {
                 this.layoutRaf = 0;
-                this.updateActiveIndicator(min, max);
-                this.scrollToActiveHeading();
+                this.applyLayoutUpdate(min, max);
             });
         });
     };
 
     fallback = () => {
         if (!this.sections.length) return;
+        if (this.shouldSkipLayoutWork()) return;
 
-        const viewportHeight = window.innerHeight;
+        if (!this.sectionOffsets.length) {
+            this.cacheSectionOffsets();
+        }
 
-        for (let i = 0; i < this.sections.length; i++) {
-            const section = this.sections[i];
-            if (!section) continue;
+        const scrollTop = window.scrollY;
+        const viewportBottom = scrollTop + window.innerHeight;
 
-            const { top: offsetTop, bottom: offsetBottom } =
-                section.getBoundingClientRect();
+        for (let i = 0; i < this.sectionOffsets.length; i++) {
+            const offsets = this.sectionOffsets[i];
+            if (!offsets) continue;
+
+            const { top: offsetTop, bottom: offsetBottom } = offsets;
 
             if (
-                this.isInRange(offsetTop, 0, viewportHeight) ||
-                this.isInRange(offsetBottom, 0, viewportHeight) ||
-                (offsetTop < 0 && offsetBottom > viewportHeight)
+                this.isInRange(offsetTop, scrollTop, viewportBottom) ||
+                this.isInRange(offsetBottom, scrollTop, viewportBottom) ||
+                (offsetTop < scrollTop && offsetBottom > viewportBottom)
             ) {
                 this.markActiveHeading(i);
-            } else if (offsetTop > viewportHeight) {
+            } else if (offsetTop > viewportBottom) {
                 break;
             }
         }
@@ -221,7 +322,39 @@ class TableOfContents extends HTMLElement {
         return min < value && value < max;
     };
 
+    scheduleHeavyLayout = () => {
+        if (this.heavyLayoutReady || this.heavyLayoutScheduled) return;
+        this.heavyLayoutScheduled = true;
+
+        const runHeavy = () => {
+            this.heavyLayoutScheduled = false;
+            if (this.shouldSkipLayoutWork()) {
+                return;
+            }
+            this.cacheSectionOffsets();
+            this.fallback();
+            this.observeSections();
+            this.heavyLayoutReady = true;
+            this.update();
+        };
+
+        if (typeof window.__scheduleSwupIdleWork === "function") {
+            window.__scheduleSwupIdleWork(runHeavy);
+            return;
+        }
+
+        const schedule =
+            window.requestIdleCallback ||
+            ((cb: () => void) => window.setTimeout(cb, 100));
+        schedule(runHeavy, { timeout: 500 });
+    };
+
     connectedCallback() {
+        // Swup 换页由 Layout 编排器 Phase 2 统一 init，避免双通道初始化
+        if ((window as any).swup) {
+            return;
+        }
+
         // 优先监听动画结束，兜底定时初始化，确保二次刷新也能正常显示 TOC
         const element = document.querySelector('.custom-md') || document.querySelector('.prose') || document.querySelector('.markdown-content');
         let initialized = false;
@@ -231,14 +364,31 @@ class TableOfContents extends HTMLElement {
                 this.init();
             }
         };
-        if (element) {
-            element.addEventListener('animationend', tryInit, { once: true });
-            // 兜底：无论动画是否触发，300ms后强制初始化一次
-            setTimeout(tryInit, 300);
-        } else {
-            // 没有动画元素，直接初始化，兜底再延迟一次
+        const scheduleTryInit = () => {
+            if (
+                document.documentElement.classList.contains("is-changing") ||
+                document.documentElement.classList.contains("is-animating")
+            ) {
+                document.addEventListener(
+                    "swup:transition-ready",
+                    tryInit,
+                    { once: true },
+                );
+                return;
+            }
             tryInit();
-            setTimeout(tryInit, 300);
+        };
+        if (element) {
+            element.addEventListener(
+                "animationend",
+                scheduleTryInit,
+                { once: true },
+            );
+            // 兜底：无论动画是否触发，300ms后强制初始化一次
+            setTimeout(scheduleTryInit, 300);
+        } else {
+            scheduleTryInit();
+            setTimeout(scheduleTryInit, 300);
         }
     };
 
@@ -264,10 +414,31 @@ class TableOfContents extends HTMLElement {
         this.anchorNavTarget = null;
         this.tocEl = null;
         this.activeIndicator = null;
+        this.sectionOffsets = [];
+
+        if (this.resizeTimer) {
+            window.clearTimeout(this.resizeTimer);
+            this.resizeTimer = 0;
+        }
+        window.removeEventListener("resize", this.handleResize);
+
+        if (this.transitionReadyHandler) {
+            document.removeEventListener(
+                "swup:transition-ready",
+                this.transitionReadyHandler,
+            );
+            this.transitionReadyHandler = null;
+        }
+        this.pendingUpdateAfterTransition = false;
+        this.heavyLayoutReady = false;
+        this.heavyLayoutScheduled = false;
     }
 
     init() {
         this.teardown();
+        this.dataset.managedByLayout = "true";
+        this.heavyLayoutReady = false;
+        this.heavyLayoutScheduled = false;
 
         // 重新生成TOC内容
         this.regenerateTOC();
@@ -300,12 +471,9 @@ class TableOfContents extends HTMLElement {
         }
         this.active = new Array(this.tocEntries.length).fill(false);
 
-        this.sections.forEach((section) => {
-            if (section) this.observer.observe(section);
-        });
+        window.addEventListener("resize", this.handleResize, { passive: true });
 
-        this.fallback();
-        this.update();
+        this.scheduleHeavyLayout();
     };
 
     regenerateTOC(retryCount = 0) {

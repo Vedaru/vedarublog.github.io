@@ -1,8 +1,7 @@
-/** Swup 换页性能：换页期间暂停 Live2D/轮播，换页后再恢复（不改动画参数） */
+/** Swup 换页性能：分阶段编排 DOM 写入/布局读/idle 重活，减轻换页尖峰强制重排 */
 
 (function () {
 	if (window.__swupPerfBootstrapped) {
-		// updateHead 会再次执行本脚本，切勿在此处 resume
 		return;
 	}
 	window.__swupPerfBootstrapped = true;
@@ -10,6 +9,10 @@
 	let perfListenersRegistered = false;
 	let resumeTimer = null;
 	let transitionDepth = 0;
+	const writePhaseCallbacks = [];
+	const layoutPhaseCallbacks = [];
+	const idlePhaseCallbacks = [];
+	let idleWorkQueue = [];
 
 	function getMobileShiftDurationMs() {
 		const raw = getComputedStyle(document.documentElement)
@@ -30,7 +33,6 @@
 			return;
 		}
 
-		// 不用 paused：l2d 恢复时会 RESET_ANIMATION_DELTA，模型会明显抽一下
 		window.__PIO_RENDER_CONTROL._wasPaused = false;
 		window.__PIO_RENDER_CONTROL.mode = "reduced";
 		window.__PIO_RENDER_CONTROL.reduceFPS = 10;
@@ -54,29 +56,112 @@
 		window.__pinPageScrollTop?.();
 		window.__unlockSwupScroll?.();
 
-		requestAnimationFrame(() => {
+		requestAnimationFrame(function () {
 			window.__pinPageScrollTop?.();
-			requestAnimationFrame(() => {
+			requestAnimationFrame(function () {
 				window.__pinPageScrollTop?.();
 				done();
 			});
 		});
 	}
 
+	function removeTocNotReady() {
+		const toc = document.getElementById("toc-wrapper");
+		if (toc) {
+			toc.classList.remove("toc-not-ready");
+		}
+	}
+
+	function readDocumentScrollTop() {
+		return window.scrollY || document.documentElement.scrollTop || 0;
+	}
+
+	function runWritePhase(scrollTop) {
+		removeTocNotReady();
+		window.__swupPhaseScrollTop = scrollTop;
+		window.__swupPhaseInnerHeight = window.innerHeight;
+
+		if (window.__pendingWallpaperSync) {
+			window.__pendingWallpaperSync = false;
+			window.__runWallpaperNavbarSyncOnTransition?.(scrollTop);
+		}
+
+		for (let i = 0; i < writePhaseCallbacks.length; i++) {
+			writePhaseCallbacks[i]({ scrollTop: scrollTop });
+		}
+	}
+
+	function runLayoutPhase(scrollTop) {
+		const detail = { scrollTop: scrollTop };
+		for (let i = 0; i < layoutPhaseCallbacks.length; i++) {
+			layoutPhaseCallbacks[i](detail);
+		}
+	}
+
+	function runIdleWorkQueue() {
+		for (let i = 0; i < idleWorkQueue.length; i++) {
+			idleWorkQueue[i]();
+		}
+		idleWorkQueue = [];
+	}
+
+	function runIdlePhaseCallbacks() {
+		for (let i = 0; i < idlePhaseCallbacks.length; i++) {
+			idlePhaseCallbacks[i]();
+		}
+	}
+
+	function runPioAndBannerResume() {
+		resumePioSoftly();
+		window.__bannerDriftResume?.();
+		window.__resetHomePreScrollState?.();
+	}
+
+	function dispatchTransitionReady() {
+		document.dispatchEvent(
+			new CustomEvent("swup:transition-ready", {
+				detail: { path: window.location.pathname },
+			}),
+		);
+	}
+
+	function scheduleIdlePhase(done) {
+		const schedule =
+			window.requestIdleCallback ||
+			function (cb) {
+				setTimeout(cb, 48);
+			};
+		schedule(
+			function () {
+				runIdleWorkQueue();
+				requestAnimationFrame(function () {
+					runIdlePhaseCallbacks();
+					requestAnimationFrame(function () {
+						runPioAndBannerResume();
+						if (typeof done === "function") {
+							done();
+						}
+					});
+				});
+			},
+			{ timeout: 500 },
+		);
+	}
+
 	function finishTransitionResume() {
-		settlePageLayoutBeforeResume(() => {
+		settlePageLayoutBeforeResume(function () {
 			document.documentElement.classList.remove("swup-perf-active");
 
-			requestAnimationFrame(() => {
-				window.__pinPageScrollTop?.();
-				resumePioSoftly();
-				window.__bannerDriftResume?.();
-				window.__resetHomePreScrollState?.();
-				document.dispatchEvent(
-					new CustomEvent("swup:transition-ready", {
-						detail: { path: window.location.pathname },
-					}),
-				);
+			const scrollTop = window.__homePreScrollWasUsed
+				? 0
+				: readDocumentScrollTop();
+			runWritePhase(scrollTop);
+
+			requestAnimationFrame(function () {
+				runLayoutPhase(scrollTop);
+				scheduleIdlePhase(function () {
+					requestAnimationFrame(dispatchTransitionReady);
+				});
 			});
 		});
 	}
@@ -89,7 +174,7 @@
 		const baseDelay = isMobile ? getMobileShiftDurationMs() + 80 : 48;
 		const delay = hadHomePreScroll ? baseDelay + 80 : baseDelay;
 
-		resumeTimer = setTimeout(() => {
+		resumeTimer = setTimeout(function () {
 			if (
 				document.documentElement.classList.contains("is-animating") ||
 				document.documentElement.classList.contains("is-changing")
@@ -103,7 +188,6 @@
 	}
 
 	function pauseTransitionHeavyWork() {
-		// 首页回顶期间不抢 GPU，等 home-pre-scroll 完成后再 pause
 		if (window.__homePreScrollActive) {
 			return;
 		}
@@ -139,6 +223,34 @@
 
 	window.__swupPerfPause = pauseTransitionHeavyWork;
 	window.__swupPerfResume = resumeTransitionHeavyWork;
+
+	window.__onSwupPageWritePhase = function (fn) {
+		if (typeof fn === "function") {
+			writePhaseCallbacks.push(fn);
+		}
+	};
+
+	window.__onSwupPageLayoutPhase = function (fn) {
+		if (typeof fn === "function") {
+			layoutPhaseCallbacks.push(fn);
+		}
+	};
+
+	window.__onSwupPageIdlePhase = function (fn) {
+		if (typeof fn === "function") {
+			idlePhaseCallbacks.push(fn);
+		}
+	};
+
+	window.__scheduleSwupIdleWork = function (fn) {
+		if (typeof fn === "function") {
+			idleWorkQueue.push(fn);
+		}
+	};
+
+	window.__deferWallpaperNavbarSync = function () {
+		window.__pendingWallpaperSync = true;
+	};
 
 	document.addEventListener("swup:enable", registerSwupPerfListeners);
 

@@ -114,6 +114,21 @@ const mobileBannerList = toBannerSrcList(
 );
 const singleDesktopBanner = desktopBannerList[0];
 const singleMobileBanner = mobileBannerList[0];
+
+const getBannerResponsive = (src: string | undefined | null) => {
+	if (!src) return null;
+	const stem = src.replace(/\.webp$/i, "");
+	return {
+		w768: `${stem}-768.webp`,
+		w1280: `${stem}-1280.webp`,
+		full: src,
+	};
+};
+
+const desktopBannerResponsive = getBannerResponsive(singleDesktopBanner);
+const mobileBannerResponsive =
+	getBannerResponsive(singleMobileBanner) ?? desktopBannerResponsive;
+
 const lcpDesktopBanner = getFirstBannerUrl(
 	Array.isArray(bannerImages.desktop)
 		? bannerImages.desktop
@@ -143,6 +158,8 @@ const hasBannerLink = !!siteConfig.banner.credit.url;
 
 // 检查是否为首页
 const isHomePage = Astro.url.pathname === "/" || Astro.url.pathname === "";
+const shouldPreloadDesktopBanner = Boolean(desktopBannerResponsive);
+const shouldPreloadMobileBanner = isHomePage && Boolean(mobileBannerResponsive);
 const showHomeText = siteConfig.banner.homeText?.enable && isHomePage;
 const bannerObjectPosition = siteConfig.banner.position || "center";
 const mobileBannerObjectPosition =
@@ -266,12 +283,13 @@ const transparentClass = shouldEnableTransparency
 
 <Layout title={title} banner={banner} description={description} lang={lang} setOGTypeArticle={setOGTypeArticle} postSlug={postSlug}>
 
-{isHomePage && lcpDesktopBanner && (
+{shouldPreloadDesktopBanner && desktopBannerResponsive && (
 	<link
 		slot="head"
 		rel="preload"
 		as="image"
-		href={url(lcpDesktopBanner)}
+		imagesrcset={`${url(desktopBannerResponsive.w1280)} 1280w, ${url(desktopBannerResponsive.full)} 1920w`}
+		imagesizes="100vw"
 		fetchpriority="high"
 		media="(min-width: 768px)"
 	/>
@@ -279,14 +297,15 @@ const transparentClass = shouldEnableTransparency
 <style
 	slot="head"
 	is:inline
-	set:html={`@media (max-width:1279px){#banner-mobile{object-position:${mobileBannerObjectPosition}!important;-o-object-position:${mobileBannerObjectPosition}!important}}`}
+	set:html={`@media (max-width:767px){#banner{object-position:${mobileBannerObjectPosition}!important;-o-object-position:${mobileBannerObjectPosition}!important}}`}
 ></style>
-{isHomePage && lcpMobileBanner && (
+{shouldPreloadMobileBanner && mobileBannerResponsive && (
 	<link
 		slot="head"
 		rel="preload"
 		as="image"
-		href={url(lcpMobileBanner)}
+		imagesrcset={`${url(mobileBannerResponsive.w768)} 768w`}
+		imagesizes="100vw"
 		fetchpriority="high"
 		media="(max-width: 767px)"
 	/>
@@ -355,38 +374,61 @@ const transparentClass = shouldEnableTransparency
 		}
 	}
 
-	function initWallpaperNavbarAndToc(wallpaperMode) {
-		var navbar = document.getElementById('navbar');
+	function syncTocHideForScroll(scrollTop, innerHeight) {
+		var wallpaperMode = getWallpaperMode();
 		var tocWrapper = document.getElementById('toc-wrapper');
+		if (!tocWrapper) return;
+
+		var vh =
+			typeof innerHeight === 'number' ? innerHeight : window.innerHeight;
+
 		if (wallpaperMode === 'banner') {
-			if (tocWrapper) {
-				var scrollTop = document.documentElement.scrollTop;
-				var bannerHeight = window.innerHeight * (BANNER_HEIGHT / 100);
-				if (scrollTop <= bannerHeight) tocWrapper.classList.add('toc-hide');
+			var bannerHeight = vh * (BANNER_HEIGHT / 100);
+			if (scrollTop <= bannerHeight) {
+				tocWrapper.classList.add('toc-hide');
+			} else {
+				tocWrapper.classList.remove('toc-hide');
 			}
+		} else {
+			tocWrapper.classList.remove('toc-hide');
+		}
+	}
+
+	window.__syncTocHideForScroll = syncTocHideForScroll;
+
+	function initWallpaperNavbarAndToc(wallpaperMode, cachedScrollTop, options) {
+		var scrollTop =
+			typeof cachedScrollTop === 'number'
+				? cachedScrollTop
+				: window.scrollY || document.documentElement.scrollTop || 0;
+		var navbar = document.getElementById('navbar');
+		if (wallpaperMode === 'banner') {
 			if (navbar) {
 				navbar.removeAttribute('data-dynamic-transparent');
 				navbar.setAttribute('data-transparent-mode', navbarTransparentMode);
 				if (
+					!options?.skipSemifullInit &&
 					navbarTransparentMode === 'semifull' &&
 					window.initSemifullScrollDetection &&
 					!window.__suppressSemifullNavbarReinit
 				) {
-					window.initSemifullScrollDetection();
+					window.initSemifullScrollDetection(scrollTop);
 				}
 			}
 		} else if (wallpaperMode === 'fullscreen') {
-			if (tocWrapper) tocWrapper.classList.remove('toc-hide');
 			if (navbar) {
 				navbar.setAttribute('data-dynamic-transparent', 'semi');
 				navbar.removeAttribute('data-transparent-mode');
 			}
 		} else {
-			if (tocWrapper) tocWrapper.classList.remove('toc-hide');
 			if (navbar) {
 				navbar.setAttribute('data-dynamic-transparent', 'none');
 				navbar.removeAttribute('data-transparent-mode');
 			}
+		}
+
+		if (!options?.skipTocHideSync) {
+			syncTocHideForScroll(scrollTop, window.innerHeight);
 		}
 	}
 
@@ -409,6 +451,40 @@ const transparentClass = shouldEnableTransparency
 		syncMainGridLayoutFromDataset();
 	}
 
+	function isSwupTransitionLocked() {
+		var html = document.documentElement;
+		return (
+			html.classList.contains('is-changing') ||
+			html.classList.contains('is-animating') ||
+			html.classList.contains('swup-perf-active')
+		);
+	}
+
+	function runWallpaperSyncOnTransition(cachedScrollTop) {
+		var wallpaperMode = getWallpaperMode();
+		syncWallpaperDataset(wallpaperMode);
+
+		var mainContent = document.querySelector('.main-panel');
+		if (mainContent) {
+			mainContent.classList.toggle(
+				'wallpaper-transparent',
+				wallpaperMode === 'fullscreen',
+			);
+		}
+
+		var scrollTop =
+			typeof cachedScrollTop === 'number'
+				? cachedScrollTop
+				: window.scrollY || document.documentElement.scrollTop || 0;
+		applyWallpaperBodyClasses(wallpaperMode);
+		initWallpaperNavbarAndToc(wallpaperMode, scrollTop, {
+			skipSemifullInit: true,
+			skipTocHideSync: true,
+		});
+	}
+
+	window.__runWallpaperNavbarSyncOnTransition = runWallpaperSyncOnTransition;
+
 	function applyWallpaperMode(isInitialLoad) {
 		var wallpaperMode = getWallpaperMode();
 		syncWallpaperDataset(wallpaperMode);
@@ -426,6 +502,11 @@ const transparentClass = shouldEnableTransparency
 			return;
 		}
 
+		if (!isInitialLoad && isSwupTransitionLocked()) {
+			window.__deferWallpaperNavbarSync?.();
+			return;
+		}
+
 		var body = document.body;
 		body.classList.add('wallpaper-switching');
 		if (window.__wallpaperSwitchTimer) {
@@ -436,8 +517,9 @@ const transparentClass = shouldEnableTransparency
 		}, 750);
 
 		requestAnimationFrame(function() {
+			var scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
 			applyWallpaperBodyClasses(wallpaperMode);
-			initWallpaperNavbarAndToc(wallpaperMode);
+			initWallpaperNavbarAndToc(wallpaperMode, scrollTop);
 		});
 	}
 	
@@ -509,9 +591,9 @@ const transparentClass = shouldEnableTransparency
 		}, 2000);
 	}
 	
-	// 支持 Swup 页面过渡
+	// 支持 Swup 页面过渡 — 壁纸/navbar 同步延后到编排器 Phase 1
 	document.addEventListener('swup:page:view', function() {
-		applyWallpaperMode(false);
+		window.__deferWallpaperNavbarSync?.();
 
 		requestAnimationFrame(function() {
 			syncMainGridLayoutFromDataset();
@@ -535,37 +617,32 @@ const transparentClass = shouldEnableTransparency
 
     <!-- Banner 单图 -->
     <div id="banner-single-container" class="relative h-full w-full min-h-[inherit]">
-        {singleDesktopBanner && (
-            <div class="hidden md:block absolute inset-0">
+        {desktopBannerResponsive && (
+            <div class="absolute inset-0">
                 <div class="banner-breathe-wrap h-full w-full overflow-hidden">
-                    <img
-                        id="banner"
-                        alt="Desktop banner image of the blog"
-                        class="object-cover w-full h-full"
-                        src={url(singleDesktopBanner)}
-                        width={1920}
-                        height={1080}
-                        style={`object-position: ${bannerObjectPosition}`}
-                        loading="eager"
-                        fetchpriority="high"
-                    />
-                </div>
-            </div>
-        )}
-        {singleMobileBanner && (
-            <div class="block md:hidden absolute inset-0">
-                <div class="banner-breathe-wrap h-full w-full overflow-hidden">
-                    <img
-                        id="banner-mobile"
-                        alt="Mobile banner image of the blog"
-                        class="object-cover w-full h-full"
-                        src={url(singleMobileBanner)}
-                        width={1920}
-                        height={1080}
-                        style={`object-position: ${mobileBannerObjectPosition}`}
-                        loading="eager"
-                        fetchpriority="high"
-                    />
+                    <picture>
+                        <source
+                            media="(max-width: 767px)"
+                            srcset={`${url((mobileBannerResponsive ?? desktopBannerResponsive).w768)} 768w`}
+                        />
+                        <source
+                            media="(min-width: 768px)"
+                            srcset={`${url(desktopBannerResponsive.w1280)} 1280w, ${url(desktopBannerResponsive.full)} 1920w`}
+                            sizes="100vw"
+                        />
+                        <img
+                            id="banner"
+                            alt="Banner image of the blog"
+                            class="object-cover w-full h-full"
+                            src={url(desktopBannerResponsive.full)}
+                            width={1920}
+                            height={1097}
+                            style={`object-position: ${bannerObjectPosition}`}
+                            loading="eager"
+                            fetchpriority="high"
+                            decoding="async"
+                        />
+                    </picture>
                 </div>
             </div>
         )}
@@ -1081,9 +1158,8 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
     }
     
     .absolute.w-full.z-30.mobile-main-no-banner {
-        top: 5.5rem !important;
-        min-height: calc(100vh - 5.5rem) !important;
-        transition: top var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94)) !important;
+        top: calc(5.5rem + 1rem) !important;
+        min-height: calc(100vh - 6.5rem) !important;
     }
 }
 

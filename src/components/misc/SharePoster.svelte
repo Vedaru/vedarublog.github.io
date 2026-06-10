@@ -28,15 +28,39 @@ let generating = false;
 let themeColor = "#558e88";
 
 onMount(() => {
-	const temp = document.createElement("div");
-	temp.style.color = "var(--primary)";
-	temp.style.display = "none";
-	document.body.appendChild(temp);
-	const computedColor = getComputedStyle(temp).color;
-	document.body.removeChild(temp);
+	const resolveThemeColor = () => {
+		const temp = document.createElement("div");
+		temp.style.cssText =
+			"position:absolute;visibility:hidden;pointer-events:none;color:var(--primary)";
+		document.body.appendChild(temp);
+		const computedColor = getComputedStyle(temp).color;
+		temp.remove();
 
-	if (computedColor) {
-		themeColor = computedColor;
+		if (computedColor) {
+			themeColor = computedColor;
+		}
+	};
+
+	const scheduleResolve = () => {
+		const idle =
+			window.requestIdleCallback ||
+			((cb: () => void) => window.setTimeout(cb, 200));
+		idle(resolveThemeColor);
+	};
+
+	if (
+		document.documentElement.classList.contains("is-changing") ||
+		document.documentElement.classList.contains("is-animating")
+	) {
+		if (window.__onSwupPageIdlePhase) {
+			window.__onSwupPageIdlePhase(scheduleResolve);
+		} else {
+			document.addEventListener("swup:transition-ready", scheduleResolve, {
+				once: true,
+			});
+		}
+	} else {
+		scheduleResolve();
 	}
 });
 

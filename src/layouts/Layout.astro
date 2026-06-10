@@ -31,9 +31,6 @@ import "../styles/mobile-navbar.css";
 import "../styles/wallpaper-navbar-transparent.css";
 import "../styles/expressive-code.css";
 import "../styles/panel-animations.css";
-if (commentConfig.enable) {
-	await import("../styles/twikoo.css");
-}
 
 interface Props {
 	title?: string;
@@ -178,6 +175,8 @@ if (siteConfig.font) {
 	lang={siteLang}
 	class="bg-[var(--page-bg)] text-[14px] md:text-[16px]"
 	data-overlayscrollbars-initialize
+	data-wallpaper-mode={siteConfig.wallpaperMode.defaultMode}
+	data-post-list-layout={siteConfig.postListLayout?.defaultMode || "list"}
 >
 	<head>
 		<!-- 第三方分析脚本 - 延迟加载优化 -->
@@ -199,20 +198,6 @@ if (siteConfig.font) {
 						"https://www.googletagmanager.com/gtm.js?id=" + i + dl;
 					f.parentNode.insertBefore(j, f);
 				})(window, document, "script", "dataLayer", "GTM-KRX3XGVH");
-
-				// Clarity
-				(function (c, l, a, r, i, t, y) {
-					c[a] =
-						c[a] ||
-						function () {
-							(c[a].q = c[a].q || []).push(arguments);
-						};
-					t = l.createElement(r);
-					t.async = 1;
-					t.src = "https://www.clarity.ms/tag/" + i;
-					y = l.getElementsByTagName(r)[0];
-					y.parentNode.insertBefore(t, y);
-				})(window, document, "clarity", "script", "tjr3vkhj8i");
 			}
 
 			// 在浏览器空闲时加载，或者在 3 秒后加载
@@ -374,6 +359,14 @@ if (siteConfig.font) {
 				if (!pageScaling || !pageScaling.enable) return;
 
 				function adjustPageScale() {
+					var html = document.documentElement;
+					if (
+						html.classList.contains("is-changing") ||
+						html.classList.contains("is-animating")
+					) {
+						return;
+					}
+
 					var isTouch =
 						(window.matchMedia &&
 							(window.matchMedia("(pointer:coarse)").matches ||
@@ -395,20 +388,33 @@ if (siteConfig.font) {
 					document.documentElement.style.fontSize = scale * 100 + "%";
 				}
 
-				adjustPageScale();
+				requestAnimationFrame(() => {
+					requestAnimationFrame(adjustPageScale);
+				});
 				window.addEventListener("resize", adjustPageScale);
 				window.addEventListener("orientationchange", adjustPageScale);
-				if (window.swup && window.swup.hooks) {
-					window.swup.hooks.on("visit:end", function () {
-						requestAnimationFrame(adjustPageScale);
-					});
-				} else {
-					document.addEventListener("swup:enable", function () {
-						window.swup &&
-							window.swup.hooks &&
-							window.swup.hooks.on("visit:end", function () {
-								requestAnimationFrame(adjustPageScale);
+				function scheduleAdjustPageScale() {
+					var schedule =
+						window.requestIdleCallback ||
+						function (cb) {
+							requestAnimationFrame(function () {
+								requestAnimationFrame(cb);
 							});
+						};
+					schedule(adjustPageScale);
+				}
+
+				function registerAdjustPageScaleOnIdle() {
+					if (typeof window.__onSwupPageIdlePhase === "function") {
+						window.__onSwupPageIdlePhase(scheduleAdjustPageScale);
+						return true;
+					}
+					return false;
+				}
+
+				if (!registerAdjustPageScaleOnIdle()) {
+					document.addEventListener("DOMContentLoaded", function () {
+						registerAdjustPageScaleOnIdle();
 					});
 				}
 			})();
@@ -422,10 +428,33 @@ if (siteConfig.font) {
 				display: block;
 				height: var(--banner-height-home, 65vh);
 			}
+			html[data-wallpaper-mode="fullscreen"] #banner-wrapper,
+			html[data-wallpaper-mode="none"] #banner-wrapper {
+				display: none;
+			}
 			html[data-wallpaper-mode="fullscreen"] .main-panel,
 			html[data-wallpaper-mode="none"] .main-panel {
 				top: calc(5.5rem + 1rem);
 				min-height: calc(100vh - 6.5rem);
+			}
+			html[data-post-list-layout="grid"] .right-sidebar-container {
+				display: none !important;
+			}
+			/* 移动端非首页：首屏即锁定主内容 top，避免外链 CSS 到达前从 banner 位下跳 */
+			@media (max-width: 1279px) {
+				html[data-wallpaper-mode="banner"] .main-panel.mobile-main-no-banner,
+				html[data-wallpaper-mode="fullscreen"] .main-panel.mobile-main-no-banner,
+				html[data-wallpaper-mode="none"] .main-panel.mobile-main-no-banner {
+					top: calc(5.5rem + 1rem) !important;
+					min-height: calc(100vh - 6.5rem) !important;
+				}
+				html[data-wallpaper-mode="banner"] #banner-wrapper.mobile-hide-banner {
+					height: 0 !important;
+					min-height: 0 !important;
+					overflow: hidden;
+					visibility: hidden;
+					pointer-events: none;
+				}
 			}
 			@media (max-width: 479px) {
 				html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
@@ -464,11 +493,12 @@ if (siteConfig.font) {
 				html[data-wallpaper-mode="banner"] .main-panel {
 					top: 35vh;
 				}
-				html[data-wallpaper-mode="banner"] body.enable-banner #top-row {
+				html[data-wallpaper-mode="banner"] #top-row {
 					height: calc(var(--banner-height-home, 65vh) - 4.5rem);
+					min-height: calc(var(--banner-height-home, 65vh) - 4.5rem);
 				}
-				html[data-wallpaper-mode="banner"] body.enable-banner.is-home #main-grid,
-				html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #main-grid {
+				html[data-wallpaper-mode="banner"] body.is-home #main-grid,
+				html[data-wallpaper-mode="banner"] body.lg\:is-home #main-grid {
 					transform: translateY(var(--banner-height-extend, 30dvh));
 				}
 			}
@@ -515,8 +545,25 @@ if (siteConfig.font) {
 
 		<slot name="head" />
 
-		<!-- Pio 看板娘样式 - 同步加载，避免 Swup 切换 head 时重复异步注入导致闪动 -->
-		{pioConfig.enable && <link rel="stylesheet" href="/pio/static/pio.css" />}
+		<!-- Pio 看板娘样式 - 异步加载，避免阻塞首屏渲染 -->
+		{pioConfig.enable && (
+			<>
+				<link
+					rel="preload"
+					href="/pio/static/pio.css"
+					as="style"
+				/>
+				<link
+					rel="stylesheet"
+					href="/pio/static/pio.css"
+					media="print"
+					onload="this.media='all'"
+				/>
+				<noscript>
+					<link rel="stylesheet" href="/pio/static/pio.css" />
+				</noscript>
+			</>
+		)}
 
 		<link
 			rel="alternate"
@@ -525,31 +572,27 @@ if (siteConfig.font) {
 			href={`${Astro.site}rss.xml`}
 		/>
 
-		{commentConfig.enable && (
-			<script
-				is:inline
-				src="/assets/js/twikoo.all.min.js"
-				data-cfasync="false"
-			></script>
-		)}
-
 		<script
 			is:inline
+			defer
 			src="/banner-drift.js"
 			data-cfasync="false"
 		></script>
 		<script
 			is:inline
+			defer
 			src="/swup-transition-performance.js"
 			data-cfasync="false"
 		></script>
 		<script
 			is:inline
+			defer
 			src="/smooth-scroll.js"
 			data-cfasync="false"
 		></script>
 		<script
 			is:inline
+			defer
 			src="/home-pre-scroll.js"
 			data-cfasync="false"
 		></script>
@@ -584,7 +627,8 @@ if (siteConfig.font) {
 		class:list={[{ "lg:is-home": isHomePage, "is-home": isHomePage }]}
 		data-overlayscrollbars-initialize
 	>
-		<!-- Shell 关键样式：置于 body 首行，晚于 head 内 /_astro/*.css 解析，覆盖 transition-colors 线框 -->
+		<!-- Shell 关键样式：preload 提前发现，link 仍置于 body 首行以保证覆盖顺序 -->
+		<link rel="preload" href="/assets/css/shell-critical.css" as="style" />
 		<link rel="stylesheet" href="/assets/css/shell-critical.css" />
 		<script is:inline>
 			(function () {
@@ -1123,67 +1167,109 @@ function disableAnimation() {
 				window.__homePreScrollWasUsed &&
 				(window as any).__pendingVisitBodyLayout
 			) {
-				flushPendingVisitBodyLayout();
+				// 延后 body 布局写入，避免与 Swup content:replace 同帧连续触发重排
+				requestAnimationFrame(() => {
+					flushPendingVisitBodyLayout();
+				});
 			}
 		});
 
-		let deferredPageInitTimer: ReturnType<typeof setTimeout> | undefined;
+		function shouldInitTocForPath() {
+			const path = window.location.pathname;
+			return (
+				path.includes("/posts/") ||
+				path.includes("/diary") ||
+				document.querySelector(".custom-md, .markdown-content") !== null
+			);
+		}
 
-		function runDeferredPageInits() {
-			clearTimeout(deferredPageInitTimer);
-			deferredPageInitTimer = setTimeout(() => {
+		function runSwupPageWritePhase() {
+			window.__scheduleSwupIdleWork?.(() => {
 				initFancybox();
 				checkKatex();
 				initCustomScrollbar();
-
-				const tocWrapper = document.getElementById("toc-wrapper");
-				if (tocWrapper) {
-					const tocElement = document.querySelector("table-of-contents");
-					const path = window.location.pathname;
-					const shouldInitToc =
-						path.includes("/posts/") ||
-						path.includes("/diary") ||
-						document.querySelector(
-							".custom-md, .markdown-content",
-						) !== null;
-
-					if (tocElement) {
-						if (shouldInitToc) {
-							if (typeof (tocElement as any).init === "function") {
-								(tocElement as any).init();
-							}
-						} else if (
-							typeof (tocElement as any).teardown === "function"
-						) {
-							(tocElement as any).teardown();
-							tocElement.innerHTML = "";
-							delete (tocElement as HTMLElement).dataset.loaded;
-						}
-					}
-
-					if (typeof (window as any).mobileTOCInit === "function") {
-						(window as any).mobileTOCInit();
-					}
+			});
+			window.__scheduleSwupIdleWork?.(() => {
+				if (typeof (window as any).mobileTOCInit === "function") {
+					(window as any).mobileTOCInit();
 				}
-
-				const navbar = document.getElementById("navbar");
-				if (navbar) {
-					const transparentMode = navbar.getAttribute(
-						"data-transparent-mode",
-					);
-					if (
-						transparentMode === "semifull" &&
-						typeof (window as any).initSemifullScrollDetection ===
-							"function" &&
-						!(window as any).__suppressSemifullNavbarReinit
-					) {
-						(window as any).initSemifullScrollDetection();
-					}
-				}
-			}, 16);
+			});
 		}
 
-		document.addEventListener("swup:transition-ready", runDeferredPageInits);
+		function runSwupPageLayoutPhase(detail?: { scrollTop?: number }) {
+			const scrollTop = detail?.scrollTop ?? 0;
+			const tocWrapper = document.getElementById("toc-wrapper");
+			const tocElement = document.querySelector("table-of-contents");
+			const shouldInitToc = shouldInitTocForPath();
+
+			window.__syncTocHideForScroll?.(
+				scrollTop,
+				window.__swupPhaseInnerHeight,
+			);
+
+			if (tocWrapper && tocElement) {
+				if (shouldInitToc) {
+					if (typeof (tocElement as any).init === "function") {
+						(tocElement as any).init();
+					}
+				} else if (typeof (tocElement as any).teardown === "function") {
+					(tocElement as any).teardown();
+					tocElement.innerHTML = "";
+					delete (tocElement as HTMLElement).dataset.loaded;
+				}
+			}
+
+			const navbar = document.getElementById("navbar");
+			if (navbar) {
+				const transparentMode = navbar.getAttribute(
+					"data-transparent-mode",
+				);
+				if (transparentMode === "semifull") {
+					if ((window as any).__suppressSemifullNavbarReinit) {
+						const isHome =
+							navbar.getAttribute("data-is-home") === "true";
+						(window as any).applySemifullNavbarVisualState?.(
+							scrollTop,
+							isHome,
+						);
+					} else if (
+						typeof (window as any).initSemifullScrollDetection ===
+							"function"
+					) {
+						(window as any).initSemifullScrollDetection(scrollTop);
+					}
+				}
+			}
+		}
+
+		function registerSwupPagePhases() {
+			if (!window.__onSwupPageWritePhase) {
+				document.addEventListener(
+					"DOMContentLoaded",
+					registerSwupPagePhases,
+					{ once: true },
+				);
+				return;
+			}
+			window.__onSwupPageWritePhase(runSwupPageWritePhase);
+			window.__onSwupPageLayoutPhase(runSwupPageLayoutPhase);
+		}
+
+		registerSwupPagePhases();
+
+		requestAnimationFrame(() => {
+			const html = document.documentElement;
+			if (
+				html.classList.contains("is-changing") ||
+				html.classList.contains("is-animating")
+			) {
+				return;
+			}
+			runSwupPageLayoutPhase({
+				scrollTop:
+					window.scrollY || document.documentElement.scrollTop || 0,
+			});
+		});
 
 		function applyVisitBodyLayout(visit: { to: { url: string } }) {
 			const bodyElement = document.querySelector("body");
@@ -1250,6 +1336,8 @@ function disableAnimation() {
 			options?: { deferBodyLayout?: boolean },
 		) {
 			const isHomePage = pathsEqual(visit.to.url, url("/"));
+			const cachedScrollTop =
+				window.scrollY || document.documentElement.scrollTop || 0;
 
 			if (options?.deferBodyLayout) {
 				(window as any).__pendingVisitBodyLayout = visit;
@@ -1259,6 +1347,12 @@ function disableAnimation() {
 					window.__lockSwupScrollAndPin?.();
 				}
 			}
+
+			// 换页回顶后 scroll 已为 0，勿用 pin 前缓存的旧值
+			const scrollForSemifull =
+				!options?.deferBodyLayout && !window.__homePreScrollWasUsed
+					? 0
+					: cachedScrollTop;
 
 			// Control navbar transparency based on page
 			const navbar = document.getElementById("navbar");
@@ -1277,7 +1371,9 @@ function disableAnimation() {
 						typeof (window as any)
 							.initSemifullScrollDetection === "function"
 					) {
-						(window as any).initSemifullScrollDetection();
+						(window as any).initSemifullScrollDetection(
+							scrollForSemifull,
+						);
 					}
 				}
 			}
@@ -1406,7 +1502,7 @@ function disableAnimation() {
 					window.__unlockSwupScroll?.();
 				}
 
-				// Just make the transition looks better
+				// 兜底：编排器 Phase 1 通常已移除 toc-not-ready
 				const toc = document.getElementById("toc-wrapper");
 				if (toc) {
 					toc.classList.remove("toc-not-ready");
@@ -1452,7 +1548,9 @@ function disableAnimation() {
 			backToTopThreshold = window.innerHeight * (BANNER_HEIGHT / 100) + 100;
 		}
 	}
-	cacheContentWrapperOffset();
+	requestAnimationFrame(function () {
+		requestAnimationFrame(cacheContentWrapperOffset);
+	});
 	// Swup 页面切换后等布局稳定再缓存
 	document.addEventListener("swup:page:view", () => {
 		requestAnimationFrame(() => {
@@ -1608,11 +1706,29 @@ function disableAnimation() {
 )}
 
 {commentConfig.enable && (
-	<>
-		<script is:inline src="/scroll-protection.js" data-cfasync="false"
-		></script>
-		<script is:inline src="/twikoo-init.js" data-cfasync="false"></script>
-	</>
+	<script is:inline>
+		(function () {
+			function loadCommentScript(src) {
+				if (document.querySelector('script[src="' + src + '"]')) return;
+				var s = document.createElement("script");
+				s.src = src;
+				s.defer = true;
+				s.setAttribute("data-cfasync", "false");
+				document.body.appendChild(s);
+			}
+			function bootCommentScripts() {
+				if (!document.getElementById("tcomment")) return;
+				loadCommentScript("/scroll-protection.js");
+				loadCommentScript("/twikoo-init.js");
+			}
+			if (document.readyState === "loading") {
+				document.addEventListener("DOMContentLoaded", bootCommentScripts);
+			} else {
+				bootCommentScripts();
+			}
+			document.addEventListener("swup:content:replace", bootCommentScripts);
+		})();
+	</script>
 )}
 
 <!-- 主题切换综合性能优化器（包含代码块优化、重型元素优化、性能诊断） -->

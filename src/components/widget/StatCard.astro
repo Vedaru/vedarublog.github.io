@@ -158,7 +158,7 @@ const getIconStyle = () => {
   // 加载 Iconify 图标库
   if (typeof window !== 'undefined' && !window.iconifyLoaded) {
     const script = document.createElement('script');
-    script.src = 'https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js';
+    script.src = '/assets/js/iconify-icon.min.js';
     document.head.appendChild(script);
     window.iconifyLoaded = true;
   }

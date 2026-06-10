@@ -109,15 +109,13 @@ export class AnimationManager {
 				Number.parseInt(htmlElement.style.animationDelay, 10) ||
 				index * 50;
 
-			// 重置动画
+			// 重置动画（仅 opacity，避免 translateY 计入 CLS）
 			htmlElement.style.opacity = "0";
-			htmlElement.style.transform = "translateY(1.5rem)";
 
 			setTimeout(() => {
 				htmlElement.style.transition =
-					"opacity 320ms cubic-bezier(0.4, 0, 0.2, 1), transform 320ms cubic-bezier(0.4, 0, 0.2, 1)";
+					"opacity 320ms cubic-bezier(0.4, 0, 0.2, 1)";
 				htmlElement.style.opacity = "1";
-				htmlElement.style.transform = "translateY(0)";
 			}, delay);
 		});
 

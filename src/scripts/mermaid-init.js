@@ -244,12 +244,19 @@ const RETRY_DELAY = 1000;
 		window.swup.hooks.on("content:replace", () => {
 			isRendering = false;
 			currentTheme = null;
-			scheduleMermaidRender(200);
+			if (!hasMermaidDiagrams()) return;
+			loadMermaid()
+				.catch((error) =>
+					console.warn("Mermaid lazy load after navigation failed:", error),
+				)
+				.finally(() => scheduleMermaidRender(200));
 		});
-		window.swup.hooks.on("page:view", () => scheduleMermaidRender(300));
-		window.swup.hooks.on("animation:in:end", () =>
-			scheduleMermaidRender(100),
-		);
+		window.swup.hooks.on("page:view", () => {
+			if (hasMermaidDiagrams()) scheduleMermaidRender(300);
+		});
+		window.swup.hooks.on("animation:in:end", () => {
+			if (hasMermaidDiagrams()) scheduleMermaidRender(100);
+		});
 	}
 
 	async function initializeMermaid() {
@@ -458,50 +465,27 @@ const RETRY_DELAY = 1000;
 		currentTheme = isDark ? "dark" : "default";
 	}
 
-	// 加载 Mermaid 库
+	// 通过 Vite 动态导入 ESM 版本，避免 CDN UMD 包中的旧版 polyfill
 	async function loadMermaid() {
-		if (typeof window.mermaid !== "undefined") {
-			return Promise.resolve();
+		if (window.mermaid && typeof window.mermaid.initialize === "function") {
+			return;
 		}
 
-		return new Promise((resolve, reject) => {
-			const script = document.createElement("script");
-			script.src =
-				"https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js";
+		const mod = await import("mermaid");
+		window.mermaid = mod.default;
+	}
 
-			script.onload = () => {
-				console.log("Mermaid library loaded successfully");
-				resolve();
-			};
-
-			script.onerror = (error) => {
-				console.error("Failed to load Mermaid library:", error);
-				// 尝试备用 CDN
-				const fallbackScript = document.createElement("script");
-				fallbackScript.src =
-					"https://unpkg.com/mermaid@11/dist/mermaid.min.js";
-
-				fallbackScript.onload = () => {
-					console.log("Mermaid library loaded from fallback CDN");
-					resolve();
-				};
-
-				fallbackScript.onerror = () => {
-					reject(
-						new Error(
-							"Failed to load Mermaid from both primary and fallback CDNs",
-						),
-					);
-				};
-
-				document.head.appendChild(fallbackScript);
-			};
-
-			document.head.appendChild(script);
-		});
+	function hasMermaidDiagrams() {
+		return document.querySelector(".mermaid[data-mermaid-code]") !== null;
 	}
 
 	function bootstrapMermaid() {
+		if (!hasMermaidDiagrams()) {
+			registerSwupListeners();
+			setupEventListeners();
+			return;
+		}
+
 		registerSwupListeners();
 		setupMutationObserver();
 		setupEventListeners();
