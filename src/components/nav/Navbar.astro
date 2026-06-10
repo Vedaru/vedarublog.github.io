@@ -145,14 +145,14 @@ async function loadButtonScript() {
 loadButtonScript();
 
 // 为semifull模式添加滚动检测逻辑
-function isNavbarHomePage(navbar) {
+function isNavbarHomePage(navbar: HTMLElement) {
     const value = navbar.getAttribute('data-is-home');
     if (value === 'true') return true;
     if (value === 'false') return false;
     return navbar.hasAttribute('data-is-home');
 }
 
-function applySemifullNavbarVisualState(scrollTop, isHomePage) {
+function applySemifullNavbarVisualState(scrollTop: number, isHomePage: boolean) {
     const navbar = document.getElementById('navbar');
     if (!navbar || navbar.getAttribute('data-transparent-mode') !== 'semifull') {
         return;

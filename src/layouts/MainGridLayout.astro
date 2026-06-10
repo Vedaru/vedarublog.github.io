@@ -9,22 +9,14 @@ import BannerWrapper from "@components/banner/BannerWrapper.astro";
 import type { MarkdownHeading } from "astro";
 import { Icon } from "astro-icon/components";
 import IconifyLoader from "../components/misc/IconifyLoader.astro";
-import ImageWrapper from "../components/misc/ImageWrapper.astro";
 import TOC from "../components/widget/TOC.astro";
 import {
 	siteConfig,
 } from "../config";
-import {
-	BANNER_HEIGHT,
-	BANNER_HEIGHT_EXTEND,
-	// BANNER_HEIGHT_HOME,
-	// MAIN_PANEL_OVERLAPS_BANNER_HEIGHT,
-} from "@constants";
 import { widgetManager } from "../utils/widget-manager";
 import {
 	getBannerImages,
 	getBannerResponsive,
-	getFirstBannerUrl,
 	toBannerSrcList,
 } from "../utils/banner-utils";
 import { isHomePagePath } from "../utils/route-utils";
@@ -59,21 +51,6 @@ const singleMobileBanner = mobileBannerList[0];
 const desktopBannerResponsive = getBannerResponsive(singleDesktopBanner);
 const mobileBannerResponsive =
 	getBannerResponsive(singleMobileBanner) ?? desktopBannerResponsive;
-
-const lcpDesktopBanner = getFirstBannerUrl(
-	Array.isArray(bannerImages.desktop)
-		? bannerImages.desktop
-		: typeof bannerImages.desktop === "string"
-			? bannerImages.desktop
-			: undefined,
-);
-const lcpMobileBanner = getFirstBannerUrl(
-	Array.isArray(bannerImages.mobile)
-		? bannerImages.mobile
-		: typeof bannerImages.mobile === "string"
-			? bannerImages.mobile
-			: undefined,
-);
 
 const {
 	title,

@@ -108,7 +108,7 @@ export function runSwupPageLayoutPhase(detail?: { scrollTop?: number }) {
 }
 
 function registerSwupPagePhases() {
-	if (!window.__onSwupPageWritePhase) {
+	if (!window.__onSwupPageWritePhase || !window.__onSwupPageLayoutPhase) {
 		document.addEventListener("DOMContentLoaded", registerSwupPagePhases, {
 			once: true,
 		});
