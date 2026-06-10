@@ -358,6 +358,15 @@ html.is-visit-layout-shifting #banner-wrapper {
   transition: none !important;
 }
 
+/* 进入首页 blended 动画：允许 JS 内联 transform 覆盖 is-home 的 transform:none */
+@media (max-width: 1279px) {
+  html.is-visit-pre-scrolling[data-wallpaper-mode="banner"] body.enable-banner.is-home #banner-wrapper:not(.mobile-hide-banner),
+  html.is-home-pre-scrolling[data-wallpaper-mode="banner"] body.enable-banner.is-home #banner-wrapper:not(.mobile-hide-banner),
+  html.is-visit-layout-shifting[data-wallpaper-mode="banner"] body.enable-banner.is-home #banner-wrapper:not(.mobile-hide-banner) {
+    transform: none;
+  }
+}
+
 /* 离开首页布局切换：侧栏直接落到非首页 sticky 位置，避免随滚动出现下移错觉 */
 @media (min-width: 1280px) {
   html.is-visit-layout-shifting body.enable-banner #sidebar-sticky {
@@ -669,3 +678,4 @@ body.wallpaper-transparent #post-list-container {
     background-color: transparent !important;
   }
 }
+

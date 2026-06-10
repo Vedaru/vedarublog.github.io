@@ -93,11 +93,11 @@ declare global {
 		__homePreScrollWasUsed?: boolean;
 		__shouldHomePreScroll?: (visit: { to?: { url?: string } }) => boolean;
 		__applyVisitStartLayout?: (
-			visit: { to: { url: string } },
+			visit: { to?: { url?: string } },
 			options?: { deferBodyLayout?: boolean },
 		) => void;
 		__flushPendingVisitBodyLayout?: () => void;
-		__pendingVisitBodyLayout?: { to: { url: string } };
+		__pendingVisitBodyLayout?: { to?: { url?: string } };
 		__pinPageScrollTop?: () => void;
 		__lockSwupScroll?: () => void;
 		__lockSwupScrollAndPin?: () => void;
@@ -126,8 +126,8 @@ declare global {
 			innerHeight?: number,
 		) => void;
 		__applyWallpaperBodyClasses?: (mode: string) => void;
-		__applyVisitBodyLayout?: (visit: { to: { url: string } }) => void;
-		__applyVisitBannerLayout?: (visit: { to: { url: string } }) => void;
+		__applyVisitBodyLayout?: (visit: { to?: { url?: string } }) => void;
+		__applyVisitBannerLayout?: (visit: { to?: { url?: string } }) => void;
 		__bootstrapWallpaperBodyClasses?: () => void;
 		__themePageScaling?: { enable?: boolean; targetWidth?: number };
 		__adjustPageScale?: () => void;
