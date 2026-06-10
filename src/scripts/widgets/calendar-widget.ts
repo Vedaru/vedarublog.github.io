@@ -1,12 +1,19 @@
 /** Calendar widget */
 
+interface CalendarPost {
+	id: string;
+	date: string;
+	title?: string;
+	updated?: string;
+}
+
 export function initCalendar(config: { monthNames: string[]; yearSuffix: string }) {
   const monthNames = config.monthNames;
   const yearSuffix = config.yearSuffix;
 
 const CALENDAR_DATA_CACHE_KEY = "__calendarWidgetPostsData";
 
-	let allPostsData = [];
+	let allPostsData: CalendarPost[] = [];
 	const postDateMap = {};
 	const postsByMonth = {};
 	const stats = {
@@ -29,7 +36,7 @@ const CALENDAR_DATA_CACHE_KEY = "__calendarWidgetPostsData";
 		stats.maxYear = new Date().getFullYear() + 5;
 	}
 
-	function applyPostsData(posts) {
+	function applyPostsData(posts: CalendarPost[]) {
 		allPostsData = Array.isArray(posts) ? posts : [];
 		resetProcessedData();
 		processPostsData(allPostsData);
@@ -44,7 +51,7 @@ const CALENDAR_DATA_CACHE_KEY = "__calendarWidgetPostsData";
 		}
 	}
 
-	function arePostsEqual(oldPosts, newPosts) {
+	function arePostsEqual(oldPosts: CalendarPost[], newPosts: CalendarPost[]) {
 		if (oldPosts.length !== newPosts.length) return false;
 		for (let i = 0; i < oldPosts.length; i++) {
 			const a = oldPosts[i];
@@ -61,18 +68,18 @@ const CALENDAR_DATA_CACHE_KEY = "__calendarWidgetPostsData";
 		return true;
 	}
 
-	async function fetchCalendarData() {
+	async function fetchCalendarData(): Promise<CalendarPost[] | null> {
 		try {
 			const res = await fetch("/api/calendar-data.json");
 			const data = await res.json();
-			return Array.isArray(data) ? data : [];
+			return Array.isArray(data) ? (data as CalendarPost[]) : [];
 		} catch (error) {
 			console.error("Failed to fetch calendar data:", error);
 			return null;
 		}
 	}
 
-	function processPostsData(posts) {
+	function processPostsData(posts: CalendarPost[]) {
 		if (!posts || posts.length === 0) return;
 		posts.forEach((post) => {
 			const [yStr, mStr] = post.date.split("-");
@@ -101,21 +108,21 @@ const CALENDAR_DATA_CACHE_KEY = "__calendarWidgetPostsData";
 
 	let currentYear = todayYear;
 	let currentMonth = todayMonth;
-	let selectedDateKey = null;
+	let selectedDateKey: string | null = null;
 	let currentView = "day";
 
 	const dom = {
-		titleContainer: document.getElementById("calendar-title-container"),
-		title: document.getElementById("calendar-title"),
-		prevBtn: document.getElementById("prev-month-btn"),
-		nextBtn: document.getElementById("next-month-btn"),
-		backTodayBtn: document.getElementById("back-to-today-btn"),
-		calendarView: document.getElementById("calendar-view"),
-		selectionPanel: document.getElementById("selection-panel"),
-		selectionContent: document.getElementById("selection-content"),
-		grid: document.getElementById("calendar-grid"),
-		postsList: document.getElementById("calendar-posts-list"),
-		divider: document.getElementById("calendar-posts-divider"),
+		titleContainer: document.getElementById("calendar-title-container")!,
+		title: document.getElementById("calendar-title")!,
+		prevBtn: document.getElementById("prev-month-btn")!,
+		nextBtn: document.getElementById("next-month-btn")!,
+		backTodayBtn: document.getElementById("back-to-today-btn")!,
+		calendarView: document.getElementById("calendar-view")!,
+		selectionPanel: document.getElementById("selection-panel")!,
+		selectionContent: document.getElementById("selection-content")!,
+		grid: document.getElementById("calendar-grid")!,
+		postsList: document.getElementById("calendar-posts-list")!,
+		divider: document.getElementById("calendar-posts-divider")!,
 	};
 
 	function getCurrentPostId() {
@@ -164,7 +171,9 @@ const CALENDAR_DATA_CACHE_KEY = "__calendarWidgetPostsData";
 
 		setupEventListeners();
 
-		const cachedData = window[CALENDAR_DATA_CACHE_KEY];
+		const cachedData = window[CALENDAR_DATA_CACHE_KEY] as
+			| CalendarPost[]
+			| undefined;
 		if (Array.isArray(cachedData) && cachedData.length > 0) {
 			applyPostsData(cachedData);
 			remoteDataLoaded = true;
@@ -212,7 +221,9 @@ const CALENDAR_DATA_CACHE_KEY = "__calendarWidgetPostsData";
 
 		dom.grid.addEventListener("click", (e) => {
 			onCalendarInteraction();
-			const cell = e.target.closest(".calendar-day");
+			const target = e.target;
+			if (!(target instanceof Element)) return;
+			const cell = target.closest(".calendar-day");
 			if (!cell) return;
 			const dateKey = cell.getAttribute("data-date");
 
@@ -229,16 +240,24 @@ const CALENDAR_DATA_CACHE_KEY = "__calendarWidgetPostsData";
 
 		dom.selectionContent.addEventListener("click", (e) => {
 			onCalendarInteraction();
-			const monthItem = e.target.closest(".month-item");
-			const yearItem = e.target.closest(".year-item");
+			const target = e.target;
+			if (!(target instanceof Element)) return;
+			const monthItem = target.closest(".month-item");
+			const yearItem = target.closest(".year-item");
 
 			if (monthItem) {
 				e.stopPropagation();
-				currentMonth = parseInt(monthItem.getAttribute("data-month"));
+				const monthRaw = monthItem.getAttribute("data-month");
+				if (monthRaw) {
+					currentMonth = parseInt(monthRaw, 10);
+				}
 				closeSelectionPanel();
 			} else if (yearItem) {
 				e.stopPropagation();
-				currentYear = parseInt(yearItem.getAttribute("data-year"));
+				const yearRaw = yearItem.getAttribute("data-year");
+				if (yearRaw) {
+					currentYear = parseInt(yearRaw, 10);
+				}
 				showMonthPicker();
 			}
 		});
@@ -246,7 +265,11 @@ const CALENDAR_DATA_CACHE_KEY = "__calendarWidgetPostsData";
 		document.addEventListener("click", (e) => {
 			if (currentView === "day") return;
 			const widget = document.getElementById("calendar-widget");
-			if (widget && !widget.contains(e.target)) {
+			const target = e.target;
+			if (
+				widget &&
+				(!(target instanceof Node) || !widget.contains(target))
+			) {
 				closeSelectionPanel();
 			}
 		});

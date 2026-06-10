@@ -5,10 +5,10 @@ if (window.__lastModifiedBootstrapped) {
 } else {
 	window.__lastModifiedBootstrapped = true;
 
-	let tickTimer = null;
+	let tickTimer: ReturnType<typeof setInterval> | undefined;
 
-	function formatElapsed(dataEl) {
-		const startDate = new Date(dataEl.dataset.lastModified);
+	function formatElapsed(dataEl: HTMLElement) {
+		const startDate = new Date(dataEl.dataset.lastModified || "");
 		if (Number.isNaN(startDate.getTime())) {
 			return dataEl.dataset.prefix || "";
 		}
@@ -52,12 +52,16 @@ if (window.__lastModifiedBootstrapped) {
 
 	function startLastModifiedTimer() {
 		if (!document.getElementById("last-modified")) return;
-		clearInterval(tickTimer);
+		if (tickTimer !== undefined) {
+			clearInterval(tickTimer);
+		}
 		updateLastModifiedDisplay();
 		tickTimer = setInterval(updateLastModifiedDisplay, 1000);
 	}
 
-	function registerLastModifiedSwupListeners(swup) {
+	function registerLastModifiedSwupListeners(swup: {
+		hooks: { on: (hook: string, fn: () => void) => void };
+	}) {
 		swup.hooks.on("content:replace", () => startLastModifiedTimer());
 		swup.hooks.on("page:view", () => startLastModifiedTimer());
 	}
@@ -72,3 +76,5 @@ if (window.__lastModifiedBootstrapped) {
 		startLastModifiedTimer();
 	}
 }
+
+export {};

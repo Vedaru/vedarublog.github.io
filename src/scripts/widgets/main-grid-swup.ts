@@ -66,7 +66,14 @@ export function initMainGridSwup(config: MainGridSwupConfig): void {
 			window.__syncTocHideForScroll?.(scrollTop, innerHeight);
 		}
 	
-		function initWallpaperNavbarAndToc(wallpaperMode, cachedScrollTop, options) {
+		function initWallpaperNavbarAndToc(
+			wallpaperMode: string,
+			cachedScrollTop?: number,
+			options?: {
+				skipSemifullInit?: boolean;
+				skipTocHideSync?: boolean;
+			},
+		) {
 			var scrollTop =
 				typeof cachedScrollTop === 'number'
 					? cachedScrollTop

@@ -120,6 +120,7 @@ declare global {
 		__deferWallpaperNavbarSync?: () => void;
 		__pendingWallpaperSync?: boolean;
 		__runWallpaperNavbarSyncOnTransition?: (scrollTop?: number) => void;
+		__wallpaperSwitchTimer?: number;
 		__swupPhaseScrollTop?: number;
 		__swupPhaseInnerHeight?: number;
 		__syncTocHideForScroll?: (

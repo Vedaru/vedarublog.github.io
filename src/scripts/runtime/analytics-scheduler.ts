@@ -44,3 +44,5 @@
 	});
 	setTimeout(schedule, 5000);
 })();
+
+export {};
