@@ -396,7 +396,7 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 		"https://api.i-meto.com/meting/api?server=netease&type=playlist&id=17514570572",
 	// 推荐：配置多个候选 API 源以在主源不可用（403/限流/超时）时自动回退
 	meting_api_candidates: [
-		"https://api.injahow.cn/meting/?server=:server&type=:type&id=:id",
+		"https://metingapi.nanorocky.top/?server=:server&type=:type&id=:id",
 		"https://api.i-meto.com/meting/api?server=:server&type=:type&id=:id",
 		"https://meting.qjqq.cn/api.php?server=:server&type=:type&id=:id",
 	],

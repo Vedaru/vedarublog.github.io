@@ -4,7 +4,7 @@
     "artist": "Sawako碎花",
     "url": "/assets/music/url/0-meting.opus",
     "cover": "/assets/music/cover/0-meting.webp",
-    "lrc": "https://api.injahow.cn/meting/?server=netease&type=lrc&id=1393497879",
+    "lrc": "https://metingapi.nanorocky.top/?server=netease&type=lrc&id=1393497879",
     "id": ""
   },
   {
@@ -12,7 +12,7 @@
     "artist": "Orangestar/IA",
     "url": "/assets/music/url/1-RIP.opus",
     "cover": "/assets/music/cover/1-RIP.webp",
-    "lrc": "https://api.injahow.cn/meting/?server=netease&type=lrc&id=458238397",
+    "lrc": "https://metingapi.nanorocky.top/?server=netease&type=lrc&id=458238397",
     "id": ""
   },
   {
@@ -20,7 +20,7 @@
     "artist": "livetune/初音ミク",
     "url": "/assets/music/url/2-LNGN.opus",
     "cover": "/assets/music/cover/2-LNGN.webp",
-    "lrc": "https://api.injahow.cn/meting/?server=netease&type=lrc&id=22677560",
+    "lrc": "https://metingapi.nanorocky.top/?server=netease&type=lrc&id=22677560",
     "id": ""
   },
   {
@@ -28,7 +28,7 @@
     "artist": "はりーP/初音ミク",
     "url": "/assets/music/url/3-meting.opus",
     "cover": "/assets/music/cover/3-meting.webp",
-    "lrc": "https://api.injahow.cn/meting/?server=netease&type=lrc&id=1372315794",
+    "lrc": "https://metingapi.nanorocky.top/?server=netease&type=lrc&id=1372315794",
     "id": ""
   },
   {
@@ -36,7 +36,7 @@
     "artist": "心华",
     "url": "/assets/music/url/4-meting.opus",
     "cover": "/assets/music/cover/4-meting.webp",
-    "lrc": "https://api.injahow.cn/meting/?server=netease&type=lrc&id=526116050",
+    "lrc": "https://metingapi.nanorocky.top/?server=netease&type=lrc&id=526116050",
     "id": ""
   },
   {
@@ -44,7 +44,7 @@
     "artist": "HACHI",
     "url": "/assets/music/url/5-R.opus",
     "cover": "/assets/music/cover/5-R.webp",
-    "lrc": "https://api.injahow.cn/meting/?server=netease&type=lrc&id=1829811265",
+    "lrc": "https://metingapi.nanorocky.top/?server=netease&type=lrc&id=1829811265",
     "id": ""
   },
   {
@@ -52,7 +52,7 @@
     "artist": "n-buna",
     "url": "/assets/music/url/6-meting.opus",
     "cover": "/assets/music/cover/6-meting.webp",
-    "lrc": "https://api.injahow.cn/meting/?server=netease&type=lrc&id=1966112058",
+    "lrc": "https://metingapi.nanorocky.top/?server=netease&type=lrc&id=1966112058",
     "id": ""
   },
   {
@@ -60,7 +60,7 @@
     "artist": "ヨルシカ",
     "url": "/assets/music/url/7-meting.opus",
     "cover": "/assets/music/cover/7-meting.webp",
-    "lrc": "https://api.injahow.cn/meting/?server=netease&type=lrc&id=3355479297",
+    "lrc": "https://metingapi.nanorocky.top/?server=netease&type=lrc&id=3355479297",
     "id": ""
   },
   {
@@ -68,7 +68,7 @@
     "artist": "Orangestar/IA",
     "url": "/assets/music/url/8-meting.opus",
     "cover": "/assets/music/cover/8-meting.webp",
-    "lrc": "https://api.injahow.cn/meting/?server=netease&type=lrc&id=31830623",
+    "lrc": "https://metingapi.nanorocky.top/?server=netease&type=lrc&id=31830623",
     "id": ""
   },
   {
@@ -76,7 +76,7 @@
     "artist": "n-buna/初音ミク",
     "url": "/assets/music/url/9-meting.opus",
     "cover": "/assets/music/cover/9-meting.webp",
-    "lrc": "https://api.injahow.cn/meting/?server=netease&type=lrc&id=33367332",
+    "lrc": "https://metingapi.nanorocky.top/?server=netease&type=lrc&id=33367332",
     "id": ""
   }
 ]
