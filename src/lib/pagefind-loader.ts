@@ -1,9 +1,8 @@
 let loadPromise: Promise<void> | null = null;
 
-const dynamicImport = new Function(
-	"specifier",
-	"return import(specifier)",
-) as (specifier: string) => Promise<{
+const dynamicImport = new Function("specifier", "return import(specifier)") as (
+	specifier: string,
+) => Promise<{
 	options: (opts: { excerptLength: number }) => Promise<void>;
 	search: (query: string) => Promise<{
 		results: Array<{ data: () => Promise<unknown> }>;
@@ -19,10 +18,7 @@ export function loadPagefind(): Promise<void> {
 		return Promise.resolve();
 	}
 
-	if (
-		window.pagefind &&
-		typeof window.pagefind.search === "function"
-	) {
+	if (window.pagefind && typeof window.pagefind.search === "function") {
 		return Promise.resolve();
 	}
 
@@ -47,3 +43,4 @@ export function loadPagefind(): Promise<void> {
 
 	return loadPromise;
 }
+

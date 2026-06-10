@@ -57,3 +57,4 @@ const subset = {
 const outPath = join(root, "src/lib/iconify-subset.json");
 writeFileSync(outPath, `${JSON.stringify(subset, null, 2)}\n`, "utf8");
 console.log(`Generated ${outPath}`);
+
