@@ -4,7 +4,7 @@ import type {
 	WALLPAPER_BANNER,
 	WALLPAPER_FULLSCREEN,
 	WALLPAPER_NONE,
-} from "../constants/constants";
+} from "@constants";
 
 export type SiteConfig = {
 	title: string;

@@ -8,16 +8,14 @@
 
 	const PRE_SCROLL_MIN_MS = 580;
 	const PRE_SCROLL_MAX_MS = 920;
-	const NAVBAR_BANNER_HEIGHT = 35;
-	const NAVBAR_BANNER_HEIGHT_HOME = 65;
 	const SEMIFULL_SCROLL_THRESHOLD = 50;
 
 	function getScrollY() {
-		return window.scrollY || document.documentElement.scrollTop || 0;
+		return window.__getScrollY?.() ?? 0;
 	}
+
 	function getPreScrollDurationMs() {
 		const scrollY = getScrollY();
-		// 按滚动距离估算时长，长页面回顶更慢、更自然
 		return Math.round(
 			Math.min(
 				PRE_SCROLL_MAX_MS,
@@ -30,43 +28,11 @@
 	let activePreScrollVisit = null;
 
 	function isHomePagePath(pathname) {
-		return (
-			pathname === "/" ||
-			pathname === "" ||
-			/^\/\d+\/?$/.test(pathname)
-		);
-	}
-
-	function normalizePath(path) {
-		return (path || "").replace(/^\/|\/$/g, "").toLowerCase();
-	}
-
-	function resolveHomePageIndex(path) {
-		const normalized = normalizePath(path);
-		if (normalized === "") return 1;
-		if (/^\d+$/.test(normalized)) {
-			return Number.parseInt(normalized, 10);
-		}
-		return null;
-	}
-
-	function isSameResolvedHomeUrl(fromPathname, toUrl) {
-		const fromPage = resolveHomePageIndex(fromPathname);
-		const toPage = resolveHomePageIndex(toUrl);
-
-		if (fromPage !== null && toPage !== null) {
-			return fromPage === toPage;
-		}
-
-		return normalizePath(fromPathname) === normalizePath(toUrl);
+		return window.__isHomePagePath?.(pathname) ?? false;
 	}
 
 	function pathFromVisitUrl(url) {
-		try {
-			return new URL(url, window.location.origin).pathname;
-		} catch {
-			return url || "";
-		}
+		return window.__pathFromUrl?.(url) ?? url ?? "";
 	}
 
 	function isSamePageNavigation(fromPathname, toUrl) {
@@ -74,7 +40,7 @@
 		if (fromPathname === toPathname) {
 			return true;
 		}
-		return isSameResolvedHomeUrl(fromPathname, toUrl);
+		return window.__pathsEqual?.(fromPathname, toUrl) ?? false;
 	}
 
 	function isTargetHomePage(visit) {
@@ -95,18 +61,9 @@
 	}
 
 	function getNavbarHideThreshold() {
-		if (!document.body.classList.contains("enable-banner")) {
-			return Number.POSITIVE_INFINITY;
-		}
-
-		const isHome =
-			document.body.classList.contains("lg:is-home") &&
-			window.innerWidth >= 1024;
-		const bannerHeight = isHome
-			? NAVBAR_BANNER_HEIGHT_HOME
-			: NAVBAR_BANNER_HEIGHT;
-
-		return window.innerHeight * (bannerHeight / 100) - 88;
+		return (
+			window.__getNavbarHideThreshold?.() ?? Number.POSITIVE_INFINITY
+		);
 	}
 
 	function clearNavbarPreScrollInlineStyles() {
@@ -118,11 +75,13 @@
 
 	function syncNavbarWrapperDuringPreScroll(scrollY) {
 		const navbarWrapper = document.getElementById("navbar-wrapper");
-		if (!navbarWrapper || !document.body.classList.contains("enable-banner")) {
+		if (
+			!navbarWrapper ||
+			!document.body.classList.contains("enable-banner")
+		) {
 			return;
 		}
 
-		// 预滚动期间不用 navbar-hidden（会触发 transition-all 在解冻时跳变）
 		navbarWrapper.classList.remove("navbar-hidden");
 
 		if (typeof scrollY !== "number") {
@@ -140,10 +99,10 @@
 					? "translateY(-4rem)"
 					: "translateY(" + -progress * 4 + "rem)";
 			return;
-		} else {
-			navbarWrapper.style.removeProperty("opacity");
-			navbarWrapper.style.removeProperty("transform");
 		}
+
+		navbarWrapper.style.removeProperty("opacity");
+		navbarWrapper.style.removeProperty("transform");
 	}
 
 	function syncSemifullNavbarDuringPreScroll(visit, scrollY) {
@@ -184,16 +143,13 @@
 
 		clearNavbarPreScrollInlineStyles();
 
+		window.__pinScrollTopWithFrames?.(2);
 		requestAnimationFrame(function () {
-			window.__pinPageScrollTop?.();
-			requestAnimationFrame(function () {
-				document.documentElement.classList.remove(
-					"is-home-pre-scrolling",
-					"is-visit-pre-scrolling",
-				);
-				window.__pinPageScrollTop?.();
-				activePreScrollVisit = null;
-			});
+			document.documentElement.classList.remove(
+				"is-home-pre-scrolling",
+				"is-visit-pre-scrolling",
+			);
+			activePreScrollVisit = null;
 		});
 	}
 
@@ -218,13 +174,13 @@
 		window.__suppressSemifullNavbarReinit = false;
 	};
 
-	function registerHomePreScrollListeners() {
-		if (listenersRegistered || !window.swup?.hooks) {
+	function registerHomePreScrollListeners(swup) {
+		if (listenersRegistered || !swup?.hooks) {
 			return listenersRegistered;
 		}
 		listenersRegistered = true;
 
-		window.swup.hooks.on(
+		swup.hooks.on(
 			"visit:start",
 			function (visit) {
 				window.__homePreScrollWasUsed = false;
@@ -267,21 +223,17 @@
 					finishPreScrollTransition(visit);
 				});
 			},
-			// Swup：priority 越小越早执行；须在 Layout visit:start 之前设置标志并启动动画
 			{ priority: -100 },
 		);
 
-		window.swup.hooks.on(
+		swup.hooks.on(
 			"content:scroll",
 			function (visit) {
 				if (!visit?.scroll?.reset) {
 					return false;
 				}
 
-				const scrollY =
-					window.scrollY ||
-					document.documentElement.scrollTop ||
-					0;
+				const scrollY = getScrollY();
 				if (scrollY <= 8) {
 					visit.scroll.reset = false;
 				}
@@ -289,7 +241,7 @@
 			{ before: true },
 		);
 
-		window.swup.hooks.on("visit:end", function () {
+		swup.hooks.on("visit:end", function () {
 			window.__homePreScrollCompleted = false;
 			window.__homePreScrollActive = false;
 			activePreScrollVisit = null;
@@ -298,27 +250,11 @@
 		return true;
 	}
 
-	function bootstrapHomePreScroll() {
-		if (registerHomePreScrollListeners()) {
-			return;
-		}
-
-		document.addEventListener("swup:enable", registerHomePreScrollListeners);
-
-		const retryTimer = window.setInterval(function () {
-			if (registerHomePreScrollListeners()) {
-				window.clearInterval(retryTimer);
-			}
-		}, 50);
-
-		window.setTimeout(function () {
-			window.clearInterval(retryTimer);
-		}, 5000);
-	}
+	window.onSwupReady?.(registerHomePreScrollListeners);
 
 	if (document.readyState === "loading") {
-		document.addEventListener("DOMContentLoaded", bootstrapHomePreScroll);
-	} else {
-		bootstrapHomePreScroll();
+		document.addEventListener("DOMContentLoaded", function () {
+			window.onSwupReady?.(registerHomePreScrollListeners);
+		});
 	}
 })();

@@ -1,5 +1,5 @@
 <script lang="ts">
-import { DARK_MODE, LIGHT_MODE, DEFAULT_THEME } from "@constants/constants";
+import { DARK_MODE, LIGHT_MODE, DEFAULT_THEME } from "@constants";
 import "@/lib/iconify-offline";
 import Icon from "@iconify/svelte";
 import { getStoredTheme, setTheme } from "@utils/setting-utils";

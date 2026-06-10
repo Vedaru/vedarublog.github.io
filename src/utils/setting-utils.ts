@@ -3,7 +3,7 @@ import {
 	DEFAULT_THEME,
 	LIGHT_MODE,
 	// WALLPAPER_BANNER,
-} from "@constants/constants";
+} from "@constants";
 import { siteConfig } from "@/config";
 import type { LIGHT_DARK_MODE, WALLPAPER_MODE } from "@/types/config";
 

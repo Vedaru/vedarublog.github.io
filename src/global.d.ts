@@ -4,10 +4,19 @@ declare global {
 	interface HTMLElementTagNameMap {
 		"table-of-contents": HTMLElement & {
 			init?: () => void;
+			regenerateTOC?: () => void;
 		};
 	}
 
 	interface Window {
+		hljs?: {
+			highlightElement: (element: HTMLElement) => void;
+		};
+		renderMermaidDiagrams?: () => void;
+		Fancybox?: {
+			bind: (selector: string, options?: object) => void;
+			unbind: (selector: string) => void;
+		};
 		// Define swup type directly since @swup/astro doesn't export AstroIntegration
 		swup: any;
 		closeAnnouncement: () => void;
@@ -103,6 +112,25 @@ declare global {
 		__syncTocHideForScroll?: (
 			scrollTop: number,
 			innerHeight?: number,
+		) => void;
+		__applyWallpaperBodyClasses?: (mode: string) => void;
+		__applyVisitBodyLayout?: (visit: { to: { url: string } }) => void;
+		__bootstrapWallpaperBodyClasses?: () => void;
+		__getScrollY?: () => number;
+		__pinScrollTopWithFrames?: (count?: number) => void;
+		__getNavbarHideThreshold?: () => number;
+		__normalizePath?: (path: string) => string;
+		__isHomePagePath?: (pathname: string) => boolean;
+		__pathFromUrl?: (url: string) => string;
+		__pathsEqual?: (path1: string, path2: string) => boolean;
+		onSwupReady?: (
+			registerFn: (swup: any) => void,
+			options?: { retryMs?: number; timeoutMs?: number },
+		) => void;
+		onSwupHook?: (
+			hook: string,
+			fn: (...args: any[]) => void,
+			options?: { retryMs?: number; timeoutMs?: number },
 		) => void;
 		scrollProtectionManager?: {
 			observeTwikoo?: () => void;

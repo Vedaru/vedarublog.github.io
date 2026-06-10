@@ -3,6 +3,14 @@
  * 提供统一的页面导航功能，支持 Swup 无刷新跳转
  */
 
+import {
+	getCurrentPath,
+	isHomePage as isHomePagePath,
+	pathsEqual,
+} from "./route-utils";
+
+export { getCurrentPath, pathsEqual };
+
 /**
  * 导航到指定页面
  * @param url 目标页面URL
@@ -139,16 +147,8 @@ export function preloadPage(url: string): void {
 /**
  * 获取当前页面路径
  */
-export function getCurrentPath(): string {
-	return typeof window !== "undefined" ? window.location.pathname : "";
-}
-
-/**
- * 检查是否为首页
- */
 export function isHomePage(): boolean {
-	const path = getCurrentPath();
-	return path === "/" || path === "";
+	return isHomePagePath();
 }
 
 /**
@@ -159,14 +159,3 @@ export function isPostPage(): boolean {
 	return path.startsWith("/posts/");
 }
 
-/**
- * 检查两个路径是否相等
- */
-export function pathsEqual(path1: string, path2: string): boolean {
-	// 标准化路径（移除末尾斜杠）
-	const normalize = (path: string) => {
-		return path.endsWith("/") && path.length > 1 ? path.slice(0, -1) : path;
-	};
-
-	return normalize(path1) === normalize(path2);
-}

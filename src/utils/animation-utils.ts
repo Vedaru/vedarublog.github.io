@@ -273,3 +273,4 @@ if (typeof window !== "undefined") {
 		animationManager.init();
 	}
 }
+

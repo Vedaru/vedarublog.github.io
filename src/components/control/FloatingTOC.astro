@@ -243,6 +243,14 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 </style>
 
 <script>
+	import {
+		buildFloatingTocMarkup,
+		findActiveHeadingByScroll,
+		getTocConfig,
+		registerTocSwupReinit,
+		scrollToTocHeading,
+	} from "../../utils/toc-utils";
+
 	class FloatingTOC {
 		private btn: HTMLElement | null;
 		private panel: HTMLElement | null;
@@ -329,22 +337,8 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 
 		private updateActiveHeading() {
 			if (!this.content || this.headings.length === 0) return;
-			const scrollY = window.scrollY;
-			const offsetTop = 150;
 
-			let activeIndex = -1;
-			for (let i = 0; i < this.headings.length; i++) {
-				const heading = this.headings[i];
-				if (
-					heading.getBoundingClientRect().top + scrollY <
-					scrollY + offsetTop
-				) {
-					activeIndex = i;
-				} else {
-					break;
-				}
-			}
-
+			const activeIndex = findActiveHeadingByScroll(this.headings);
 			const links = Array.from(
 				this.content.querySelectorAll(".floating-toc-item"),
 			);
@@ -381,11 +375,24 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 				return;
 			}
 
-			const allHeadings = container.querySelectorAll(
-				"h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]",
+			const config = getTocConfig();
+			if (this.wrapper?.dataset.depth) {
+				config.maxLevel = Number.parseInt(
+					this.wrapper.dataset.depth,
+					10,
+				);
+			}
+			if (this.wrapper?.dataset.japaneseBadge) {
+				config.useJapaneseBadge =
+					this.wrapper.dataset.japaneseBadge === "true";
+			}
+
+			const { html, headings } = buildFloatingTocMarkup(
+				container,
+				config,
 			);
 
-			if (allHeadings.length === 0) {
+			if (headings.length === 0) {
 				this.wrapper?.classList.remove("active-toc");
 				this.wrapper?.classList.add("no-toc");
 				this.headings = [];
@@ -394,80 +401,7 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 
 			this.wrapper?.classList.remove("no-toc");
 			this.wrapper?.classList.add("active-toc");
-			this.headings = [];
-
-			const maxLevel = parseInt(this.wrapper?.dataset.depth || "3");
-			const useJapaneseBadge =
-				this.wrapper?.dataset.japaneseBadge === "true";
-
-			const japaneseKatakana = [
-				"ア",
-				"イ",
-				"ウ",
-				"エ",
-				"オ",
-				"カ",
-				"キ",
-				"ク",
-				"ケ",
-				"コ",
-				"サ",
-				"シ",
-				"ス",
-				"セ",
-				"ソ",
-				"タ",
-				"チ",
-				"ツ",
-				"テ",
-				"ト",
-				"ナ",
-				"ニ",
-				"ヌ",
-				"ネ",
-				"ノ",
-				"ハ",
-				"ヒ",
-				"フ",
-				"ヘ",
-				"ホ",
-			];
-
-			let minLevel = 6;
-			allHeadings.forEach((h) => {
-				const level = parseInt(h.tagName[1]);
-				if (level < minLevel) minLevel = level;
-			});
-
-			let html = "";
-			let h1Count = 0;
-			allHeadings.forEach((heading) => {
-				const level = parseInt(heading.tagName[1]);
-
-				if (level >= minLevel + maxLevel) return;
-
-				this.headings.push(heading as HTMLElement);
-
-				const indent = (level - minLevel) * 1;
-				let badge = "";
-
-				if (level === minLevel) {
-					h1Count++;
-					const badgeText =
-						useJapaneseBadge &&
-						h1Count - 1 < japaneseKatakana.length
-							? japaneseKatakana[h1Count - 1]
-							: h1Count.toString();
-					badge = `<span class="floating-toc-badge">${badgeText}</span>`;
-				} else if (level === minLevel + 1) {
-					badge = '<span class="floating-toc-dot"></span>';
-				} else {
-					badge = '<span class="floating-toc-dot-small"></span>';
-				}
-
-				const text = (heading.textContent || "").replace(/#+\s*$/, "");
-				html += `<a href="#${heading.id}" class="floating-toc-item" style="padding-left: ${0.5 + indent}rem" data-level="${level - minLevel}">${badge}<span class="floating-toc-text">${text}</span></a>`;
-			});
+			this.headings = headings;
 
 			if (this.content) {
 				this.content.innerHTML = html;
@@ -491,23 +425,15 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 				if (link) {
 					e.preventDefault();
 					const id = link.getAttribute("href")?.slice(1);
-					if (id) {
-						const element = document.getElementById(id);
-						if (element) {
-							window.__smoothScrollToElement?.(element, 80, 650);
-							this.close();
-						}
+					if (id && scrollToTocHeading(id)) {
+						this.close();
 					}
 				}
 			});
 			document.addEventListener("keydown", (e) => {
 				if (e.key === "Escape" && this.isOpen) this.close();
 			});
-			if ((window as any).swup) {
-				(window as any).swup.hooks.on("page:view", () => {
-					setTimeout(() => this.reinit(), 200);
-				});
-			}
+			registerTocSwupReinit(() => this.reinit());
 		}
 
 		private toggle() {
@@ -540,5 +466,4 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 	}
 
 	document.addEventListener("DOMContentLoaded", () => new FloatingTOC());
-	document.addEventListener("swup:page:view", () => new FloatingTOC());
 </script>

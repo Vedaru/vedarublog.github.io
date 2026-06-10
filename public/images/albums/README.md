@@ -163,17 +163,17 @@ public/images/albums/
 
 项目包含以下示例相册供参考：
 
-### AcgExample
+### acg-example
 - **本地图片模式**示例
 - 展示如何使用本地图片创建相册
 - 瀑布流布局，3 列
 
-### ExternalExample
+### external-example
 - **外链图片模式**示例（默认隐藏）
 - 展示如何使用外部图片链接
 - 适合使用图床的场景
 
-### HiddenExample
+### hidden-example
 - **隐藏相册**示例
 - 展示如何创建不在列表显示的相册
 - 可通过直接访问 URL 查看

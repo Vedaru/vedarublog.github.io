@@ -1,4 +1,4 @@
----
+﻿---
 import ConfigCarrier from "@components/ConfigCarrier.astro";
 import FullscreenWallpaper from "@components/misc/FullscreenWallpaper.astro";
 import MusicPlayer from "@components/widget/MusicPlayer.svelte";
@@ -13,21 +13,21 @@ import {
 } from "@/config";
 import { umamiConfig } from "../config";
 
-const BANNER_HEIGHT = 35;
-const BANNER_HEIGHT_EXTEND = 30;
-const BANNER_HEIGHT_HOME = BANNER_HEIGHT + BANNER_HEIGHT_EXTEND;
-
 import {
+	BANNER_HEIGHT,
+	BANNER_HEIGHT_EXTEND,
+	BANNER_HEIGHT_HOME,
 	DARK_MODE,
 	DEFAULT_THEME,
+	defaultFavicons,
 	LIGHT_MODE,
 	PAGE_WIDTH,
-} from "../constants/constants";
-import { defaultFavicons } from "../constants/icon";
+} from "@constants";
 import type { Favicon } from "../types/config";
-import { pathsEqual, url } from "../utils/url-utils";
+import { getDefaultBannerUrl } from "../utils/banner-utils";
+import { isHomePagePath } from "../utils/route-utils";
+import { url } from "../utils/url-utils";
 import "../styles/main.css";
-import "../styles/mobile-navbar.css";
 import "../styles/wallpaper-navbar-transparent.css";
 import "../styles/expressive-code.css";
 import "../styles/panel-animations.css";
@@ -47,7 +47,7 @@ let { title, banner, description, lang, setOGTypeArticle, postSlug } =
 // apply a class to the body element to decide the height of the banner, only used for initial page load
 // Swup can update the body for each page visit, but it's after the page transition, causing a delay for banner height change
 // so use Swup hooks instead to change the height immediately when a link is clicked
-const isHomePage = pathsEqual(Astro.url.pathname, url("/"));
+const isHomePage = isHomePagePath(Astro.url.pathname);
 
 // defines global css variables
 // why doing this in Layout instead of GlobalStyles: https://github.com/withastro/astro/issues/6728#issuecomment-1502203757
@@ -61,34 +61,8 @@ const navbarTransparentMode =
 const shouldShowTopHighlight =
 	navbarTransparentMode === "full" || navbarTransparentMode === "semifull";
 
-// 获取默认banner图片的辅助函数
-const getDefaultBanner = (): string => {
-	const src = siteConfig.banner.src;
-	if (typeof src === "string") {
-		return src;
-	}
-	if (Array.isArray(src)) {
-		return src[0] || "";
-	}
-	if (src && typeof src === "object") {
-		// 优先使用desktop，如果没有则使用mobile
-		const desktopSrc = src.desktop;
-		const mobileSrc = src.mobile;
-		if (typeof desktopSrc === "string") {
-			return desktopSrc;
-		}
-		if (Array.isArray(desktopSrc) && desktopSrc.length > 0) {
-			return desktopSrc[0];
-		}
-		if (typeof mobileSrc === "string") {
-			return mobileSrc;
-		}
-		if (Array.isArray(mobileSrc) && mobileSrc.length > 0) {
-			return mobileSrc[0];
-		}
-	}
-	return "";
-};
+// 获取默认banner图片
+const getDefaultBanner = (): string => getDefaultBannerUrl();
 
 if (!banner || typeof banner !== "string" || banner.trim() === "") {
 	banner = getDefaultBanner();
@@ -419,94 +393,7 @@ if (siteConfig.font) {
 				}
 			})();
 		</script>
-		<style is:inline>
-			/* Critical layout + shell — is:inline 强制留在 HTML，auto 模式下不被打包成外链 */
-			html[data-wallpaper-mode="banner"] .main-panel {
-				top: var(--banner-height, 35vh);
-			}
-			html[data-wallpaper-mode="banner"] #banner-wrapper {
-				display: block;
-				height: var(--banner-height-home, 65vh);
-			}
-			html[data-wallpaper-mode="fullscreen"] #banner-wrapper,
-			html[data-wallpaper-mode="none"] #banner-wrapper {
-				display: none;
-			}
-			html[data-wallpaper-mode="fullscreen"] .main-panel,
-			html[data-wallpaper-mode="none"] .main-panel {
-				top: calc(5.5rem + 1rem);
-				min-height: calc(100vh - 6.5rem);
-			}
-			html[data-post-list-layout="grid"] .right-sidebar-container {
-				display: none !important;
-			}
-			/* 移动端非首页：首屏即锁定主内容 top，避免外链 CSS 到达前从 banner 位下跳 */
-			@media (max-width: 1279px) {
-				html[data-wallpaper-mode="banner"] .main-panel.mobile-main-no-banner,
-				html[data-wallpaper-mode="fullscreen"] .main-panel.mobile-main-no-banner,
-				html[data-wallpaper-mode="none"] .main-panel.mobile-main-no-banner {
-					top: calc(5.5rem + 1rem) !important;
-					min-height: calc(100vh - 6.5rem) !important;
-				}
-				html[data-wallpaper-mode="banner"] #banner-wrapper.mobile-hide-banner {
-					height: 0 !important;
-					min-height: 0 !important;
-					overflow: hidden;
-					visibility: hidden;
-					pointer-events: none;
-				}
-			}
-			@media (max-width: 479px) {
-				html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
-					height: 70vh;
-					min-height: 450px;
-					top: 0;
-				}
-				html[data-wallpaper-mode="banner"] .main-panel:not(.mobile-main-no-banner) {
-					top: 70vh;
-					min-height: calc(100vh - 70vh);
-				}
-			}
-			@media (min-width: 480px) and (max-width: 767px) {
-				html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
-					height: 75vh;
-					min-height: 500px;
-					top: 0;
-				}
-				html[data-wallpaper-mode="banner"] .main-panel:not(.mobile-main-no-banner) {
-					top: 75vh;
-					min-height: calc(100vh - 75vh);
-				}
-			}
-			@media (min-width: 768px) and (max-width: 1279px) {
-				html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
-					height: 70vh;
-					min-height: 500px;
-					top: 0;
-				}
-				html[data-wallpaper-mode="banner"] .main-panel:not(.mobile-main-no-banner) {
-					top: 70vh;
-					min-height: calc(100vh - 70vh);
-				}
-			}
-			@media (min-width: 1280px) {
-				html[data-wallpaper-mode="banner"] .main-panel {
-					top: 35vh;
-				}
-				html[data-wallpaper-mode="banner"] #top-row {
-					height: calc(var(--banner-height-home, 65vh) - 4.5rem);
-					min-height: calc(var(--banner-height-home, 65vh) - 4.5rem);
-				}
-				html[data-wallpaper-mode="banner"] body.is-home #main-grid,
-				html[data-wallpaper-mode="banner"] body.lg\:is-home #main-grid {
-					transform: translateY(var(--banner-height-extend, 30dvh));
-				}
-			}
-			html[data-wallpaper-mode="fullscreen"] #main-grid,
-			html[data-wallpaper-mode="none"] #main-grid {
-				padding-top: 1rem;
-			}
-		</style>
+		<!-- Critical layout shell styles: see layout-stable.css (loaded via main.css) -->
 		<style
 			define:vars={{
 				configHue,
@@ -572,28 +459,33 @@ if (siteConfig.font) {
 			href={`${Astro.site}rss.xml`}
 		/>
 
+		<script is:inline src="/js/core/scroll-utils.js" data-cfasync="false"></script>
+		<script is:inline src="/js/core/route-utils.js" data-cfasync="false"></script>
+		<script is:inline src="/js/core/navbar-scroll-sync.js" data-cfasync="false"></script>
+		<script is:inline src="/js/core/swup-bootstrap.js" data-cfasync="false"></script>
+		<script is:inline src="/js/core/visit-layout.js" data-cfasync="false"></script>
 		<script
 			is:inline
 			defer
-			src="/banner-drift.js"
+			src="/js/banner-drift.js"
 			data-cfasync="false"
 		></script>
 		<script
 			is:inline
 			defer
-			src="/swup-transition-performance.js"
+			src="/js/swup-transition-performance.js"
 			data-cfasync="false"
 		></script>
 		<script
 			is:inline
 			defer
-			src="/smooth-scroll.js"
+			src="/js/smooth-scroll.js"
 			data-cfasync="false"
 		></script>
 		<script
 			is:inline
 			defer
-			src="/home-pre-scroll.js"
+			src="/js/home-pre-scroll.js"
 			data-cfasync="false"
 		></script>
 
@@ -631,32 +523,7 @@ if (siteConfig.font) {
 		<link rel="preload" href="/assets/css/shell-critical.css" as="style" />
 		<link rel="stylesheet" href="/assets/css/shell-critical.css" />
 		<script is:inline>
-			(function () {
-				var mode =
-					document.documentElement.getAttribute(
-						"data-wallpaper-mode",
-					) || "banner";
-				var body = document.body;
-				body.classList.remove(
-					"enable-banner",
-					"wallpaper-transparent",
-					"no-banner-mode",
-				);
-				switch (mode) {
-					case "banner":
-						body.classList.add("enable-banner");
-						break;
-					case "fullscreen":
-						body.classList.add(
-							"wallpaper-transparent",
-							"no-banner-mode",
-						);
-						break;
-					case "none":
-						body.classList.add("no-banner-mode");
-						break;
-				}
-			})();
+			window.__bootstrapWallpaperBodyClasses?.();
 		</script>
 		<noscript
 			><iframe
@@ -736,954 +603,13 @@ if (siteConfig.font) {
 </style>
 
 <script>
-	// import { animationManager } from '../utils/animation-utils';
-	import "overlayscrollbars/overlayscrollbars.css";
-	// import {
-	//  OverlayScrollbars,
-	//  // ScrollbarsHidingPlugin,
-	//  // SizeObserverPlugin,
-	//  // ClickScrollPlugin
-	// } from 'overlayscrollbars';
-	// import {getHue, getStoredTheme, setHue, setTheme} from "../utils/setting-utils";
-	import { pathsEqual, url } from "../utils/url-utils";
-	import {
-		// BANNER_HEIGHT,
-		// BANNER_HEIGHT_HOME,
-		// BANNER_HEIGHT_EXTEND,
-		// MAIN_PANEL_OVERLAPS_BANNER_HEIGHT,
-		DARK_MODE,
-		DEFAULT_THEME,
-	} from "../constants/constants";
-
-	const BANNER_HEIGHT = 35;
-	const BANNER_HEIGHT_EXTEND = 30;
-	const BANNER_HEIGHT_HOME = BANNER_HEIGHT + BANNER_HEIGHT_EXTEND;
-
-	// const MAIN_PANEL_OVERLAPS_BANNER_HEIGHT = 3.5;
-	import { siteConfig } from "../config";
-	import { widgetConfigs } from "../config";
-
-	// const setTimeout = window.setTimeout;
-	// @ts-ignore
-	const setTimeout = (callback: any, delay: any) =>
-		window.setTimeout(callback, delay);
-
-	/* Preload fonts */
-	// (async function() {
-	//  try {
-	//      await Promise.all([
-	//          document.fonts.load("400 1em Roboto"),
-	//          document.fonts.load("700 1em Roboto"),
-	//      ]);
-	//      document.body.classList.remove("hidden");
-	//  } catch (error) {
-	//      console.log("Failed to load fonts:", error);
-	//  }
-	// })();
-
-	/* TODO This is a temporary solution for style flicker issue when the transition is activated */
-	/* issue link: https://github.com/withastro/astro/issues/8711, the solution get from here too */
-	/* update: fixed in Astro 3.2.4 */
-	/*
-function disableAnimation() {
-    const css = document.createElement('style')
-    css.appendChild(
-        document.createTextNode(
-            `*{
-              -webkit-transition:none!important;
-              -moz-transition:none!important;
-              -o-transition:none!important;
-              -ms-transition:none!important;
-              transition:none!important
-              }`
-        )
-    )
-    document.head.appendChild(css)
-
-    return () => {
-        // Force restyle
-        ;(() => window.getComputedStyle(document.body))()
-        // Wait for next tick before removing
-        setTimeout(() => {
-            document.head.removeChild(css)
-        }, 1)
-    }
-}
-*/
-
-	const bannerEnabled = !!document.getElementById("banner-wrapper");
-
-	// 导入面板管理器 - 使用单个委托式 click 监听器替代多个独立监听器
-	async function initializePanelManager() {
-		try {
-			// @ts-ignore
-			const { panelManager } = await import("../utils/panel-manager.js");
-
-			// 合并所有面板的 click-outside 配置到一个监听器
-			var panelConfigs: { panel: string; ignores: string[] }[] = [
-				{ panel: "display-setting", ignores: ["display-setting", "display-settings-switch"] },
-				{ panel: "nav-menu-panel", ignores: ["nav-menu-panel", "nav-menu-switch"] },
-				{ panel: "search-panel", ignores: ["search-panel", "search-bar", "search-switch"] },
-				{ panel: "mobile-toc-panel", ignores: ["mobile-toc-panel", "mobile-toc-switch"] },
-				{ panel: "wallpaper-mode-panel", ignores: ["wallpaper-mode-panel", "wallpaper-mode-switch"] },
-			];
-
-			document.addEventListener("click", async function(event) {
-				var tDom = event.target;
-				if (!(tDom instanceof Node)) return;
-				for (var i = 0; i < panelConfigs.length; i++) {
-					var cfg = panelConfigs[i];
-					var isInside = false;
-					for (var j = 0; j < cfg.ignores.length; j++) {
-						var ie = document.getElementById(cfg.ignores[j]);
-						if (ie === tDom || (ie && ie.contains(tDom))) {
-							isInside = true;
-							break;
-						}
-					}
-					if (!isInside) {
-						await panelManager.closePanel(cfg.panel as any);
-					}
-				}
-			});
-
-			return panelManager;
-		} catch (error) {
-			console.error("Failed to initialize panel manager:", error);
-			return null;
-		}
-	}
-
-	initializePanelManager();
-
-	// function _loadTheme() {
-	//  const theme = getStoredTheme()
-	//  setTheme(theme)
-	// }
-
-	// function _loadHue() {
-	//  setHue(getHue())
-	// }
-
-	function initCustomScrollbar() {
-		// 完全禁用OverlayScrollbars的body初始化，避免导致页面重新加载
-		// 只处理katex元素的滚动条
-		const katexElements = document.querySelectorAll(
-			".katex-display:not([data-scrollbar-initialized])",
-		) as NodeListOf<HTMLElement>;
-
-		katexElements.forEach((element) => {
-			if (!element.parentNode) return;
-
-			const container = document.createElement("div");
-			container.className = "katex-display-container";
-			element.parentNode.insertBefore(container, element);
-			container.appendChild(element);
-
-			// 使用简单的CSS滚动条而不是OverlayScrollbars
-			container.style.cssText = `
-            overflow-x: auto;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(0,0,0,0.3) transparent;
-        `;
-
-			// 为webkit浏览器添加自定义滚动条样式
-			const style = document.createElement("style");
-			style.textContent = `
-            .katex-display-container::-webkit-scrollbar {
-                height: 6px;
-            }
-            .katex-display-container::-webkit-scrollbar-track {
-                background: transparent;
-            }
-            .katex-display-container::-webkit-scrollbar-thumb {
-                background: rgba(0,0,0,0.3);
-                border-radius: 3px;
-            }
-            .katex-display-container::-webkit-scrollbar-thumb:hover {
-                background: rgba(0,0,0,0.5);
-            }
-        `;
-
-			if (!document.head.querySelector("style[data-katex-scrollbar]")) {
-				style.setAttribute("data-katex-scrollbar", "true");
-				document.head.appendChild(style);
-			}
-
-			element.setAttribute("data-scrollbar-initialized", "true");
-		});
-	}
-
-	function showBanner() {
-		// 使用requestAnimationFrame优化DOM操作
-		requestAnimationFrame(() => {
-			// Handle single image banner (desktop)
-			const banner = document.getElementById("banner");
-			if (banner) {
-				banner.classList.remove("opacity-0", "scale-105");
-			}
-
-			// Handle mobile single image banner - 使用与电脑端相同的逻辑
-			const mobileBanner = document.querySelector(
-				'.block.md\\:hidden[alt="Mobile banner image of the blog"]',
-			);
-			if (mobileBanner) {
-				mobileBanner.classList.remove("opacity-0", "scale-105");
-				mobileBanner.classList.add("opacity-100");
-			}
-		});
-	}
-
-	function setupSakura() {
-		const sakuraConfig = (widgetConfigs as any)?.sakura;
-		if (!sakuraConfig || !sakuraConfig.enable) return;
-		if ((window as any).sakuraInitialized) return;
-		(window as any).sakuraInitialized = true;
-	}
-
-	if (document.readyState === "loading") {
-		document.addEventListener("DOMContentLoaded", setupSakura);
-	} else {
-		setupSakura();
-	}
-
-	let fancyboxSelectors: string[] = [];
-	let Fancybox: any = null;
-
-	const DYNAMIC_STYLE_PATTERN = /\/_astro\/.*(fancybox|katex|fancybox-custom)/i;
-
-	function loadPublicStylesheet(href: string) {
-		if (document.querySelector(`link[rel="stylesheet"][href="${href}"]`)) {
-			return Promise.resolve();
-		}
-		return new Promise<void>((resolve, reject) => {
-			const link = document.createElement("link");
-			link.rel = "stylesheet";
-			link.href = href;
-			link.onload = () => resolve();
-			link.onerror = () => reject(new Error(`Failed to load ${href}`));
-			document.head.appendChild(link);
-		});
-	}
-
-	function removeViteInjectedStyles() {
-		document
-			.querySelectorAll('link[rel="stylesheet"][href*="/_astro/"]')
-			.forEach((link) => {
-				const href = link.getAttribute("href") || "";
-				if (DYNAMIC_STYLE_PATTERN.test(href)) {
-					link.remove();
-				}
-			});
-	}
-
-	function invalidateSwupCacheIfStale() {
-		const buildId = document
-			.querySelector('meta[name="site-build-id"]')
-			?.getAttribute("content");
-		if (!buildId || !window.swup?.cache?.clear) return;
-
-		const storageKey = "vedaru-swup-build-id";
-		const previous = sessionStorage.getItem(storageKey);
-		if (previous && previous !== buildId) {
-			window.swup.cache.clear();
-		}
-		sessionStorage.setItem(storageKey, buildId);
-	}
-
-	function attachStylesheetErrorGuard() {
-		document
-			.querySelectorAll('link[rel="stylesheet"][href*="/_astro/"]')
-			.forEach((link) => {
-				if ((link as HTMLElement).dataset.staleGuard === "1") return;
-				(link as HTMLElement).dataset.staleGuard = "1";
-				link.addEventListener(
-					"error",
-					() => {
-						const href = link.getAttribute("href") || "";
-						// 保留全站主样式，避免 404 时卸载导致整页线框 FOUC
-						if (/\/_astro\/style\.[a-zA-Z0-9_-]+\.css/.test(href)) {
-							return;
-						}
-						link.remove();
-					},
-					{ once: true },
-				);
-			});
-	}
-
-	// 数学公式按需加载
-	function checkKatex() {
-		if (document.querySelector(".katex")) {
-			import("katex/dist/katex.css");
-		}
-	}
-
-	// 图片灯箱按需加载
-	async function initFancybox() {
-		const albumImagesSelector =
-			".custom-md img, #post-cover img, .moment-images img";
-		const albumLinksSelector = ".moment-images a[data-fancybox]";
-		const singleFancyboxSelector = "[data-fancybox]:not(.moment-images a)";
-
-		const hasImages =
-			document.querySelector(albumImagesSelector) ||
-			document.querySelector(albumLinksSelector) ||
-			document.querySelector(singleFancyboxSelector);
-
-		if (!hasImages) return;
-
-		if (!Fancybox) {
-			const mod = await import("@fancyapps/ui");
-			Fancybox = mod.Fancybox;
-			await Promise.all([
-				import("@fancyapps/ui/dist/fancybox/fancybox.css"),
-				loadPublicStylesheet("/assets/css/fancybox-custom.css"),
-			]);
-		}
-
-		if (fancyboxSelectors.length > 0) {
-			return; // 已经初始化，直接返回
-		}
-
-		const commonConfig = {
-			Thumbs: { autoStart: true, showOnStart: "yes" },
-			Toolbar: {
-				display: {
-					left: ["infobar"],
-					middle: [
-						"zoomIn",
-						"zoomOut",
-						"toggle1to1",
-						"rotateCCW",
-						"rotateCW",
-						"flipX",
-						"flipY",
-					],
-					right: ["slideshow", "thumbs", "close"],
-				},
-			},
-			animated: true,
-			dragToClose: true,
-			keyboard: {
-				Escape: "close",
-				Delete: "close",
-				Backspace: "close",
-				PageUp: "next",
-				PageDown: "prev",
-				ArrowUp: "next",
-				ArrowDown: "prev",
-				ArrowRight: "next",
-				ArrowLeft: "prev",
-			},
-			fitToView: true,
-			preload: 3,
-			infinite: true,
-			Panzoom: { maxScale: 3, minScale: 1 },
-			caption: false,
-		};
-
-		// 绑定相册/文章图片
-		Fancybox.bind(albumImagesSelector, {
-			...commonConfig,
-			groupAll: true,
-			Carousel: {
-				transition: "slide",
-				preload: 2,
-			},
-		});
-		fancyboxSelectors.push(albumImagesSelector);
-
-		Fancybox.bind(albumLinksSelector, {
-			...commonConfig,
-			source: (el: any) => {
-				return el.getAttribute("data-src") || el.getAttribute("href");
-			},
-		});
-		fancyboxSelectors.push(albumLinksSelector);
-
-		// 绑定单独的 fancybox 图片
-		Fancybox.bind(singleFancyboxSelector, commonConfig);
-		fancyboxSelectors.push(singleFancyboxSelector);
-	}
-
-	// 清理 Fancybox 实例（样式清理延后到 animation:in:end，避免换页动画期间 FOUC）
-	function cleanupFancybox() {
-		if (Fancybox) {
-			fancyboxSelectors.forEach((selector) => {
-				Fancybox.unbind(selector);
-			});
-		}
-		fancyboxSelectors = [];
-		Fancybox = null;
-	}
-
-	const setup = () => {
-		invalidateSwupCacheIfStale();
-		attachStylesheetErrorGuard();
-
-		// TODO: temp solution to change the height of the banner
-		/*
-    window.swup.hooks.on('animation:out:start', () => {
-        const path = window.location.pathname
-        const body = document.querySelector('body')
-        if (path[path.length - 1] === '/' && !body.classList.contains('is-home')) {
-            body.classList.add('is-home')
-        } else if (path[path.length - 1] !== '/' && body.classList.contains('is-home')) {
-            body.classList.remove('is-home')
-        }
-    })
-*/
-		window.swup.hooks.on("link:click", () => {
-			// Remove the delay for the first time page load
-			document.documentElement.style.setProperty(
-				"--content-delay",
-				"0ms",
-			);
-
-			// 深滚动换页由 pre-scroll 按帧同步 navbar；此处仅处理浅滚动场景
-			if (bannerEnabled) {
-				const scrollY = document.documentElement.scrollTop;
-				if (scrollY <= 80) {
-					const navbar = document.getElementById("navbar-wrapper");
-					if (navbar && document.body.classList.contains("lg:is-home")) {
-						const threshold =
-							window.innerHeight * (BANNER_HEIGHT / 100) - 88;
-						if (scrollY >= threshold) {
-							navbar.classList.add("navbar-hidden");
-						}
-					}
-				}
-			}
-		});
-
-		window.swup.hooks.on("content:replace", () => {
-			attachStylesheetErrorGuard();
-			window.initLastModifiedPage?.();
-			window.initTwikooPage?.();
-			window.initArchiveFilter?.();
-
-			if (
-				window.__homePreScrollWasUsed &&
-				(window as any).__pendingVisitBodyLayout
-			) {
-				// 延后 body 布局写入，避免与 Swup content:replace 同帧连续触发重排
-				requestAnimationFrame(() => {
-					flushPendingVisitBodyLayout();
-				});
-			}
-		});
-
-		function shouldInitTocForPath() {
-			const path = window.location.pathname;
-			return (
-				path.includes("/posts/") ||
-				path.includes("/diary") ||
-				document.querySelector(".custom-md, .markdown-content") !== null
-			);
-		}
-
-		function runSwupPageWritePhase() {
-			window.__scheduleSwupIdleWork?.(() => {
-				initFancybox();
-				checkKatex();
-				initCustomScrollbar();
-			});
-			window.__scheduleSwupIdleWork?.(() => {
-				if (typeof (window as any).mobileTOCInit === "function") {
-					(window as any).mobileTOCInit();
-				}
-			});
-		}
-
-		function runSwupPageLayoutPhase(detail?: { scrollTop?: number }) {
-			const scrollTop = detail?.scrollTop ?? 0;
-			const tocWrapper = document.getElementById("toc-wrapper");
-			const tocElement = document.querySelector("table-of-contents");
-			const shouldInitToc = shouldInitTocForPath();
-
-			window.__syncTocHideForScroll?.(
-				scrollTop,
-				window.__swupPhaseInnerHeight,
-			);
-
-			if (tocWrapper && tocElement) {
-				if (shouldInitToc) {
-					if (typeof (tocElement as any).init === "function") {
-						(tocElement as any).init();
-					}
-				} else if (typeof (tocElement as any).teardown === "function") {
-					(tocElement as any).teardown();
-					tocElement.innerHTML = "";
-					delete (tocElement as HTMLElement).dataset.loaded;
-				}
-			}
-
-			const navbar = document.getElementById("navbar");
-			if (navbar) {
-				const transparentMode = navbar.getAttribute(
-					"data-transparent-mode",
-				);
-				if (transparentMode === "semifull") {
-					if ((window as any).__suppressSemifullNavbarReinit) {
-						const isHome =
-							navbar.getAttribute("data-is-home") === "true";
-						(window as any).applySemifullNavbarVisualState?.(
-							scrollTop,
-							isHome,
-						);
-					} else if (
-						typeof (window as any).initSemifullScrollDetection ===
-							"function"
-					) {
-						(window as any).initSemifullScrollDetection(scrollTop);
-					}
-				}
-			}
-		}
-
-		function registerSwupPagePhases() {
-			if (!window.__onSwupPageWritePhase) {
-				document.addEventListener(
-					"DOMContentLoaded",
-					registerSwupPagePhases,
-					{ once: true },
-				);
-				return;
-			}
-			window.__onSwupPageWritePhase(runSwupPageWritePhase);
-			window.__onSwupPageLayoutPhase(runSwupPageLayoutPhase);
-		}
-
-		registerSwupPagePhases();
-
-		requestAnimationFrame(() => {
-			const html = document.documentElement;
-			if (
-				html.classList.contains("is-changing") ||
-				html.classList.contains("is-animating")
-			) {
-				return;
-			}
-			runSwupPageLayoutPhase({
-				scrollTop:
-					window.scrollY || document.documentElement.scrollTop || 0,
-			});
-		});
-
-		function applyVisitBodyLayout(visit: { to: { url: string } }) {
-			const bodyElement = document.querySelector("body");
-			const isHomePage = pathsEqual(visit.to.url, url("/"));
-			if (bodyElement) {
-				if (isHomePage) {
-					bodyElement.classList.add("lg:is-home", "is-home");
-				} else {
-					bodyElement.classList.remove("lg:is-home", "is-home");
-				}
-			}
-
-			const bannerTextOverlay = document.querySelector(
-				".banner-text-overlay",
-			);
-			if (bannerTextOverlay) {
-				if (isHomePage) {
-					bannerTextOverlay.classList.remove("hidden");
-				} else {
-					bannerTextOverlay.classList.add("hidden");
-				}
-			}
-
-			const bannerWrapper = document.getElementById("banner-wrapper");
-			const mainContentWrapper = document.querySelector(
-				".absolute.w-full.z-30",
-			);
-
-			if (bannerWrapper && mainContentWrapper) {
-				if (isHomePage) {
-					bannerWrapper.classList.remove("mobile-hide-banner");
-					mainContentWrapper.classList.remove(
-						"mobile-main-no-banner",
-					);
-				} else {
-					bannerWrapper.classList.add("mobile-hide-banner");
-					mainContentWrapper.classList.add(
-						"mobile-main-no-banner",
-					);
-				}
-			}
-		}
-
-		function flushPendingVisitBodyLayout() {
-			const visit = (window as any).__pendingVisitBodyLayout as
-				| { to: { url: string } }
-				| undefined;
-			if (!visit) return;
-
-			(window as any).__pendingVisitBodyLayout = undefined;
-			window.__lockSwupScroll?.();
-			window.__pinPageScrollTop?.();
-			applyVisitBodyLayout(visit);
-			requestAnimationFrame(() => {
-				window.__pinPageScrollTop?.();
-				requestAnimationFrame(() => {
-					window.__pinPageScrollTop?.();
-				});
-			});
-		}
-
-		function applyVisitStartLayout(
-			visit: { to: { url: string } },
-			options?: { deferBodyLayout?: boolean },
-		) {
-			const isHomePage = pathsEqual(visit.to.url, url("/"));
-			const cachedScrollTop =
-				window.scrollY || document.documentElement.scrollTop || 0;
-
-			if (options?.deferBodyLayout) {
-				(window as any).__pendingVisitBodyLayout = visit;
-			} else {
-				applyVisitBodyLayout(visit);
-				if (!window.__homePreScrollWasUsed) {
-					window.__lockSwupScrollAndPin?.();
-				}
-			}
-
-			// 换页回顶后 scroll 已为 0，勿用 pin 前缓存的旧值
-			const scrollForSemifull =
-				!options?.deferBodyLayout && !window.__homePreScrollWasUsed
-					? 0
-					: cachedScrollTop;
-
-			// Control navbar transparency based on page
-			const navbar = document.getElementById("navbar");
-			if (navbar) {
-				navbar.setAttribute("data-is-home", isHomePage.toString());
-				const transparentMode = navbar.getAttribute(
-					"data-transparent-mode",
-				);
-				if (transparentMode === "semifull") {
-					if ((window as any).__suppressSemifullNavbarReinit) {
-						(window as any).applySemifullNavbarVisualState?.(
-							0,
-							isHomePage,
-						);
-					} else if (
-						typeof (window as any)
-							.initSemifullScrollDetection === "function"
-					) {
-						(window as any).initSemifullScrollDetection(
-							scrollForSemifull,
-						);
-					}
-				}
-			}
-
-			const navbarWrapper = document.getElementById("navbar-wrapper");
-			if (navbarWrapper) {
-				navbarWrapper.classList.remove("navbar-hidden");
-			}
-
-			const toc = document.getElementById("toc-wrapper");
-			if (toc) {
-				toc.classList.add("toc-not-ready");
-			}
-		}
-
-		window.__applyVisitStartLayout = applyVisitStartLayout;
-		window.__flushPendingVisitBodyLayout = flushPendingVisitBodyLayout;
-
-		document.addEventListener(
-			"vedaru:home-pre-scroll-done",
-			((event: CustomEvent<{ visit: { to: { url: string } } }>) => {
-				if (event.detail?.visit) {
-					applyVisitStartLayout(event.detail.visit, {
-						deferBodyLayout: true,
-					});
-				}
-			}) as EventListener,
-		);
-
-		window.swup.hooks.on(
-			"visit:start",
-			(visit: { to: { url: string } }) => {
-				// 清理上一页的 Fancybox
-				cleanupFancybox();
-
-				// 预滚动 hook（priority -100）会先设置 __homePreScrollWasUsed
-				if (window.__homePreScrollWasUsed) {
-					const tocEarly = document.getElementById("toc-wrapper");
-					if (tocEarly) {
-						tocEarly.classList.add("toc-not-ready");
-					}
-					return;
-				}
-
-				applyVisitStartLayout(visit);
-			},
-			{ priority: 0 },
-		);
-
-		window.swup.hooks.on("page:view", (visit: { to: { document?: Document } }) => {
-			const nextTitle = visit?.to?.document?.title;
-			if (nextTitle && document.title !== nextTitle) {
-				document.title = nextTitle;
-			}
-
-			const hadHomePreScroll = !!window.__homePreScrollWasUsed;
-
-			if (hadHomePreScroll) {
-				if (window.__homePreScrollActive) {
-					return;
-				}
-				window.__pinPageScrollTop?.();
-			} else {
-				window.__unlockSwupScroll?.();
-			}
-
-			// 同步主题状态 - 解决从首页进入文章页面时代码块渲染问题
-			const storedTheme = localStorage.getItem("theme") || DEFAULT_THEME;
-			const isDark = storedTheme === DARK_MODE;
-			const expectedTheme = isDark ? "github-dark" : "github-light";
-
-			const currentTheme =
-				document.documentElement.getAttribute("data-theme");
-			const hasDarkClass =
-				document.documentElement.classList.contains("dark");
-
-			// 如果主题不匹配，使用批量更新减少重绘
-			if (currentTheme !== expectedTheme || hasDarkClass !== isDark) {
-				// 使用 requestAnimationFrame 批量更新，减少重绘
-				requestAnimationFrame(() => {
-					// 同步 data-theme 属性
-					if (currentTheme !== expectedTheme) {
-						document.documentElement.setAttribute(
-							"data-theme",
-							expectedTheme,
-						);
-					}
-					// 同步 dark class
-					if (hasDarkClass !== isDark) {
-						if (isDark) {
-							document.documentElement.classList.add("dark");
-						} else {
-							document.documentElement.classList.remove("dark");
-						}
-					}
-				});
-			}
-
-			// 检查当前页面是否为文章页面，如果是则触发自定义事件用于初始化评论系统
-			setTimeout(() => {
-				if (document.getElementById("tcomment")) {
-					// 触发自定义事件，通知评论系统页面已完全加载
-					const pageLoadedEvent = new CustomEvent(
-						"mizuki:page:loaded",
-						{
-							detail: {
-								path: window.location.pathname,
-								timestamp: Date.now(),
-							},
-						},
-					);
-					document.dispatchEvent(pageLoadedEvent);
-					console.log(
-						"Layout: 触发 mizuki:page:loaded 事件，路径:",
-						window.location.pathname,
-					);
-				}
-			}, 300);
-		});
-
-		window.swup.hooks.on("visit:end", (_visit: { to: { url: string } }) => {
-			(window as any).__pendingVisitBodyLayout = undefined;
-
-			setTimeout(() => {
-				if (!window.__homePreScrollWasUsed) {
-					window.__unlockSwupScroll?.();
-				}
-
-				// 兜底：编排器 Phase 1 通常已移除 toc-not-ready
-				const toc = document.getElementById("toc-wrapper");
-				if (toc) {
-					toc.classList.remove("toc-not-ready");
-				}
-			}, 200);
-		});
-
-		window.swup.hooks.on("animation:in:end", () => {
-			removeViteInjectedStyles();
-		});
-	};
-
-	if (window?.swup?.hooks) {
-		initFancybox();
-		checkKatex();
-		setup();
-	} else {
-		document.addEventListener("swup:enable", setup);
-		// 监听 DOM 加载 (确保首屏也能加载优化组件)
-		if (document.readyState === "loading") {
-			document.addEventListener("DOMContentLoaded", () => {
-				initFancybox();
-				checkKatex();
-			});
-		} else {
-			initFancybox();
-			checkKatex();
-		}
-	}
-
-	let backToTopBtn = document.getElementById("back-to-top-btn");
-	let toc = document.getElementById("toc-wrapper");
-	let navbar = document.getElementById("navbar-wrapper");
-	let contentWrapperRef = document.getElementById('content-wrapper');
-	let backToTopThreshold = 0;
-
-	// 缓存 contentWrapper 的绝对位置偏移，避免每次滚动都调用 getBoundingClientRect
-	function cacheContentWrapperOffset() {
-		if (contentWrapperRef) {
-			var rect = contentWrapperRef.getBoundingClientRect();
-			backToTopThreshold = rect.top + window.scrollY + window.innerHeight / 4;
-		} else {
-			backToTopThreshold = window.innerHeight * (BANNER_HEIGHT / 100) + 100;
-		}
-	}
-	requestAnimationFrame(function () {
-		requestAnimationFrame(cacheContentWrapperOffset);
-	});
-	// Swup 页面切换后等布局稳定再缓存
-	document.addEventListener("swup:page:view", () => {
-		requestAnimationFrame(() => {
-			requestAnimationFrame(cacheContentWrapperOffset);
-		});
-	});
-
-	// 节流函数
-	function throttle(func: Function, limit: number) {
-		let inThrottle: boolean;
-		return function (this: any) {
-			const args = arguments;
-			const context = this;
-			if (!inThrottle) {
-				func.apply(context, args);
-				inThrottle = true;
-				setTimeout(() => (inThrottle = false), limit);
-			}
-		};
-	}
-
-	function scrollFunction() {
-		if (
-			document.documentElement.classList.contains(
-				"is-home-pre-scrolling",
-			) ||
-			document.documentElement.classList.contains(
-				"is-visit-pre-scrolling",
-			)
-		) {
-			return;
-		}
-
-		const scrollTop = document.documentElement.scrollTop;
-		const bannerHeight = window.innerHeight * (BANNER_HEIGHT / 100);
-
-		// 批量处理DOM操作
-		requestAnimationFrame(() => {
-			if (backToTopBtn) {
-				if (scrollTop > backToTopThreshold) {
-					backToTopBtn.classList.remove("hide");
-				} else {
-					backToTopBtn.classList.add("hide");
-				}
-			}
-
-			if (bannerEnabled && toc) {
-				const isBannerMode = document.body.classList.contains("enable-banner");
-				if (isBannerMode) {
-					if (scrollTop > bannerHeight) {
-						toc.classList.remove("toc-hide");
-					} else {
-						toc.classList.add("toc-hide");
-					}
-				} else {
-					toc.classList.remove("toc-hide");
-				}
-			}
-
-			if (bannerEnabled && navbar) {
-				const isHome =
-					document.body.classList.contains("lg:is-home") &&
-					window.innerWidth >= 1024;
-				const currentBannerHeight = isHome
-					? BANNER_HEIGHT_HOME
-					: BANNER_HEIGHT;
-
-				const threshold =
-					window.innerHeight * (currentBannerHeight / 100) - 88;
-				if (scrollTop >= threshold) {
-					navbar.classList.add("navbar-hidden");
-				} else {
-					navbar.classList.remove("navbar-hidden");
-				}
-			}
-		});
-	}
-
-	// 使用 addEventListener + passive 替代 window.onscroll，提升 INP
-	window.addEventListener("scroll", throttle(scrollFunction, 16), { passive: true });
-
-	// --banner-height-extend 现在使用 CSS dvh 单位，不再需要 resize 时重新计算
-
-	// 锚点导航时按需启用平滑滚动（替代全局 scroll-behavior: smooth 以避免 CLS）
-	document.addEventListener("click", function(e) {
-		var target = e.target as HTMLElement | null;
-		if (!target) return;
-		var link = target.closest('a[href^="#"]') as HTMLAnchorElement | null;
-		if (link) {
-			if (
-				link.closest(
-					"#toc, table-of-contents, #mobile-toc-panel, .floating-toc-wrapper, .floating-toc-panel",
-				)
-			) {
-				return;
-			}
-
-			var targetId = link.getAttribute("href");
-			if (targetId && targetId.length > 1) {
-				var targetEl = document.querySelector(targetId);
-				if (targetEl) {
-					e.preventDefault();
-					window.__smoothScrollToElement?.(targetEl, 80, 650);
-					history.pushState(null, "", targetId);
-				}
-			}
-		}
-	});
-
-	// 页面加载完成后初始化banner和轮播图
-	if (document.readyState === "loading") {
-		document.addEventListener("DOMContentLoaded", async () => {
-			showBanner();
-			// 初始化面板管理器
-			try {
-				await import("../utils/panel-manager.js");
-				console.log("Panel manager initialized");
-			} catch (error) {
-				console.error("Failed to initialize panel manager:", error);
-			}
-		});
-	} else {
-		showBanner();
-		// 页面已经加载完成，立即初始化面板管理器
-		(async () => {
-			try {
-				await import("../utils/panel-manager.js");
-				console.log("Panel manager initialized");
-			} catch (error) {
-				console.error("Failed to initialize panel manager:", error);
-			}
-		})();
-	}
+	import { initThemeBootstrap } from "../scripts/theme-bootstrap";
+	import { initSwupLifecycle } from "../scripts/swup-lifecycle";
+	import { initNavbarScroll } from "../scripts/navbar-scroll";
+
+	initThemeBootstrap();
+	initSwupLifecycle();
+	initNavbarScroll();
 </script>
 
 <!-- 代码块折叠功能 -->
@@ -1702,7 +628,7 @@ function disableAnimation() {
 </script>
 
 {siteConfig.showLastModified && (
-	<script is:inline src="/last-modified.js" data-cfasync="false"></script>
+	<script is:inline src="/js/last-modified.js" data-cfasync="false"></script>
 )}
 
 {commentConfig.enable && (
@@ -1718,8 +644,8 @@ function disableAnimation() {
 			}
 			function bootCommentScripts() {
 				if (!document.getElementById("tcomment")) return;
-				loadCommentScript("/scroll-protection.js");
-				loadCommentScript("/twikoo-init.js");
+				loadCommentScript("/js/scroll-protection.js");
+				loadCommentScript("/js/twikoo-init.js");
 			}
 			if (document.readyState === "loading") {
 				document.addEventListener("DOMContentLoaded", bootCommentScripts);

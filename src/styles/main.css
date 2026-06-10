@@ -5,8 +5,10 @@
 /* 导入动画样式 */
 @import "./transition.css";
 @import "./banner-drift.css";
-@import "./mobile-transition-fix.css";
+@import "./banner-responsive.css";
+@import "./mobile-fixes.css";
 @import "./layout-stable.css";
+@import "./fancybox-custom.css";
 @import "./animation-enhancements.css";
 /* 导入渐变按钮样式 */
 @import "./gradient-buttons.css";

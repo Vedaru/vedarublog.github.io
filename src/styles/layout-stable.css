@@ -37,6 +37,15 @@ html[data-wallpaper-mode="none"] .main-panel {
 html[data-wallpaper-mode="banner"] #banner-wrapper {
   display: block;
   height: var(--banner-height-home, 65vh);
+  top: calc(-1 * var(--banner-height-extend, 30dvh));
+  transform-origin: top center;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transition:
+    transform var(--mobile-shift-duration, 700ms)
+      var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94)),
+    opacity var(--mobile-shift-duration, 700ms)
+      var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
 }
 
 html[data-wallpaper-mode="fullscreen"] #banner-wrapper,
@@ -82,6 +91,17 @@ html[data-wallpaper-mode="none"] #main-grid {
 
 /* 移动端禁用桌面首页 banner 延伸位移，避免顶部留白 */
 @media (max-width: 1279px) {
+  html[data-wallpaper-mode="banner"] #banner-wrapper {
+    top: 0;
+    transform: none;
+  }
+
+  html[data-wallpaper-mode="banner"] #banner-wrapper.mobile-hide-banner {
+    transform: translate3d(0, -100%, 0);
+    opacity: 0;
+    pointer-events: none;
+  }
+
   html[data-wallpaper-mode="banner"] body.enable-banner.is-home #banner-wrapper:not(.mobile-hide-banner),
   html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #banner-wrapper:not(.mobile-hide-banner) {
     transform: none !important;

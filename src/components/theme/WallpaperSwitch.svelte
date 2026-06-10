@@ -3,7 +3,7 @@
         WALLPAPER_BANNER,
         WALLPAPER_FULLSCREEN,
         WALLPAPER_NONE,
-    } from "@constants/constants";
+    } from "@constants";
     import I18nKey from "@i18n/i18nKey";
     import { i18n } from "@i18n/translation";
     import "@/lib/iconify-offline";
@@ -14,7 +14,7 @@
     } from "@utils/setting-utils";
     import { siteConfig } from "@/config";
     import type { WALLPAPER_MODE } from "@/types/config";
-    import { panelManager } from "../utils/panel-manager.js";
+    import { panelManager } from "../../utils/panel-manager.js";
     import { onMount } from "svelte";
 
     const wallpaperOptions: { mode: WALLPAPER_MODE; icon: string; label: I18nKey }[] = [

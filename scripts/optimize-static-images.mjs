@@ -11,7 +11,9 @@ function logSize(label, filePath) {
 		return;
 	}
 	const bytes = statSync(filePath).size;
-	console.log(`[images] ${label}: ${(bytes / 1024).toFixed(1)} KB → ${filePath}`);
+	console.log(
+		`[images] ${label}: ${(bytes / 1024).toFixed(1)} KB → ${filePath}`,
+	);
 }
 
 async function writeWebp(input, output, { width, height, quality = 80 }) {
@@ -77,7 +79,10 @@ async function optimizeBanner(baseName) {
 	const masterHeight = Math.round(masterWidth / aspect);
 	try {
 		const masterBuffer = await sharp(source, { animated: false })
-			.resize(masterWidth, masterHeight, { fit: "cover", position: "centre" })
+			.resize(masterWidth, masterHeight, {
+				fit: "cover",
+				position: "centre",
+			})
 			.webp({ quality: 82, effort: 4 })
 			.toBuffer();
 		writeFileSync(masterOut, masterBuffer);
@@ -130,3 +135,4 @@ main().catch((error) => {
 	console.error("[images] optimization failed:", error);
 	process.exit(1);
 });
+

@@ -3,13 +3,13 @@ import BackToTop from "@components/control/BackToTop.astro";
 import FloatingTOC from "@components/control/FloatingTOC.astro";
 import Footer from "@components/Footer.astro";
 import RightSideBar from "@components/layout/RightSideBar.astro";
-import Navbar from "@components/Navbar.astro";
+import Navbar from "@components/nav/Navbar.astro";
 import SideBar from "@components/widget/SideBar.astro";
+import BannerWrapper from "@components/banner/BannerWrapper.astro";
 import type { MarkdownHeading } from "astro";
 import { Icon } from "astro-icon/components";
 import IconifyLoader from "../components/misc/IconifyLoader.astro";
 import ImageWrapper from "../components/misc/ImageWrapper.astro";
-import TypewriterText from "../components/TypewriterText.astro";
 import TOC from "../components/widget/TOC.astro";
 import {
 	siteConfig,
@@ -19,18 +19,17 @@ import {
 	BANNER_HEIGHT_EXTEND,
 	// BANNER_HEIGHT_HOME,
 	// MAIN_PANEL_OVERLAPS_BANNER_HEIGHT,
-} from "../constants/constants";
+} from "@constants";
 import { widgetManager } from "../utils/widget-manager";
+import {
+	getBannerImages,
+	getBannerResponsive,
+	getFirstBannerUrl,
+	toBannerSrcList,
+} from "../utils/banner-utils";
+import { isHomePagePath } from "../utils/route-utils";
 import { url } from "../utils/url-utils";
 import Layout from "./Layout.astro";
-
-const getFirstBannerUrl = (
-	images: string | string[] | undefined,
-): string | null => {
-	if (Array.isArray(images)) return images[0] ?? null;
-	if (typeof images === "string") return images;
-	return null;
-};
 
 // TOC模式配置
 const tocMode = siteConfig.toc.mode || "float";
@@ -47,65 +46,7 @@ interface Props {
 	headings?: MarkdownHeading[];
 }
 
-// 类型守卫函数
-// const isBannerSrcObject = (
-// 	src:
-// 		| string
-// 		| string[]
-// 		| { desktop?: string | string[]; mobile?: string | string[] },
-// ): src is { desktop?: string | string[]; mobile?: string | string[] } => {
-// 	return (
-// 		typeof src === "object" &&
-// 		src !== null &&
-// 		!Array.isArray(src) &&
-// 		("desktop" in src || "mobile" in src)
-// 	);
-// };
-
-// 获取banner图片的辅助函数
-const getBannerImages = async () => {
-	let bannerSrc = siteConfig.banner.src;
-
-	// 如果启用了图片API，获取API图片
-	if (siteConfig.banner.imageApi?.enable && siteConfig.banner.imageApi?.url) {
-		try {
-			const response = await fetch(siteConfig.banner.imageApi.url);
-			const text = await response.text();
-			const apiImages = text.split("\n").filter((line) => line.trim());
-
-			if (apiImages.length > 0) {
-				bannerSrc = apiImages;
-			}
-		} catch (error) {
-			console.warn("Failed to fetch images from API:", error);
-		}
-	}
-
-	if (
-		typeof bannerSrc === "object" &&
-		bannerSrc !== null &&
-		!Array.isArray(bannerSrc) &&
-		("desktop" in bannerSrc || "mobile" in bannerSrc)
-	) {
-		const srcObj = bannerSrc as {
-			desktop?: string | string[];
-			mobile?: string | string[];
-		};
-		return {
-			desktop: srcObj.desktop || srcObj.mobile || "",
-			mobile: srcObj.mobile || srcObj.desktop || "",
-		};
-	}
-	// 如果是字符串或字符串数组，同时用于桌面端和移动端
-	return {
-		desktop: bannerSrc,
-		mobile: bannerSrc,
-	};
-};
-
 const bannerImages = await getBannerImages();
-const toBannerSrcList = (src: string | string[] | undefined): string[] =>
-	Array.isArray(src) ? src : typeof src === "string" && src ? [src] : [];
 const desktopBannerList = toBannerSrcList(
 	bannerImages.desktop as string | string[] | undefined,
 );
@@ -114,16 +55,6 @@ const mobileBannerList = toBannerSrcList(
 );
 const singleDesktopBanner = desktopBannerList[0];
 const singleMobileBanner = mobileBannerList[0];
-
-const getBannerResponsive = (src: string | undefined | null) => {
-	if (!src) return null;
-	const stem = src.replace(/\.webp$/i, "");
-	return {
-		w768: `${stem}-768.webp`,
-		w1280: `${stem}-1280.webp`,
-		full: src,
-	};
-};
 
 const desktopBannerResponsive = getBannerResponsive(singleDesktopBanner);
 const mobileBannerResponsive =
@@ -157,7 +88,7 @@ const hasBannerCredit = siteConfig.banner.credit.enable;
 const hasBannerLink = !!siteConfig.banner.credit.url;
 
 // 检查是否为首页
-const isHomePage = Astro.url.pathname === "/" || Astro.url.pathname === "";
+const isHomePage = isHomePagePath(Astro.url.pathname);
 const shouldPreloadDesktopBanner = Boolean(desktopBannerResponsive);
 const shouldPreloadMobileBanner = isHomePage && Boolean(mobileBannerResponsive);
 const showHomeText = siteConfig.banner.homeText?.enable && isHomePage;
@@ -311,7 +242,7 @@ const transparentClass = shouldEnableTransparency
 	/>
 )}
 
-<script type="module" is:inline define:vars={{navbarTransparentMode: siteConfig.banner?.navbar?.transparentMode || "semi", defaultWallpaperMode: siteConfig.wallpaperMode.defaultMode, defaultPostListLayout: siteConfig.postListLayout?.defaultMode || "list", allowPostListSwitch: siteConfig.postListLayout?.allowSwitch ?? false, BANNER_HEIGHT: BANNER_HEIGHT}}>
+<script type="module" is:inline define:vars={{navbarTransparentMode: siteConfig.banner?.navbar?.transparentMode || "semi", defaultWallpaperMode: siteConfig.wallpaperMode.defaultMode, defaultPostListLayout: siteConfig.postListLayout?.defaultMode || "list", allowPostListSwitch: siteConfig.postListLayout?.allowSwitch ?? false}}>
 
 	function setMainGridLayout(mainGrid, layout) {
 		if (!mainGrid) return;
@@ -339,19 +270,7 @@ const transparentClass = shouldEnableTransparency
 	}
 
 	function applyWallpaperBodyClasses(mode) {
-		var body = document.body;
-		body.classList.remove('enable-banner', 'wallpaper-transparent', 'no-banner-mode');
-		switch (mode) {
-			case 'banner':
-				body.classList.add('enable-banner');
-				break;
-			case 'fullscreen':
-				body.classList.add('wallpaper-transparent', 'no-banner-mode');
-				break;
-			case 'none':
-				body.classList.add('no-banner-mode');
-				break;
-		}
+		window.__applyWallpaperBodyClasses?.(mode);
 	}
 
 	function isWallpaperBodySynced(mode) {
@@ -375,26 +294,8 @@ const transparentClass = shouldEnableTransparency
 	}
 
 	function syncTocHideForScroll(scrollTop, innerHeight) {
-		var wallpaperMode = getWallpaperMode();
-		var tocWrapper = document.getElementById('toc-wrapper');
-		if (!tocWrapper) return;
-
-		var vh =
-			typeof innerHeight === 'number' ? innerHeight : window.innerHeight;
-
-		if (wallpaperMode === 'banner') {
-			var bannerHeight = vh * (BANNER_HEIGHT / 100);
-			if (scrollTop <= bannerHeight) {
-				tocWrapper.classList.add('toc-hide');
-			} else {
-				tocWrapper.classList.remove('toc-hide');
-			}
-		} else {
-			tocWrapper.classList.remove('toc-hide');
-		}
+		window.__syncTocHideForScroll?.(scrollTop, innerHeight);
 	}
-
-	window.__syncTocHideForScroll = syncTocHideForScroll;
 
 	function initWallpaperNavbarAndToc(wallpaperMode, cachedScrollTop, options) {
 		var scrollTop =
@@ -612,146 +513,15 @@ const transparentClass = shouldEnableTransparency
     </div>
 </div>
 
-<!-- Banner - 始终渲染，通过 JS 控制显示隐藏 -->
-<div id="banner-wrapper" class={`absolute z-10 w-full overflow-hidden ${mobileNonHomeBannerClass}`}>
-
-    <!-- Banner 单图 -->
-    <div id="banner-single-container" class="relative h-full w-full min-h-[inherit]">
-        {desktopBannerResponsive && (
-            <div class="absolute inset-0">
-                <div class="banner-breathe-wrap h-full w-full overflow-hidden">
-                    <picture>
-                        <source
-                            media="(max-width: 767px)"
-                            srcset={`${url((mobileBannerResponsive ?? desktopBannerResponsive).w768)} 768w`}
-                        />
-                        <source
-                            media="(min-width: 768px)"
-                            srcset={`${url(desktopBannerResponsive.w1280)} 1280w, ${url(desktopBannerResponsive.full)} 1920w`}
-                            sizes="100vw"
-                        />
-                        <img
-                            id="banner"
-                            alt="Banner image of the blog"
-                            class="object-cover w-full h-full"
-                            src={url(desktopBannerResponsive.full)}
-                            width={1920}
-                            height={1097}
-                            style={`object-position: ${bannerObjectPosition}`}
-                            loading="eager"
-                            fetchpriority="high"
-                            decoding="async"
-                        />
-                    </picture>
-                </div>
-            </div>
-        )}
-        <script is:inline>
-            (function () {
-                const run = () => {
-                    window.__bannerSessionApplyDrift?.(
-                        document.getElementById("banner-single-container"),
-                    );
-                };
-                if (document.readyState === "loading") {
-                    document.addEventListener("DOMContentLoaded", run, {
-                        once: true,
-                    });
-                } else {
-                    run();
-                }
-            })();
-        </script>
-    </div>
-    
-    <!-- Home page text overlay -->
-    {siteConfig.banner.homeText?.enable && (
-        <div class={`banner-text-overlay absolute inset-0 z-20 flex items-center justify-center ${!showHomeText ? 'hidden' : ''}`}>
-            <div class="w-4/5 lg:w-3/4 text-center mb-0">
-                <div class="flex flex-col">
-                    {siteConfig.banner.homeText?.title && (
-                        <h1 class="banner-title text-6xl lg:text-8xl text-white drop-shadow-lg mb-2 lg:mb-4">
-                            {siteConfig.banner.homeText.title}
-                        </h1>
-                    )}
-                    {siteConfig.banner.homeText?.subtitle && (
-                        <h2 class="banner-subtitle text-xl lg:text-3xl text-white/90 drop-shadow-md">
-                            <span class="inline-block min-h-[1.2em]">
-                                {siteConfig.banner.homeText.typewriter?.enable ? (
-                                    <TypewriterText 
-                                        text={siteConfig.banner.homeText.subtitle}
-                                        speed={siteConfig.banner.homeText.typewriter.speed}
-                                        deleteSpeed={siteConfig.banner.homeText.typewriter.deleteSpeed}
-                                        pauseTime={siteConfig.banner.homeText.typewriter.pauseTime}
-                                    />
-                                ) : (
-                                    Array.isArray(siteConfig.banner.homeText.subtitle) 
-                                        ? siteConfig.banner.homeText.subtitle[0] 
-                                        : siteConfig.banner.homeText.subtitle
-                                )}
-                            </span>
-                        </h2>
-                    )}
-                </div>
-            </div>
-        </div>
-    )}
-    
-    <!-- Water waves effect -->
-    {siteConfig.banner.waves?.enable && (
-        <div class="waves absolute -bottom-[1px] h-[10vh] max-h-[9.375rem] min-h-[3.125rem] w-full md:h-[15vh]" id="header-waves" style="transform: translateZ(0); will-change: fill;">
-            <svg
-                class="waves"
-                xmlns="http://www.w3.org/2000/svg"
-                xmlns:xlink="http://www.w3.org/1999/xlink"
-                viewBox="0 20 150 32"
-                preserveAspectRatio="none"
-                shape-rendering="auto"
-                style="transform: translateZ(0); backface-visibility: hidden;"
-            >
-                <defs>
-                    <path
-                        id="gentle-wave"
-                        d="M-160 44c30 0 58-18 88-18s 58 18 88 18 58-18 88-18 58 18 88 18 v48h-352z"
-                    >
-                    </path>
-                </defs>
-                <g class="parallax" style="transform: translateZ(0);">
-                    <use
-                        xlink:href="#gentle-wave"
-                        x="48"
-                        y="0"
-                        class="opacity-25 fill-[var(--page-bg)]"
-                        style="animation-delay: -2s; animation-duration: 7s; will-change: transform;"
-                    ></use>
-                    <use
-                        xlink:href="#gentle-wave"
-                        x="48"
-                        y="3"
-                        class="opacity-50 fill-[var(--page-bg)]"
-                        style="animation-delay: -3s; animation-duration: 10s; will-change: transform;"
-                    ></use>
-                    <use
-                        xlink:href="#gentle-wave"
-                        x="48"
-                        y="5"
-                        class="opacity-75 fill-[var(--page-bg)]"
-                        style="animation-delay: -4s; animation-duration: 13s; will-change: transform;"
-                    ></use>
-                    <use
-                        xlink:href="#gentle-wave"
-                        x="48"
-                        y="7"
-                        class="fill-[var(--page-bg)]"
-                        style="animation-delay: -5s; animation-duration: 20s; will-change: transform;"
-                    ></use>
-                </g>
-            </svg>
-        </div>
-    )}
-    
-
-</div>
+<BannerWrapper
+	mobileNonHomeBannerClass={mobileNonHomeBannerClass}
+	showHomeText={Boolean(showHomeText)}
+	desktopBannerResponsive={desktopBannerResponsive}
+	mobileBannerResponsive={mobileBannerResponsive}
+	bannerObjectPosition={bannerObjectPosition}
+	hasBannerCredit={hasBannerCredit}
+	hasBannerLink={hasBannerLink}
+/>
 
 <!-- Main content -->
 <div
@@ -929,172 +699,20 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
     }
 }
 
-/* 移动端横幅优化 - 小屏手机 (320px - 479px) — 布局高度见 layout-stable.css */
-@media (max-width: 479px) {
-    /* 横幅文本覆盖层优化 */
-    .banner-text-overlay {
-        align-items: center !important; /* 垂直居中 */
-        justify-content: center !important; /* 水平居中 */
-        padding: 1rem !important;
-        text-align: center !important; /* 文字居中对齐 */
-    }
-    
-    /* 文本容器优化 */
-    .banner-text-overlay > div {
-        margin-bottom: 0 !important; /* 移除底部边距，保持居中 */
-        width: 95% !important; /* 增加文本宽度利用率 */
-        text-align: center !important; /* 确保文字居中 */
-    }
-    
-    /* 标题字体优化 */
-    .banner-title {
-        font-size: 3.2rem !important; /* 增大字体大小 */
-        line-height: 1.1 !important;
-        margin-bottom: 0.5rem !important;
-        text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8) !important; /* 增强阴影 */
-    }
-    
-    /* 副标题字体优化 */
-    .banner-subtitle {
-        font-size: 1rem !important;
-        line-height: 1.3 !important;
-        text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.7) !important;
-    }
-    
-    /* 波浪效果高度调整 */
-    .waves {
-        height: 8vh !important;
-        min-height: 60px !important;
-        max-height: 80px !important;
-    }
-}
-
-/* 移动端横幅优化 - 大屏手机 (480px - 767px) — 布局高度见 layout-stable.css */
-@media (min-width: 480px) and (max-width: 767px) {
-    /* 横幅文本覆盖层优化 */
-    .banner-text-overlay {
-        align-items: center !important; /* 垂直居中 */
-        justify-content: center !important; /* 水平居中 */
-        padding: 1.5rem !important;
-        text-align: center !important; /* 文字居中对齐 */
-    }
-    
-    /* 文本容器优化 */
-    .banner-text-overlay > div {
-        margin-bottom: 0 !important; /* 移除底部边距，保持居中 */
-        width: 90% !important;
-        text-align: center !important; /* 确保文字居中 */
-    }
-    
-    /* 标题字体优化 */
-    .banner-title {
-        font-size: 3.8rem !important; /* 增大字体大小 */
-        line-height: 1.1 !important;
-        margin-bottom: 0.75rem !important;
-        text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8) !important;
-    }
-    
-    /* 副标题字体优化 */
-    .banner-subtitle {
-        font-size: 1.125rem !important;
-        line-height: 1.4 !important;
-        text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.7) !important;
-    }
-    
-    /* 波浪效果高度调整 */
-    .waves {
-        height: 10vh !important;
-        min-height: 70px !important;
-        max-height: 100px !important;
-    }
-}
-
-/* 平板设备横幅优化 (768px - 1279px) — 布局高度见 layout-stable.css */
+/* 平板设备双侧边栏布局优化 (768px - 1279px) */
 @media (min-width: 768px) and (max-width: 1279px) {
-    /* 横幅文本覆盖层优化 */
-    .banner-text-overlay {
-        align-items: center !important; /* 垂直居中 */
-        justify-content: center !important; /* 水平居中 */
-        padding: 2rem !important;
-        text-align: center !important; /* 文字居中对齐 */
-    }
-    
-    /* 文本容器优化 */
-    .banner-text-overlay > div {
-        margin-bottom: 0 !important; /* 移除底部边距，保持居中 */
-        width: 85% !important;
-        text-align: center !important; /* 确保文字居中 */
-    }
-    
-    /* 标题字体优化 */
-    .banner-title {
-        font-size: 4rem !important;
-        line-height: 1.1 !important;
-        margin-bottom: 1rem !important;
-        text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8) !important;
-    }
-    
-    /* 副标题字体优化 */
-    .banner-subtitle {
-        font-size: 1.5rem !important;
-        line-height: 1.4 !important;
-        text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.7) !important;
-    }
-    
-    /* 波浪效果高度调整 */
-    .waves {
-        height: 12vh !important;
-        min-height: 80px !important;
-        max-height: 120px !important;
-    }
-    
-    /* 修复双侧边栏模式在平板端的布局问题 */
     .mobile-both-sidebar {
-        /* 移除平板端的单列布局限制，让 Tailwind 的 gridCols 处理 */
-        /* grid-template-columns: 1fr !important; */
-        /* 确保左右padding对称 */
         padding-left: 1rem !important;
         padding-right: 1rem !important;
     }
     
-    /* 确保平板端主内容区域正确显示 */
     .mobile-both-sidebar main {
-        /* grid-column: 1 / -1 !important; */
         width: 100% !important;
         margin: 0 auto !important;
     }
     
-    /* 平板端footer也要居中 */
     .mobile-both-sidebar .footer {
         grid-column: 1 / -1 !important;
-    }
-}
-
-/* 桌面端保持居中 (1280px+) */
-@media (min-width: 1280px) {
-    .banner-text-overlay {
-        align-items: center !important; /* 垂直居中 */
-        justify-content: center !important; /* 水平居中 */
-        padding: 2rem !important;
-        text-align: center !important; /* 文字居中对齐 */
-    }
-    
-    .banner-text-overlay > div {
-        margin-bottom: 0 !important;
-        width: 75% !important;
-        text-align: center !important; /* 确保文字居中 */
-    }
-    
-    /* 桌面端图片容器优化 */
-    #banner img {
-        object-position: center center !important;
-    }
-    
-    /* 波浪效果恢复默认 */
-    .waves {
-        height: 15vh !important;
-        min-height: 80px !important;
-        max-height: 150px !important;
     }
 }
 
@@ -1120,39 +738,10 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
     }
 }
 
-#banner-wrapper {
-    top: calc(-1 * var(--banner-height-extend));
-    transform: translate3d(0, 0, 0);
-    transform-origin: top center;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    transition:
-        transform var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94)),
-        opacity var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
-}
+/* #banner-wrapper 定位规则见 layout-stable.css（BannerWrapper 组件化后须用全局样式） */
 
-/* 手机端非首页隐藏banner - 改进的分阶段动画 */
+/* 手机端非首页：主内容区域过渡（banner 隐藏动画见 layout-stable.css） */
 @media (max-width: 1279px) {
-    #banner-wrapper {
-        top: 0 !important;
-        transform: none !important;
-    }
-
-    body.enable-banner.is-home #banner-wrapper:not(.mobile-hide-banner),
-    body.enable-banner.is-home #main-grid {
-        transform: none !important;
-    }
-    
-    .mobile-hide-banner {
-        transform: translate3d(0, -100%, 0) !important;
-        opacity: 0 !important;
-        pointer-events: none !important;
-        transition:
-            transform var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94)),
-            opacity var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94)) !important;
-    }
-    
-    /* 手机端非首页时主内容区域从顶部开始 - 延迟出现的动画 */
     .absolute.w-full.z-30 {
         transition: top var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
     }

@@ -10,16 +10,17 @@ const currentYear = new Date().getFullYear();
 // 页脚自定义内容逻辑
 let customFooterHtml = "";
 if (footerConfig.enable) {
-	// 优先使用 customHtml，如果为空则使用 FooterConfig.html 文件内容
+	// 优先使用 customHtml，如果为空则使用 footer-config.html 文件内容
 	if (footerConfig.customHtml && footerConfig.customHtml.trim() !== "") {
 		customFooterHtml = footerConfig.customHtml.trim();
 	} else {
-		// customHtml 为空时，读取 FooterConfig.html 文件内容
+		// customHtml 为空时，读取 footer-config.html 文件内容
 		try {
 			const footerConfigPath = path.join(
 				process.cwd(),
 				"src",
-				"FooterConfig.html",
+				"partials",
+				"footer-config.html",
 			);
 			customFooterHtml = fs.readFileSync(footerConfigPath, "utf-8");
 			// 移除HTML注释
@@ -27,7 +28,7 @@ if (footerConfig.enable) {
 				.replace(/<!--[\s\S]*?-->/g, "")
 				.trim();
 			} catch (error: unknown) {
-    			console.warn("FooterConfig.html文件读取失败:", (error as Error).message);
+    			console.warn("footer-config.html文件读取失败:", (error as Error).message);
 			}	
 	}
 }

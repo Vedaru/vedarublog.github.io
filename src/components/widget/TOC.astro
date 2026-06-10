@@ -39,6 +39,19 @@ const className = Astro.props.class;
 </table-of-contents>
 
 <script>
+import {
+	buildSidebarTocMarkup,
+	cacheSectionOffsets,
+	collectHeadingsFromDocument,
+	createTransitionDeferredUpdater,
+	findActiveSectionIndex,
+	isPostPagePath,
+	scheduleTocDomInit,
+	scheduleTocIdleWork,
+	scrollToTocHeading,
+	shouldSkipTocLayoutWork,
+} from "../../utils/toc-utils";
+
 class TableOfContents extends HTMLElement {
     tocEl: HTMLElement | null = null;
     visibleClass = "visible";
@@ -54,8 +67,7 @@ class TableOfContents extends HTMLElement {
     layoutRaf = 0;
     sectionOffsets: Array<{ top: number; bottom: number } | null> = [];
     resizeTimer = 0;
-    pendingUpdateAfterTransition = false;
-    transitionReadyHandler: (() => void) | null = null;
+    transitionUpdater = createTransitionDeferredUpdater(() => this.update());
     heavyLayoutReady = false;
     heavyLayoutScheduled = false;
 
@@ -66,53 +78,9 @@ class TableOfContents extends HTMLElement {
         );
     };
 
-    shouldSkipLayoutWork = () => {
-        const html = document.documentElement;
-        if (
-            html.classList.contains("is-changing") ||
-            html.classList.contains("is-animating") ||
-            html.classList.contains("swup-perf-active") ||
-            html.classList.contains("is-home-pre-scrolling") ||
-            html.classList.contains("is-visit-pre-scrolling")
-        ) {
-            return true;
-        }
-        const tocWrapper = document.getElementById("toc-wrapper");
-        return tocWrapper?.classList.contains("toc-not-ready") ?? false;
-    };
-
-    scheduleUpdateAfterTransition = () => {
-        if (this.pendingUpdateAfterTransition) return;
-        this.pendingUpdateAfterTransition = true;
-
-        const runPending = () => {
-            this.pendingUpdateAfterTransition = false;
-            if (this.transitionReadyHandler) {
-                document.removeEventListener(
-                    "swup:transition-ready",
-                    this.transitionReadyHandler,
-                );
-                this.transitionReadyHandler = null;
-            }
-            this.update();
-        };
-
-        if (typeof window.__scheduleSwupIdleWork === "function") {
-            window.__scheduleSwupIdleWork(runPending);
-            return;
-        }
-
-        this.transitionReadyHandler = runPending;
-        document.addEventListener(
-            "swup:transition-ready",
-            this.transitionReadyHandler,
-            { once: true },
-        );
-    };
-
     markVisibleSection = (entries: IntersectionObserverEntry[]) => {
-        if (this.shouldSkipLayoutWork()) {
-            this.scheduleUpdateAfterTransition();
+        if (shouldSkipTocLayoutWork()) {
+            this.transitionUpdater.schedule();
             return;
         }
 
@@ -160,15 +128,7 @@ class TableOfContents extends HTMLElement {
     };
 
     cacheSectionOffsets = () => {
-        const scrollY = window.scrollY;
-        this.sectionOffsets = this.sections.map((section) => {
-            if (!section) return null;
-            const rect = section.getBoundingClientRect();
-            return {
-                top: rect.top + scrollY,
-                bottom: rect.bottom + scrollY,
-            };
-        });
+        this.sectionOffsets = cacheSectionOffsets(this.sections);
     };
 
     handleResize = () => {
@@ -237,8 +197,8 @@ class TableOfContents extends HTMLElement {
     };
 
     update = () => {
-        if (this.shouldSkipLayoutWork()) {
-            this.scheduleUpdateAfterTransition();
+        if (shouldSkipTocLayoutWork()) {
+            this.transitionUpdater.schedule();
             return;
         }
 
@@ -262,7 +222,7 @@ class TableOfContents extends HTMLElement {
 
     fallback = () => {
         if (!this.sections.length) return;
-        if (this.shouldSkipLayoutWork()) return;
+        if (shouldSkipTocLayoutWork()) return;
 
         if (!this.sectionOffsets.length) {
             this.cacheSectionOffsets();
@@ -270,22 +230,13 @@ class TableOfContents extends HTMLElement {
 
         const scrollTop = window.scrollY;
         const viewportBottom = scrollTop + window.innerHeight;
-
-        for (let i = 0; i < this.sectionOffsets.length; i++) {
-            const offsets = this.sectionOffsets[i];
-            if (!offsets) continue;
-
-            const { top: offsetTop, bottom: offsetBottom } = offsets;
-
-            if (
-                this.isInRange(offsetTop, scrollTop, viewportBottom) ||
-                this.isInRange(offsetBottom, scrollTop, viewportBottom) ||
-                (offsetTop < scrollTop && offsetBottom > viewportBottom)
-            ) {
-                this.markActiveHeading(i);
-            } else if (offsetTop > viewportBottom) {
-                break;
-            }
+        const activeIdx = findActiveSectionIndex(
+            this.sectionOffsets,
+            scrollTop,
+            viewportBottom,
+        );
+        if (activeIdx !== null) {
+            this.markActiveHeading(activeIdx);
         }
     };
 
@@ -302,12 +253,7 @@ class TableOfContents extends HTMLElement {
             event.preventDefault();
 
             const id = decodeURIComponent(anchor.hash?.substring(1));
-            const targetElement = document.getElementById(id);
-
-            if (targetElement) {
-                (window as any).tocClickTimestamp = Date.now();
-                window.__smoothScrollToElement?.(targetElement, 80, 650);
-            }
+            scrollToTocHeading(id);
 
             const idx = this.headingIdxMap.get(id);
             if (idx !== undefined) {
@@ -318,17 +264,13 @@ class TableOfContents extends HTMLElement {
         }
     };
 
-    isInRange(value: number, min: number, max: number) {
-        return min < value && value < max;
-    };
-
     scheduleHeavyLayout = () => {
         if (this.heavyLayoutReady || this.heavyLayoutScheduled) return;
         this.heavyLayoutScheduled = true;
 
         const runHeavy = () => {
             this.heavyLayoutScheduled = false;
-            if (this.shouldSkipLayoutWork()) {
+            if (shouldSkipTocLayoutWork()) {
                 return;
             }
             this.cacheSectionOffsets();
@@ -338,15 +280,7 @@ class TableOfContents extends HTMLElement {
             this.update();
         };
 
-        if (typeof window.__scheduleSwupIdleWork === "function") {
-            window.__scheduleSwupIdleWork(runHeavy);
-            return;
-        }
-
-        const schedule =
-            window.requestIdleCallback ||
-            ((cb: () => void) => window.setTimeout(cb, 100));
-        schedule(runHeavy, { timeout: 500 });
+        scheduleTocIdleWork(runHeavy);
     };
 
     connectedCallback() {
@@ -355,41 +289,7 @@ class TableOfContents extends HTMLElement {
             return;
         }
 
-        // 优先监听动画结束，兜底定时初始化，确保二次刷新也能正常显示 TOC
-        const element = document.querySelector('.custom-md') || document.querySelector('.prose') || document.querySelector('.markdown-content');
-        let initialized = false;
-        const tryInit = () => {
-            if (!initialized) {
-                initialized = true;
-                this.init();
-            }
-        };
-        const scheduleTryInit = () => {
-            if (
-                document.documentElement.classList.contains("is-changing") ||
-                document.documentElement.classList.contains("is-animating")
-            ) {
-                document.addEventListener(
-                    "swup:transition-ready",
-                    tryInit,
-                    { once: true },
-                );
-                return;
-            }
-            tryInit();
-        };
-        if (element) {
-            element.addEventListener(
-                "animationend",
-                scheduleTryInit,
-                { once: true },
-            );
-            // 兜底：无论动画是否触发，300ms后强制初始化一次
-            setTimeout(scheduleTryInit, 300);
-        } else {
-            scheduleTryInit();
-            setTimeout(scheduleTryInit, 300);
-        }
+        scheduleTocDomInit(() => this.init());
     };
 
     teardown() {
@@ -422,14 +322,7 @@ class TableOfContents extends HTMLElement {
         }
         window.removeEventListener("resize", this.handleResize);
 
-        if (this.transitionReadyHandler) {
-            document.removeEventListener(
-                "swup:transition-ready",
-                this.transitionReadyHandler,
-            );
-            this.transitionReadyHandler = null;
-        }
-        this.pendingUpdateAfterTransition = false;
+        this.transitionUpdater.cleanup();
         this.heavyLayoutReady = false;
         this.heavyLayoutScheduled = false;
     }
@@ -477,86 +370,24 @@ class TableOfContents extends HTMLElement {
     };
 
     regenerateTOC(retryCount = 0) {
-        // 检查是否为文章页面或日记页面（支持 /diary）
-        const isDiaryPage = window.location.pathname.includes('/diary');
-        // 检查是否为文章页面
-        const isPostPage = window.location.pathname.includes('/posts/') || 
-                          isDiaryPage ||
-                          document.querySelector('.custom-md, .markdown-content') !== null;
-        if (!isPostPage) {
-            // 如果不是文章页面，隐藏TOC
-            this.innerHTML = '';
+        if (!isPostPagePath()) {
+            this.innerHTML = "";
             delete this.dataset.loaded;
             return;
         }
-        // 从当前页面重新获取标题
-        const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6'))
-            .filter(h => h.id)
-            .map(h => ({
-                depth: parseInt(h.tagName.substring(1)),
-                slug: h.id,
-                text: (h.textContent || '').replace(/#+\s*$/, '')
-            }));
-        // 如果没有标题，延迟重试最多3次
+
+        const headings = collectHeadingsFromDocument();
         if (headings.length === 0 && retryCount < 3) {
             setTimeout(() => this.regenerateTOC(retryCount + 1), 120);
             return;
         }
         if (headings.length === 0) {
-            this.innerHTML = '';
+            this.innerHTML = "";
             delete this.dataset.loaded;
             return;
         }
-        // 重新生成TOC HTML
-        const minDepth = Math.min(...headings.map(h => h.depth));
-        // 获取配置信息
-        const siteConfig = (window as any).siteConfig || {};
-        const maxLevel = siteConfig.toc?.depth || 3;
-        const useJapaneseBadge = siteConfig.toc?.useJapaneseBadge || false;
-        
-        // 日语片假名字符集
-        const japaneseKatakana = [
-            "ア", "イ", "ウ", "エ", "オ",
-            "カ", "キ", "ク", "ケ", "コ",
-            "サ", "シ", "ス", "セ", "ソ",
-            "タ", "チ", "ツ", "テ", "ト",
-            "ナ", "ニ", "ヌ", "ネ", "ノ",
-            "ハ", "ヒ", "フ", "ヘ", "ホ",
-            "マ", "ミ", "ム", "メ", "モ",
-            "ヤ", "ユ", "ヨ",
-            "ラ", "リ", "ル", "レ", "ロ",
-            "ワ", "ヲ", "ン"
-        ];
-        
-        let heading1Count = 1;
-        const tocHTML = headings
-            .filter(heading => heading.depth < minDepth + maxLevel)
-            .map(heading => {
-                const depthClass = heading.depth === minDepth ? '' : 
-                    heading.depth === minDepth + 1 ? 'ml-4' : 'ml-8';
-                
-                let badgeContent = '';
-                if (heading.depth === minDepth) {
-                    if (useJapaneseBadge && heading1Count - 1 < japaneseKatakana.length) {
-                        badgeContent = japaneseKatakana[heading1Count - 1];
-                    } else {
-                        badgeContent = heading1Count.toString();
-                    }
-                    heading1Count++;
-                } else if (heading.depth === minDepth + 1) {
-                    badgeContent = '<div class="transition w-2 h-2 rounded-[0.1875rem] bg-[var(--toc-badge-bg)]"></div>';
-                } else {
-                    badgeContent = '<div class="transition w-1.5 h-1.5 rounded-sm bg-black/5 dark:bg-white/10"></div>';
-                }
-                
-                return `<a href="#${heading.slug}" class="px-2 flex gap-2 relative transition w-full min-h-9 rounded-xl hover:bg-[var(--toc-btn-hover)] active:bg-[var(--toc-btn-active)] py-2">
-                    <div class="transition w-5 h-5 shrink-0 rounded-lg text-xs flex items-center justify-center font-bold ${depthClass} ${heading.depth === minDepth ? 'bg-[var(--toc-badge-bg)] text-[var(--btn-content)]' : ''}">
-                        ${badgeContent}
-                    </div>
-                    <div class="transition text-sm ${heading.depth <= minDepth + 1 ? 'text-50' : 'text-30'}">${heading.text}</div>
-                </a>`;
-            }).join('');
-        this.innerHTML = tocHTML + '<div id="active-indicator" style="opacity: 0" class="-z-10 absolute bg-[var(--toc-btn-hover)] left-0 right-0 rounded-xl transition-all group-hover:bg-transparent border-2 border-[var(--toc-btn-hover)] group-hover:border-[var(--toc-btn-active)] border-dashed"></div>';
+
+        this.innerHTML = buildSidebarTocMarkup(headings);
         this.dataset.loaded = "true";
     }
 

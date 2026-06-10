@@ -1,0 +1,612 @@
+/**
+ * Mobile fixes: navbar, transitions, post list
+ * Merged from mobile-navbar.css, mobile-transition-fix.css, mobile-post-list-fix.css
+ */
+
+/**
+ * 导航栏半透明样式
+ */
+
+#navbar > div {
+  background: var(--card-bg);
+  border-radius: var(--radius-large);
+  will-change: background, backdrop-filter, box-shadow;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 桌面端 - 亮色 */
+@media (min-width: 1280px) {
+  #banner-wrapper ~ * #navbar[data-transparent-mode="semi"] > div,
+  body:has(#banner-wrapper) #navbar[data-transparent-mode="semi"] > div {
+    backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* 移动端 (仅首页) - 亮色 */
+@media (max-width: 1279px) {
+  #banner-wrapper ~ * #navbar[data-transparent-mode="semi"][data-is-home="true"] > div,
+  body:has(#banner-wrapper) #navbar[data-transparent-mode="semi"][data-is-home="true"] > div {
+    backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* 桌面端 - 暗色 */
+@media (min-width: 1280px) {
+  :root.dark #banner-wrapper ~ * #navbar[data-transparent-mode="semi"] > div,
+  :root.dark body:has(#banner-wrapper) #navbar[data-transparent-mode="semi"] > div {
+    backdrop-filter: blur(20px);
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(0, 0, 0, 0.55);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* 移动端 (仅首页) - 暗色 */
+@media (max-width: 1279px) {
+  :root.dark #banner-wrapper ~ * #navbar[data-transparent-mode="semi"][data-is-home="true"] > div,
+  :root.dark body:has(#banner-wrapper) #navbar[data-transparent-mode="semi"][data-is-home="true"] > div {
+    backdrop-filter: blur(20px);
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(0, 0, 0, 0.55);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/**
+ * 导航栏全透明样式
+ */
+
+/* 桌面端 */
+@media (min-width: 1280px) {
+  #banner-wrapper ~ * #navbar[data-transparent-mode="full"] > div,
+  body:has(#banner-wrapper) #navbar[data-transparent-mode="full"] > div,
+  :root.dark #banner-wrapper ~ * #navbar[data-transparent-mode="full"] > div,
+  :root.dark body:has(#banner-wrapper) #navbar[data-transparent-mode="full"] > div {
+    background: transparent;
+    box-shadow: none;
+    border: 1px solid transparent;
+    backdrop-filter: none;
+  }
+}
+
+/* 移动端 (仅首页) */
+@media (max-width: 1279px) {
+  #banner-wrapper ~ * #navbar[data-transparent-mode="full"][data-is-home="true"] > div,
+  body:has(#banner-wrapper) #navbar[data-transparent-mode="full"][data-is-home="true"] > div,
+  :root.dark #banner-wrapper ~ * #navbar[data-transparent-mode="full"][data-is-home="true"] > div,
+  :root.dark body:has(#banner-wrapper) #navbar[data-transparent-mode="full"][data-is-home="true"] > div {
+    background: transparent;
+    box-shadow: none;
+    border: 1px solid transparent;
+    backdrop-filter: none;
+  }
+}
+
+/* --- 初始状态 (Initial) --- */
+@media (min-width: 1280px) {
+  #banner-wrapper ~ * #navbar[data-transparent-mode="semifull"] > div,
+  body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"] > div {
+    background: transparent;
+    box-shadow: none;
+    border: 1px solid transparent;
+  }
+}
+
+@media (max-width: 1279px) {
+  #banner-wrapper ~ * #navbar[data-transparent-mode="semifull"][data-is-home="true"] > div,
+  body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"][data-is-home="true"] > div {
+    background: transparent;
+    box-shadow: none;
+    border: 1px solid transparent;
+  }
+}
+
+/* 桌面端 - 滚动后 */
+@media (min-width: 1280px) {
+  #banner-wrapper ~ * #navbar[data-transparent-mode="semifull"].scrolled > div,
+  body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"].scrolled > div {
+    backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  }
+
+  :root.dark #banner-wrapper ~ * #navbar[data-transparent-mode="semifull"].scrolled > div,
+  :root.dark body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"].scrolled > div {
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(0, 0, 0, 0.55);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* 移动端 - 滚动后 */
+@media (max-width: 1279px) {
+  #banner-wrapper ~ * #navbar[data-transparent-mode="semifull"][data-is-home="true"].scrolled > div,
+  body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"][data-is-home="true"].scrolled > div {
+    backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  }
+
+  :root.dark #banner-wrapper ~ * #navbar[data-transparent-mode="semifull"][data-is-home="true"].scrolled > div,
+  :root.dark body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"][data-is-home="true"].scrolled > div {
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(0, 0, 0, 0.55);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* 平板设备优化 */
+@media (min-width: 768px) and (max-width: 1279px) {
+  #navbar > div {
+    border-radius: 1rem;
+  }
+}
+
+/* 小屏手机优化 */
+@media (max-width: 480px) {
+  #navbar > div {
+    border-radius: 0.5rem;
+    margin: 0;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    max-width: none;
+    width: 100%;
+  }
+}
+
+/* 手机端导航栏全宽优化 */
+@media (max-width: 768px) {
+  #navbar > div {
+    max-width: none;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+
+/* 通用样式 */
+@media (min-width: 1280px) {
+  #banner-wrapper ~ * .float-panel,
+  body:has(#banner-wrapper) .float-panel,
+  #banner-wrapper ~ * .dropdown-content,
+  body:has(#banner-wrapper) .dropdown-content,
+  #banner-wrapper ~ * #display-setting,
+  body:has(#banner-wrapper) #display-setting,
+  #banner-wrapper ~ * #nav-menu-panel,
+  body:has(#banner-wrapper) #nav-menu-panel,
+  #banner-wrapper ~ * #mobile-toc-panel,
+  body:has(#banner-wrapper) #mobile-toc-panel,
+  #banner-wrapper ~ * #search-panel,
+  body:has(#banner-wrapper) #search-panel {
+    backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  }
+
+  /* 暗色模式 */
+  :root.dark #banner-wrapper ~ * .float-panel,
+  :root.dark body:has(#banner-wrapper) .float-panel,
+  :root.dark #banner-wrapper ~ * .dropdown-content,
+  :root.dark body:has(#banner-wrapper) .dropdown-content,
+  :root.dark #banner-wrapper ~ * #display-setting,
+  :root.dark body:has(#banner-wrapper) #display-setting,
+  :root.dark #banner-wrapper ~ * #nav-menu-panel,
+  :root.dark body:has(#banner-wrapper) #nav-menu-panel,
+  :root.dark #banner-wrapper ~ * #mobile-toc-panel,
+  :root.dark body:has(#banner-wrapper) #mobile-toc-panel,
+  :root.dark #banner-wrapper ~ * #search-panel,
+  :root.dark body:has(#banner-wrapper) #search-panel {
+    background: rgba(24, 25, 38, 0.85);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  }
+}
+
+/* 移动端 (仅首页) */
+@media (max-width: 1279px) {
+  #banner-wrapper ~ * #navbar[data-is-home="true"] .float-panel,
+  body:has(#banner-wrapper) #navbar[data-is-home="true"] .float-panel,
+  #banner-wrapper ~ * #navbar[data-is-home="true"] .dropdown-content,
+  body:has(#banner-wrapper) #navbar[data-is-home="true"] .dropdown-content,
+  #banner-wrapper ~ * #navbar[data-is-home="true"] ~ * #display-setting,
+  body:has(#banner-wrapper) #navbar[data-is-home="true"] ~ * #display-setting,
+  body:has(#banner-wrapper) #navbar[data-is-home="true"] #nav-menu-panel,
+  body:has(#banner-wrapper) #navbar[data-is-home="true"] #mobile-toc-panel,
+  body:has(#banner-wrapper) #navbar[data-is-home="true"] #search-panel,
+  body:has(#banner-wrapper) #navbar[data-is-home="true"] #display-setting {
+    backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  }
+
+  /* 暗色模式 */
+  :root.dark #banner-wrapper ~ * #navbar[data-is-home="true"] .float-panel,
+  :root.dark body:has(#banner-wrapper) #navbar[data-is-home="true"] .float-panel,
+  :root.dark #banner-wrapper ~ * #navbar[data-is-home="true"] .dropdown-content,
+  :root.dark body:has(#banner-wrapper) #navbar[data-is-home="true"] .dropdown-content,
+  :root.dark #banner-wrapper ~ * #navbar[data-is-home="true"] ~ * #display-setting,
+  :root.dark body:has(#banner-wrapper) #navbar[data-is-home="true"] ~ * #display-setting,
+  :root.dark body:has(#banner-wrapper) #navbar[data-is-home="true"] #nav-menu-panel,
+  :root.dark body:has(#banner-wrapper) #navbar[data-is-home="true"] #mobile-toc-panel,
+  :root.dark body:has(#banner-wrapper) #navbar[data-is-home="true"] #search-panel,
+  :root.dark body:has(#banner-wrapper) #navbar[data-is-home="true"] #display-setting {
+    background: rgba(24, 25, 38, 0.85);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  }
+}
+
+@media (max-width: 1279px) {
+  body.enable-banner #banner-wrapper ~ * #navbar[data-is-home="false"] > div,
+  body.enable-banner:has(#banner-wrapper) #navbar[data-is-home="false"] > div {
+    backdrop-filter: none;
+    background: var(--card-bg);
+    box-shadow: var(--shadow-sm);
+  }
+
+  body.enable-banner #banner-wrapper ~ * #navbar[data-is-home="false"] .float-panel,
+  body.enable-banner:has(#banner-wrapper) #navbar[data-is-home="false"] .float-panel,
+  body.enable-banner #banner-wrapper ~ * #navbar[data-is-home="false"] .dropdown-content,
+  body.enable-banner:has(#banner-wrapper) #navbar[data-is-home="false"] .dropdown-content,
+  body.enable-banner #banner-wrapper ~ * #navbar[data-is-home="false"] ~ * #display-setting,
+  body.enable-banner:has(#banner-wrapper) #navbar[data-is-home="false"] ~ * #display-setting,
+  body.enable-banner:has(#banner-wrapper) #navbar[data-is-home="false"] #nav-menu-panel,
+  body.enable-banner:has(#banner-wrapper) #navbar[data-is-home="false"] #mobile-toc-panel,
+  body.enable-banner:has(#banner-wrapper) #navbar[data-is-home="false"] #search-panel,
+  body.enable-banner:has(#banner-wrapper) #navbar[data-is-home="false"] #display-setting {
+    backdrop-filter: none;
+    background: var(--card-bg);
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+/**
+ * 移动端页面/壁纸/布局切换时的溢出修复
+ */
+
+html.swup-scroll-lock,
+html.swup-scroll-lock body {
+  overflow: hidden;
+}
+
+#page-height-extend {
+  position: fixed;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* 换页预滚动期间：冻结布局与 navbar 背景过渡，减轻回顶卡顿与透明度跳变 */
+html.is-home-pre-scrolling,
+html.is-visit-pre-scrolling {
+  overflow-anchor: none;
+}
+
+html.is-home-pre-scrolling #banner-wrapper,
+html.is-home-pre-scrolling .absolute.w-full.z-30,
+html.is-home-pre-scrolling #navbar-wrapper,
+html.is-home-pre-scrolling #main-grid,
+html.is-home-pre-scrolling #top-row,
+html.is-home-pre-scrolling .banner-breathe-wrap img,
+html.is-visit-pre-scrolling #banner-wrapper,
+html.is-visit-pre-scrolling .absolute.w-full.z-30,
+html.is-visit-pre-scrolling #navbar-wrapper,
+html.is-visit-pre-scrolling #main-grid,
+html.is-visit-pre-scrolling #top-row,
+html.is-visit-pre-scrolling .banner-breathe-wrap img,
+html.is-home-pre-scrolling #navbar > div,
+html.is-visit-pre-scrolling #navbar > div {
+  transition: none !important;
+}
+
+html.is-home-pre-scrolling #swup-container,
+html.is-visit-pre-scrolling #swup-container {
+  pointer-events: none;
+}
+
+/* 预滚动期间禁用 navbar-hidden，避免解冻 transition-all 时 opacity 跳变 */
+html.is-home-pre-scrolling #navbar-wrapper.navbar-hidden,
+html.is-visit-pre-scrolling #navbar-wrapper.navbar-hidden {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+@media (max-width: 1279px) {
+  html {
+    overflow-x: clip;
+    max-width: 100%;
+  }
+
+  body {
+    overflow-x: clip;
+    max-width: 100%;
+  }
+
+  /* Swup 页面切换、壁纸模式切换期间禁止横向溢出 */
+  html.is-changing,
+  html.is-animating,
+  html.is-leaving,
+  body.wallpaper-switching,
+  body.layout-switching {
+    overflow-x: clip;
+  }
+
+  #banner-wrapper,
+  .banner-container {
+    overflow: hidden !important;
+  }
+
+  #swup-container,
+  #content-wrapper,
+  #main-grid,
+  .absolute.w-full.z-30 {
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: clip;
+  }
+
+  #main-grid.layout-switching,
+  #post-list-container.layout-switching {
+    overflow-x: clip;
+  }
+
+  /* 移动端去掉横向位移动画，避免撑出视口 */
+  .card-animation {
+    transform: translateY(10px) scale(0.99);
+  }
+
+  .card-animation.visible {
+    transform: translateY(0) scale(1);
+  }
+
+  .transition-slide-in {
+    transform: translateY(8px);
+  }
+
+  .transition-slide-in.active {
+    transform: translateY(0);
+  }
+
+  /* Pio 看板娘：切换页面时保持 fixed 定位，不受主内容 transform 影响 */
+  .pio-container {
+    position: fixed !important;
+    transform: translate3d(0, 0, 0) !important;
+    overflow: visible !important;
+    font-size: 16px;
+  }
+
+  /* Swup 换页期间禁用 top/height 过渡，避免 banner/main 位移计入 CLS */
+  html.is-changing #banner-wrapper,
+  html.is-changing .main-panel,
+  html.is-changing .absolute.w-full.z-30,
+  html.is-animating #banner-wrapper,
+  html.is-animating .main-panel,
+  html.is-animating .absolute.w-full.z-30 {
+    transition: none !important;
+  }
+
+  /* Swup 换页期间：banner 保持常驻合成层，避免 toggling contain/will-change 导致换页结束时抽动 */
+  html.is-changing #swup-container,
+  html.is-animating #swup-container,
+  html.swup-perf-active #swup-container {
+    contain: paint;
+    pointer-events: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .float-panel,
+  #nav-menu-panel,
+  #mobile-toc-panel,
+  #display-setting,
+  #search-panel,
+  #wallpaper-mode-panel {
+    max-width: calc(100vw - 1rem);
+  }
+
+  .transition-main,
+  .transition-leaving,
+  .onload-animation,
+  .transition-slide-in,
+  .card-animation,
+  .nav-animation,
+  #dynamic-sidebar,
+  .widget-container {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .transition-main,
+  .transition-leaving,
+  .onload-animation,
+  .transition-slide-in,
+  .card-animation,
+  .nav-animation,
+  #dynamic-sidebar,
+  .widget-container {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/**
+ * 移动端文章列表初始化优化
+ * Mobile Post List Initialization Fix
+ * 解决移动端文章列表初始化时的闪烁和间距问题
+ */
+
+/* 关键：页面加载时立即应用正确的移动端样式 */
+@media (max-width: 768px) {
+  /* 强制在初始化前隐藏内容，避免闪烁 */
+  #post-list-container:not(.js-initialized) {
+    opacity: 0;
+    transition: opacity 0.1s ease-in-out;
+  }
+
+  /* JavaScript初始化完成后显示内容 */
+  #post-list-container.js-initialized {
+    opacity: 1;
+  }
+
+  /* 确保移动端使用紧凑的列表布局 */
+  #post-list-container {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: transparent !important;
+    min-height: auto !important;
+  }
+
+  /* 覆盖所有可能的网格模式 */
+  #post-list-container.grid-mode {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+    grid-template-columns: none !important;
+    grid-auto-rows: auto !important;
+  }
+
+  /* 优化文章卡片间距 */
+  #post-list-container .post-card-item {
+    margin-bottom: 0 !important;
+    margin-top: 0 !important;
+    padding: 0.75rem 1rem !important;
+  }
+
+  /* 优化卡片边框和圆角 */
+  #post-list-container .card-base {
+    margin-bottom: 0 !important;
+    border-radius: var(--radius-large) !important;
+  }
+
+  /* 移除不必要的分隔线 */
+  #post-list-container > div.border-t-\[1px\] {
+    display: none !important;
+  }
+
+  /* 增加文章列表容器的底部间距，与分页按钮保持适当距离 */
+  #post-list-container {
+    margin-bottom: 2rem !important; /* 增加到2rem，约32px */
+  }
+}
+
+/* 桌面端保持原有样式 */
+@media (min-width: 769px) {
+  #post-list-container {
+    transition: all 0.3s ease-in-out;
+  }
+}
+
+/* 全局规则：确保所有 wallpaper-transparent 模式下的卡片都透明 */
+body.wallpaper-transparent .card-base,
+.wallpaper-transparent .card-base,
+body.wallpaper-transparent #post-list-container .card-base,
+body.wallpaper-transparent #post-list-container > * .card-base,
+body.wallpaper-transparent .post-card-item .card-base,
+/* 确保嵌套的卡片元素在全屏壁纸模式下也应用半透明效果 */
+body.wallpaper-transparent .card-base .card-base,
+.wallpaper-transparent .card-base .card-base {
+  background: var(--card-bg-transparent) !important;
+  background-color: var(--card-bg-transparent) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* 暗色模式 */
+:root.dark body.wallpaper-transparent .card-base,
+:root.dark .wallpaper-transparent .card-base,
+:root.dark body.wallpaper-transparent #post-list-container .card-base,
+:root.dark body.wallpaper-transparent #post-list-container > * .card-base,
+:root.dark body.wallpaper-transparent .post-card-item .card-base,
+/* 确保嵌套的卡片元素在全屏壁纸模式下也应用半透明效果 */
+:root.dark body.wallpaper-transparent .card-base .card-base,
+:root.dark .wallpaper-transparent .card-base .card-base {
+  background: var(--card-bg-transparent) !important;
+  background-color: var(--card-bg-transparent) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* 移动端（<768px）强制透明 */
+@media (max-width: 768px) {
+  body.wallpaper-transparent .card-base,
+  body.wallpaper-transparent #post-list-container .card-base {
+    background: var(--card-bg-transparent) !important;
+    background-color: var(--card-bg-transparent) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+}
+
+/* 中等屏幕（769px-1280px）强制透明 - 重点修复区域 */
+@media (min-width: 769px) and (max-width: 1280px) {
+  body.wallpaper-transparent .card-base,
+  body.wallpaper-transparent #post-list-container .card-base,
+  body.wallpaper-transparent .post-card-item .card-base {
+    background: var(--card-bg-transparent) !important;
+    background-color: var(--card-bg-transparent) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+
+  :root.dark body.wallpaper-transparent .card-base,
+  :root.dark body.wallpaper-transparent #post-list-container .card-base,
+  :root.dark body.wallpaper-transparent .post-card-item .card-base {
+    background: var(--card-bg-transparent) !important;
+    background-color: var(--card-bg-transparent) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+}
+
+/* 大屏幕（>1280px）强制透明 */
+@media (min-width: 1281px) {
+  body.wallpaper-transparent .card-base,
+  body.wallpaper-transparent #post-list-container .card-base,
+  body.wallpaper-transparent .post-card-item .card-base {
+    background: var(--card-bg-transparent) !important;
+    background-color: var(--card-bg-transparent) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+
+  :root.dark body.wallpaper-transparent .card-base,
+  :root.dark body.wallpaper-transparent #post-list-container .card-base,
+  :root.dark body.wallpaper-transparent .post-card-item .card-base {
+    background: var(--card-bg-transparent) !important;
+    background-color: var(--card-bg-transparent) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+}
+
+/*
+ * 确保文章列表容器本身也是透明的（针对移动端背景）
+ */
+body.wallpaper-transparent #post-list-container {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* 移动端文章列表容器透明 */
+@media (max-width: 768px) {
+  body.wallpaper-transparent #post-list-container {
+    background: transparent !important;
+    background-color: transparent !important;
+  }
+}

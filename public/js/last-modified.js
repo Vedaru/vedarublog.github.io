@@ -9,7 +9,9 @@ if (window.__lastModifiedBootstrapped) {
 
 	function formatElapsed(dataEl) {
 		const startDate = new Date(dataEl.dataset.lastModified);
-		if (Number.isNaN(startDate.getTime())) return dataEl.dataset.prefix || "";
+		if (Number.isNaN(startDate.getTime())) {
+			return dataEl.dataset.prefix || "";
+		}
 
 		const diff = Date.now() - startDate.getTime();
 		const seconds = Math.floor(diff / 1000);
@@ -55,28 +57,18 @@ if (window.__lastModifiedBootstrapped) {
 		tickTimer = setInterval(updateLastModifiedDisplay, 1000);
 	}
 
-	let swupListenersRegistered = false;
-
-	function registerLastModifiedSwupListeners() {
-		if (swupListenersRegistered || !window.swup?.hooks) return;
-		swupListenersRegistered = true;
-
-		window.swup.hooks.on("content:replace", () => startLastModifiedTimer());
-		window.swup.hooks.on("page:view", () => startLastModifiedTimer());
-	}
-
-	function bootstrapLastModified() {
-		registerLastModifiedSwupListeners();
-		startLastModifiedTimer();
+	function registerLastModifiedSwupListeners(swup) {
+		swup.hooks.on("content:replace", () => startLastModifiedTimer());
+		swup.hooks.on("page:view", () => startLastModifiedTimer());
 	}
 
 	window.initLastModifiedPage = startLastModifiedTimer;
 
-	document.addEventListener("swup:enable", registerLastModifiedSwupListeners);
+	window.onSwupReady?.(registerLastModifiedSwupListeners);
 
 	if (document.readyState === "loading") {
-		document.addEventListener("DOMContentLoaded", bootstrapLastModified);
+		document.addEventListener("DOMContentLoaded", startLastModifiedTimer);
 	} else {
-		bootstrapLastModified();
+		startLastModifiedTimer();
 	}
 }

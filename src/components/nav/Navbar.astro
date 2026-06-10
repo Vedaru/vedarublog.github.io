@@ -1,17 +1,18 @@
 ---
 import { Icon } from "astro-icon/components";
-import { navBarConfig, siteConfig } from "../config";
-import { LinkPresets } from "../constants/link-presets";
-import { LinkPreset, type NavBarLink } from "../types/config";
-import { url } from "../utils/url-utils";
-import LayoutSwitchButton from "./LayoutSwitchButton.svelte";
-import LightDarkSwitch from "./LightDarkSwitch.svelte";
-import MobileTOC from "./MobileTOC.svelte";
-import Search from "./Search.svelte";
-import WallpaperSwitch from "./WallpaperSwitch.svelte";
-import DisplaySettings from "./widget/DisplaySettings.svelte";
-import DropdownMenu from "./widget/DropdownMenu.astro";
-import NavMenuPanel from "./widget/NavMenuPanel.astro";
+import { navBarConfig, siteConfig } from "../../config";
+import { LinkPresets } from "@constants";
+import { LinkPreset, type NavBarLink } from "../../types/config";
+import { isHomePagePath } from "../../utils/route-utils";
+import { url } from "../../utils/url-utils";
+import LayoutSwitchButton from "@components/theme/LayoutSwitchButton.svelte";
+import LightDarkSwitch from "@components/theme/LightDarkSwitch.svelte";
+import MobileTOC from "../MobileTOC.svelte";
+import Search from "../Search.svelte";
+import WallpaperSwitch from "@components/theme/WallpaperSwitch.svelte";
+import DisplaySettings from "../widget/DisplaySettings.svelte";
+import DropdownMenu from "../widget/DropdownMenu.astro";
+import NavMenuPanel from "./NavMenuPanel.astro";
 
 const className = Astro.props.class;
 
@@ -24,7 +25,7 @@ const modeSwitchDisplay =
 	siteConfig.wallpaperMode?.showModeSwitchOnMobile || "desktop";
 
 // 检查是否为首页
-const isHomePage = Astro.url.pathname === "/" || Astro.url.pathname === "";
+const isHomePage = isHomePagePath(Astro.url.pathname);
 
 let links: NavBarLink[] = navBarConfig.links.map(
 	(item: NavBarLink | LinkPreset): NavBarLink => {
@@ -101,7 +102,7 @@ let links: NavBarLink[] = navBarConfig.links.map(
 async function loadButtonScript() {
     try {
         // 导入面板管理器
-        const { panelManager } = await import('../utils/panel-manager.js');
+        const { panelManager } = await import('../../utils/panel-manager');
         
         let settingBtn = document.getElementById("display-settings-switch");
         if (settingBtn) {
@@ -168,7 +169,7 @@ function readDocumentScrollTop() {
     return window.scrollY || document.documentElement.scrollTop || 0;
 }
 
-function initSemifullScrollDetection(initialScrollTop) {
+function initSemifullScrollDetection(initialScrollTop?: number) {
     const navbar = document.getElementById('navbar');
     if (!navbar) return;
     
@@ -243,7 +244,9 @@ window.initSemifullScrollDetection = initSemifullScrollDetection;
 
 // 页面加载完成后初始化滚动检测
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initSemifullScrollDetection);
+    document.addEventListener('DOMContentLoaded', () => {
+        initSemifullScrollDetection();
+    });
 } else {
     initSemifullScrollDetection();
 }

@@ -5,8 +5,6 @@ if (window.__archiveFilterBootstrapped) {
 } else {
 	window.__archiveFilterBootstrapped = true;
 
-	let swupListenersRegistered = false;
-
 	function applyArchiveFilters() {
 		const panel = document.getElementById("archive-panel");
 		if (!panel) return;
@@ -44,26 +42,18 @@ if (window.__archiveFilterBootstrapped) {
 		});
 	}
 
-	function registerArchiveSwupListeners() {
-		if (swupListenersRegistered || !window.swup?.hooks) return;
-		swupListenersRegistered = true;
-
-		window.swup.hooks.on("content:replace", () => applyArchiveFilters());
-		window.swup.hooks.on("page:view", () => applyArchiveFilters());
-	}
-
-	function bootstrapArchiveFilter() {
-		registerArchiveSwupListeners();
-		applyArchiveFilters();
+	function registerArchiveSwupListeners(swup) {
+		swup.hooks.on("content:replace", () => applyArchiveFilters());
+		swup.hooks.on("page:view", () => applyArchiveFilters());
 	}
 
 	window.initArchiveFilter = applyArchiveFilters;
 
-	document.addEventListener("swup:enable", registerArchiveSwupListeners);
+	window.onSwupReady?.(registerArchiveSwupListeners);
 
 	if (document.readyState === "loading") {
-		document.addEventListener("DOMContentLoaded", bootstrapArchiveFilter);
+		document.addEventListener("DOMContentLoaded", applyArchiveFilters);
 	} else {
-		bootstrapArchiveFilter();
+		applyArchiveFilters();
 	}
 }
