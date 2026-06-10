@@ -87,14 +87,19 @@
 	const NAVBAR_BANNER_HEIGHT = 35;
 	const NAVBAR_BANNER_HEIGHT_HOME = 65;
 
-	window.__getNavbarHideThreshold = function getNavbarHideThreshold() {
+	window.__getNavbarHideThreshold = function getNavbarHideThreshold(options) {
 		if (!document.body.classList.contains("enable-banner")) {
 			return Number.POSITIVE_INFINITY;
 		}
 
-		const isHome =
-			document.body.classList.contains("lg:is-home") &&
-			window.innerWidth >= 1024;
+		let isHome;
+		if (typeof options?.forceHomeBanner === "boolean") {
+			isHome = options.forceHomeBanner;
+		} else {
+			isHome =
+				document.body.classList.contains("lg:is-home") &&
+				window.innerWidth >= 1024;
+		}
 		const bannerHeight = isHome
 			? NAVBAR_BANNER_HEIGHT_HOME
 			: NAVBAR_BANNER_HEIGHT;
@@ -125,6 +130,7 @@
 
 	window.__syncNavbarWrapperForScrollY = function syncNavbarWrapperForScrollY(
 		scrollY,
+		options,
 	) {
 		const navbarWrapper = document.getElementById("navbar-wrapper");
 		if (
@@ -145,7 +151,8 @@
 		}
 
 		const threshold =
-			window.__getNavbarHideThreshold?.() ?? Number.POSITIVE_INFINITY;
+			window.__getNavbarHideThreshold?.(options) ??
+			Number.POSITIVE_INFINITY;
 		const fade = computeNavbarWrapperFade(scrollY, threshold);
 
 		navbarWrapper.style.opacity = String(fade.opacity);

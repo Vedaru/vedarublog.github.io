@@ -90,53 +90,48 @@
 
 /* --- 初始状态 (Initial) --- */
 @media (min-width: 1280px) {
-  #banner-wrapper ~ * #navbar[data-transparent-mode="semifull"] > div,
-  body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"] > div {
+  #banner-wrapper ~ * #navbar[data-transparent-mode="semifull"]:not([data-is-home="true"]) > div,
+  body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"]:not([data-is-home="true"]) > div {
     background: transparent;
     box-shadow: none;
     border: 1px solid transparent;
   }
 }
 
-@media (max-width: 1279px) {
-  #banner-wrapper ~ * #navbar[data-transparent-mode="semifull"][data-is-home="true"] > div,
-  body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"][data-is-home="true"] > div {
-    background: transparent;
-    box-shadow: none;
-    border: 1px solid transparent;
-  }
+/* 首页 semifull：--semifull-fade 驱动渐变 */
+#banner-wrapper ~ * #navbar[data-transparent-mode="semifull"][data-is-home="true"] > div,
+body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"][data-is-home="true"] > div {
+  --sf: var(--semifull-fade, 0);
+  backdrop-filter: blur(calc(20px * var(--sf)));
+  background: rgba(255, 255, 255, calc(0.55 * var(--sf)));
+  border: 1px solid rgba(255, 255, 255, calc(0.55 * var(--sf)));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, calc(0.1 * var(--sf)));
+  transition: none;
 }
 
-/* 桌面端 - 滚动后 */
+:root.dark #banner-wrapper ~ * #navbar[data-transparent-mode="semifull"][data-is-home="true"] > div,
+:root.dark body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"][data-is-home="true"] > div {
+  background: rgba(0, 0, 0, calc(0.55 * var(--sf)));
+  border: 1px solid rgba(0, 0, 0, calc(0.55 * var(--sf)));
+  box-shadow: 0 4px 16px rgba(0, 0, 0, calc(0.2 * var(--sf)));
+}
+
+#navbar[data-transparent-mode="semifull"][data-is-home="true"].scrolled {
+  --semifull-fade: 1;
+}
+
+/* 桌面端 - 滚动后（非首页） */
 @media (min-width: 1280px) {
-  #banner-wrapper ~ * #navbar[data-transparent-mode="semifull"].scrolled > div,
-  body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"].scrolled > div {
+  #banner-wrapper ~ * #navbar[data-transparent-mode="semifull"].scrolled:not([data-is-home="true"]) > div,
+  body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"].scrolled:not([data-is-home="true"]) > div {
     backdrop-filter: blur(20px);
     background: rgba(255, 255, 255, 0.55);
     border: 1px solid rgba(255, 255, 255, 0.55);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   }
 
-  :root.dark #banner-wrapper ~ * #navbar[data-transparent-mode="semifull"].scrolled > div,
-  :root.dark body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"].scrolled > div {
-    background: rgba(0, 0, 0, 0.55);
-    border: 1px solid rgba(0, 0, 0, 0.55);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  }
-}
-
-/* 移动端 - 滚动后 */
-@media (max-width: 1279px) {
-  #banner-wrapper ~ * #navbar[data-transparent-mode="semifull"][data-is-home="true"].scrolled > div,
-  body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"][data-is-home="true"].scrolled > div {
-    backdrop-filter: blur(20px);
-    background: rgba(255, 255, 255, 0.55);
-    border: 1px solid rgba(255, 255, 255, 0.55);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  }
-
-  :root.dark #banner-wrapper ~ * #navbar[data-transparent-mode="semifull"][data-is-home="true"].scrolled > div,
-  :root.dark body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"][data-is-home="true"].scrolled > div {
+  :root.dark #banner-wrapper ~ * #navbar[data-transparent-mode="semifull"].scrolled:not([data-is-home="true"]) > div,
+  :root.dark body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"].scrolled:not([data-is-home="true"]) > div {
     background: rgba(0, 0, 0, 0.55);
     border: 1px solid rgba(0, 0, 0, 0.55);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
@@ -303,6 +298,12 @@ html.is-visit-pre-scrolling {
 }
 
 html.is-home-pre-scrolling #navbar-wrapper,
+html.is-visit-pre-scrolling #navbar-wrapper,
+html.is-visit-layout-shifting #navbar-wrapper {
+  transition: none !important;
+}
+
+html.is-home-pre-scrolling #navbar-wrapper,
 html.is-home-pre-scrolling #navbar > div,
 html.is-visit-pre-scrolling #banner-wrapper,
 html.is-visit-pre-scrolling .absolute.w-full.z-30,
@@ -348,6 +349,12 @@ html.is-visit-layout-shifting {
 
 html.is-visit-layout-shifting #sidebar-sticky,
 html.is-visit-layout-shifting #right-sidebar-sticky {
+  transition: none !important;
+}
+
+html.is-visit-layout-shifting #main-grid,
+html.is-visit-layout-shifting .absolute.w-full.z-30,
+html.is-visit-layout-shifting #banner-wrapper {
   transition: none !important;
 }
 

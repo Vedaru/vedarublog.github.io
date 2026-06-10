@@ -139,8 +139,13 @@ declare global {
 		onIconifyReady?: (callback: () => void) => void;
 		__getScrollY?: () => number;
 		__pinScrollTopWithFrames?: (count?: number) => void;
-		__getNavbarHideThreshold?: () => number;
-		__syncNavbarWrapperForScrollY?: (scrollY?: number) => void;
+		__getNavbarHideThreshold?: (options?: {
+			forceHomeBanner?: boolean;
+		}) => number;
+		__syncNavbarWrapperForScrollY?: (
+			scrollY?: number,
+			options?: { forceHomeBanner?: boolean },
+		) => void;
 		__finalizeNavbarWrapperAfterScroll?: () => void;
 		__clearNavbarWrapperInlineStyles?: () => void;
 		__normalizePath?: (path: string) => string;

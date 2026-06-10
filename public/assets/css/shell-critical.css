@@ -59,13 +59,44 @@ body.wallpaper-transparent #navbar:not([data-transparent-mode="semifull"]) > div
 }
 
 /* --- semifull 动态透明（须 !important 才能压过上方 shell 规则）--- */
-body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"]:not(.scrolled) > div {
+body:has(#banner-wrapper)
+	#navbar[data-transparent-mode="semifull"]:not(.scrolled):not([data-is-home="true"])
+	> div {
 	background: transparent !important;
 	background-color: transparent !important;
 	box-shadow: none !important;
 	border-color: transparent !important;
 	backdrop-filter: none !important;
 	-webkit-backdrop-filter: none !important;
+}
+
+/* 首页 semifull：由 JS 写入 --semifull-fade (0~1) 驱动渐变 */
+body:has(#banner-wrapper)
+	#navbar[data-transparent-mode="semifull"][data-is-home="true"]
+	> div {
+	--sf: var(--semifull-fade, 0);
+	background: rgba(255, 255, 255, calc(0.55 * var(--sf))) !important;
+	background-color: rgba(255, 255, 255, calc(0.55 * var(--sf))) !important;
+	border: 1px solid rgba(255, 255, 255, calc(0.55 * var(--sf))) !important;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, calc(0.1 * var(--sf))) !important;
+	backdrop-filter: blur(calc(20px * var(--sf))) !important;
+	-webkit-backdrop-filter: blur(calc(20px * var(--sf))) !important;
+	transition: none !important;
+}
+
+:root.dark
+	body:has(#banner-wrapper)
+	#navbar[data-transparent-mode="semifull"][data-is-home="true"]
+	> div {
+	background: rgba(0, 0, 0, calc(0.55 * var(--sf))) !important;
+	background-color: rgba(0, 0, 0, calc(0.55 * var(--sf))) !important;
+	border: 1px solid rgba(0, 0, 0, calc(0.55 * var(--sf))) !important;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, calc(0.2 * var(--sf))) !important;
+}
+
+body:has(#banner-wrapper)
+	#navbar[data-transparent-mode="semifull"][data-is-home="true"].scrolled {
+	--semifull-fade: 1;
 }
 
 @media (max-width: 1279px) {
@@ -78,29 +109,8 @@ body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"]:not(.scrolle
 }
 
 @media (min-width: 1280px) {
-	body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"].scrolled > div {
-		backdrop-filter: blur(20px) !important;
-		-webkit-backdrop-filter: blur(20px) !important;
-		background: rgba(255, 255, 255, 0.55) !important;
-		background-color: rgba(255, 255, 255, 0.55) !important;
-		border: 1px solid rgba(255, 255, 255, 0.55) !important;
-		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
-	}
-
-	:root.dark
-		body:has(#banner-wrapper)
-		#navbar[data-transparent-mode="semifull"].scrolled
-		> div {
-		background: rgba(0, 0, 0, 0.55) !important;
-		background-color: rgba(0, 0, 0, 0.55) !important;
-		border: 1px solid rgba(0, 0, 0, 0.55) !important;
-		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
-	}
-}
-
-@media (max-width: 1279px) {
 	body:has(#banner-wrapper)
-		#navbar[data-transparent-mode="semifull"][data-is-home="true"].scrolled
+		#navbar[data-transparent-mode="semifull"].scrolled:not([data-is-home="true"])
 		> div {
 		backdrop-filter: blur(20px) !important;
 		-webkit-backdrop-filter: blur(20px) !important;
@@ -112,7 +122,7 @@ body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"]:not(.scrolle
 
 	:root.dark
 		body:has(#banner-wrapper)
-		#navbar[data-transparent-mode="semifull"][data-is-home="true"].scrolled
+		#navbar[data-transparent-mode="semifull"].scrolled:not([data-is-home="true"])
 		> div {
 		background: rgba(0, 0, 0, 0.55) !important;
 		background-color: rgba(0, 0, 0, 0.55) !important;
@@ -121,7 +131,9 @@ body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"]:not(.scrolle
 	}
 }
 
-body.wallpaper-transparent #navbar[data-transparent-mode="semifull"]:not(.scrolled) > div {
+body.wallpaper-transparent
+	#navbar[data-transparent-mode="semifull"]:not(.scrolled):not([data-is-home="true"])
+	> div {
 	background: transparent !important;
 	background-color: transparent !important;
 	backdrop-filter: none !important;
@@ -129,7 +141,36 @@ body.wallpaper-transparent #navbar[data-transparent-mode="semifull"]:not(.scroll
 	box-shadow: none !important;
 }
 
-body.wallpaper-transparent #navbar[data-transparent-mode="semifull"].scrolled > div {
+body.wallpaper-transparent
+	#navbar[data-transparent-mode="semifull"][data-is-home="true"]
+	> div {
+	--sf: var(--semifull-fade, 0);
+	background: color-mix(
+			in srgb,
+			var(--card-bg-transparent) calc(var(--sf) * 100%),
+			transparent
+		)
+		!important;
+	background-color: color-mix(
+			in srgb,
+			var(--card-bg-transparent) calc(var(--sf) * 100%),
+			transparent
+		)
+		!important;
+	backdrop-filter: blur(calc(8px * var(--sf))) !important;
+	-webkit-backdrop-filter: blur(calc(8px * var(--sf))) !important;
+	box-shadow: 0 calc(4px * var(--sf)) calc(16px * var(--sf))
+		rgba(0, 0, 0, calc(0.08 * var(--sf))) !important;
+}
+
+body.wallpaper-transparent
+	#navbar[data-transparent-mode="semifull"][data-is-home="true"].scrolled {
+	--semifull-fade: 1;
+}
+
+body.wallpaper-transparent
+	#navbar[data-transparent-mode="semifull"].scrolled:not([data-is-home="true"])
+	> div {
 	background: var(--card-bg-transparent) !important;
 	backdrop-filter: blur(8px) !important;
 	-webkit-backdrop-filter: blur(8px) !important;

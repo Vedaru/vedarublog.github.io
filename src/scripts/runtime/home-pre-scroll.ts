@@ -118,32 +118,96 @@
 		}
 	}
 
+	function parseCssLengthToPx(value) {
+		const raw = (value || "").trim();
+		if (!raw) return 0;
+		if (raw.endsWith("dvh")) {
+			return (window.innerHeight * parseFloat(raw)) / 100;
+		}
+		if (raw.endsWith("vh")) {
+			return (window.innerHeight * parseFloat(raw)) / 100;
+		}
+		if (raw.endsWith("px")) {
+			return parseFloat(raw);
+		}
+		const parsed = parseFloat(raw);
+		return Number.isFinite(parsed) ? parsed : 0;
+	}
+
+	function getLayoutShiftAnchor() {
+		return (
+			document.getElementById("content-wrapper") ||
+			document.getElementById("main-grid") ||
+			document.getElementById("swup-container")
+		);
+	}
+
+	function getExpectedDesktopHomeGridShiftPx() {
+		if (window.innerWidth < 1280) {
+			return 0;
+		}
+		if (
+			!document.body.classList.contains("is-home") &&
+			!document.body.classList.contains("lg:is-home")
+		) {
+			return 0;
+		}
+
+		const extend = getComputedStyle(document.documentElement).getPropertyValue(
+			"--banner-height-extend",
+		);
+		return parseCssLengthToPx(extend);
+	}
+
+	function snapshotNavbarWrapperStyles() {
+		const navbarWrapper = document.getElementById("navbar-wrapper");
+		if (!navbarWrapper) {
+			return null;
+		}
+
+		return {
+			opacity: navbarWrapper.style.opacity,
+			transform: navbarWrapper.style.transform,
+		};
+	}
+
+	function restoreNavbarWrapperStyles(snapshot) {
+		if (!snapshot) return;
+
+		const navbarWrapper = document.getElementById("navbar-wrapper");
+		if (!navbarWrapper) return;
+
+		if (snapshot.opacity) {
+			navbarWrapper.style.opacity = snapshot.opacity;
+		} else {
+			navbarWrapper.style.removeProperty("opacity");
+		}
+
+		if (snapshot.transform) {
+			navbarWrapper.style.transform = snapshot.transform;
+		} else {
+			navbarWrapper.style.removeProperty("transform");
+		}
+	}
+
 	function beginLeavingHomeLayoutShift(visit) {
-		const mainPanel = document.querySelector(".absolute.w-full.z-30");
+		const anchor = getLayoutShiftAnchor();
 		const scrollBefore = getScrollY();
-		const panelTopBefore = mainPanel?.getBoundingClientRect().top ?? 0;
+		const anchorTopBefore = anchor?.getBoundingClientRect().top ?? 0;
+		const expectedDesktopShift = getExpectedDesktopHomeGridShiftPx();
 
 		window.__applyVisitBodyLayout?.(visit);
 
-		const navbar = document.getElementById("navbar");
-		if (navbar) {
-			navbar.setAttribute(
-				"data-is-home",
-				isTargetMainHomePage(visit) ? "true" : "false",
-			);
-		}
-
 		void document.documentElement.offsetHeight;
 
-		const panelTopAfter = mainPanel?.getBoundingClientRect().top ?? 0;
-		const layoutDelta = panelTopBefore - panelTopAfter;
+		const anchorTopAfter = anchor?.getBoundingClientRect().top ?? 0;
+		let layoutDelta = anchorTopBefore - anchorTopAfter;
 
-		if (layoutDelta > 1) {
-			const maxScroll = Math.max(
-				0,
-				document.documentElement.scrollHeight - window.innerHeight,
-			);
-			setScrollY(Math.min(maxScroll, Math.max(0, scrollBefore - layoutDelta)));
+		if (layoutDelta <= 1 && expectedDesktopShift > 1) {
+			layoutDelta = expectedDesktopShift;
+		}
+
+		if (layoutDelta <= 1) {
 			return;
 		}
 
@@ -151,10 +215,17 @@
 			0,
 			document.documentElement.scrollHeight - window.innerHeight,
 		);
-		setScrollY(Math.min(scrollBefore, maxScroll));
+		setScrollY(Math.min(maxScroll, Math.max(0, scrollBefore - layoutDelta)));
 	}
 
-	function syncSemifullNavbarDuringPreScroll(visit, scrollY) {
+	function getNavbarSyncOptions(sourceIsMainHome) {
+		if (!sourceIsMainHome) {
+			return undefined;
+		}
+		return { forceHomeBanner: true };
+	}
+
+	function syncSemifullNavbarDuringPreScroll(visit, scrollY, sourceIsMainHome) {
 		const applyState = window.applySemifullNavbarVisualState;
 		if (typeof applyState !== "function") return;
 
@@ -162,8 +233,6 @@
 			scrollY = getScrollY();
 		}
 
-		const navbar = document.getElementById("navbar");
-		const sourceIsHome = navbar?.getAttribute("data-is-home") === "true";
 		const targetIsHome = isTargetMainHomePage(visit);
 
 		if (scrollY <= SEMIFULL_SCROLL_THRESHOLD) {
@@ -171,12 +240,23 @@
 			return;
 		}
 
-		applyState(scrollY, sourceIsHome);
+		applyState(scrollY, sourceIsMainHome);
 	}
 
-	function syncNavbarDuringPreScroll(visit, scrollY) {
-		window.__syncNavbarWrapperForScrollY?.(scrollY);
-		syncSemifullNavbarDuringPreScroll(visit, scrollY);
+	function syncNavbarDuringPreScroll(
+		visit,
+		scrollY,
+		sourceIsMainHome,
+		leavingHome,
+	) {
+		if (!leavingHome) {
+			window.__syncNavbarWrapperForScrollY?.(
+				scrollY,
+				getNavbarSyncOptions(sourceIsMainHome),
+			);
+		}
+
+		syncSemifullNavbarDuringPreScroll(visit, scrollY, sourceIsMainHome);
 	}
 
 	function finishPreScrollTransition(visit) {
@@ -239,6 +319,14 @@
 				}
 
 				const leavingHome = isLeavingHomePage(visit);
+				const sourceIsMainHome = isMainHomePage(
+					window.location.pathname,
+				);
+				const navbarWrapperSnapshot =
+					leavingHome && sourceIsMainHome
+						? snapshotNavbarWrapperStyles()
+						: null;
+
 				activePreScrollVisit = visit;
 				addPreScrollClasses(leavingHome);
 				window.__homePreScrollWasUsed = true;
@@ -252,17 +340,28 @@
 
 				if (leavingHome) {
 					beginLeavingHomeLayoutShift(visit);
+					restoreNavbarWrapperStyles(navbarWrapperSnapshot);
 				}
 
 				const startScrollY = getScrollY();
-				syncNavbarDuringPreScroll(visit, startScrollY);
+				syncNavbarDuringPreScroll(
+					visit,
+					startScrollY,
+					sourceIsMainHome,
+					leavingHome,
+				);
 
 				const duration = leavingHome
 					? getLayoutShiftDurationMs()
 					: getPreScrollDurationMs();
 				const easing = window.__easeInOutCubic;
 				const onProgress = function (_progress, scrollY) {
-					syncNavbarDuringPreScroll(visit, scrollY);
+					syncNavbarDuringPreScroll(
+						visit,
+						scrollY,
+						sourceIsMainHome,
+						leavingHome,
+					);
 				};
 
 				const smoothScrollToY =
@@ -271,16 +370,12 @@
 						window.__pinPageScrollTop?.();
 						return Promise.resolve();
 					};
-				const scrollPromise = smoothScrollToY(
-					0,
-					duration,
-					easing,
-					onProgress,
-				);
 
-				return scrollPromise.then(function () {
-					finishPreScrollTransition(visit);
-				});
+				return smoothScrollToY(0, duration, easing, onProgress).then(
+					function () {
+						finishPreScrollTransition(visit);
+					},
+				);
 			},
 			{ priority: -100 },
 		);

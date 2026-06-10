@@ -64,23 +64,34 @@
   }
 }
 
-/* Semi-Full 混合模式 (未滚动时透明) */
-body.wallpaper-transparent #navbar[data-transparent-mode="semifull"]:not(.scrolled) {
-  --nav-bg: transparent;
-  --nav-blur: none;
-  --nav-shadow: none;
-  --nav-radius: 0;
-}
-/* 移动端首页特殊处理 */
-body.wallpaper-transparent #navbar[data-transparent-mode="semifull"][data-is-home="true"]:not(.scrolled) {
+/* Semi-Full 混合模式 (未滚动时透明，非首页) */
+body.wallpaper-transparent #navbar[data-transparent-mode="semifull"]:not(.scrolled):not([data-is-home="true"]) {
   --nav-bg: transparent;
   --nav-blur: none;
   --nav-shadow: none;
   --nav-radius: 0;
 }
 
-/* 混合模式滚动后 -> 回归毛玻璃 */
-body.wallpaper-transparent #navbar[data-transparent-mode="semifull"].scrolled {
+/* 首页 semifull：--semifull-fade 驱动渐变 */
+body.wallpaper-transparent #navbar[data-transparent-mode="semifull"][data-is-home="true"] {
+  --sf: var(--semifull-fade, 0);
+  --nav-bg: color-mix(
+    in srgb,
+    var(--card-bg-transparent) calc(var(--sf) * 100%),
+    transparent
+  );
+  --nav-blur: blur(calc(8px * var(--sf)));
+  --nav-shadow: 0 calc(4px * var(--sf)) calc(16px * var(--sf))
+    rgba(0, 0, 0, calc(0.08 * var(--sf)));
+  --nav-radius: var(--radius-std);
+}
+
+body.wallpaper-transparent #navbar[data-transparent-mode="semifull"][data-is-home="true"].scrolled {
+  --semifull-fade: 1;
+}
+
+/* 混合模式滚动后 -> 回归毛玻璃（非首页） */
+body.wallpaper-transparent #navbar[data-transparent-mode="semifull"].scrolled:not([data-is-home="true"]) {
   --nav-bg: var(--card-bg-transparent);
   --nav-blur: blur(8px);
   --nav-shadow: var(--shadow-lg);
@@ -100,7 +111,14 @@ body.wallpaper-transparent #navbar[data-transparent-mode="semifull"].scrolled {
 
   /* 性能优化 */
   will-change: background, backdrop-filter, box-shadow;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* 首页 semifull 由 --semifull-fade 驱动，禁用 transition 避免滞后 */
+  transition:
+    background 0.3s ease,
+    backdrop-filter 0.3s ease;
+}
+
+#navbar[data-transparent-mode="semifull"][data-is-home="true"] > div {
+  transition: none;
 }
 
 /* 子组件样式 (Sub-Components) */
