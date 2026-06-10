@@ -270,9 +270,21 @@
  * 移动端页面/壁纸/布局切换时的溢出修复
  */
 
-html.swup-scroll-lock,
 html.swup-scroll-lock body {
   overflow: hidden;
+}
+
+html.swup-scroll-lock #navbar-wrapper,
+html.swup-scroll-lock #navbar > div,
+html.swup-scroll-lock #top-row,
+html.swup-scroll-lock #sidebar-sticky,
+html.swup-scroll-lock #right-sidebar-sticky,
+html.swup-perf-active #navbar-wrapper,
+html.swup-perf-active #navbar > div,
+html.swup-perf-active #top-row,
+html.swup-perf-active #sidebar-sticky,
+html.swup-perf-active #right-sidebar-sticky {
+  transition: none !important;
 }
 
 #page-height-extend {
@@ -295,12 +307,16 @@ html.is-home-pre-scrolling .absolute.w-full.z-30,
 html.is-home-pre-scrolling #navbar-wrapper,
 html.is-home-pre-scrolling #main-grid,
 html.is-home-pre-scrolling #top-row,
+html.is-home-pre-scrolling #sidebar-sticky,
+html.is-home-pre-scrolling #right-sidebar-sticky,
 html.is-home-pre-scrolling .banner-breathe-wrap img,
 html.is-visit-pre-scrolling #banner-wrapper,
 html.is-visit-pre-scrolling .absolute.w-full.z-30,
 html.is-visit-pre-scrolling #navbar-wrapper,
 html.is-visit-pre-scrolling #main-grid,
 html.is-visit-pre-scrolling #top-row,
+html.is-visit-pre-scrolling #sidebar-sticky,
+html.is-visit-pre-scrolling #right-sidebar-sticky,
 html.is-visit-pre-scrolling .banner-breathe-wrap img,
 html.is-home-pre-scrolling #navbar > div,
 html.is-visit-pre-scrolling #navbar > div {
@@ -308,7 +324,9 @@ html.is-visit-pre-scrolling #navbar > div {
 }
 
 html.is-smooth-scrolling #navbar-wrapper,
-html.is-smooth-scrolling #navbar > div {
+html.is-smooth-scrolling #navbar > div,
+html.is-smooth-scrolling #sidebar-sticky,
+html.is-smooth-scrolling #right-sidebar-sticky {
   transition: none !important;
 }
 

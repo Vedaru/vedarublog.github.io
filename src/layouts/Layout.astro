@@ -171,42 +171,6 @@ if (siteConfig.font) {
 	data-post-list-layout={siteConfig.postListLayout?.defaultMode || "list"}
 >
 	<head>
-		<!-- 第三方分析脚本 - 用户交互或 5s 后加载 -->
-		<script is:inline>
-			function loadAnalytics() {
-				// Google Tag Manager
-				(function (w, d, s, l, i) {
-					w[l] = w[l] || [];
-					w[l].push({
-						"gtm.start": new Date().getTime(),
-						event: "gtm.js",
-					});
-					var f = d.getElementsByTagName(s)[0],
-						j = d.createElement(s),
-						dl = l != "dataLayer" ? "&l=" + l : "";
-					j.async = true;
-					j.src =
-						"https://www.googletagmanager.com/gtm.js?id=" + i + dl;
-					f.parentNode.insertBefore(j, f);
-				})(window, document, "script", "dataLayer", "GTM-KRX3XGVH");
-			}
-
-			var analyticsLoaded = false;
-			function scheduleAnalytics() {
-				if (analyticsLoaded) return;
-				analyticsLoaded = true;
-				loadAnalytics();
-			}
-
-			["scroll", "click", "keydown", "touchstart"].forEach(function (evt) {
-				window.addEventListener(evt, scheduleAnalytics, {
-					once: true,
-					passive: true,
-				});
-			});
-			setTimeout(scheduleAnalytics, 5000);
-		</script>
-
 		<title>{pageTitle}</title>
 		<meta charset="UTF-8" />
 		<meta
@@ -404,22 +368,8 @@ if (siteConfig.font) {
 
 				// 首 paint 前同步设置 rem 基准，避免 load+idle 延迟触发全局 layout shift
 				adjustPageScale();
-
-				window.addEventListener("resize", adjustPageScale);
-				window.addEventListener("orientationchange", adjustPageScale);
-				function registerAdjustPageScaleOnSwupIdle() {
-					if (typeof window.__onSwupPageIdlePhase === "function") {
-						window.__onSwupPageIdlePhase(adjustPageScale);
-						return true;
-					}
-					return false;
-				}
-
-				if (!registerAdjustPageScaleOnSwupIdle()) {
-					document.addEventListener("DOMContentLoaded", function () {
-						registerAdjustPageScaleOnSwupIdle();
-					});
-				}
+				window.__adjustPageScale = adjustPageScale;
+				window.__themePageScaling = pageScaling;
 			})();
 		</script>
 		<!-- Critical layout shell styles: see layout-stable.css (loaded via main.css) -->
@@ -470,60 +420,16 @@ if (siteConfig.font) {
 
 		<style is:global set:html={shellCriticalCss} />
 
-		<script
-			is:inline
-			defer
-			src="/js/core/shell-bootstrap.js"
-			data-cfasync="false"
-		></script>
-		<script
-			is:inline
-			defer
-			src="/js/banner-drift.js"
-			data-cfasync="false"
-		></script>
-		<script
-			is:inline
-			defer
-			src="/js/swup-transition-performance.js"
-			data-cfasync="false"
-		></script>
-		<script
-			is:inline
-			defer
-			src="/js/smooth-scroll.js"
-			data-cfasync="false"
-		></script>
-		<script
-			is:inline
-			defer
-			src="/js/home-pre-scroll.js"
-			data-cfasync="false"
-		></script>
-
-		<!-- Umami Analytics - 延迟加载 -->
 		{umamiEnabled && umamiScripts && (
 			<template id="umami-scripts-tpl" set:html={umamiScripts} />
-			<script is:inline>
-				if ('requestIdleCallback' in window) {
-					requestIdleCallback(function() {
-						var tpl = document.getElementById('umami-scripts-tpl');
-						if (tpl) {
-							document.head.appendChild(tpl.content);
-							tpl.remove();
-						}
-					}, { timeout: 3000 });
-				} else {
-					setTimeout(function() {
-						var tpl = document.getElementById('umami-scripts-tpl');
-						if (tpl) {
-							document.head.appendChild(tpl.content);
-							tpl.remove();
-						}
-					}, 3000);
-				}
-			</script>
 		)}
+
+		<script>
+			import "../scripts/layout-critical";
+		</script>
+		<script>
+			import "../scripts/layout-deferred";
+		</script>
 
 	</head>
 	<body
@@ -531,10 +437,38 @@ if (siteConfig.font) {
 		class:list={[{ "lg:is-home": isHomePage, "is-home": isHomePage }]}
 		data-overlayscrollbars-initialize
 	>
-		<script is:inline data-cfasync="false">
-			document.addEventListener("DOMContentLoaded", function () {
-				window.__bootstrapWallpaperBodyClasses?.();
-			});
+		<script is:inline>
+			(function () {
+				var mode =
+					document.documentElement.getAttribute(
+						"data-wallpaper-mode",
+					) || "banner";
+				var body = document.body;
+				body.classList.remove(
+					"enable-banner",
+					"wallpaper-transparent",
+					"no-banner-mode",
+				);
+				switch (mode) {
+					case "banner":
+						body.classList.add("enable-banner");
+						break;
+					case "fullscreen":
+						body.classList.add(
+							"wallpaper-transparent",
+							"no-banner-mode",
+						);
+						break;
+					case "none":
+						body.classList.add("no-banner-mode");
+						break;
+				}
+				requestAnimationFrame(function () {
+					requestAnimationFrame(function () {
+						document.documentElement.classList.add("layout-ready");
+					});
+				});
+			})();
 		</script>
 		<noscript
 			><iframe
@@ -552,11 +486,11 @@ if (siteConfig.font) {
 
 		<!-- Music Player - 仅在启用时加载 -->
 		{musicPlayerConfig.enable && (
-			<MusicPlayer client:idle initialSong={musicInitialSong} />
+			<MusicPlayer client:visible initialSong={musicInitialSong} />
 		)}
 
 		<!-- Pio 看板娘组件 - 仅在启用时加载 -->
-		{pioConfig.enable && <Pio client:idle />}
+		{pioConfig.enable && <Pio client:visible />}
 
 		<!-- Swup 换页滚动锁占位（不参与文档流，避免 300vh 撑高引发 CLS） -->
 		<div id="page-height-extend" aria-hidden="true"></div>
@@ -587,36 +521,6 @@ if (siteConfig.font) {
 <script>
 	import "../scripts/mermaid-init.js";
 </script>
-
-{siteConfig.showLastModified && (
-	<script is:inline src="/js/last-modified.js" data-cfasync="false"></script>
-)}
-
-{commentConfig.enable && (
-	<script is:inline>
-		(function () {
-			function loadCommentScript(src) {
-				if (document.querySelector('script[src="' + src + '"]')) return;
-				var s = document.createElement("script");
-				s.src = src;
-				s.defer = true;
-				s.setAttribute("data-cfasync", "false");
-				document.body.appendChild(s);
-			}
-			function bootCommentScripts() {
-				if (!document.getElementById("tcomment")) return;
-				loadCommentScript("/js/scroll-protection.js");
-				loadCommentScript("/js/twikoo-init.js");
-			}
-			if (document.readyState === "loading") {
-				document.addEventListener("DOMContentLoaded", bootCommentScripts);
-			} else {
-				bootCommentScripts();
-			}
-			document.addEventListener("swup:content:replace", bootCommentScripts);
-		})();
-	</script>
-)}
 
 <!-- 主题切换综合性能优化器（包含代码块优化、重型元素优化、性能诊断） -->
 <script>

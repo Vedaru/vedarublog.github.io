@@ -17,7 +17,6 @@ function throttle(func: (...args: unknown[]) => void, limit: number) {
 
 export function initNavbarScroll() {
 	let backToTopBtn = document.getElementById("back-to-top-btn");
-	let toc = document.getElementById("toc-wrapper");
 	let navbar = document.getElementById("navbar-wrapper");
 	const contentWrapperRef = document.getElementById("content-wrapper");
 	let backToTopThreshold = 0;
@@ -43,9 +42,13 @@ export function initNavbarScroll() {
 	});
 
 	function scrollFunction() {
+		const html = document.documentElement;
 		if (
-			document.documentElement.classList.contains("is-home-pre-scrolling") ||
-			document.documentElement.classList.contains("is-visit-pre-scrolling") ||
+			html.classList.contains("is-home-pre-scrolling") ||
+			html.classList.contains("is-visit-pre-scrolling") ||
+			html.classList.contains("is-changing") ||
+			html.classList.contains("is-animating") ||
+			html.classList.contains("swup-perf-active") ||
 			window.__smoothScrollActive
 		) {
 			return;
@@ -62,7 +65,7 @@ export function initNavbarScroll() {
 				}
 			}
 
-			if (bannerEnabled && toc) {
+			if (bannerEnabled) {
 				window.__syncTocHideForScroll?.(scrollTop, window.innerHeight);
 			}
 

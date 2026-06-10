@@ -4,7 +4,10 @@ import {
 	DEFAULT_THEME,
 } from "@constants";
 import { pathsEqual, url } from "../utils/url-utils";
-import { shouldInitTocForPath } from "../utils/toc-utils";
+import {
+	isTocOrInPageAnchorLink,
+	shouldInitTocForPath,
+} from "../utils/toc-utils";
 import {
 	checkKatex,
 	ensureJetBrainsMono,
@@ -81,7 +84,17 @@ export function runSwupPageLayoutPhase(detail?: { scrollTop?: number }) {
 	const tocElement = document.querySelector("table-of-contents");
 	const shouldInitToc = shouldInitTocForPath();
 
-	window.__syncTocHideForScroll?.(scrollTop, window.__swupPhaseInnerHeight);
+	const html = document.documentElement;
+	const swupTransitionActive =
+		html.classList.contains("is-changing") ||
+		html.classList.contains("is-animating") ||
+		html.classList.contains("swup-perf-active");
+
+	if (swupTransitionActive) {
+		tocWrapper?.classList.add("toc-not-ready");
+	} else {
+		window.__syncTocHideForScroll?.(scrollTop, window.__swupPhaseInnerHeight);
+	}
 
 	if (tocWrapper && tocElement) {
 		if (shouldInitToc) {
@@ -109,15 +122,52 @@ export function runSwupPageLayoutPhase(detail?: { scrollTop?: number }) {
 	}
 }
 
-function registerSwupPagePhases() {
-	if (!window.__onSwupPageWritePhase || !window.__onSwupPageLayoutPhase) {
-		document.addEventListener("DOMContentLoaded", registerSwupPagePhases, {
-			once: true,
-		});
+let swupPhasesRegistered = false;
+
+function runInitialLayoutPhaseIfIdle() {
+	const html = document.documentElement;
+	if (
+		html.classList.contains("is-changing") ||
+		html.classList.contains("is-animating")
+	) {
 		return;
 	}
+	runSwupPageLayoutPhase({
+		scrollTop: window.scrollY || document.documentElement.scrollTop || 0,
+	});
+}
+
+function registerSwupPagePhases() {
+	if (swupPhasesRegistered) return;
+
+	if (!window.__onSwupPageWritePhase || !window.__onSwupPageLayoutPhase) {
+		return;
+	}
+
+	swupPhasesRegistered = true;
 	window.__onSwupPageWritePhase(runSwupPageWritePhase);
 	window.__onSwupPageLayoutPhase(runSwupPageLayoutPhase);
+	runInitialLayoutPhaseIfIdle();
+}
+
+function ensureSwupPagePhasesRegistered() {
+	if (swupPhasesRegistered) return;
+
+	registerSwupPagePhases();
+	if (swupPhasesRegistered) return;
+
+	const startedAt = performance.now();
+	const retry = () => {
+		registerSwupPagePhases();
+		if (swupPhasesRegistered) return;
+		if (performance.now() - startedAt > 5000) return;
+		requestAnimationFrame(retry);
+	};
+	requestAnimationFrame(retry);
+
+	document.addEventListener("swup:swup-perf-ready", registerSwupPagePhases, {
+		once: true,
+	});
 }
 
 function applyVisitBodyLayout(visit: { to: { url: string } }) {
@@ -125,13 +175,11 @@ function applyVisitBodyLayout(visit: { to: { url: string } }) {
 }
 
 export function flushPendingVisitBodyLayout() {
-	const visit = window.__pendingVisitBodyLayout;
-	if (!visit) return;
+	if (!window.__pendingVisitBodyLayout) return;
 
 	window.__pendingVisitBodyLayout = undefined;
 	window.__lockSwupScroll?.();
 	window.__pinPageScrollTop?.();
-	applyVisitBodyLayout(visit);
 	requestAnimationFrame(() => {
 		window.__pinPageScrollTop?.();
 		requestAnimationFrame(() => {
@@ -148,13 +196,13 @@ export function applyVisitStartLayout(
 	const cachedScrollTop =
 		window.scrollY || document.documentElement.scrollTop || 0;
 
+	// 换页开始就应用目标页 banner / is-home 布局，避免 content:replace 时才跳变
+	applyVisitBodyLayout(visit);
+
 	if (options?.deferBodyLayout) {
 		window.__pendingVisitBodyLayout = visit;
-	} else {
-		applyVisitBodyLayout(visit);
-		if (!window.__homePreScrollWasUsed) {
-			window.__lockSwupScrollAndPin?.();
-		}
+	} else if (!window.__homePreScrollWasUsed) {
+		window.__lockSwupScrollAndPin?.();
 	}
 
 	const scrollForSemifull =
@@ -190,8 +238,27 @@ function setup() {
 	invalidateSwupCacheIfStale();
 	attachStylesheetErrorGuard();
 
-	window.swup.hooks.on("link:click", () => {
+	window.swup.hooks.on(
+		"link:click",
+		(
+			_visit: unknown,
+			context?: { el?: Element },
+		) => {
 		document.documentElement.style.setProperty("--content-delay", "0ms");
+
+		// 页内锚点 / TOC 点击不会触发 visit:end，不能加 toc-not-ready
+		if (
+			isTocOrInPageAnchorLink(context?.el) ||
+			(window.tocClickTimestamp &&
+				Date.now() - window.tocClickTimestamp < 200)
+		) {
+			return;
+		}
+
+		const tocOnClick = document.getElementById("toc-wrapper");
+		if (tocOnClick) {
+			tocOnClick.classList.add("toc-not-ready");
+		}
 
 		if (bannerEnabled) {
 			const scrollY = document.documentElement.scrollTop;
@@ -205,7 +272,8 @@ function setup() {
 				}
 			}
 		}
-	});
+		},
+	);
 
 	window.swup.hooks.on("content:replace", () => {
 		attachStylesheetErrorGuard();
@@ -220,20 +288,7 @@ function setup() {
 		}
 	});
 
-	registerSwupPagePhases();
-
-	requestAnimationFrame(() => {
-		const html = document.documentElement;
-		if (
-			html.classList.contains("is-changing") ||
-			html.classList.contains("is-animating")
-		) {
-			return;
-		}
-		runSwupPageLayoutPhase({
-			scrollTop: window.scrollY || document.documentElement.scrollTop || 0,
-		});
-	});
+	ensureSwupPagePhasesRegistered();
 
 	window.__applyVisitStartLayout = applyVisitStartLayout;
 	window.__flushPendingVisitBodyLayout = flushPendingVisitBodyLayout;
@@ -280,8 +335,6 @@ function setup() {
 				return;
 			}
 			window.__pinPageScrollTop?.();
-		} else {
-			window.__unlockSwupScroll?.();
 		}
 
 		const storedTheme = localStorage.getItem("theme") || DEFAULT_THEME;

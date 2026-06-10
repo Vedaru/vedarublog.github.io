@@ -407,6 +407,15 @@ html {
     @apply opacity-0 pointer-events-none;
   }
 
+  html.is-home-pre-scrolling #toc-wrapper,
+  html.is-visit-pre-scrolling #toc-wrapper,
+  html.swup-perf-active #toc-wrapper,
+  html.is-changing #toc-wrapper,
+  html.is-animating #toc-wrapper {
+    transition: none !important;
+    @apply opacity-0 pointer-events-none;
+  }
+
   /* #toc-inner-wrapper {
         mask-image: linear-gradient(to bottom, transparent 0%, black 2rem, black calc(100% - 2rem), transparent 100%);
     } */

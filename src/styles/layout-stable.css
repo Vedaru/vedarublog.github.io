@@ -4,6 +4,14 @@
  * Banner / 主内容高度规则的唯一数据源。
  */
 
+/* 首屏首帧冻结 banner/top-row 过渡，layout-ready 后恢复 */
+html:not(.layout-ready) #banner-wrapper,
+html:not(.layout-ready) #top-row,
+html:not(.layout-ready) #main-grid,
+html:not(.layout-ready) .banner-breathe-wrap {
+  transition: none !important;
+}
+
 /* 主内容 top — desktop banner 重叠布局 */
 html[data-wallpaper-mode="banner"] .main-panel {
   top: var(--banner-height, 35vh);

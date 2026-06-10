@@ -7,12 +7,14 @@
 	window.__swupPerfBootstrapped = true;
 
 	let perfListenersRegistered = false;
-	let resumeTimer = null;
+	let resumeTimer: ReturnType<typeof setTimeout> | null = null;
 	let transitionDepth = 0;
-	const writePhaseCallbacks = [];
-	const layoutPhaseCallbacks = [];
-	const idlePhaseCallbacks = [];
-	let idleWorkQueue = [];
+	const writePhaseCallbacks: Array<(detail: { scrollTop: number }) => void> =
+		[];
+	const layoutPhaseCallbacks: Array<(detail: { scrollTop: number }) => void> =
+		[];
+	const idlePhaseCallbacks: Array<() => void> = [];
+	let idleWorkQueue: Array<() => void> = [];
 
 	function getMobileShiftDurationMs() {
 		const raw = getComputedStyle(document.documentElement)
@@ -167,7 +169,9 @@
 	}
 
 	function scheduleTransitionResume() {
-		clearTimeout(resumeTimer);
+		if (resumeTimer !== null) {
+			clearTimeout(resumeTimer);
+		}
 
 		const isMobile = window.matchMedia("(max-width: 1279px)").matches;
 		const hadHomePreScroll = !!window.__homePreScrollWasUsed;
@@ -195,7 +199,10 @@
 		transitionDepth += 1;
 		if (transitionDepth > 1) return;
 
-		clearTimeout(resumeTimer);
+		if (resumeTimer !== null) {
+			clearTimeout(resumeTimer);
+			resumeTimer = null;
+		}
 		document.documentElement.classList.add("swup-perf-active");
 		setPioTransitionHidden(true);
 		setPioReducedDuringTransition();
@@ -251,6 +258,8 @@
 	window.__deferWallpaperNavbarSync = function () {
 		window.__pendingWallpaperSync = true;
 	};
+
+	document.dispatchEvent(new CustomEvent("swup:swup-perf-ready"));
 
 	document.addEventListener("swup:enable", registerSwupPerfListeners);
 

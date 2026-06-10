@@ -14,10 +14,23 @@ const {
 	pauseTime = 2000,
 	class: className = "",
 } = Astro.props;
+const textList = Array.isArray(text) ? text : [text];
+const longestText = textList.reduce(
+	(a, b) => (a.length >= b.length ? a : b),
+	textList[0] ?? "\u00A0",
+);
 const textData = Array.isArray(text) ? JSON.stringify(text) : text;
 ---
 
-<span class={`typewriter ${className}`} data-text={textData} data-speed={speed} data-delete-speed={deleteSpeed} data-pause-time={pauseTime}></span>
+<span class={`typewriter-slot ${className}`}>
+	<span class="typewriter-measure" aria-hidden="true">{longestText}</span>
+	<span
+		class="typewriter"
+		data-text={textData}
+		data-speed={speed}
+		data-delete-speed={deleteSpeed}
+		data-pause-time={pauseTime}></span>
+</span>
 
 <script>
 class TypewriterEffect {
@@ -137,16 +150,23 @@ document.addEventListener('swup:contentReplaced', () => {
 </script>
 
 <style>
-.typewriter {
-    position: relative;
-    min-height: 1.5em; /* 确保即使没有文字也保持最小高度 */
-    display: inline-block;
-    vertical-align: baseline;
+.typewriter-slot {
+	display: inline-grid;
+	vertical-align: baseline;
 }
 
-/* 确保打字机效果不会导致布局抖动 */
-.typewriter:empty::before {
-    content: '\00A0'; /* 使用不间断空格保持高度 */
-    visibility: hidden;
+.typewriter-measure,
+.typewriter {
+	grid-area: 1 / 1;
+}
+
+.typewriter-measure {
+	visibility: hidden;
+	pointer-events: none;
+	user-select: none;
+}
+
+.typewriter {
+	min-height: 1.5em;
 }
 </style>

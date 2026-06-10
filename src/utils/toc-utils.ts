@@ -94,7 +94,21 @@ export function computeMinHeadingDepth(headings: TocHeading[]): number {
 export function collectHeadingsFromDocument(
 	container?: Element | Document | null,
 ): TocHeading[] {
-	const root = container ?? document;
+	let root: Element | Document = container ?? document;
+	if (!container) {
+		const path = getCurrentPath();
+		if (path.includes("/diary")) {
+			root =
+				document.querySelector(".moments-timeline") ??
+				document.querySelector("#swup-container") ??
+				document;
+		} else if (isPostPagePath(path)) {
+			root =
+				document.querySelector(MARKDOWN_SELECTOR) ??
+				document.querySelector("#swup-container") ??
+				document;
+		}
+	}
 	const nodes = root.querySelectorAll(HEADING_SELECTOR);
 	const headings: TocHeading[] = [];
 
@@ -312,6 +326,18 @@ export function collectHomePostListItems(): PostListItem[] {
 	return items;
 }
 
+/** 是否为 TOC 或页内锚点链接（不应触发换页级 TOC 隐藏） */
+export function isTocOrInPageAnchorLink(
+	el: Element | null | undefined,
+): boolean {
+	if (!el || !(el instanceof HTMLAnchorElement)) return false;
+	const href = el.getAttribute("href") || "";
+	if (href.startsWith("#")) return true;
+	return !!el.closest(
+		"#toc, table-of-contents, #mobile-toc-panel, .floating-toc-wrapper, .floating-toc-panel",
+	);
+}
+
 /** 平滑滚动到标题 */
 export function scrollToTocHeading(
 	id: string,
@@ -422,27 +448,45 @@ export function cacheSectionOffsets(
 	});
 }
 
+/** 查找与视口相交的所有章节索引 */
+export function findVisibleSectionIndices(
+	offsets: Array<{ top: number; bottom: number } | null>,
+	viewportTop: number,
+	viewportBottom: number,
+): number[] {
+	const indices: number[] = [];
+	for (let i = 0; i < offsets.length; i++) {
+		const offset = offsets[i];
+		if (!offset) continue;
+		if (offset.bottom > viewportTop && offset.top < viewportBottom) {
+			indices.push(i);
+		}
+	}
+	return indices;
+}
+
 /** 根据滚动位置回退查找当前可见章节索引 */
 export function findActiveSectionIndex(
 	offsets: Array<{ top: number; bottom: number } | null>,
 	scrollTop: number,
-	viewportBottom: number,
+	_viewportBottom?: number,
+	activationOffset = 120,
 ): number | null {
+	let activeIdx: number | null = null;
+	const activationLine = scrollTop + activationOffset;
+
 	for (let i = 0; i < offsets.length; i++) {
 		const offset = offsets[i];
 		if (!offset) continue;
 
-		const { top: offsetTop, bottom: offsetBottom } = offset;
-		if (
-			isValueInRange(offsetTop, scrollTop, viewportBottom) ||
-			isValueInRange(offsetBottom, scrollTop, viewportBottom) ||
-			(offsetTop < scrollTop && offsetBottom > viewportBottom)
-		) {
-			return i;
+		if (offset.top <= activationLine) {
+			activeIdx = i;
+			continue;
 		}
-		if (offsetTop > viewportBottom) break;
+		break;
 	}
-	return null;
+
+	return activeIdx;
 }
 
 /** 根据滚动位置查找当前激活标题索引（浮动 TOC） */

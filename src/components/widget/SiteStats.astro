@@ -150,44 +150,9 @@ const stats = [
 	</div>
 </WidgetLayout>
 
-<script is:inline define:vars={{ siteStartDate, lastPostDate }}>
-	function updateDynamicStats() {
-		const today = new Date();
-
-		// 更新运行天数
-		const startDate = new Date(siteStartDate);
-		const diffTime = Math.abs(today.getTime() - startDate.getTime());
-		const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-		const runningDaysElement = document.querySelector(
-			'[data-stat-id="running-days"]',
-		);
-		if (runningDaysElement) {
-			runningDaysElement.textContent = diffDays.toString();
-		}
-
-		// 更新最后活动时间
-		if (lastPostDate) {
-			const lastPost = new Date(lastPostDate);
-			const timeSinceLastPost = Math.abs(
-				today.getTime() - lastPost.getTime(),
-			);
-			const daysSinceLastUpdate = Math.floor(
-				timeSinceLastPost / (1000 * 60 * 60 * 24),
-			);
-
-			const lastUpdateElement = document.querySelector(
-				'[data-stat-id="last-update"]',
-			);
-			if (lastUpdateElement) {
-				lastUpdateElement.textContent = daysSinceLastUpdate.toString();
-			}
-		}
-	}
-
-	// 页面加载时更新
-	updateDynamicStats();
-
-	// 每小时更新一次（可选，因为天数变化较慢）
-	setInterval(updateDynamicStats, 60 * 60 * 1000);
+<script type="application/json" id="site-stats-config" set:html={JSON.stringify({ siteStartDate, lastPostDate })} />
+<script>
+	import { initSiteStats } from "../../scripts/widgets/site-stats";
+	const el = document.getElementById("site-stats-config");
+	if (el) initSiteStats(JSON.parse(el.textContent || "{}"));
 </script>

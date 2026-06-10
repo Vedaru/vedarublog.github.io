@@ -1,4 +1,4 @@
-/** 滚动读取�?pin 工具 �?全站共享 */
+// @ts-nocheck — legacy side-effect IIFE migrated from public/js
 
 (function () {
 	if (window.__scrollUtilsBootstrapped) return;
@@ -27,7 +27,7 @@
 		requestAnimationFrame(step);
 	};
 })();
-/** 浏览器端路由工具 �?�?src/utils/route-utils.ts 逻辑一�?*/
+/** 浏览器端路由工具 �?�?src/utils/route-utils.ts 逻辑一�?*/
 
 (function () {
 	if (window.__routeUtilsBootstrapped) return;
@@ -39,9 +39,7 @@
 
 	function isHomePagePath(pathname) {
 		return (
-			pathname === "/" ||
-			pathname === "" ||
-			/^\/?\d+\/?$/.test(pathname)
+			pathname === "/" || pathname === "" || /^\/?\d+\/?$/.test(pathname)
 		);
 	}
 
@@ -77,7 +75,7 @@
 	window.__pathFromUrl = pathFromUrl;
 	window.__pathsEqual = pathsEqual;
 })();
-/** Navbar 隐藏阈值计�?�?�?home-pre-scroll / Layout scroll 共享 */
+/** Navbar 隐藏阈值计�?�?�?home-pre-scroll / Layout scroll 共享 */
 
 (function () {
 	if (window.__navbarScrollSyncBootstrapped) return;
@@ -101,12 +99,13 @@
 		return window.innerHeight * (bannerHeight / 100) - 88;
 	};
 
-	window.__clearNavbarWrapperInlineStyles = function clearNavbarWrapperInlineStyles() {
-		const navbarWrapper = document.getElementById("navbar-wrapper");
-		if (!navbarWrapper) return;
-		navbarWrapper.style.removeProperty("opacity");
-		navbarWrapper.style.removeProperty("transform");
-	};
+	window.__clearNavbarWrapperInlineStyles =
+		function clearNavbarWrapperInlineStyles() {
+			const navbarWrapper = document.getElementById("navbar-wrapper");
+			if (!navbarWrapper) return;
+			navbarWrapper.style.removeProperty("opacity");
+			navbarWrapper.style.removeProperty("transform");
+		};
 
 	window.__syncNavbarWrapperForScrollY = function syncNavbarWrapperForScrollY(
 		scrollY,
@@ -129,7 +128,8 @@
 				0;
 		}
 
-		const threshold = window.__getNavbarHideThreshold?.() ?? Number.POSITIVE_INFINITY;
+		const threshold =
+			window.__getNavbarHideThreshold?.() ?? Number.POSITIVE_INFINITY;
 
 		if (scrollY >= threshold) {
 			const fadeRange = Math.max(120, threshold * 0.2);
@@ -146,7 +146,7 @@
 		window.__clearNavbarWrapperInlineStyles();
 	};
 })();
-/** Swup 钩子注册引导 �?统一 onSwupReady / onSwupHook 模板 */
+/** Swup 钩子注册引导 �?统一 onSwupReady / onSwupHook 模板 */
 
 (function () {
 	if (window.__swupBootstrapBootstrapped) return;
@@ -192,7 +192,7 @@
 		}, options);
 	};
 })();
-/** 换页 body 布局 / 壁纸 class / TOC 滚动隐藏 �?Layout �?MainGridLayout 共享 */
+/** 换页 body 布局 / 壁纸 class / TOC 滚动隐藏 �?Layout �?MainGridLayout 共享 */
 
 (function () {
 	if (window.__visitLayoutBootstrapped) return;
@@ -200,7 +200,9 @@
 
 	const BANNER_HEIGHT = 35;
 
-	window.__applyWallpaperBodyClasses = function applyWallpaperBodyClasses(mode) {
+	window.__applyWallpaperBodyClasses = function applyWallpaperBodyClasses(
+		mode,
+	) {
 		const body = document.body;
 		body.classList.remove(
 			"enable-banner",
@@ -260,6 +262,16 @@
 			}
 		}
 
+		window.__applyVisitBannerLayout?.(visit);
+	};
+
+	/** ??? banner ????? is-home??????? sticky ?? top ????? */
+	window.__applyVisitBannerLayout = function applyVisitBannerLayout(visit) {
+		const pathsEqual = window.__pathsEqual;
+		if (!pathsEqual) return;
+
+		const isHomePage = pathsEqual(visit.to.url, "/");
+
 		const bannerTextOverlay = document.querySelector(
 			".banner-text-overlay",
 		);
@@ -287,11 +299,13 @@
 		}
 	};
 
-	/** 首屏 body 壁纸 class �?替代 Layout body 内联脚本 */
-	window.__bootstrapWallpaperBodyClasses = function bootstrapWallpaperBodyClasses() {
-		const mode =
-			document.documentElement.getAttribute("data-wallpaper-mode") ||
-			"banner";
-		window.__applyWallpaperBodyClasses(mode);
-	};
+	/** 首屏 body 壁纸 class �?替代 Layout body 内联脚本 */
+	window.__bootstrapWallpaperBodyClasses =
+		function bootstrapWallpaperBodyClasses() {
+			const mode =
+				document.documentElement.getAttribute("data-wallpaper-mode") ||
+				"banner";
+			window.__applyWallpaperBodyClasses(mode);
+		};
 })();
+

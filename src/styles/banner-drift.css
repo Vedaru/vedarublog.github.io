@@ -1,6 +1,6 @@
 /**
  * Banner / 全屏壁纸微移飘动（布局样式）
- * 动画由 public/banner-drift.js 的 WAAPI 驱动，避免 Swup 换页时 CSS 动画重置
+ * 动画由 src/scripts/runtime/banner-drift.ts 的 rAF 驱动
  */
 
 .banner-breathe-wrap {
@@ -33,4 +33,3 @@
     transform: none;
   }
 }
-

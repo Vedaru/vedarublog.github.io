@@ -88,7 +88,7 @@ function renderComponent(component: any, index: number, _components: any[]) {
 	</div>
 	
 	<!-- 粘性组件区域 -->
-	<div id="sidebar-sticky" class="transition-all duration-700 flex flex-col w-full gap-4 sticky top-4">
+	<div id="sidebar-sticky" class="flex flex-col w-full gap-4 sticky top-4">
 		<!-- 手机端粘性组件 -->
 		{mobileStickyComponents.length > 0 && (
 			<div class="flex flex-col w-full gap-4 md:hidden">
@@ -139,93 +139,16 @@ function renderComponent(component: any, index: number, _components: any[]) {
 	}
 </style>
 
-<script is:inline define:vars={{
+<script type="application/json" id="sidebar-config" set:html={JSON.stringify({
 	breakpoints: widgetManager.getBreakpoints(),
 	mobileShowSidebar: widgetManager.shouldShowSidebar('mobile'),
 	tabletShowSidebar: widgetManager.shouldShowSidebar('tablet'),
 	desktopShowSidebar: widgetManager.shouldShowSidebar('desktop'),
 	hasMobileComponents: mobileTopComponents.length > 0 || mobileStickyComponents.length > 0,
-	hasTabletComponents: tabletTopComponents.length > 0 || tabletStickyComponents.length > 0
-}}>
-	// 响应式布局管理
-	class SidebarManager {
-		pendingUpdate = 0;
-
-		constructor() {
-			this.init();
-		}
-		
-		registerSwupIdleUpdate() {
-			const schedule = () => {
-				if (window.__onSwupPageIdlePhase) {
-					window.__onSwupPageIdlePhase(() => {
-						requestAnimationFrame(() => {
-							requestAnimationFrame(() => this.scheduleUpdate());
-						});
-					});
-				} else {
-					document.addEventListener('swup:transition-ready', () => {
-						this.scheduleUpdate();
-					});
-				}
-			};
-			if (window.__onSwupPageIdlePhase) {
-				schedule();
-			} else {
-				document.addEventListener('DOMContentLoaded', schedule, { once: true });
-			}
-		}
-
-		init() {
-			this.scheduleUpdate();
-			window.addEventListener('resize', () => this.scheduleUpdate());
-			this.registerSwupIdleUpdate();
-		}
-
-		scheduleUpdate() {
-			if (this.pendingUpdate) cancelAnimationFrame(this.pendingUpdate);
-			this.pendingUpdate = requestAnimationFrame(() => {
-				this.pendingUpdate = 0;
-				this.updateResponsiveDisplay();
-			});
-		}
-		
-		updateResponsiveDisplay() {
-			const width = window.innerWidth;
-			
-			let deviceType;
-			let hasComponents = false;
-			let showConfig = false;
-
-			if (width < breakpoints.mobile) {
-				deviceType = 'mobile';
-				hasComponents = hasMobileComponents;
-				showConfig = mobileShowSidebar;
-			} else if (width < breakpoints.tablet) {
-				deviceType = 'tablet';
-				hasComponents = hasTabletComponents;
-				showConfig = tabletShowSidebar;
-			} else {
-				deviceType = 'desktop';
-				hasComponents = hasTabletComponents; // 桌面端也使用 tablet 的组件列表（left）
-				showConfig = desktopShowSidebar;
-			}
-			
-			// 根据设备类型判断是否显示侧边栏
-			// 只有在配置开启且该设备下有组件时才显示
-			const shouldShow = showConfig && hasComponents;
-			
-			const sidebar = document.getElementById('sidebar');
-			
-			if (sidebar) {
-				sidebar.style.setProperty(
-					`--sidebar-${deviceType}-display`, 
-					shouldShow ? 'block' : 'none'
-				);
-			}
-		}
-	}
-	
-	// 初始化侧边栏管理器
-	new SidebarManager();
+	hasTabletComponents: tabletTopComponents.length > 0 || tabletStickyComponents.length > 0,
+})} />
+<script>
+	import { initSidebarManager } from "../../scripts/widgets/sidebar-manager";
+	const el = document.getElementById("sidebar-config");
+	if (el) initSidebarManager(JSON.parse(el.textContent || "{}"));
 </script>

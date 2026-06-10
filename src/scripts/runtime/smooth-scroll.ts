@@ -24,9 +24,7 @@
 	}
 
 	function easeInOutCubic(t) {
-		return t < 0.5
-			? 4 * t * t * t
-			: 1 - Math.pow(-2 * t + 2, 3) / 2;
+		return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 	}
 
 	function syncNavbarDuringSmoothScroll(scrollY) {
@@ -50,6 +48,14 @@
 		}
 
 		window.__smoothScrollActive = false;
+
+		if (
+			window.tocClickTimestamp &&
+			Date.now() - window.tocClickTimestamp < 2000
+		) {
+			document.getElementById("toc-wrapper")?.classList.remove("toc-not-ready");
+		}
+		window.__syncTocHideForScroll?.(goalY, window.innerHeight);
 	}
 
 	function syncSemifullNavbarDuringSmoothScroll(scrollY) {
@@ -83,10 +89,8 @@
 			return Promise.resolve();
 		}
 
-		return new Promise(function (resolve) {
-			if (
-				window.matchMedia("(prefers-reduced-motion: reduce)").matches
-			) {
+		return new Promise<void>(function (resolve) {
+			if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
 				syncNavbarDuringSmoothScroll(goalY);
 				setDocumentScrollTop(goalY);
 				if (typeof onProgress === "function") {
@@ -139,35 +143,65 @@
 			return Promise.resolve();
 		}
 
-		const navbarOffset =
-			typeof offset === "number" ? offset : 80;
+		const navbarOffset = typeof offset === "number" ? offset : 80;
 		const targetTop =
 			element.getBoundingClientRect().top + getScrollY() - navbarOffset;
 
 		window.tocClickTimestamp = Date.now();
-		return smoothScrollToY(targetTop, duration);
+		return smoothScrollToY(targetTop, duration, undefined, undefined);
 	}
 
 	window.__smoothScrollToY = smoothScrollToY;
 	window.__smoothScrollToTop = smoothScrollToTop;
 	window.__smoothScrollToElement = smoothScrollToElement;
 	window.__easeInOutCubic = easeInOutCubic;
+
+	var lockedScrollY = 0;
+	var isScrollLocked = false;
+
 	window.__pinPageScrollTop = function () {
 		setDocumentScrollTop(0);
+		if (isScrollLocked) {
+			lockedScrollY = 0;
+			document.body.style.top = "0px";
+		}
 	};
 
-	/** 仅冻结 overflow，不改动 scrollTop（供预滚动动画使用） */
+	/** 冻结滚动（body fixed，保留 html scrollbar-gutter） */
 	window.__lockSwupScroll = function () {
+		if (isScrollLocked) return;
+		lockedScrollY =
+			window.scrollY || document.documentElement.scrollTop || 0;
+		document.body.style.position = "fixed";
+		document.body.style.top = "-" + lockedScrollY + "px";
+		document.body.style.width = "100%";
 		document.documentElement.classList.add("swup-scroll-lock");
+		isScrollLocked = true;
 	};
 
 	/** 换页瞬间回顶 + 冻结（无预滚动、且已在顶部附近时使用） */
 	window.__lockSwupScrollAndPin = function () {
 		window.__pinPageScrollTop?.();
-		window.__lockSwupScroll();
+		lockedScrollY = 0;
+		if (isScrollLocked) {
+			document.body.style.top = "0px";
+			return;
+		}
+		document.body.style.position = "fixed";
+		document.body.style.top = "0px";
+		document.body.style.width = "100%";
+		document.documentElement.classList.add("swup-scroll-lock");
+		isScrollLocked = true;
 	};
 
 	window.__unlockSwupScroll = function () {
+		if (!isScrollLocked) return;
 		document.documentElement.classList.remove("swup-scroll-lock");
+		document.body.style.position = "";
+		document.body.style.top = "";
+		document.body.style.width = "";
+		window.scrollTo(0, lockedScrollY);
+		isScrollLocked = false;
 	};
 })();
+

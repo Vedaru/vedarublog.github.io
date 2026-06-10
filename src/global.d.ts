@@ -70,10 +70,16 @@ declare global {
 		__homePreScrollActive?: boolean;
 		__smoothScrollActive?: boolean;
 		__smoothScrollBootstrapped?: boolean;
-		__smoothScrollToY?: (targetY: number, duration?: number) => Promise<void>;
+		__smoothScrollToY?: (
+			targetY: number,
+			duration?: number,
+			easingFn?: (t: number) => number,
+			onProgress?: (progress: number, scrollY: number) => void,
+		) => Promise<void>;
 		__smoothScrollToTop?: (
 			duration?: number,
 			easingFn?: (t: number) => number,
+			onProgress?: (progress: number, scrollY: number) => void,
 		) => Promise<void>;
 		__easeInOutCubic?: (t: number) => number;
 		__smoothScrollToElement?: (
@@ -81,6 +87,7 @@ declare global {
 			offset?: number,
 			duration?: number,
 		) => Promise<void>;
+		tocClickTimestamp?: number;
 		__homePreScrollBootstrapped?: boolean;
 		__homePreScrollCompleted?: boolean;
 		__homePreScrollWasUsed?: boolean;
@@ -116,7 +123,16 @@ declare global {
 		) => void;
 		__applyWallpaperBodyClasses?: (mode: string) => void;
 		__applyVisitBodyLayout?: (visit: { to: { url: string } }) => void;
+		__applyVisitBannerLayout?: (visit: { to: { url: string } }) => void;
 		__bootstrapWallpaperBodyClasses?: () => void;
+		__themePageScaling?: { enable?: boolean; targetWidth?: number };
+		__adjustPageScale?: () => void;
+		__analyticsSchedulerBootstrapped?: boolean;
+		__iconifyLoaderInitialized?: boolean;
+		backToTop?: () => void;
+		loadIconify?: () => Promise<void> | void;
+		preloadIcons?: (icons: string | string[]) => void;
+		onIconifyReady?: (callback: () => void) => void;
 		__getScrollY?: () => number;
 		__pinScrollTopWithFrames?: (count?: number) => void;
 		__getNavbarHideThreshold?: () => number;

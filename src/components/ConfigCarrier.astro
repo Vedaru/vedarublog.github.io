@@ -7,34 +7,26 @@ import { expressiveCodeConfig, siteConfig } from "../config";
 <div id="config-carrier" data-hue={siteConfig.themeColor.hue} data-hide-code-blocks-during-transition={expressiveCodeConfig.hideDuringThemeTransition ? "true" : "false"}>
 </div>
 
-<script is:inline define:vars={{ tocEnable: siteConfig.toc.enable, tocDepth: siteConfig.toc.depth, tocUseJapaneseBadge: siteConfig.toc.useJapaneseBadge }}>
-  // 将TOC配置传递到前端
-  window.siteConfig = window.siteConfig || {};
-  window.siteConfig.toc = {
-    enable: tocEnable,
-    depth: tocDepth,
-    useJapaneseBadge: tocUseJapaneseBadge
-  };
-  
-  // 添加调试信息
-  console.log('TOC Config:', window.siteConfig.toc);
-</script>
-
-<!-- 引入Umami Share工具脚本 - 延迟加载，避免阻塞首屏 -->
-<script is:inline>
-	if ("requestIdleCallback" in window) {
-		requestIdleCallback(function () {
-			var s = document.createElement("script");
-			s.src = "/js/umami-share.js";
-			s.async = true;
-			document.head.appendChild(s);
-		}, { timeout: 3000 });
-	} else {
-		setTimeout(function () {
-			var s = document.createElement("script");
-			s.src = "/js/umami-share.js";
-			s.async = true;
-			document.head.appendChild(s);
-		}, 3000);
+<script type="application/json" id="config-carrier-toc" set:html={JSON.stringify({
+	tocEnable: siteConfig.toc.enable,
+	tocDepth: siteConfig.toc.depth,
+	tocUseJapaneseBadge: siteConfig.toc.useJapaneseBadge,
+})} />
+<script>
+	import {
+		initConfigCarrier,
+		scheduleUmamiShareScript,
+	} from "../scripts/widgets/config-carrier";
+	const el = document.getElementById("config-carrier-toc");
+	if (el) {
+		const { tocEnable, tocDepth, tocUseJapaneseBadge } = JSON.parse(
+			el.textContent || "{}",
+		);
+		initConfigCarrier({
+			enable: tocEnable,
+			depth: tocDepth,
+			useJapaneseBadge: tocUseJapaneseBadge,
+		});
 	}
+	scheduleUmamiShareScript();
 </script>

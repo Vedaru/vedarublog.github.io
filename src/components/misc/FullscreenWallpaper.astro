@@ -107,21 +107,9 @@ const positionClass = (() => {
 				</div>
 			</div>
 		)}
-		<script is:inline>
-			(function () {
-				const run = () => {
-					window.__bannerSessionApplyDrift?.(
-						document.getElementById("wallpaper-single-container"),
-					);
-				};
-				if (document.readyState === "loading") {
-					document.addEventListener("DOMContentLoaded", run, {
-						once: true,
-					});
-				} else {
-					run();
-				}
-			})();
+		<script>
+			import { scheduleBannerDrift } from "../../scripts/runtime/banner-drift-trigger";
+			scheduleBannerDrift("wallpaper-single-container");
 		</script>
 	</div>
 </div>

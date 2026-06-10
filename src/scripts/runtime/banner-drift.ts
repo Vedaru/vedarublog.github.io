@@ -13,11 +13,11 @@
 		return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 	}
 
-	function randomBetween(min, max) {
+	function randomBetween(min: number, max: number) {
 		return min + Math.random() * (max - min);
 	}
 
-	function getDriftImages(root) {
+	function getDriftImages(root?: ParentNode | null) {
 		return (root || document).querySelectorAll(".banner-breathe-wrap img");
 	}
 
@@ -25,14 +25,18 @@
 		return {
 			phase: randomBetween(0, Math.PI * 2),
 			direction: Math.random() < 0.5 ? 1 : -1,
-			startMs: null,
+			startMs: null as number | null,
 			elapsedMs: 0,
 			rafId: 0,
 			paused: false,
 		};
 	}
 
-	function applyDriftTransform(img, state, nowMs) {
+	function applyDriftTransform(
+		img: HTMLImageElement,
+		state: ReturnType<typeof createDriftState>,
+		nowMs: number,
+	) {
 		if (state.startMs == null) {
 			state.startMs = nowMs;
 		}
@@ -48,7 +52,11 @@
 		img.style.transform = `translate3d(${x}%, ${y}%, 0)`;
 	}
 
-	function tick(img, state, nowMs) {
+	function tick(
+		img: HTMLImageElement,
+		state: ReturnType<typeof createDriftState>,
+		nowMs: number,
+	) {
 		if (state.paused || !img.isConnected) return;
 
 		applyDriftTransform(img, state, nowMs);
@@ -57,10 +65,13 @@
 		});
 	}
 
-	function startDriftLoop(img) {
-		const state = img.__driftState || createDriftState();
+	function startDriftLoop(img: HTMLImageElement) {
+		const el = img as HTMLImageElement & {
+			__driftState?: ReturnType<typeof createDriftState>;
+		};
+		const state = el.__driftState || createDriftState();
 		state.paused = false;
-		img.__driftState = state;
+		el.__driftState = state;
 
 		if (state.rafId) {
 			cancelAnimationFrame(state.rafId);
@@ -71,21 +82,30 @@
 		});
 	}
 
-	function startDriftOnImage(img) {
+	function startDriftOnImage(img: HTMLImageElement) {
 		if (prefersReducedMotion() || img.hasAttribute(DRIFT_MARK)) return;
 
 		img.setAttribute(DRIFT_MARK, "");
-		img.__driftState = createDriftState();
+		(
+			img as HTMLImageElement & {
+				__driftState?: ReturnType<typeof createDriftState>;
+			}
+		).__driftState = createDriftState();
 		startDriftLoop(img);
 	}
 
-	function applyBannerDriftVariation(root) {
-		getDriftImages(root).forEach(startDriftOnImage);
+	function applyBannerDriftVariation(root?: ParentNode | null) {
+		getDriftImages(root).forEach(function (img) {
+			startDriftOnImage(img as HTMLImageElement);
+		});
 	}
 
 	function pauseBannerDrift() {
 		getDriftImages().forEach(function (img) {
-			const state = img.__driftState;
+			const el = img as HTMLImageElement & {
+				__driftState?: ReturnType<typeof createDriftState>;
+			};
+			const state = el.__driftState;
 			if (!state || state.paused) return;
 
 			state.paused = true;
@@ -103,15 +123,18 @@
 		if (prefersReducedMotion()) return;
 
 		getDriftImages().forEach(function (img) {
-			if (!img.__driftState) {
-				startDriftOnImage(img);
+			const el = img as HTMLImageElement & {
+				__driftState?: ReturnType<typeof createDriftState>;
+			};
+			if (!el.__driftState) {
+				startDriftOnImage(el);
 				return;
 			}
 
-			const state = img.__driftState;
+			const state = el.__driftState;
 			state.paused = false;
 			state.startMs = performance.now() - state.elapsedMs;
-			startDriftLoop(img);
+			startDriftLoop(el);
 		});
 	}
 

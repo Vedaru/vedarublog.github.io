@@ -159,7 +159,7 @@
 				}
 
 				window.__bannerDriftPause?.();
-				syncNavbarDuringPreScroll(visit);
+				syncNavbarDuringPreScroll(visit, 0);
 
 				const smoothScrollToTop =
 					window.__smoothScrollToTop ||

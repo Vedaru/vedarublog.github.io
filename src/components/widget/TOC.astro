@@ -45,6 +45,7 @@ import {
 	collectHeadingsFromDocument,
 	createTransitionDeferredUpdater,
 	findActiveSectionIndex,
+	findVisibleSectionIndices,
 	isPostPagePath,
 	scheduleTocDomInit,
 	scheduleTocIdleWork,
@@ -70,6 +71,33 @@ class TableOfContents extends HTMLElement {
     transitionUpdater = createTransitionDeferredUpdater(() => this.update());
     heavyLayoutReady = false;
     heavyLayoutScheduled = false;
+    scrollRaf = 0;
+
+    resolveTocSection = (heading: HTMLElement): HTMLElement => {
+        const path = window.location.pathname;
+        if (path.includes("/diary")) {
+            return heading;
+        }
+
+        const parent = heading.parentElement;
+        if (!parent) return heading;
+        const parentHeight = parent.getBoundingClientRect().height;
+        const headingHeight = heading.getBoundingClientRect().height;
+        if (parentHeight > headingHeight * 2.5) {
+            return heading;
+        }
+        return parent;
+    };
+
+    handleScroll = () => {
+        if (!this.heavyLayoutReady || shouldSkipTocLayoutWork()) return;
+        if (this.scrollRaf) return;
+        this.scrollRaf = requestAnimationFrame(() => {
+            this.scrollRaf = 0;
+            this.fallback();
+            this.update();
+        });
+    };
 
     constructor() {
         super();
@@ -85,13 +113,21 @@ class TableOfContents extends HTMLElement {
         }
 
         entries.forEach((entry) => {
-            const id = entry.target.children[0]?.getAttribute("id");
+            const target = entry.target as HTMLElement;
+            const id =
+                target.getAttribute("id") ||
+                target.children[0]?.getAttribute("id");
             const idx = id ? this.headingIdxMap.get(id) : undefined;
             if (idx != undefined && idx < this.active.length)
                 this.active[idx] = entry.isIntersecting;
 
-            if (entry.isIntersecting && this.anchorNavTarget == entry.target.firstChild)
+            if (
+                entry.isIntersecting &&
+                (this.anchorNavTarget === entry.target ||
+                    this.anchorNavTarget === entry.target.firstChild)
+            ) {
                 this.anchorNavTarget = null;
+            }
         });
 
         if (!this.heavyLayoutReady) {
@@ -103,27 +139,24 @@ class TableOfContents extends HTMLElement {
     };
 
     applyActiveClasses = (): { min: number; max: number } => {
-        let i = this.active.length - 1;
-        let min = this.active.length - 1;
+        let min = this.active.length;
         let max = -1;
+        let hasActive = false;
 
-        while (i >= 0 && !this.active[i]) {
-            this.tocEntries[i]?.classList.remove(this.visibleClass);
-            i--;
-        }
-        while (i >= 0 && this.active[i]) {
-            if (this.tocEntries[i]) {
-                this.tocEntries[i].classList.add(this.visibleClass);
+        for (let i = 0; i < this.active.length; i++) {
+            if (this.active[i]) {
+                hasActive = true;
                 min = Math.min(min, i);
                 max = Math.max(max, i);
+                this.tocEntries[i]?.classList.add(this.visibleClass);
+            } else {
+                this.tocEntries[i]?.classList.remove(this.visibleClass);
             }
-            i--;
-        }
-        while (i >= 0) {
-            this.tocEntries[i]?.classList.remove(this.visibleClass);
-            i--;
         }
 
+        if (!hasActive) {
+            return { min: this.active.length, max: -1 };
+        }
         return { min, max };
     };
 
@@ -230,17 +263,31 @@ class TableOfContents extends HTMLElement {
 
         const scrollTop = window.scrollY;
         const viewportBottom = scrollTop + window.innerHeight;
-        const activeIdx = findActiveSectionIndex(
+        const visibleIndices = findVisibleSectionIndices(
             this.sectionOffsets,
             scrollTop,
             viewportBottom,
         );
-        if (activeIdx !== null) {
-            this.markActiveHeading(activeIdx);
+
+        this.active.fill(false);
+        if (visibleIndices.length > 0) {
+            for (const idx of visibleIndices) {
+                this.active[idx] = true;
+            }
+        } else {
+            const activeIdx = findActiveSectionIndex(
+                this.sectionOffsets,
+                scrollTop,
+                viewportBottom,
+            );
+            if (activeIdx !== null) {
+                this.active[activeIdx] = true;
+            }
         }
     };
 
-    markActiveHeading = (idx: number)=> {
+    markActiveHeading = (idx: number) => {
+        this.active.fill(false);
         this.active[idx] = true;
     };
 
@@ -251,6 +298,7 @@ class TableOfContents extends HTMLElement {
 
         if (anchor) {
             event.preventDefault();
+            window.tocClickTimestamp = Date.now();
 
             const id = decodeURIComponent(anchor.hash?.substring(1));
             scrollToTocHeading(id);
@@ -271,6 +319,11 @@ class TableOfContents extends HTMLElement {
         const runHeavy = () => {
             this.heavyLayoutScheduled = false;
             if (shouldSkipTocLayoutWork()) {
+                document.addEventListener(
+                    "swup:transition-ready",
+                    () => this.scheduleHeavyLayout(),
+                    { once: true },
+                );
                 return;
             }
             this.cacheSectionOffsets();
@@ -320,7 +373,12 @@ class TableOfContents extends HTMLElement {
             window.clearTimeout(this.resizeTimer);
             this.resizeTimer = 0;
         }
+        if (this.scrollRaf) {
+            cancelAnimationFrame(this.scrollRaf);
+            this.scrollRaf = 0;
+        }
         window.removeEventListener("resize", this.handleResize);
+        window.removeEventListener("scroll", this.handleScroll);
 
         this.transitionUpdater.cleanup();
         this.heavyLayoutReady = false;
@@ -355,7 +413,9 @@ class TableOfContents extends HTMLElement {
         for (let i = 0; i < this.tocEntries.length; i++) {
             const id = decodeURIComponent(this.tocEntries[i].hash?.substring(1));
             const heading = document.getElementById(id);
-            const section = heading?.parentElement;
+            const section = heading
+                ? this.resolveTocSection(heading)
+                : null;
             if (heading instanceof HTMLElement && section instanceof HTMLElement) {
                 this.headings[i] = heading;
                 this.sections[i] = section;
@@ -365,6 +425,7 @@ class TableOfContents extends HTMLElement {
         this.active = new Array(this.tocEntries.length).fill(false);
 
         window.addEventListener("resize", this.handleResize, { passive: true });
+        window.addEventListener("scroll", this.handleScroll, { passive: true });
 
         this.scheduleHeavyLayout();
     };

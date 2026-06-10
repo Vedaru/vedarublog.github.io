@@ -57,12 +57,6 @@ import { Icon } from "astro-icon/components";
 
 </style>
 
-<script is:raw is:inline>
-    function backToTop() {
-        if (typeof window.__smoothScrollToTop === 'function') {
-            window.__smoothScrollToTop(650);
-            return;
-        }
-        window.scroll({ top: 0, behavior: 'smooth' });
-    }
+<script>
+	import "../../scripts/widgets/back-to-top";
 </script>
