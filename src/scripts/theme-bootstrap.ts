@@ -1,4 +1,3 @@
-import "overlayscrollbars/overlayscrollbars.css";
 import { widgetConfigs } from "../config";
 
 async function initializePanelManager() {
@@ -142,8 +141,25 @@ export function loadPublicStylesheet(href: string) {
 }
 
 export function checkKatex() {
-	if (document.querySelector(".katex")) {
-		import("katex/dist/katex.css");
+	if (!document.querySelector(".katex")) return;
+	void import("@scripts/lazy/katex-css").then(({ default: href }) =>
+		loadPublicStylesheet(href),
+	);
+}
+
+export function ensureJetBrainsMono() {
+	if (!document.querySelector("pre, code, .expressive-code")) return;
+
+	const load = () => {
+		void import("./lazy/jetbrains-mono-css").then(({ default: href }) =>
+			loadPublicStylesheet(href),
+		);
+	};
+
+	if ("requestIdleCallback" in window) {
+		requestIdleCallback(load, { timeout: 3000 });
+	} else {
+		setTimeout(load, 3000);
 	}
 }
 
@@ -163,7 +179,8 @@ export async function initFancybox() {
 	if (!Fancybox) {
 		const mod = await import("@fancyapps/ui");
 		Fancybox = mod.Fancybox;
-		await import("@fancyapps/ui/dist/fancybox/fancybox.css");
+		const { default: href } = await import("./lazy/fancybox-css");
+		await loadPublicStylesheet(href);
 	}
 
 	if (fancyboxSelectors.length > 0) {
@@ -242,6 +259,7 @@ export function cleanupFancybox() {
 function bootFirstPageEnhancements() {
 	void initFancybox();
 	checkKatex();
+	ensureJetBrainsMono();
 }
 
 export function initThemeBootstrap() {

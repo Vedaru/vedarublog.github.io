@@ -45,7 +45,8 @@ export function initNavbarScroll() {
 	function scrollFunction() {
 		if (
 			document.documentElement.classList.contains("is-home-pre-scrolling") ||
-			document.documentElement.classList.contains("is-visit-pre-scrolling")
+			document.documentElement.classList.contains("is-visit-pre-scrolling") ||
+			window.__smoothScrollActive
 		) {
 			return;
 		}

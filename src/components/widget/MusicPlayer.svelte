@@ -5,11 +5,13 @@ import { onDestroy, onMount } from "svelte";
 import { musicPlayerConfig } from "@/config";
 import Key from "@/i18n/i18nKey";
 import { i18n } from "@/i18n/translation";
-import { createAudioPlayer } from "@/lib/audio/useAudioPlayer";
+import { createAudioPlayer, type Song } from "@/lib/audio/useAudioPlayer";
 import Controls from "./music/Controls.svelte";
 import Playlist from "./music/Playlist.svelte";
 
-const player = createAudioPlayer();
+export let initialSong: Song | undefined = undefined;
+
+const player = createAudioPlayer({ initialSong });
 const { stores, actions } = player;
 const {
 	isPlaying,
@@ -30,7 +32,7 @@ const {
 
 const {
 	bindAudioElement,
-	fetchMetingPlaylist,
+	ensurePlaylistLoaded,
 	togglePlay,
 	toggleExpanded,
 	toggleHidden,
@@ -54,12 +56,14 @@ onMount(() => {
 	interactionEvents.forEach((event) => {
 		document.addEventListener(event, handleUserInteraction, { capture: true });
 	});
-
-	if (!musicPlayerConfig.enable) {
-		return;
-	}
-	fetchMetingPlaylist();
 });
+
+async function handlePlayerInteraction(action: () => void) {
+	if (musicPlayerConfig.enable) {
+		await ensurePlaylistLoaded();
+	}
+	action();
+}
 
 onDestroy(() => {
 	if (typeof document !== "undefined") {
@@ -70,11 +74,20 @@ onDestroy(() => {
 		});
 	}
 });
+
+function handleRoleButtonKeydown(
+	event: KeyboardEvent,
+	action: () => void,
+) {
+	if (event.key === "Enter" || event.key === " ") {
+		event.preventDefault();
+		action();
+	}
+}
 </script>
 
 <audio
 	use:bindAudioElement
-	src={getAssetPath($currentSong.url)}
 	volume={$volume}
 	muted={$isMuted}
 	on:play={() => isPlaying.set(true)}
@@ -83,7 +96,7 @@ onDestroy(() => {
 	on:ended={handleAudioEnded}
 	on:error={handleLoadError}
 	on:loadeddata={handleLoadSuccess}
-	preload="auto"
+	preload="none"
 ></audio>
 
 <svelte:window
@@ -99,7 +112,7 @@ onDestroy(() => {
 
 {#if musicPlayerConfig.enable}
 	{#if $showError}
-		<div class="fixed bottom-20 right-4 z-[60] max-w-sm">
+		<div class="fixed bottom-20 right-4 z-[60] max-w-sm" role="alert">
 			<div
 				class="bg-red-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-slide-up"
 			>
@@ -108,6 +121,7 @@ onDestroy(() => {
 				<button
 					on:click={hideError}
 					class="text-white/80 hover:text-white transition-colors"
+					aria-label={i18n(Key.announcementClose)}
 				>
 					<Icon icon="material-symbols:close" class="text-lg" />
 				</button>
@@ -125,9 +139,11 @@ onDestroy(() => {
 			class:opacity-0={!$isHidden}
 			class:scale-0={!$isHidden}
 			class:pointer-events-none={!$isHidden}
-			on:click={toggleHidden}
+			on:click={() => void handlePlayerInteraction(toggleHidden)}
+			on:keydown={(e) => handleRoleButtonKeydown(e, () => void handlePlayerInteraction(toggleHidden))}
 			role="button"
 			tabindex="0"
+			aria-label={i18n(Key.musicPlayerShow)}
 		>
 			{#if $isLoading}
 				<Icon icon="material-symbols:progress-activity" class="text-white text-lg" />
@@ -157,13 +173,15 @@ onDestroy(() => {
 			<div class="flex items-center gap-3">
 				<div
 					class="cover-container relative w-12 h-12 rounded-full overflow-hidden cursor-pointer"
-					on:click={togglePlay}
+					on:click={() => void handlePlayerInteraction(togglePlay)}
+					on:keydown={(e) => handleRoleButtonKeydown(e, () => void handlePlayerInteraction(togglePlay))}
 					role="button"
 					tabindex="0"
+					aria-label={$isPlaying ? i18n(Key.musicPlayerPause) : i18n(Key.musicPlayerPlay)}
 				>
 					<img
 						src={getAssetPath($currentSong.cover)}
-						alt={i18n(Key.musicPlayerCover)}
+						alt=""
 						class="w-full h-full object-cover transition-transform duration-300"
 						class:spinning={$isPlaying && !$isLoading}
 						class:animate-pulse={$isLoading}
@@ -185,9 +203,11 @@ onDestroy(() => {
 				</div>
 				<div
 					class="flex-1 min-w-0 cursor-pointer"
-					on:click={toggleExpanded}
+					on:click={() => void handlePlayerInteraction(toggleExpanded)}
+					on:keydown={(e) => handleRoleButtonKeydown(e, () => void handlePlayerInteraction(toggleExpanded))}
 					role="button"
 					tabindex="0"
+					aria-label={i18n(Key.musicPlayerExpand)}
 				>
 					<div class="text-sm font-medium text-90 truncate">
 						{$currentSong.title}
@@ -198,12 +218,14 @@ onDestroy(() => {
 					<button
 						class="btn-plain w-8 h-8 rounded-lg flex items-center justify-center"
 						on:click|stopPropagation={toggleHidden}
+						aria-label={i18n(Key.musicPlayerHide)}
 					>
 						<Icon icon="material-symbols:visibility-off" class="text-lg" />
 					</button>
 					<button
 						class="btn-plain w-8 h-8 rounded-lg flex items-center justify-center"
 						on:click|stopPropagation={toggleExpanded}
+						aria-label={i18n(Key.musicPlayerExpand)}
 					>
 						<Icon icon="material-symbols:expand-less" class="text-lg" />
 					</button>
@@ -223,7 +245,7 @@ onDestroy(() => {
 				>
 					<img
 						src={getAssetPath($currentSong.cover)}
-						alt={i18n(Key.musicPlayerCover)}
+						alt=""
 						class="w-full h-full object-cover transition-transform duration-300"
 						class:spinning={$isPlaying && !$isLoading}
 						class:animate-pulse={$isLoading}
@@ -244,6 +266,7 @@ onDestroy(() => {
 					<button
 						class="btn-plain w-8 h-8 rounded-lg flex items-center justify-center"
 						on:click={toggleHidden}
+						aria-label={i18n(Key.musicPlayerHide)}
 					>
 						<Icon icon="material-symbols:visibility-off" class="text-lg" />
 					</button>
@@ -251,6 +274,7 @@ onDestroy(() => {
 						class="btn-plain w-8 h-8 rounded-lg flex items-center justify-center"
 						class:text-[var(--primary)]={$showPlaylist}
 						on:click={togglePlaylist}
+						aria-label={i18n(Key.musicPlayerPlaylist)}
 					>
 						<Icon icon="material-symbols:queue-music" class="text-lg" />
 					</button>
@@ -264,239 +288,4 @@ onDestroy(() => {
 			<Playlist {player} />
 		{/if}
 	</div>
-
-	<style>
-		.transition-none {
-			transition: none !important;
-		}
-
-		.orb-player {
-			position: relative;
-			backdrop-filter: blur(10px);
-			-webkit-backdrop-filter: blur(10px);
-		}
-		.orb-player::before {
-			content: "";
-			position: absolute;
-			inset: -2px;
-			background: linear-gradient(45deg, var(--primary), transparent, var(--primary));
-			border-radius: 50%;
-			z-index: -1;
-			opacity: 0;
-			transition: opacity 0.3s ease;
-		}
-		.orb-player:hover::before {
-			opacity: 0.3;
-			animation: rotate 2s linear infinite;
-		}
-		.orb-player .animate-pulse {
-			animation: musicWave 1.5s ease-in-out infinite;
-		}
-		@keyframes rotate {
-			from {
-				transform: rotate(0deg);
-			}
-			to {
-				transform: rotate(360deg);
-			}
-		}
-		@keyframes musicWave {
-			0%,
-			100% {
-				transform: scaleY(0.5);
-			}
-			50% {
-				transform: scaleY(1);
-			}
-		}
-		.music-player.hidden-mode {
-			width: 48px;
-			height: 48px;
-		}
-		.music-player {
-			max-width: 320px;
-			user-select: none;
-		}
-		.mini-player {
-			width: 280px;
-			position: absolute;
-			bottom: 0;
-			right: 0;
-		}
-		.expanded-player {
-			width: 320px;
-			position: absolute;
-			bottom: 0;
-			right: 0;
-		}
-
-		.animate-pulse {
-			animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-		}
-		@keyframes pulse {
-			0%,
-			100% {
-				opacity: 1;
-			}
-			50% {
-				opacity: 0.5;
-			}
-		}
-		.progress-section div:hover,
-		.bottom-controls > div:hover {
-			transform: scaleY(1.2);
-			transition: transform 0.2s ease;
-		}
-		@media (max-width: 768px) {
-			.music-player {
-				max-width: 280px;
-				bottom: 8px !important;
-				right: 8px !important;
-			}
-			.music-player.expanded {
-				width: calc(100vw - 16px);
-				max-width: none;
-				right: 8px !important;
-			}
-			.playlist-panel {
-				width: calc(100vw - 16px) !important;
-				right: 8px !important;
-				max-width: none;
-			}
-			.controls {
-				gap: 8px;
-			}
-			.controls button {
-				width: 36px;
-				height: 36px;
-			}
-			.controls button:nth-child(3) {
-				width: 44px;
-				height: 44px;
-			}
-		}
-		@media (max-width: 480px) {
-			.music-player {
-				max-width: 260px;
-			}
-			.song-title {
-				font-size: 14px;
-			}
-			.song-artist {
-				font-size: 12px;
-			}
-			.controls {
-				gap: 6px;
-				margin-bottom: 12px;
-			}
-			.controls button {
-				width: 32px;
-				height: 32px;
-			}
-			.controls button:nth-child(3) {
-				width: 40px;
-				height: 40px;
-			}
-			.playlist-item {
-				padding: 8px 12px;
-			}
-			.playlist-item .w-10 {
-				width: 32px;
-				height: 32px;
-			}
-		}
-		@keyframes slide-up {
-			from {
-				transform: translateY(100%);
-				opacity: 0;
-			}
-			to {
-				transform: translateY(0);
-				opacity: 1;
-			}
-		}
-		.animate-slide-up {
-			animation: slide-up 0.3s ease-out;
-		}
-		@media (hover: none) and (pointer: coarse) {
-			.music-player button,
-			.playlist-item {
-				min-height: 44px;
-			}
-			.progress-section > div,
-			.bottom-controls > div:nth-child(2) {
-				height: 12px;
-			}
-		}
-		@keyframes spin-continuous {
-			from {
-				transform: rotate(0deg);
-			}
-			to {
-				transform: rotate(360deg);
-			}
-		}
-
-		.cover-container img {
-			animation: spin-continuous 3s linear infinite;
-			animation-play-state: paused;
-		}
-
-		.cover-container img.spinning {
-			animation-play-state: running;
-		}
-
-		button.bg-\[var\(--primary\)\] {
-			box-shadow: 0 0 0 2px var(--primary);
-			border: none;
-		}
-
-		.progress-tooltip,
-		.volume-tooltip {
-			bottom: 100%;
-			transform: translateX(-50%);
-			pointer-events: none;
-			padding-bottom: 8px;
-			z-index: 100;
-		}
-
-		.tooltip-card {
-			background: var(--float-panel-bg);
-			color: var(--content-meta);
-			padding: 4px 8px;
-			border-radius: 6px;
-			font-size: 12px;
-			font-weight: 500;
-			white-space: nowrap;
-			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-			border: 1px solid var(--line-divider);
-			position: relative;
-		}
-
-		.tooltip-card::after {
-			content: "";
-			position: absolute;
-			bottom: -4px;
-			left: 50%;
-			transform: translateX(-50%) rotate(45deg);
-			width: 8px;
-			height: 8px;
-			background: var(--float-panel-bg);
-			border-right: 1px solid var(--line-divider);
-			border-bottom: 1px solid var(--line-divider);
-		}
-
-		.playlist-content {
-			-ms-overflow-style: none;
-			scrollbar-width: none;
-			padding-bottom: 0.75rem;
-			scroll-padding-bottom: 0.75rem;
-			box-sizing: border-box;
-		}
-		.playlist-content::-webkit-scrollbar {
-			width: 0;
-			height: 0;
-			display: none;
-		}
-	</style>
 {/if}

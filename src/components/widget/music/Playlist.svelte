@@ -11,6 +11,16 @@ export let player: AudioPlayer;
 const { stores, actions } = player;
 const { playlist, currentIndex, isPlaying } = stores;
 const { togglePlaylist, playSong, getAssetPath } = actions;
+
+function handleRoleButtonKeydown(
+	event: KeyboardEvent,
+	action: () => void,
+) {
+	if (event.key === "Enter" || event.key === " ") {
+		event.preventDefault();
+		action();
+	}
+}
 </script>
 
 <div
@@ -21,7 +31,7 @@ const { togglePlaylist, playSong, getAssetPath } = actions;
 		class="playlist-header flex items-center justify-between p-4 border-b border-[var(--line-divider)]"
 	>
 		<h3 class="text-lg font-semibold text-90">{i18n(Key.musicPlayerPlaylist)}</h3>
-		<button class="btn-plain w-8 h-8 rounded-lg" on:click={togglePlaylist}>
+		<button class="btn-plain w-8 h-8 rounded-lg" on:click={togglePlaylist} aria-label={i18n(Key.announcementClose)}>
 			<Icon icon="material-symbols:close" class="text-lg" />
 		</button>
 	</div>
@@ -32,8 +42,11 @@ const { togglePlaylist, playSong, getAssetPath } = actions;
 				class:bg-[var(--btn-plain-bg)]={index === $currentIndex}
 				class:text-[var(--primary)]={index === $currentIndex}
 				on:click={() => playSong(index)}
+				on:keydown={(e) => handleRoleButtonKeydown(e, () => playSong(index))}
 				role="button"
 				tabindex="0"
+				aria-label={`${song.title}, ${song.artist}`}
+				aria-current={index === $currentIndex ? "true" : undefined}
 			>
 				<div class="w-6 h-6 flex items-center justify-center">
 					{#if index === $currentIndex && $isPlaying}
@@ -52,7 +65,7 @@ const { togglePlaylist, playSong, getAssetPath } = actions;
 				>
 					<img
 						src={getAssetPath(song.cover)}
-						alt={song.title}
+						alt=""
 						loading="lazy"
 						class="w-full h-full object-cover"
 					/>

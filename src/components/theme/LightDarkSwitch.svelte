@@ -92,10 +92,3 @@ if (typeof window !== "undefined") {
         </div>
     </button>
 </div>
-
-<style>
-    /* 确保主题切换按钮的背景色即时更新 */
-    .theme-switch-btn::before {
-        transition: transform 75ms ease-out, background-color 0ms !important;
-    }
-</style>

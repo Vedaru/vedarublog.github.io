@@ -66,6 +66,8 @@ const {
 		role="slider"
 		tabindex="0"
 		aria-label={i18n(Key.musicPlayerProgress)}
+		aria-valuemin={0}
+		aria-valuemax={100}
 		aria-valuenow={$duration > 0 ? ($currentTime / $duration) * 100 : 0}
 	>
 		<div
@@ -93,6 +95,7 @@ const {
 		class:btn-plain={!$isShuffled}
 		on:click={toggleShuffle}
 		disabled={$playlist.length <= 1}
+		aria-label={i18n(Key.musicPlayerShuffle)}
 	>
 		<Icon icon="material-symbols:shuffle" class="text-lg" />
 	</button>
@@ -100,6 +103,7 @@ const {
 		class="btn-plain w-10 h-10 rounded-lg"
 		on:click={previousSong}
 		disabled={$playlist.length <= 1}
+		aria-label={i18n(Key.musicPlayerPrevious)}
 	>
 		<Icon icon="material-symbols:skip-previous" class="text-xl" />
 	</button>
@@ -108,6 +112,7 @@ const {
 		class:opacity-50={$isLoading}
 		disabled={$isLoading}
 		on:click={togglePlay}
+		aria-label={$isPlaying ? i18n(Key.musicPlayerPause) : i18n(Key.musicPlayerPlay)}
 	>
 		{#if $isLoading}
 			<Icon icon="material-symbols:progress-activity" class="text-xl" />
@@ -121,6 +126,7 @@ const {
 		class="btn-plain w-10 h-10 rounded-lg"
 		on:click={() => nextSong()}
 		disabled={$playlist.length <= 1}
+		aria-label={i18n(Key.musicPlayerNext)}
 	>
 		<Icon icon="material-symbols:skip-next" class="text-xl" />
 	</button>
@@ -130,6 +136,9 @@ const {
 			($isRepeating === 0 && musicPlayerConfig.autoplayContinuous)}
 		class:btn-plain={$isRepeating === 0 && !musicPlayerConfig.autoplayContinuous}
 		on:click={toggleRepeat}
+		aria-label={$isRepeating === 1
+			? i18n(Key.musicPlayerRepeatOne)
+			: i18n(Key.musicPlayerRepeat)}
 	>
 		{#if $isRepeating === 1}
 			<Icon icon="material-symbols:repeat-one" class="text-lg" />
@@ -144,7 +153,7 @@ const {
 </div>
 
 <div class="bottom-controls flex items-center gap-2">
-	<button class="btn-plain w-8 h-8 rounded-lg" on:click={toggleMute}>
+	<button class="btn-plain w-8 h-8 rounded-lg" on:click={toggleMute} aria-label={i18n(Key.musicPlayerVolume)}>
 		{#if $isMuted || $volume === 0}
 			<Icon icon="material-symbols:volume-off" class="text-lg" />
 		{:else if $volume < 0.5}
@@ -169,6 +178,8 @@ const {
 		role="slider"
 		tabindex="0"
 		aria-label={i18n(Key.musicPlayerVolume)}
+		aria-valuemin={0}
+		aria-valuemax={100}
 		aria-valuenow={$volume * 100}
 	>
 		<div
@@ -194,7 +205,7 @@ const {
 	<button
 		class="btn-plain w-8 h-8 rounded-lg flex items-center justify-center"
 		on:click={toggleExpanded}
-		title={i18n(Key.musicPlayerCollapse)}
+		aria-label={i18n(Key.musicPlayerCollapse)}
 	>
 		<Icon icon="material-symbols:expand-more" class="text-lg" />
 	</button>

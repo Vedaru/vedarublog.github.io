@@ -307,6 +307,16 @@ html.is-visit-pre-scrolling #navbar > div {
   transition: none !important;
 }
 
+html.is-smooth-scrolling #navbar-wrapper,
+html.is-smooth-scrolling #navbar > div {
+  transition: none !important;
+}
+
+html.is-smooth-scrolling #navbar-wrapper.navbar-hidden {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
 html.is-home-pre-scrolling #swup-container,
 html.is-visit-pre-scrolling #swup-container {
   pointer-events: none;

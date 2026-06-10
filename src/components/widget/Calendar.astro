@@ -263,6 +263,31 @@ const yearSuffix = isChinese ? "年" : " ";
 		return matchedPost ? matchedPost.id : null;
 	}
 
+	let remoteDataLoaded = false;
+	let remoteDataLoading = false;
+
+	async function loadRemoteCalendarData() {
+		if (remoteDataLoaded || remoteDataLoading) return;
+		remoteDataLoading = true;
+		try {
+			const remoteData = await fetchCalendarData();
+			if (!Array.isArray(remoteData)) return;
+
+			if (!arePostsEqual(allPostsData, remoteData)) {
+				applyPostsData(remoteData);
+				renderCalendar();
+			}
+			window[CALENDAR_DATA_CACHE_KEY] = remoteData;
+			remoteDataLoaded = true;
+		} finally {
+			remoteDataLoading = false;
+		}
+	}
+
+	function onCalendarInteraction() {
+		void loadRemoteCalendarData();
+	}
+
 	async function init() {
 		const widgetRoot = document.getElementById("calendar-widget");
 		if (widgetRoot?.dataset.calendarInitialized === "true") return;
@@ -273,23 +298,14 @@ const yearSuffix = isChinese ? "年" : " ";
 		const cachedData = window[CALENDAR_DATA_CACHE_KEY];
 		if (Array.isArray(cachedData) && cachedData.length > 0) {
 			applyPostsData(cachedData);
-			renderCalendar();
-		} else {
-			renderCalendar();
+			remoteDataLoaded = true;
 		}
-
-		const remoteData = await fetchCalendarData();
-		if (!Array.isArray(remoteData)) return;
-
-		if (!arePostsEqual(allPostsData, remoteData)) {
-			applyPostsData(remoteData);
-			renderCalendar();
-		}
-		window[CALENDAR_DATA_CACHE_KEY] = remoteData;
+		renderCalendar();
 	}
 
 	function setupEventListeners() {
 		dom.titleContainer.addEventListener("click", (e) => {
+			onCalendarInteraction();
 			e.stopPropagation();
 			if (currentView === "day") showMonthPicker();
 			else if (currentView === "month") showYearPicker();
@@ -297,6 +313,7 @@ const yearSuffix = isChinese ? "年" : " ";
 		});
 
 		dom.prevBtn.addEventListener("click", () => {
+			onCalendarInteraction();
 			currentMonth--;
 			if (currentMonth < 0) {
 				currentMonth = 11;
@@ -306,6 +323,7 @@ const yearSuffix = isChinese ? "年" : " ";
 		});
 
 		dom.nextBtn.addEventListener("click", () => {
+			onCalendarInteraction();
 			currentMonth++;
 			if (currentMonth > 11) {
 				currentMonth = 0;
@@ -315,6 +333,7 @@ const yearSuffix = isChinese ? "年" : " ";
 		});
 
 		dom.backTodayBtn.addEventListener("click", () => {
+			onCalendarInteraction();
 			currentYear = todayYear;
 			currentMonth = todayMonth;
 			selectedDateKey = null;
@@ -323,6 +342,7 @@ const yearSuffix = isChinese ? "年" : " ";
 		});
 
 		dom.grid.addEventListener("click", (e) => {
+			onCalendarInteraction();
 			const cell = e.target.closest(".calendar-day");
 			if (!cell) return;
 			const dateKey = cell.getAttribute("data-date");
@@ -339,6 +359,7 @@ const yearSuffix = isChinese ? "年" : " ";
 		});
 
 		dom.selectionContent.addEventListener("click", (e) => {
+			onCalendarInteraction();
 			const monthItem = e.target.closest(".month-item");
 			const yearItem = e.target.closest(".year-item");
 

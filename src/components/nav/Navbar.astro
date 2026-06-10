@@ -45,7 +45,7 @@ let links: NavBarLink[] = navBarConfig.links.map(
                 ) : (
                     <>
                         {siteConfig.navbarTitle?.icon ? (
-                            <img src={url(siteConfig.navbarTitle.icon)} alt={siteConfig.navbarTitle?.text || siteConfig.title} class="h-[1.75rem] w-[1.75rem] mb-1 mr-2 object-contain rounded-md" width="28" height="28" loading="eager" decoding="async" />
+                            <img src={url(siteConfig.navbarTitle.icon)} alt="" class="h-[1.75rem] w-[1.75rem] mb-1 mr-2 object-contain rounded-md" width="28" height="28" loading="eager" decoding="async" />
                         ) : (
                             <Icon name="material-symbols:home-pin-outline" class="text-[1.75rem] mb-1 mr-2" />
                         )}
@@ -59,16 +59,16 @@ let links: NavBarLink[] = navBarConfig.links.map(
                 return <DropdownMenu link={l} />;
             })}
         </div>
-        <div class="flex">
+        <div class="flex gap-2">
             <!--<SearchPanel client:load>-->
-            <Search client:load></Search>
-            {siteConfig.toc.enable && <MobileTOC client:load></MobileTOC>}
+            <Search client:idle></Search>
+            {siteConfig.toc.enable && <MobileTOC client:idle></MobileTOC>}
             {!siteConfig.themeColor.fixed && (
                     <button aria-label="Display Settings" class="btn-plain scale-animation rounded-lg h-11 w-11 active:scale-90" id="display-settings-switch">
                         <Icon name="material-symbols:palette-outline" class="text-[1.25rem]"></Icon>
                     </button>
             )}
-            <LayoutSwitchButton client:load currentLayout={siteConfig.postListLayout.defaultMode}></LayoutSwitchButton>
+            <LayoutSwitchButton client:idle currentLayout={siteConfig.postListLayout.defaultMode}></LayoutSwitchButton>
             <!-- 整体布局方案切换按钮：根据配置决定在哪些设备上显示 -->
             <div class:list={[
                 modeSwitchDisplay === "off" ? "hidden" :
@@ -76,15 +76,15 @@ let links: NavBarLink[] = navBarConfig.links.map(
                 modeSwitchDisplay === "desktop" ? "hidden md:block" :
                 modeSwitchDisplay === "both" ? "block" : "hidden md:block"
             ]}>
-                <WallpaperSwitch client:load></WallpaperSwitch>
+                <WallpaperSwitch client:idle></WallpaperSwitch>
             </div>
-            <LightDarkSwitch client:load></LightDarkSwitch>
+            <LightDarkSwitch client:idle></LightDarkSwitch>
             <button aria-label="Menu" name="Nav Menu" class="btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90 md:!hidden" id="nav-menu-switch">
                 <Icon name="material-symbols:unfold-more" class="text-[1.25rem]"></Icon>
             </button>
         </div>
         <NavMenuPanel links={links}></NavMenuPanel>
-        <DisplaySettings client:load></DisplaySettings>
+        <DisplaySettings client:idle></DisplaySettings>
     </div>
 </div>
 
@@ -251,39 +251,3 @@ if (document.readyState === 'loading') {
     initSemifullScrollDetection();
 }
 </script>
-
-{import.meta.env.PROD && <script is:inline define:vars={{scriptUrl: url('/pagefind/pagefind.js')}}>
-async function loadPagefind() {
-    try {
-        const response = await fetch(scriptUrl, { method: 'HEAD' });
-        if (!response.ok) {
-            throw new Error(`Pagefind script not found: ${response.status}`);
-        }
-
-        const pagefind = await import(scriptUrl);
-
-        await pagefind.options({
-            excerptLength: 20
-        });
-
-        window.pagefind = pagefind;
-
-        document.dispatchEvent(new CustomEvent('pagefindready'));
-        console.log('Pagefind loaded and initialized successfully, event dispatched.');
-    } catch (error) {
-        console.error('Failed to load Pagefind:', error);
-        window.pagefind = {
-            search: () => Promise.resolve({ results: [] }),
-            options: () => Promise.resolve(),
-        };
-        document.dispatchEvent(new CustomEvent('pagefindloaderror'));
-        console.log('Pagefind load error, event dispatched.');
-    }
-}
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadPagefind);
-} else {
-    loadPagefind();
-}
-</script>}

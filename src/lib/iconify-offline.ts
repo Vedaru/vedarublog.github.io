@@ -1,11 +1,9 @@
 /**
- * 预注册 Iconify 图标集，避免运行时请求 api.iconify.design（离线/网络受限时 navbar 等 Svelte 图标不显示）
+ * 预注册 Iconify 图标子集，避免运行时请求 api.iconify.design
  */
 import { addCollection } from "@iconify/svelte";
-import { icons as fa6Solid } from "@iconify-json/fa6-solid";
-import { icons as materialSymbols } from "@iconify-json/material-symbols";
-import { icons as mdi } from "@iconify-json/mdi";
+import subset from "./iconify-subset.json";
 
-addCollection(materialSymbols);
-addCollection(mdi);
-addCollection(fa6Solid);
+addCollection(subset.materialSymbols);
+addCollection(subset.mdi);
+addCollection(subset.fa6Solid);

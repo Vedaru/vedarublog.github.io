@@ -10,6 +10,8 @@ import SharePoster from "@components/misc/SharePoster.svelte";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 import MainGridLayout from "@layouts/MainGridLayout.astro";
+import "@/styles/expressive-code.css";
+import "@/styles/fancybox-custom.css";
 import { getSortedPosts } from "@utils/content-utils";
 import {
 	getFileDirFromPath,
@@ -278,6 +280,8 @@ const jsonLd = {
                             src={entry.data.image}
                             basePath={getFileDirFromPath(entry.filePath || '')}
                             class="mb-8 rounded-xl banner-container onload-animation"
+                            loading="eager"
+                            fetchpriority="high"
                         />
                     </>
                 )
@@ -318,7 +322,7 @@ const jsonLd = {
                         </div>
                         <div class="flex items-center gap-3">
                             <SharePoster
-                                client:load
+                                client:visible
                                 title={entry.data.title}
                                 author={entry.data.author || profileConfig.name}
                                 description={entry.data.description || ""}

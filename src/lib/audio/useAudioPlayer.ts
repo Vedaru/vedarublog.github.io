@@ -12,7 +12,47 @@ export type Song = {
 	duration: number;
 };
 
-export function createAudioPlayer() {
+const DEFAULT_SONG: Song = {
+	id: 0,
+	title: "Sample Song",
+	artist: "Sample Artist",
+	cover: "/favicon/favicon.ico",
+	url: "",
+	duration: 0,
+};
+
+export function mapPlaylistEntry(
+	song: Record<string, unknown>,
+	index: number,
+	labels?: { unknownSong?: string; unknownArtist?: string },
+): Song {
+	const unknownSong = labels?.unknownSong ?? "Unknown Song";
+	const unknownArtist = labels?.unknownArtist ?? "Unknown Artist";
+	let title =
+		(song.name as string) ?? (song.title as string) ?? unknownSong;
+	let artist =
+		(song.artist as string) ?? (song.author as string) ?? unknownArtist;
+	let dur = (song.duration as number) ?? 0;
+	if (dur > 10000) dur = Math.floor(dur / 1000);
+	if (!Number.isFinite(dur) || dur <= 0) dur = 0;
+	return {
+		id: index,
+		title,
+		artist,
+		cover:
+			(song.cover as string) ??
+			`/assets/music/cover/${index}-default.jpg`,
+		url:
+			(song.url as string) ?? `/assets/music/url/${index}-meting.opus`,
+		duration: dur,
+	};
+}
+
+export type CreateAudioPlayerOptions = {
+	initialSong?: Song;
+};
+
+export function createAudioPlayer(options?: CreateAudioPlayerOptions) {
 	let audio: HTMLAudioElement | undefined;
 	let progressBar: HTMLElement | undefined;
 	let volumeBar: HTMLElement | undefined;
@@ -33,14 +73,7 @@ export function createAudioPlayer() {
 	const isRepeating = writable(0);
 	const errorMessage = writable("");
 	const showError = writable(false);
-	const currentSong = writable<Song>({
-		id: 0,
-		title: "Sample Song",
-		artist: "Sample Artist",
-		cover: "/favicon/favicon.ico",
-		url: "",
-		duration: 0,
-	});
+	const currentSong = writable<Song>(options?.initialSong ?? DEFAULT_SONG);
 	const playlist = writable<Song[]>([]);
 	const currentIndex = writable(0);
 
@@ -100,6 +133,17 @@ export function createAudioPlayer() {
 		return `/${path}`;
 	}
 
+	function syncAudioSrc(song: Song) {
+		if (!audio || !song.url) return;
+		const path = getAssetPath(song.url);
+		const resolved = new URL(path, window.location.origin).href;
+		if (audio.src !== resolved) {
+			audio.src = path;
+			audio.load();
+			isLoading.set(true);
+		}
+	}
+
 	function formatTime(seconds: number): string {
 		if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
 		const mins = Math.floor(seconds / 60);
@@ -110,10 +154,30 @@ export function createAudioPlayer() {
 	function loadSong(song: Song) {
 		if (!song) return;
 		const current = get(currentSong);
-		if (song.url !== current.url) {
+		if (
+			song.url !== current.url ||
+			song.title !== current.title ||
+			song.artist !== current.artist ||
+			song.cover !== current.cover
+		) {
 			currentSong.set({ ...song });
-			isLoading.set(!!song.url);
 		}
+		if (!song.url) {
+			isLoading.set(false);
+		}
+	}
+
+	let playlistFetchPromise: Promise<void> | null = null;
+
+	async function ensurePlaylistLoaded() {
+		if (get(playlist).length > 0) {
+			return;
+		}
+		if (playlistFetchPromise) {
+			return playlistFetchPromise;
+		}
+		playlistFetchPromise = fetchMetingPlaylist();
+		return playlistFetchPromise;
 	}
 
 	async function fetchMetingPlaylist() {
@@ -122,31 +186,12 @@ export function createAudioPlayer() {
 			const res = await fetch("/assets/music/playlist.json");
 			if (!res.ok) throw new Error("playlist.json not found");
 			const list: Record<string, unknown>[] = await res.json();
-			const songs = list.map((song, index) => {
-				let title =
-					(song.name as string) ??
-					(song.title as string) ??
-					i18n(Key.unknownSong);
-				let artist =
-					(song.artist as string) ??
-					(song.author as string) ??
-					i18n(Key.unknownArtist);
-				let dur = (song.duration as number) ?? 0;
-				if (dur > 10000) dur = Math.floor(dur / 1000);
-				if (!Number.isFinite(dur) || dur <= 0) dur = 0;
-				return {
-					id: index,
-					title,
-					artist,
-					cover:
-						(song.cover as string) ??
-						`/assets/music/cover/${index}-default.jpg`,
-					url:
-						(song.url as string) ??
-						`/assets/music/url/${index}-meting.opus`,
-					duration: dur,
-				};
-			});
+			const songs = list.map((song, index) =>
+				mapPlaylistEntry(song, index, {
+					unknownSong: i18n(Key.unknownSong),
+					unknownArtist: i18n(Key.unknownArtist),
+				}),
+			);
 			playlist.set(songs);
 			if (songs.length > 0) {
 				loadSong(songs[0]);
@@ -159,13 +204,17 @@ export function createAudioPlayer() {
 	}
 
 	function togglePlay() {
-		const song = get(currentSong);
-		if (!audio || !song.url) return;
-		if (get(isPlaying)) {
-			audio.pause();
-		} else {
-			audio.play().catch(() => {});
-		}
+		void (async () => {
+			await ensurePlaylistLoaded();
+			const song = get(currentSong);
+			if (!audio || !song.url) return;
+			if (get(isPlaying)) {
+				audio.pause();
+			} else {
+				syncAudioSrc(song);
+				audio.play().catch(() => {});
+			}
+		})();
 	}
 
 	function toggleExpanded() {
@@ -203,11 +252,17 @@ export function createAudioPlayer() {
 	}
 
 	function playSong(index: number, autoPlay = true) {
-		const list = get(playlist);
-		if (index < 0 || index >= list.length) return;
-		willAutoPlay = autoPlay;
-		currentIndex.set(index);
-		loadSong(list[index]);
+		void (async () => {
+			await ensurePlaylistLoaded();
+			const list = get(playlist);
+			if (index < 0 || index >= list.length) return;
+			willAutoPlay = autoPlay;
+			currentIndex.set(index);
+			loadSong(list[index]);
+			if (autoPlay) {
+				syncAudioSrc(list[index]);
+			}
+		})();
 	}
 
 	function previousSong() {
@@ -453,6 +508,7 @@ export function createAudioPlayer() {
 			bindAudioElement,
 			bindProgressBar,
 			bindVolumeBar,
+			ensurePlaylistLoaded,
 			fetchMetingPlaylist,
 			togglePlay,
 			toggleExpanded,

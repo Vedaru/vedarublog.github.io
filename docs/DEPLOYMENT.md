@@ -266,6 +266,26 @@ USE_SUBMODULE=false  # ⚠️ Cloudflare Pages 默认不支持 submodule
 - 使用独立仓库模式: `USE_SUBMODULE=false`
 - 或在构建命令中手动初始化: `git submodule update --init && pnpm build`
 
+### 性能：缓存与 Rocket Loader（生产必查）
+
+站点通过 [`public/_headers`](public/_headers) 为 `/_astro/*`、`/assets/*`、`/js/*` 等静态资源设置 `Cache-Control: public, max-age=31536000, immutable`。若 Lighthouse 仍显示 **1 小时** TTL，说明 Cloudflare 橙云在覆盖 Origin 响应头，请在 **Cloudflare Dashboard → vedaru.cn** 完成：
+
+1. **Caching → Configuration → Browser Cache TTL** → 设为 **Respect Existing Headers**（勿用固定 1 hour）。
+2. **Speed → Optimization → Rocket Loader** → **关闭**（与站内 `data-cfasync="false"` 策略冲突，会拖长 JS 依赖链）。
+3. **Caching → Cache Rules**（与 `_headers` 双保险）：
+   - `/_astro/*`、`/assets/*`、`/js/*`、`/pagefind/*`、`/favicon/*` → Edge Cache TTL 1 年；Browser Cache TTL 尊重 Origin 或显式 1 年。
+   - `/*`（HTML）→ 保持短 TTL（如 1–4 小时）+ `stale-while-revalidate`。
+
+部署后验证：
+
+```bash
+curl -I https://www.vedaru.cn/_astro/
+curl -I https://www.vedaru.cn/js/core/visit-layout.js
+curl -I "https://www.vedaru.cn/assets/font/%E5%BE%AE%E8%BD%AF%E9%9B%85%E9%BB%91.woff2"
+```
+
+响应头应含 `cache-control: public, max-age=31536000, immutable`（HTML 除外）。
+
 ---
 
 ## 🔄 自动同步机制

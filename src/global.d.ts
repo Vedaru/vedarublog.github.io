@@ -26,6 +26,7 @@ declare global {
 					data: () => Promise<SearchResult>;
 				}>;
 			}>;
+			options?: (opts: { excerptLength?: number }) => Promise<void>;
 		};
 
 		mobileTOCInit?: () => void;
@@ -119,6 +120,8 @@ declare global {
 		__getScrollY?: () => number;
 		__pinScrollTopWithFrames?: (count?: number) => void;
 		__getNavbarHideThreshold?: () => number;
+		__syncNavbarWrapperForScrollY?: (scrollY?: number) => void;
+		__clearNavbarWrapperInlineStyles?: () => void;
 		__normalizePath?: (path: string) => string;
 		__isHomePagePath?: (pathname: string) => boolean;
 		__pathFromUrl?: (url: string) => string;

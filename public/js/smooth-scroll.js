@@ -29,6 +29,44 @@
 			: 1 - Math.pow(-2 * t + 2, 3) / 2;
 	}
 
+	function syncNavbarDuringSmoothScroll(scrollY) {
+		if (window.__homePreScrollActive) {
+			return;
+		}
+
+		window.__syncNavbarWrapperForScrollY?.(scrollY);
+		syncSemifullNavbarDuringSmoothScroll(scrollY);
+	}
+
+	function finishSmoothScroll(goalY) {
+		const navbar = document.getElementById("navbar");
+		const isHome = navbar?.getAttribute("data-is-home") === "true";
+
+		window.__clearNavbarWrapperInlineStyles?.();
+		document.documentElement.classList.remove("is-smooth-scrolling");
+
+		if (!window.__homePreScrollActive) {
+			window.applySemifullNavbarVisualState?.(goalY, isHome);
+		}
+
+		window.__smoothScrollActive = false;
+	}
+
+	function syncSemifullNavbarDuringSmoothScroll(scrollY) {
+		if (window.__homePreScrollActive) {
+			return;
+		}
+
+		const applyState = window.applySemifullNavbarVisualState;
+		if (typeof applyState !== "function") {
+			return;
+		}
+
+		const navbar = document.getElementById("navbar");
+		const isHome = navbar?.getAttribute("data-is-home") === "true";
+		applyState(scrollY, isHome);
+	}
+
 	function smoothScrollToY(targetY, duration, easingFn, onProgress) {
 		const resolvedDuration =
 			typeof duration === "number" && duration > 0 ? duration : 650;
@@ -37,6 +75,7 @@
 		const goalY = Math.max(0, Math.round(targetY));
 
 		if (Math.abs(goalY - startY) <= 8) {
+			syncNavbarDuringSmoothScroll(goalY);
 			setDocumentScrollTop(goalY);
 			if (typeof onProgress === "function") {
 				onProgress(1, goalY);
@@ -48,6 +87,7 @@
 			if (
 				window.matchMedia("(prefers-reduced-motion: reduce)").matches
 			) {
+				syncNavbarDuringSmoothScroll(goalY);
 				setDocumentScrollTop(goalY);
 				if (typeof onProgress === "function") {
 					onProgress(1, goalY);
@@ -57,6 +97,7 @@
 			}
 
 			window.__smoothScrollActive = true;
+			document.documentElement.classList.add("is-smooth-scrolling");
 			const startTime = performance.now();
 
 			const step = function (now) {
@@ -69,6 +110,7 @@
 				);
 
 				// 先同步视觉状态再写 scrollTop，避免 write→read 同帧强制重排
+				syncNavbarDuringSmoothScroll(nextY);
 				if (typeof onProgress === "function") {
 					onProgress(progress, nextY);
 				}
@@ -80,7 +122,7 @@
 				}
 
 				setDocumentScrollTop(goalY);
-				window.__smoothScrollActive = false;
+				finishSmoothScroll(goalY);
 				resolve();
 			};
 

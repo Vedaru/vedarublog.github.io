@@ -167,31 +167,3 @@ onMount(() => {
     </div>
   </button>
 {/if}
-
-<style>
-    .theme-switch-btn::before {
-        transition: transform 75ms ease-out, background-color 0ms !important;
-    }
-
-    .icon-transition {
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
-    }
-    .switching {
-        pointer-events: none;
-    }
-    .switching .icon-transition {
-        animation: iconRotate 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    @keyframes iconRotate {
-        0% { transform: rotate(0deg) scale(1); opacity: 1; }
-        50% { transform: rotate(180deg) scale(0.8); opacity: 0.5; }
-        100% { transform: rotate(360deg) scale(1); opacity: 1; }
-    }
-    .theme-switch-btn:not(.switching):hover .icon-transition {
-        transform: scale(1.1);
-    }
-    .theme-switch-btn:disabled {
-        cursor: not-allowed;
-        opacity: 0.7;
-    }
-</style>

@@ -1,4 +1,5 @@
 <script lang="ts">
+import "@/lib/iconify-offline";
 import Icon from "@iconify/svelte";
 import QRCode from "qrcode";
 import { onMount } from "svelte";

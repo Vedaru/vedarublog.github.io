@@ -60,51 +60,6 @@
 		return scrollY > 80;
 	}
 
-	function getNavbarHideThreshold() {
-		return (
-			window.__getNavbarHideThreshold?.() ?? Number.POSITIVE_INFINITY
-		);
-	}
-
-	function clearNavbarPreScrollInlineStyles() {
-		const navbarWrapper = document.getElementById("navbar-wrapper");
-		if (!navbarWrapper) return;
-		navbarWrapper.style.opacity = "";
-		navbarWrapper.style.transform = "";
-	}
-
-	function syncNavbarWrapperDuringPreScroll(scrollY) {
-		const navbarWrapper = document.getElementById("navbar-wrapper");
-		if (
-			!navbarWrapper ||
-			!document.body.classList.contains("enable-banner")
-		) {
-			return;
-		}
-
-		navbarWrapper.classList.remove("navbar-hidden");
-
-		if (typeof scrollY !== "number") {
-			scrollY = getScrollY();
-		}
-		const threshold = getNavbarHideThreshold();
-
-		if (scrollY >= threshold) {
-			const fadeRange = Math.max(120, threshold * 0.2);
-			const progress = Math.min(1, (scrollY - threshold) / fadeRange);
-			const opacity = 1 - progress;
-			navbarWrapper.style.opacity = String(opacity);
-			navbarWrapper.style.transform =
-				opacity < 0.05
-					? "translateY(-4rem)"
-					: "translateY(" + -progress * 4 + "rem)";
-			return;
-		}
-
-		navbarWrapper.style.removeProperty("opacity");
-		navbarWrapper.style.removeProperty("transform");
-	}
-
 	function syncSemifullNavbarDuringPreScroll(visit, scrollY) {
 		const applyState = window.applySemifullNavbarVisualState;
 		if (typeof applyState !== "function") return;
@@ -125,7 +80,7 @@
 	}
 
 	function syncNavbarDuringPreScroll(visit, scrollY) {
-		syncNavbarWrapperDuringPreScroll(scrollY);
+		window.__syncNavbarWrapperForScrollY?.(scrollY);
 		syncSemifullNavbarDuringPreScroll(visit, scrollY);
 	}
 
@@ -141,7 +96,7 @@
 		applyDeferredVisitLayout(visit);
 		window.__homePreScrollActive = false;
 
-		clearNavbarPreScrollInlineStyles();
+		window.__clearNavbarWrapperInlineStyles?.();
 
 		window.__pinScrollTopWithFrames?.(2);
 		requestAnimationFrame(function () {

@@ -7,12 +7,13 @@ import { pathsEqual, url } from "../utils/url-utils";
 import { shouldInitTocForPath } from "../utils/toc-utils";
 import {
 	checkKatex,
+	ensureJetBrainsMono,
 	cleanupFancybox,
 	initCustomScrollbar,
 	initFancybox,
 } from "./theme-bootstrap";
 
-const DYNAMIC_STYLE_PATTERN = /\/_astro\/.*(fancybox|katex|fancybox-custom)/i;
+const DYNAMIC_STYLE_PATTERN = /\/_astro\/.*(fancybox|katex|jetbrains|fancybox-custom)/i;
 const bannerEnabled = !!document.getElementById("banner-wrapper");
 
 function removeViteInjectedStyles() {
@@ -64,6 +65,7 @@ export function runSwupPageWritePhase() {
 	window.__scheduleSwupIdleWork?.(() => {
 		void initFancybox();
 		checkKatex();
+		ensureJetBrainsMono();
 		initCustomScrollbar();
 	});
 	window.__scheduleSwupIdleWork?.(() => {

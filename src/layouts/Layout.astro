@@ -1,4 +1,4 @@
-﻿---
+---
 import ConfigCarrier from "@components/ConfigCarrier.astro";
 import FullscreenWallpaper from "@components/misc/FullscreenWallpaper.astro";
 import MusicPlayer from "@components/widget/MusicPlayer.svelte";
@@ -27,10 +27,30 @@ import type { Favicon } from "../types/config";
 import { getDefaultBannerUrl } from "../utils/banner-utils";
 import { isHomePagePath } from "../utils/route-utils";
 import { url } from "../utils/url-utils";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { mapPlaylistEntry, type Song } from "@/lib/audio/useAudioPlayer";
+import playlistJson from "../../public/assets/music/playlist.json";
 import "../styles/main.css";
 import "../styles/wallpaper-navbar-transparent.css";
-import "../styles/expressive-code.css";
 import "../styles/panel-animations.css";
+
+const shellCriticalCss = readFileSync(
+	join(process.cwd(), "public/assets/css/shell-critical.css"),
+	"utf8",
+);
+
+let musicInitialSong: Song | undefined;
+if (
+	musicPlayerConfig.enable &&
+	Array.isArray(playlistJson) &&
+	playlistJson.length > 0
+) {
+	musicInitialSong = mapPlaylistEntry(
+		playlistJson[0] as Record<string, unknown>,
+		0,
+	);
+}
 
 interface Props {
 	title?: string;
@@ -151,9 +171,8 @@ if (siteConfig.font) {
 	data-post-list-layout={siteConfig.postListLayout?.defaultMode || "list"}
 >
 	<head>
-		<!-- 第三方分析脚本 - 延迟加载优化 -->
+		<!-- 第三方分析脚本 - 用户交互或 5s 后加载 -->
 		<script is:inline>
-			// 使用 requestIdleCallback 延迟加载第三方脚本
 			function loadAnalytics() {
 				// Google Tag Manager
 				(function (w, d, s, l, i) {
@@ -172,12 +191,20 @@ if (siteConfig.font) {
 				})(window, document, "script", "dataLayer", "GTM-KRX3XGVH");
 			}
 
-			// 在浏览器空闲时加载，或者在 3 秒后加载
-			if ("requestIdleCallback" in window) {
-				requestIdleCallback(loadAnalytics, { timeout: 3000 });
-			} else {
-				setTimeout(loadAnalytics, 3000);
+			var analyticsLoaded = false;
+			function scheduleAnalytics() {
+				if (analyticsLoaded) return;
+				analyticsLoaded = true;
+				loadAnalytics();
 			}
+
+			["scroll", "click", "keydown", "touchstart"].forEach(function (evt) {
+				window.addEventListener(evt, scheduleAnalytics, {
+					once: true,
+					passive: true,
+				});
+			});
+			setTimeout(scheduleAnalytics, 5000);
 		</script>
 
 		<title>{pageTitle}</title>
@@ -241,8 +268,10 @@ if (siteConfig.font) {
 				DARK_MODE,
 				BANNER_HEIGHT,
 				BANNER_HEIGHT_EXTEND,
+				bannerOffset,
 				PAGE_WIDTH,
 				configHue,
+				bodyFontFamily,
 				defaultWallpaperMode: siteConfig.wallpaperMode.defaultMode,
 				defaultPostListLayout:
 					siteConfig.postListLayout?.defaultMode || "list",
@@ -280,6 +309,11 @@ if (siteConfig.font) {
 			// Load the hue from local storage
 			const hue = localStorage.getItem("hue") || configHue;
 			document.documentElement.style.setProperty("--hue", hue);
+			document.documentElement.style.setProperty("--font-sans", bodyFontFamily);
+			document.documentElement.style.setProperty(
+				"--page-width",
+				`${PAGE_WIDTH}rem`,
+			);
 
 			// 使用 CSS dvh 替代 JS 计算，避免移动端 URL 栏变化导致的 CLS
 			// dvh 会动态适应视口高度变化，不再需要 JS 计算和 resize 监听
@@ -294,6 +328,10 @@ if (siteConfig.font) {
 			document.documentElement.style.setProperty(
 				"--banner-height",
 				`${BANNER_HEIGHT}vh`,
+			);
+			document.documentElement.style.setProperty(
+				"--bannerOffset",
+				bannerOffset,
 			);
 
 			// 壁纸模式 — 首屏前写入 html data 属性，CSS 驱动布局（避免 CLS）
@@ -330,15 +368,7 @@ if (siteConfig.font) {
 			(function () {
 				if (!pageScaling || !pageScaling.enable) return;
 
-				function adjustPageScale() {
-					var html = document.documentElement;
-					if (
-						html.classList.contains("is-changing") ||
-						html.classList.contains("is-animating")
-					) {
-						return;
-					}
-
+				function isMobileOrTabletLike() {
 					var isTouch =
 						(window.matchMedia &&
 							(window.matchMedia("(pointer:coarse)").matches ||
@@ -347,11 +377,23 @@ if (siteConfig.font) {
 					var isPortrait =
 						window.matchMedia &&
 						window.matchMedia("(orientation: portrait)").matches;
-					var isTabletLike = isTouch || window.innerWidth <= 1280;
-					if (isTabletLike || isPortrait) {
+					return isTouch || window.innerWidth <= 1280 || isPortrait;
+				}
+
+				function adjustPageScale() {
+					if (isMobileOrTabletLike()) {
 						document.documentElement.style.fontSize = "";
 						return;
 					}
+
+					var html = document.documentElement;
+					if (
+						html.classList.contains("is-changing") ||
+						html.classList.contains("is-animating")
+					) {
+						return;
+					}
+
 					var targetWidth = pageScaling.targetWidth || 2000;
 					var currentWidth = document.documentElement.clientWidth;
 					var scale = currentWidth / targetWidth;
@@ -360,58 +402,27 @@ if (siteConfig.font) {
 					document.documentElement.style.fontSize = scale * 100 + "%";
 				}
 
-				requestAnimationFrame(() => {
-					requestAnimationFrame(adjustPageScale);
-				});
+				// 首 paint 前同步设置 rem 基准，避免 load+idle 延迟触发全局 layout shift
+				adjustPageScale();
+
 				window.addEventListener("resize", adjustPageScale);
 				window.addEventListener("orientationchange", adjustPageScale);
-				function scheduleAdjustPageScale() {
-					var schedule =
-						window.requestIdleCallback ||
-						function (cb) {
-							requestAnimationFrame(function () {
-								requestAnimationFrame(cb);
-							});
-						};
-					schedule(adjustPageScale);
-				}
-
-				function registerAdjustPageScaleOnIdle() {
+				function registerAdjustPageScaleOnSwupIdle() {
 					if (typeof window.__onSwupPageIdlePhase === "function") {
-						window.__onSwupPageIdlePhase(scheduleAdjustPageScale);
+						window.__onSwupPageIdlePhase(adjustPageScale);
 						return true;
 					}
 					return false;
 				}
 
-				if (!registerAdjustPageScaleOnIdle()) {
+				if (!registerAdjustPageScaleOnSwupIdle()) {
 					document.addEventListener("DOMContentLoaded", function () {
-						registerAdjustPageScaleOnIdle();
+						registerAdjustPageScaleOnSwupIdle();
 					});
 				}
 			})();
 		</script>
 		<!-- Critical layout shell styles: see layout-stable.css (loaded via main.css) -->
-		<style
-			define:vars={{
-				configHue,
-				"page-width": `${PAGE_WIDTH}rem`,
-				"font-sans": bodyFontFamily,
-			}}
-			is:global
-		>
-			html,
-			body {
-				font-family: var(
-					--font-sans,
-					"ZenMaruGothic-Medium",
-					"Microsoft YaHei",
-					system-ui,
-					sans-serif
-				);
-			}
-		</style>
-
 		<!-- defines global css variables. This will be applied to <html> <body> and some other elements idk why -->
 		<link
 			rel="preload"
@@ -457,11 +468,14 @@ if (siteConfig.font) {
 			href={`${Astro.site}rss.xml`}
 		/>
 
-		<script is:inline src="/js/core/scroll-utils.js" data-cfasync="false"></script>
-		<script is:inline src="/js/core/route-utils.js" data-cfasync="false"></script>
-		<script is:inline src="/js/core/navbar-scroll-sync.js" data-cfasync="false"></script>
-		<script is:inline src="/js/core/swup-bootstrap.js" data-cfasync="false"></script>
-		<script is:inline src="/js/core/visit-layout.js" data-cfasync="false"></script>
+		<style is:global set:html={shellCriticalCss} />
+
+		<script
+			is:inline
+			defer
+			src="/js/core/shell-bootstrap.js"
+			data-cfasync="false"
+		></script>
 		<script
 			is:inline
 			defer
@@ -517,11 +531,10 @@ if (siteConfig.font) {
 		class:list={[{ "lg:is-home": isHomePage, "is-home": isHomePage }]}
 		data-overlayscrollbars-initialize
 	>
-		<!-- Shell 关键样式：preload 提前发现，link 仍置于 body 首行以保证覆盖顺序 -->
-		<link rel="preload" href="/assets/css/shell-critical.css" as="style" />
-		<link rel="stylesheet" href="/assets/css/shell-critical.css" />
-		<script is:inline>
-			window.__bootstrapWallpaperBodyClasses?.();
+		<script is:inline data-cfasync="false">
+			document.addEventListener("DOMContentLoaded", function () {
+				window.__bootstrapWallpaperBodyClasses?.();
+			});
 		</script>
 		<noscript
 			><iframe
@@ -538,7 +551,9 @@ if (siteConfig.font) {
 		<slot />
 
 		<!-- Music Player - 仅在启用时加载 -->
-		{musicPlayerConfig.enable && <MusicPlayer client:idle />}
+		{musicPlayerConfig.enable && (
+			<MusicPlayer client:idle initialSong={musicInitialSong} />
+		)}
 
 		<!-- Pio 看板娘组件 - 仅在启用时加载 -->
 		{pioConfig.enable && <Pio client:idle />}
@@ -547,58 +562,6 @@ if (siteConfig.font) {
 		<div id="page-height-extend" aria-hidden="true"></div>
 	</body>
 </html>
-
-<style
-	is:global
-	define:vars={{
-		bannerOffset,
-		"banner-height-home": `${BANNER_HEIGHT_HOME}vh`,
-		"banner-height": `${BANNER_HEIGHT}vh`,
-	}}
->
-	@tailwind components;
-	@layer components {
-		@media (min-width: 1280px) {
-			.enable-banner.is-home #banner-wrapper {
-				@apply h-[var(--banner-height-home)] translate-y-[var(--banner-height-extend)];
-			}
-			.enable-banner #banner-wrapper {
-				@apply h-[var(--banner-height-home)];
-			}
-			.enable-banner.is-home #banner {
-				@apply h-[var(--banner-height-home)] translate-y-0;
-			}
-			.enable-banner #banner {
-				@apply h-[var(--banner-height-home)] translate-y-[var(--bannerOffset)];
-			}
-			.enable-banner.is-home #main-grid {
-				@apply translate-y-[var(--banner-height-extend)];
-			}
-			.enable-banner #top-row {
-				@apply h-[calc(var(--banner-height-home)_-_4.5rem)] transition-all duration-300;
-			}
-			.enable-banner.is-home #sidebar-sticky {
-				@apply top-[calc(1rem_-_var(--banner-height-extend))];
-			}
-		}
-		.navbar-hidden {
-			@apply opacity-0 -translate-y-16;
-		}
-
-		/* Water waves animation */
-		.waves > .parallax use {
-			animation: wave 25s cubic-bezier(0.5, 0.5, 0.45, 0.5) infinite;
-		}
-		@keyframes wave {
-			0% {
-				transform: translate3d(-90px, 0, 0);
-			}
-			100% {
-				transform: translate3d(85px, 0, 0);
-			}
-		}
-	}
-</style>
 
 <script>
 	import { initThemeBootstrap } from "../scripts/theme-bootstrap";

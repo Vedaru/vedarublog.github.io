@@ -1,4 +1,5 @@
 <script lang="ts">
+import { loadPagefind } from "@/lib/pagefind-loader";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 import "@/lib/iconify-offline";
@@ -36,6 +37,26 @@ const fakeResult: SearchResult[] = [
 		excerpt: "Try running <mark>npm build && npm preview</mark> instead.",
 	},
 ];
+
+let pagefindLoadStarted = false;
+
+async function ensurePagefindLoaded() {
+	if (import.meta.env.DEV) return;
+	if (pagefindLoadStarted && initialized) return;
+	pagefindLoadStarted = true;
+	await loadPagefind();
+	if (!initialized) {
+		initialized = true;
+		pagefindLoaded =
+			typeof window !== "undefined" &&
+			!!window.pagefind &&
+			typeof window.pagefind.search === "function";
+	}
+}
+
+const handleSearchInteraction = () => {
+	void ensurePagefindLoaded();
+};
 
 const togglePanel = () => {
 	const panel = document.getElementById("search-panel");
@@ -105,11 +126,17 @@ const search = async (keyword: string, isDesktop: boolean): Promise<void> => {
 		return;
 	}
 	if (!initialized) {
+		if (import.meta.env.PROD) {
+			await ensurePagefindLoaded();
+			if (initialized) {
+				return search(keyword, isDesktop);
+			}
+		}
 		return;
 	}
 	try {
 		let searchResults: SearchResult[] = [];
-		if (import.meta.env.PROD && pagefindLoaded && window.pagefind) {
+		if (import.meta.env.PROD && window.pagefind) {
 			const response = await window.pagefind.search(keyword);
 			searchResults = await Promise.all(
 				response.results.map((item) => item.data()),
@@ -136,31 +163,16 @@ onMount(() => {
 			typeof window !== "undefined" &&
 			!!window.pagefind &&
 			typeof window.pagefind.search === "function";
-		console.log("Pagefind status on init:", pagefindLoaded);
 	};
 	if (import.meta.env.DEV) {
-		console.log(
-			"Pagefind is not available in development mode. Using mock data.",
-		);
 		initializeSearch();
 	} else {
 		document.addEventListener("pagefindready", () => {
-			console.log("Pagefind ready event received.");
 			initializeSearch();
 		});
 		document.addEventListener("pagefindloaderror", () => {
-			console.warn(
-				"Pagefind load error event received. Search functionality will be limited.",
-			);
-			initializeSearch(); // Initialize with pagefindLoaded as false
+			initializeSearch();
 		});
-		// Fallback in case events are not caught or pagefind is already loaded by the time this script runs
-		setTimeout(() => {
-			if (!initialized) {
-				console.log("Fallback: Initializing search after timeout.");
-				initializeSearch();
-			}
-		}, 2000); // Adjust timeout as needed
 	}
 
 	// 监听窗口焦点事件，防止切换窗口时自动展开搜索框
@@ -229,13 +241,27 @@ onDestroy(() => {
     onmouseenter={() => {if (!isDesktopSearchExpanded) toggleDesktopSearch()}}
     onmouseleave={collapseDesktopSearch}
     onclick={() => {
+        handleSearchInteraction();
         const input = document.getElementById("search-input-desktop") as HTMLInputElement;
         input?.focus();
+    }}
+    onkeydown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleSearchInteraction();
+            if (!isDesktopSearchExpanded) toggleDesktopSearch();
+            const input = document.getElementById("search-input-desktop") as HTMLInputElement;
+            input?.focus();
+        }
     }}
 >
     <Icon icon="material-symbols:search" class="absolute text-[1.25rem] pointer-events-none {isDesktopSearchExpanded ? 'left-3' : 'left-1/2 -translate-x-1/2'} transition top-1/2 -translate-y-1/2 {isDesktopSearchExpanded ? 'text-black/30 dark:text-white/30' : ''}"></Icon>
     <input id="search-input-desktop" placeholder={i18n(I18nKey.search)} bind:value={keywordDesktop}
+        tabindex={isDesktopSearchExpanded ? 0 : -1}
+        aria-hidden={!isDesktopSearchExpanded}
+        class:pointer-events-none={!isDesktopSearchExpanded}
         onfocus={() => {
+            handleSearchInteraction();
             clearTimeout(blurTimer);
             if (!isDesktopSearchExpanded) toggleDesktopSearch(); 
             search(keywordDesktop, true);
@@ -247,7 +273,7 @@ onDestroy(() => {
 </div>
 
 <!-- toggle btn for phone/tablet view -->
-<button onclick={togglePanel} aria-label="Search Panel" id="search-switch"
+<button onclick={() => { handleSearchInteraction(); togglePanel(); }} aria-label="Search Panel" id="search-switch"
         class="btn-plain scale-animation lg:!hidden rounded-lg w-11 h-11 active:scale-90">
     <Icon icon="material-symbols:search" class="text-[1.25rem]"></Icon>
 </button>
@@ -261,6 +287,7 @@ onDestroy(() => {
   ">
         <Icon icon="material-symbols:search" class="absolute text-[1.25rem] pointer-events-none ml-3 transition my-auto text-black/30 dark:text-white/30"></Icon>
         <input placeholder={i18n(I18nKey.search)} bind:value={keywordMobile}
+               onfocus={handleSearchInteraction}
                class="pl-10 absolute inset-0 text-sm bg-transparent outline-0
                focus:w-60 text-black/50 dark:text-white/50"
         >
@@ -280,13 +307,3 @@ onDestroy(() => {
         </a>
     {/each}
 </div>
-
-<style>
-    input:focus {
-        outline: 0;
-    }
-    :global(.search-panel) {
-        max-height: calc(100vh - 100px);
-        overflow-y: auto;
-    }
-</style>
