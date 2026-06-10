@@ -95,6 +95,9 @@ importers:
       marked:
         specifier: ^16.4.2
         version: 16.4.2
+      mermaid:
+        specifier: ^11.15.0
+        version: 11.15.0
       node-html-parser:
         specifier: ^7.0.1
         version: 7.0.1
@@ -198,9 +201,6 @@ importers:
       iconify-icon:
         specifier: ^3.0.2
         version: 3.0.2
-      mermaid:
-        specifier: ^11.15.0
-        version: 11.15.0
       postcss-import:
         specifier: ^16.1.1
         version: 16.1.1(postcss@8.5.6)
