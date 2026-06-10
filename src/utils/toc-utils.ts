@@ -1,7 +1,4 @@
-import {
-	getCurrentPath,
-	isHomePagePath,
-} from "./route-utils";
+import { getCurrentPath, isHomePagePath } from "./route-utils";
 
 /** 页面标题节点信息 */
 export interface TocHeading {
@@ -35,26 +32,62 @@ export interface PostListItem {
 
 /** 日语片假名字符集（用于 TOC 序号徽章） */
 export const JAPANESE_KATAKANA = [
-	"ア", "イ", "ウ", "エ", "オ",
-	"カ", "キ", "ク", "ケ", "コ",
-	"サ", "シ", "ス", "セ", "ソ",
-	"タ", "チ", "ツ", "テ", "ト",
-	"ナ", "ニ", "ヌ", "ネ", "ノ",
-	"ハ", "ヒ", "フ", "ヘ", "ホ",
-	"マ", "ミ", "ム", "メ", "モ",
-	"ヤ", "ユ", "ヨ",
-	"ラ", "リ", "ル", "レ", "ロ",
-	"ワ", "ヲ", "ン",
+	"ア",
+	"イ",
+	"ウ",
+	"エ",
+	"オ",
+	"カ",
+	"キ",
+	"ク",
+	"ケ",
+	"コ",
+	"サ",
+	"シ",
+	"ス",
+	"セ",
+	"ソ",
+	"タ",
+	"チ",
+	"ツ",
+	"テ",
+	"ト",
+	"ナ",
+	"ニ",
+	"ヌ",
+	"ネ",
+	"ノ",
+	"ハ",
+	"ヒ",
+	"フ",
+	"ヘ",
+	"ホ",
+	"マ",
+	"ミ",
+	"ム",
+	"メ",
+	"モ",
+	"ヤ",
+	"ユ",
+	"ヨ",
+	"ラ",
+	"リ",
+	"ル",
+	"レ",
+	"ロ",
+	"ワ",
+	"ヲ",
+	"ン",
 ] as const;
 
-const HEADING_SELECTOR =
-	"h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]";
+const HEADING_SELECTOR = "h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]";
 const MARKDOWN_SELECTOR = ".custom-md, .markdown-content";
 
 /** 读取运行时 TOC 配置 */
 export function getTocConfig(): TocConfig {
-	const siteConfig = (window as Window & { siteConfig?: { toc?: Partial<TocConfig> } })
-		.siteConfig;
+	const siteConfig = (
+		window as Window & { siteConfig?: { toc?: Partial<TocConfig> } }
+	).siteConfig;
 	return {
 		maxLevel: siteConfig?.toc?.maxLevel ?? siteConfig?.toc?.depth ?? 3,
 		useJapaneseBadge: siteConfig?.toc?.useJapaneseBadge ?? false,
@@ -281,7 +314,10 @@ export function buildFloatingTocMarkup(
 
 		if (level === minLevel) {
 			h1Count++;
-			const badgeText = getPrimaryBadgeText(h1Count - 1, useJapaneseBadge);
+			const badgeText = getPrimaryBadgeText(
+				h1Count - 1,
+				useJapaneseBadge,
+			);
 			badge = `<span class="floating-toc-badge">${badgeText}</span>`;
 		} else if (level === minLevel + 1) {
 			badge = '<span class="floating-toc-dot"></span>';
@@ -393,10 +429,7 @@ export function createTransitionDeferredUpdater(runUpdate: () => void) {
 		const runPending = () => {
 			pending = false;
 			if (handler) {
-				document.removeEventListener(
-					"swup:transition-ready",
-					handler,
-				);
+				document.removeEventListener("swup:transition-ready", handler);
 				handler = null;
 			}
 			runUpdate();
@@ -498,7 +531,10 @@ export function findActiveHeadingByScroll(
 	let activeIndex = -1;
 	for (let i = 0; i < headings.length; i++) {
 		const heading = headings[i];
-		if (heading.getBoundingClientRect().top + scrollY < scrollY + offsetTop) {
+		if (
+			heading.getBoundingClientRect().top + scrollY <
+			scrollY + offsetTop
+		) {
 			activeIndex = i;
 		} else {
 			break;
@@ -633,3 +669,4 @@ export function registerTocSwupReinit(
 		registered = false;
 	};
 }
+

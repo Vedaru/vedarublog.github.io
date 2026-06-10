@@ -1,4 +1,4 @@
-// @ts-nocheck — legacy side-effect IIFE migrated from public/js
+// @ts-nocheck ? legacy side-effect IIFE migrated from public/js
 
 (function () {
 	if (window.__scrollUtilsBootstrapped) return;
@@ -27,7 +27,7 @@
 		requestAnimationFrame(step);
 	};
 })();
-/** 浏览器端路由工具 �?�?src/utils/route-utils.ts 逻辑一�?*/
+/** ???????? ????src/utils/route-utils.ts ?????*/
 
 (function () {
 	if (window.__routeUtilsBootstrapped) return;
@@ -75,7 +75,7 @@
 	window.__pathFromUrl = pathFromUrl;
 	window.__pathsEqual = pathsEqual;
 })();
-/** Navbar 隐藏阈值计�?�?�?home-pre-scroll / Layout scroll 共享 */
+/** Navbar ???????????home-pre-scroll / Layout scroll ?? */
 
 (function () {
 	if (window.__navbarScrollSyncBootstrapped) return;
@@ -107,6 +107,19 @@
 			navbarWrapper.style.removeProperty("transform");
 		};
 
+	function computeNavbarWrapperFade(scrollY, threshold) {
+		const fadeRange = Math.max(120, threshold * 0.2);
+		if (scrollY <= threshold) {
+			return { opacity: 1, translateRem: 0, active: false };
+		}
+		const progress = Math.min(1, (scrollY - threshold) / fadeRange);
+		return {
+			opacity: 1 - progress,
+			translateRem: progress * 4,
+			active: progress > 0,
+		};
+	}
+
 	window.__syncNavbarWrapperForScrollY = function syncNavbarWrapperForScrollY(
 		scrollY,
 	) {
@@ -130,23 +143,85 @@
 
 		const threshold =
 			window.__getNavbarHideThreshold?.() ?? Number.POSITIVE_INFINITY;
+		const fade = computeNavbarWrapperFade(scrollY, threshold);
 
-		if (scrollY >= threshold) {
-			const fadeRange = Math.max(120, threshold * 0.2);
-			const progress = Math.min(1, (scrollY - threshold) / fadeRange);
-			const opacity = 1 - progress;
-			navbarWrapper.style.opacity = String(opacity);
+		navbarWrapper.style.opacity = String(fade.opacity);
+		if (fade.opacity < 0.05) {
+			navbarWrapper.style.transform = "translateY(-4rem)";
+		} else if (fade.translateRem > 0) {
 			navbarWrapper.style.transform =
-				opacity < 0.05
-					? "translateY(-4rem)"
-					: "translateY(" + -progress * 4 + "rem)";
-			return;
+				"translateY(" + -fade.translateRem + "rem)";
+		} else {
+			navbarWrapper.style.removeProperty("transform");
 		}
-
-		window.__clearNavbarWrapperInlineStyles();
 	};
+
+	window.__finalizeNavbarWrapperAfterScroll =
+		function finalizeNavbarWrapperAfterScroll() {
+			document.documentElement.classList.remove(
+				"is-manual-scroll-syncing",
+			);
+
+			const navbarWrapper = document.getElementById("navbar-wrapper");
+			if (
+				!navbarWrapper ||
+				!document.body.classList.contains("enable-banner")
+			) {
+				return;
+			}
+
+			const scrollY =
+				window.__getScrollY?.() ??
+				window.scrollY ??
+				document.documentElement.scrollTop ??
+				0;
+			const threshold =
+				window.__getNavbarHideThreshold?.() ?? Number.POSITIVE_INFINITY;
+
+			if (scrollY > threshold) {
+				return;
+			}
+
+			const currentOpacity = Number.parseFloat(
+				navbarWrapper.style.opacity,
+			);
+			const needsFadeIn =
+				!Number.isNaN(currentOpacity) && currentOpacity < 0.999;
+
+			if (
+				needsFadeIn &&
+				!window.matchMedia("(prefers-reduced-motion: reduce)").matches
+			) {
+				let cleared = false;
+				const clearAfterTransition = function () {
+					if (cleared) return;
+					cleared = true;
+					navbarWrapper.removeEventListener(
+						"transitionend",
+						onTransitionEnd,
+					);
+					window.__clearNavbarWrapperInlineStyles?.();
+				};
+				const onTransitionEnd = function (event) {
+					if (
+						event.target !== navbarWrapper ||
+						event.propertyName !== "opacity"
+					) {
+						return;
+					}
+					clearAfterTransition();
+				};
+
+				navbarWrapper.addEventListener("transitionend", onTransitionEnd);
+				navbarWrapper.style.opacity = "1";
+				window.setTimeout(clearAfterTransition, 350);
+				return;
+			}
+
+			window.__clearNavbarWrapperInlineStyles?.();
+		};
 })();
-/** Swup 钩子注册引导 �?统一 onSwupReady / onSwupHook 模板 */
+/** Swup ?????? ???? onSwupReady / onSwupHook ?? */
 
 (function () {
 	if (window.__swupBootstrapBootstrapped) return;
@@ -192,7 +267,7 @@
 		}, options);
 	};
 })();
-/** 换页 body 布局 / 壁纸 class / TOC 滚动隐藏 �?Layout �?MainGridLayout 共享 */
+/** ?? body ?? / ?? class / TOC ???? ??Layout ??MainGridLayout ?? */
 
 (function () {
 	if (window.__visitLayoutBootstrapped) return;
@@ -299,7 +374,7 @@
 		}
 	};
 
-	/** 首屏 body 壁纸 class �?替代 Layout body 内联脚本 */
+	/** ?? body ?? class ???? Layout body ???? */
 	window.__bootstrapWallpaperBodyClasses =
 		function bootstrapWallpaperBodyClasses() {
 			const mode =

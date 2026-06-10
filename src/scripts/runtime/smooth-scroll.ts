@@ -53,7 +53,9 @@
 			window.tocClickTimestamp &&
 			Date.now() - window.tocClickTimestamp < 2000
 		) {
-			document.getElementById("toc-wrapper")?.classList.remove("toc-not-ready");
+			document
+				.getElementById("toc-wrapper")
+				?.classList.remove("toc-not-ready");
 		}
 		window.__syncTocHideForScroll?.(goalY, window.innerHeight);
 	}
@@ -204,4 +206,3 @@
 		isScrollLocked = false;
 	};
 })();
-

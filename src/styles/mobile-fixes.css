@@ -330,14 +330,36 @@ html.is-smooth-scrolling #right-sidebar-sticky {
   transition: none !important;
 }
 
+html.is-manual-scroll-syncing #navbar-wrapper,
+html.is-manual-scroll-syncing #sidebar-sticky,
+html.is-manual-scroll-syncing #right-sidebar-sticky {
+  transition: none !important;
+}
+
 html.is-smooth-scrolling #navbar-wrapper.navbar-hidden {
   opacity: 1 !important;
   transform: none !important;
 }
 
 html.is-home-pre-scrolling #swup-container,
-html.is-visit-pre-scrolling #swup-container {
+html.is-visit-pre-scrolling #swup-container,
+html.is-visit-layout-shifting #swup-container {
   pointer-events: none;
+}
+
+/* 布局切换过渡：保持 banner / 主内容 CSS transition，仅冻结交互 */
+html.is-visit-layout-shifting {
+  overflow-anchor: none;
+}
+
+html.is-visit-layout-shifting #sidebar-sticky,
+html.is-visit-layout-shifting #right-sidebar-sticky {
+  transition: none !important;
+}
+
+html.is-visit-layout-shifting #navbar-wrapper.navbar-hidden {
+  opacity: 1 !important;
+  transform: none !important;
 }
 
 /* 预滚动期间禁用 navbar-hidden，避免解冻 transition-all 时 opacity 跳变 */

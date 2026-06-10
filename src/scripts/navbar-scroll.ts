@@ -27,7 +27,8 @@ export function initNavbarScroll() {
 			backToTopThreshold =
 				rect.top + window.scrollY + window.innerHeight / 4;
 		} else {
-			backToTopThreshold = window.innerHeight * (BANNER_HEIGHT / 100) + 100;
+			backToTopThreshold =
+				window.innerHeight * (BANNER_HEIGHT / 100) + 100;
 		}
 	}
 
@@ -71,7 +72,8 @@ export function initNavbarScroll() {
 
 			if (bannerEnabled && navbar) {
 				const threshold =
-					window.__getNavbarHideThreshold?.() ?? Number.POSITIVE_INFINITY;
+					window.__getNavbarHideThreshold?.() ??
+					Number.POSITIVE_INFINITY;
 				if (scrollTop >= threshold) {
 					navbar.classList.add("navbar-hidden");
 				} else {

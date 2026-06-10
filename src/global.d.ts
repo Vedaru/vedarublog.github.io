@@ -108,8 +108,12 @@ declare global {
 		__swupPerfBootstrapped?: boolean;
 		__swupPerfPause?: () => void;
 		__swupPerfResume?: () => void;
-		__onSwupPageWritePhase?: (fn: (detail: { scrollTop: number }) => void) => void;
-		__onSwupPageLayoutPhase?: (fn: (detail: { scrollTop: number }) => void) => void;
+		__onSwupPageWritePhase?: (
+			fn: (detail: { scrollTop: number }) => void,
+		) => void;
+		__onSwupPageLayoutPhase?: (
+			fn: (detail: { scrollTop: number }) => void,
+		) => void;
 		__onSwupPageIdlePhase?: (fn: () => void) => void;
 		__scheduleSwupIdleWork?: (fn: () => void) => void;
 		__deferWallpaperNavbarSync?: () => void;
@@ -184,4 +188,3 @@ interface SearchResult {
 }
 
 export { SearchResult };
-
