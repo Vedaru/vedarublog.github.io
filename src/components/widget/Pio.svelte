@@ -37,6 +37,14 @@ function mountPioPortal() {
 function initPio() {
 	if (typeof window !== "undefined" && typeof Paul_Pio !== "undefined") {
 		try {
+			// 全局单例守卫：若已有实例（如换页时组件重复挂载），复用而不再创建第二个，
+			// 避免多套 Live2D rAF 抢画 canvas#pio 造成抽动与重复 banner。
+			if (window.__pioInstance) {
+				pioInstance = window.__pioInstance;
+				pioInitialized = true;
+				mountPioPortal();
+				return;
+			}
 			// 确保DOM元素存在
 			if (pioContainer && pioCanvas && !pioInitialized) {
 				pioInstance = new Paul_Pio(pioOptions);

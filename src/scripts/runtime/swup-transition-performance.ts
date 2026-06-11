@@ -27,33 +27,24 @@
 		return Number.isFinite(parsed) ? parsed : 700;
 	}
 
-	function setPioTransitionHidden(hidden) {
-		document.querySelectorAll(".pio-container").forEach(function (el) {
-			el.classList.toggle("pio-swup-hidden", hidden);
-		});
-	}
-
-	function setPioReducedDuringTransition() {
+	// 换页期间不再隐藏 Pio：保持其连续渲染，抽动由稳定帧率 + l2d 停顿守卫消除。
+	function setPioContinuousDuringTransition() {
 		if (!window.__PIO_RENDER_CONTROL) {
 			return;
 		}
 
+		// 保持 normal 连续渲染，避免可见状态下降帧/帧率翻转造成的抽动。
 		window.__PIO_RENDER_CONTROL._wasPaused = false;
-		window.__PIO_RENDER_CONTROL.mode = "reduced";
-		window.__PIO_RENDER_CONTROL.reduceFPS = 10;
+		window.__PIO_RENDER_CONTROL.mode = "normal";
 		window.__PIO_RENDER_CONTROL._softResumeUntil = 0;
 	}
 
 	function resumePioSoftly() {
-		setPioTransitionHidden(false);
-
 		if (window.__PIO_RENDER_CONTROL) {
+			// 干净恢复到 normal，不引入软恢复窗口与帧率翻转。
 			window.__PIO_RENDER_CONTROL._wasPaused = false;
-			window.__PIO_RENDER_CONTROL.mode = "reduced";
-			window.__PIO_RENDER_CONTROL.reduceFPS = 20;
-			window.__PIO_RENDER_CONTROL._lastRender = 0;
-			window.__PIO_RENDER_CONTROL._softResumeUntil =
-				(performance.now?.() ?? Date.now()) + 800;
+			window.__PIO_RENDER_CONTROL.mode = "normal";
+			window.__PIO_RENDER_CONTROL._softResumeUntil = 0;
 		}
 	}
 
@@ -226,8 +217,7 @@
 			resumeTimer = null;
 		}
 		document.documentElement.classList.add("swup-perf-active");
-		setPioTransitionHidden(true);
-		setPioReducedDuringTransition();
+		setPioContinuousDuringTransition();
 	}
 
 	function resumeTransitionHeavyWork() {

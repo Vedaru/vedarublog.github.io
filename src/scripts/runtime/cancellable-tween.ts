@@ -30,6 +30,11 @@ export interface RunCancellableTweenOptions {
 	scaleDurationByRemaining?: boolean;
 	onFrame: (t: number, progress: number, now: number) => void;
 	onComplete?: () => void;
+	/**
+	 * 被打断（superseded / cancelled）时同步触发，给调用方一个确定的清理钩子。
+	 * result.reason 可用于区分“被新动画接管(superseded)”与“显式取消”。
+	 */
+	onCancel?: (result: CancelTweenResult) => void;
 }
 
 export interface CancellableTweenHandle {
@@ -37,10 +42,17 @@ export interface CancellableTweenHandle {
 	cancel: (reason?: string) => CancelTweenResult;
 }
 
+interface ActiveTween {
+	generation: number;
+	reject: (err: AnimationCancelledError) => void;
+	onCancel?: (result: CancelTweenResult) => void;
+	lastProgress: number;
+}
+
 let activeGeneration = 0;
 let activeRafId = 0;
-let lastProgress = 0;
-let activeReject: ((err: AnimationCancelledError) => void) | null = null;
+// 进度按“每个 tween”跟踪，避免跨动画读到陈旧进度。
+let activeTween: ActiveTween | null = null;
 
 function cancelActiveTweenInternal(reason = "superseded"): CancelTweenResult {
 	activeGeneration += 1;
@@ -50,15 +62,21 @@ function cancelActiveTweenInternal(reason = "superseded"): CancelTweenResult {
 		activeRafId = 0;
 	}
 
+	const tween = activeTween;
+	activeTween = null;
+
 	const result: CancelTweenResult = {
-		progress: lastProgress,
+		progress: tween ? tween.lastProgress : 0,
 		reason,
 	};
 
-	if (activeReject) {
-		const reject = activeReject;
-		activeReject = null;
-		reject(new AnimationCancelledError(result.progress, reason));
+	if (tween) {
+		try {
+			tween.onCancel?.(result);
+		} catch {
+			// 清理钩子异常不应阻断打断流程。
+		}
+		tween.reject(new AnimationCancelledError(result.progress, reason));
 	}
 
 	return result;
@@ -86,7 +104,10 @@ export function runCancellableTween(
 	let promise!: Promise<void>;
 	const cancel = (reason = "cancelled"): CancelTweenResult => {
 		if (generation !== activeGeneration) {
-			return { progress: lastProgress, reason: "already-finished" };
+			return {
+				progress: activeTween ? activeTween.lastProgress : 1,
+				reason: "already-finished",
+			};
 		}
 		return cancelActiveTweenInternal(reason);
 	};
@@ -94,14 +115,19 @@ export function runCancellableTween(
 	promise = new Promise<void>(function (resolve, reject) {
 		if (duration <= 0 || startProgress >= 1) {
 			const progress = 1;
-			lastProgress = progress;
 			options.onFrame(ease(progress), progress, performance.now());
 			options.onComplete?.();
 			resolve();
 			return;
 		}
 
-		activeReject = reject;
+		const tween: ActiveTween = {
+			generation,
+			reject,
+			onCancel: options.onCancel,
+			lastProgress: startProgress,
+		};
+		activeTween = tween;
 		const startTime = performance.now();
 
 		function step(now: number) {
@@ -112,7 +138,7 @@ export function runCancellableTween(
 			const elapsedProgress = Math.min(1, (now - startTime) / duration);
 			const progress = startProgress + remainingRatio * elapsedProgress;
 			const t = ease(progress);
-			lastProgress = progress;
+			tween.lastProgress = progress;
 
 			options.onFrame(t, progress, now);
 
@@ -122,7 +148,7 @@ export function runCancellableTween(
 			}
 
 			activeRafId = 0;
-			activeReject = null;
+			activeTween = null;
 			options.onComplete?.();
 			resolve();
 		}

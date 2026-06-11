@@ -33,13 +33,7 @@ html.is-leaving .pio-container {
 	transition: none !important;
 }
 
-/* Swup 换页期间隐藏 Pio，避免 pause/resume 触发动画重置导致抽动 */
-html.swup-perf-active .pio-container,
-.pio-container.pio-swup-hidden {
-	opacity: 0 !important;
-	visibility: hidden !important;
-	pointer-events: none !important;
-}
+/* Swup 换页期间保持 Pio 持续显示；抽动由稳定帧率 + 停顿守卫消除，不再隐藏。 */
 
 .pio-container .pio-show {
 	left: -1em;

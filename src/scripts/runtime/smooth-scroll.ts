@@ -162,6 +162,18 @@ import {
 				setDocumentScrollTop(goalY);
 				finishSmoothScroll(goalY);
 			},
+			onCancel: function (result) {
+				// 被新滚动接管(superseded)时不清理，交由后继 tween 继续，避免闪烁；
+				// 仅在显式取消（无后继）时干净移除过渡 class 与 navbar 内联残留，避免布局跳动。
+				if (result.reason === "superseded") {
+					return;
+				}
+				window.__smoothScrollActive = false;
+				window.__clearNavbarWrapperInlineStyles?.();
+				document.documentElement.classList.remove(
+					"is-smooth-scrolling",
+				);
+			},
 		});
 
 		return promise.catch(function (err) {
