@@ -9,6 +9,9 @@
 	let perfListenersRegistered = false;
 	let resumeTimer: ReturnType<typeof setTimeout> | null = null;
 	let transitionDepth = 0;
+	// 每次新换页递增，用于让上一轮换页遗留的异步恢复回调失效，
+	// 避免在 Pio 隐藏未恢复的间隙再次换页时，旧回调中途解锁滚动导致页面跳回。
+	let transitionEpoch = 0;
 	const writePhaseCallbacks: Array<(detail: { scrollTop: number }) => void> =
 		[];
 	const layoutPhaseCallbacks: Array<(detail: { scrollTop: number }) => void> =
@@ -54,13 +57,17 @@
 		}
 	}
 
-	function settlePageLayoutBeforeResume(done) {
+	function settlePageLayoutBeforeResume(epoch, done) {
+		if (epoch !== transitionEpoch) return;
+
 		window.__pinPageScrollTop?.();
 		window.__unlockSwupScroll?.();
 
 		requestAnimationFrame(function () {
+			if (epoch !== transitionEpoch) return;
 			window.__pinPageScrollTop?.();
 			requestAnimationFrame(function () {
+				if (epoch !== transitionEpoch) return;
 				window.__pinPageScrollTop?.();
 				done();
 			});
@@ -127,7 +134,7 @@
 		);
 	}
 
-	function scheduleIdlePhase(done) {
+	function scheduleIdlePhase(epoch, done) {
 		const schedule =
 			window.requestIdleCallback ||
 			function (cb) {
@@ -135,10 +142,13 @@
 			};
 		schedule(
 			function () {
+				if (epoch !== transitionEpoch) return;
 				runIdleWorkQueue();
 				requestAnimationFrame(function () {
+					if (epoch !== transitionEpoch) return;
 					runIdlePhaseCallbacks();
 					requestAnimationFrame(function () {
+						if (epoch !== transitionEpoch) return;
 						runPioAndBannerResume();
 						if (typeof done === "function") {
 							done();
@@ -150,8 +160,10 @@
 		);
 	}
 
-	function finishTransitionResume() {
-		settlePageLayoutBeforeResume(function () {
+	function finishTransitionResume(epoch) {
+		settlePageLayoutBeforeResume(epoch, function () {
+			if (epoch !== transitionEpoch) return;
+
 			document.documentElement.classList.remove("swup-perf-active");
 
 			const scrollTop = window.__homePreScrollWasUsed
@@ -160,8 +172,9 @@
 			runWritePhase(scrollTop);
 
 			requestAnimationFrame(function () {
+				if (epoch !== transitionEpoch) return;
 				runLayoutPhase(scrollTop);
-				scheduleIdlePhase(function () {
+				scheduleIdlePhase(epoch, function () {
 					requestAnimationFrame(dispatchTransitionReady);
 				});
 			});
@@ -173,12 +186,18 @@
 			clearTimeout(resumeTimer);
 		}
 
+		const epoch = transitionEpoch;
 		const isMobile = window.matchMedia("(max-width: 1279px)").matches;
 		const hadHomePreScroll = !!window.__homePreScrollWasUsed;
 		const baseDelay = isMobile ? getMobileShiftDurationMs() + 80 : 48;
 		const delay = hadHomePreScroll ? baseDelay + 80 : baseDelay;
 
 		resumeTimer = setTimeout(function () {
+			// 已有新换页开始，放弃这一轮恢复，交由新换页自己的恢复流程处理。
+			if (epoch !== transitionEpoch) {
+				return;
+			}
+
 			if (
 				document.documentElement.classList.contains("is-animating") ||
 				document.documentElement.classList.contains("is-changing")
@@ -187,7 +206,7 @@
 				return;
 			}
 
-			finishTransitionResume();
+			finishTransitionResume(epoch);
 		}, delay);
 	}
 
@@ -198,6 +217,9 @@
 
 		transitionDepth += 1;
 		if (transitionDepth > 1) return;
+
+		// 新一轮换页开始：递增 epoch，使上一轮遗留的恢复回调全部失效。
+		transitionEpoch += 1;
 
 		if (resumeTimer !== null) {
 			clearTimeout(resumeTimer);
