@@ -33,6 +33,22 @@ export function beginLeavingHomeLayoutShift(visit: HomePreScrollVisit): number {
 		document.documentElement.scrollHeight - window.innerHeight,
 	);
 	setScrollY(Math.min(maxScroll, Math.max(0, scrollBefore - layoutDelta)));
+
+	// 二次校验：补偿后再读 anchor 位置，若与交换前仍有偏差（例如 content-visibility
+	// 导致 scrollHeight 估算变化使补偿不准）则微调 scrollTop，保证交换帧视觉零位移。
+	if (anchor) {
+		void document.documentElement.offsetHeight;
+		const anchorTopFinal = anchor.getBoundingClientRect().top;
+		const residual = anchorTopFinal - anchorTopBefore;
+		if (Math.abs(residual) > 1) {
+			const corrected = Math.min(
+				maxScroll,
+				Math.max(0, getScrollY() + residual),
+			);
+			setScrollY(corrected);
+		}
+	}
+
 	return layoutDelta;
 }
 

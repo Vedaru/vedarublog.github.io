@@ -225,13 +225,26 @@ const initialLayoutClass = defaultLayout === "grid" ? "grid-mode" : "list-mode";
 	/* 内容可见性 (视口外不渲染) */
 	#post-list-container > :global(*) {
 		content-visibility: auto;
-		contain-intrinsic-size: 200px;
+		/* auto 让浏览器记住卡片最后一次渲染的真实尺寸，回顶滚动经过 skipped
+		   卡片时不再因占位高度(200px)与真实高度不符而反复重排、抽动 */
+		contain-intrinsic-size: auto 200px;
 		transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 		opacity: 0;
 		animation: fade-in 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 		animation-delay: calc(
 			var(--content-delay) + var(--i) * var(--interval)
 		);
+	}
+
+	/* 换页 / 预滚动期间冻结卡片 opacity 过渡，避免回顶与离场叠加额外重绘 */
+	:global(html.is-visit-pre-scrolling)
+		#post-list-container
+		> :global(*),
+	:global(html.is-home-pre-scrolling)
+		#post-list-container
+		> :global(*),
+	:global(html.is-changing) #post-list-container > :global(*) {
+		transition: none !important;
 	}
 
 	/* 网格模式动画调整 */

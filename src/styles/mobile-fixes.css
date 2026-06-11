@@ -342,6 +342,26 @@ html.is-visit-layout-shifting #swup-container {
   pointer-events: none;
 }
 
+/* ─── 换页动画进行中：全面禁用导航交互 ───────────────────────────────────────
+   覆盖完整窗口：is-changing/is-animating（Swup 生命周期与动画）+
+   预滚动 / blended 阶段（is-*-pre-scrolling / is-visit-layout-shifting，
+   此时 banner 正被 JS 逐帧 transform）。防止并发导航/点击打断动画造成抽动。 */
+html.is-changing #swup-container,
+html.is-changing .main-panel,
+html.is-changing #navbar a,
+html.is-animating #swup-container,
+html.is-animating .main-panel,
+html.is-animating #navbar a,
+html.is-home-pre-scrolling .main-panel,
+html.is-home-pre-scrolling #navbar a,
+html.is-visit-pre-scrolling .main-panel,
+html.is-visit-pre-scrolling #navbar a,
+html.is-visit-layout-shifting .main-panel,
+html.is-visit-layout-shifting #navbar a {
+  pointer-events: none !important;
+  cursor: default;
+}
+
 /* 布局切换过渡：保持 banner / 主内容 CSS transition，仅冻结交互 */
 html.is-visit-layout-shifting {
   overflow-anchor: none;

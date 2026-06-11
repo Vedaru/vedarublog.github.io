@@ -18,10 +18,9 @@ import {
 
 	function setDocumentScrollTop(y: number) {
 		const top = Math.max(0, y);
-		document.documentElement.scrollTop = top;
-		if (document.body) {
-			document.body.scrollTop = top;
-		}
+		// 标准模式下滚动元素为 documentElement，body.scrollTop 为冗余无效写入
+		const scroller = document.scrollingElement || document.documentElement;
+		scroller.scrollTop = top;
 	}
 
 	function easeOutCubic(t: number) {

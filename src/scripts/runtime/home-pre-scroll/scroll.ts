@@ -6,10 +6,9 @@ export function getScrollY(): number {
 
 export function setScrollY(y: number): void {
 	const top = Math.max(0, Math.round(y));
-	document.documentElement.scrollTop = top;
-	if (document.body) {
-		document.body.scrollTop = top;
-	}
+	// 标准模式下滚动元素为 documentElement，body.scrollTop 为冗余无效写入，移除以减少每帧 style 重算
+	const scroller = document.scrollingElement || document.documentElement;
+	scroller.scrollTop = top;
 }
 
 export function getPreScrollDurationMs(): number {

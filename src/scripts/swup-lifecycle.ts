@@ -247,14 +247,83 @@ function setup() {
 	invalidateSwupCacheIfStale();
 	attachStylesheetErrorGuard();
 
+	// ── 换页/动画进行中拦截用户滚动 ─────────────────────────────────────────
+	// wheel / touchmove 的 non-passive preventDefault 阻止用户手动滚动；
+	// 预滚动 / blended 动画 JS 直接写 scrollTop，不触发这两个事件，不受影响。
+	// 键盘 Space / PgUp / PgDn / Home / End / ↑↓ 也一并拦截。
+	// 必须覆盖完整窗口：is-changing/is-animating（Swup 生命周期与动画）之外，
+	// 还要包含预滚动 / blended 阶段（此时 banner 正被 JS 逐帧 transform，
+	// 而 Swup 的 is-changing 可能尚未生效），否则用户滚动会与 setScrollY 打架致 banner 抽动。
+	// 与 navbar-scroll.ts 的 shouldSkipNavbarScrollSync 保持同一判定集合。
+	{
+		const SCROLL_KEYS = new Set([32, 33, 34, 35, 36, 38, 40]);
+
+		// 注意：不含 is-smooth-scrolling / __smoothScrollActive 单独项，
+		// 避免误伤同页 TOC 锚点平滑滚动（用户应能随时手动接管）。
+		// 换页/blended 阶段一定带有 is-*-pre-scrolling / is-visit-layout-shifting，已覆盖 banner 动画窗口。
+		function isSwupTransitionActive(): boolean {
+			const html = document.documentElement;
+			return (
+				html.classList.contains("is-changing") ||
+				html.classList.contains("is-animating") ||
+				html.classList.contains("swup-perf-active") ||
+				html.classList.contains("is-home-pre-scrolling") ||
+				html.classList.contains("is-visit-pre-scrolling") ||
+				html.classList.contains("is-visit-layout-shifting") ||
+				!!window.__homePreScrollActive
+			);
+		}
+
+		function onUserScrollAttempt(e: Event): void {
+			if (isSwupTransitionActive()) {
+				e.preventDefault();
+			}
+		}
+
+		function onKeyScrollAttempt(e: KeyboardEvent): void {
+			if (isSwupTransitionActive() && SCROLL_KEYS.has(e.keyCode)) {
+				e.preventDefault();
+			}
+		}
+
+		window.addEventListener("wheel", onUserScrollAttempt, {
+			passive: false,
+		});
+		window.addEventListener("touchmove", onUserScrollAttempt, {
+			passive: false,
+		});
+		window.addEventListener("keydown", onKeyScrollAttempt);
+	}
+
+	// ── 换页/动画进行中拦截新的导航请求 ──────────────────────────────────────
+	// priority: 100 确保在所有其他 link:click 处理器之前运行（home-pre-scroll 是 -200/-100）。
+	// 检测 is-changing（visit 生命周期全程）+ is-animating（动画播放期）+
+	// __homePreScrollActive / __smoothScrollActive（预滚动阶段，is-changing 可能尚未生效）。
+	// 返回 false 取消此次 Swup 导航，同时 preventDefault 防止浏览器跟随链接。
+	window.swup.hooks.on(
+		"link:click",
+		(
+			_visit: unknown,
+			context?: { el?: Element; event?: Event },
+		) => {
+			const html = document.documentElement;
+			const isInTransition =
+				html.classList.contains("is-changing") ||
+				html.classList.contains("is-animating") ||
+				!!window.__homePreScrollActive ||
+				!!window.__smoothScrollActive;
+			if (isInTransition) {
+				context?.event?.preventDefault();
+				context?.event?.stopPropagation();
+				return false;
+			}
+		},
+		{ before: true, priority: 100 },
+	);
+
 	window.swup.hooks.on(
 		"link:click",
 		(_visit: unknown, context?: { el?: Element }) => {
-			document.documentElement.style.setProperty(
-				"--content-delay",
-				"0ms",
-			);
-
 			// 页内锚点 / TOC 点击不会触发 visit:end，不能加 toc-not-ready
 			if (
 				isTocOrInPageAnchorLink(context?.el) ||
@@ -289,6 +358,10 @@ function setup() {
 	);
 
 	window.swup.hooks.on("content:replace", () => {
+		// 旧内容已被替换，此时再清零延迟，让新页卡片立即入场，
+		// 同时不会重排当前(旧)页尚未播完的入场动画造成闪跳。
+		document.documentElement.style.setProperty("--content-delay", "0ms");
+
 		attachStylesheetErrorGuard();
 		window.initLastModifiedPage?.();
 		window.initTwikooPage?.();

@@ -1,15 +1,8 @@
 /* 动画增强样式 - 参考 yukina 主题优化 */
 
-/* 页面切换状态类 */
-html.is-leaving .transition-leaving {
-  transform: translateY(-1rem);
-  opacity: 0;
-}
-
-html.is-entering .transition-main {
-  transform: translateY(1.5rem);
-  opacity: 0;
-}
+/* 页面切换离场/进场过渡统一由 transition.css 定义，
+   此处不再重复定义 .transition-leaving / .transition-main 的目标值，
+   避免与 transition.css 的 -1.5rem 目标冲突导致中间列二次抽动。 */
 
 /* 离开动画类 */
 .animate-leave {
