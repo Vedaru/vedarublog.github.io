@@ -7,4 +7,3 @@ import subset from "./iconify-subset.json";
 addCollection(subset.materialSymbols);
 addCollection(subset.mdi);
 addCollection(subset.fa6Solid);
-

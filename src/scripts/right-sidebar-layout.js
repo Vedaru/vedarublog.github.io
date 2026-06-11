@@ -94,10 +94,10 @@ function hideRightSidebar() {
 		// 设置显示为none以完全隐藏
 		rightSidebar.style.display = "none";
 
-	const mainGrid = document.getElementById("main-grid");
-	if (mainGrid) {
-		animateMainGrid(mainGrid, "grid");
-	}
+		const mainGrid = document.getElementById("main-grid");
+		if (mainGrid) {
+			animateMainGrid(mainGrid, "grid");
+		}
 	}
 }
 
@@ -113,10 +113,10 @@ function showRightSidebar() {
 		// 恢复显示
 		rightSidebar.style.display = "";
 
-	const mainGrid = document.getElementById("main-grid");
-	if (mainGrid) {
-		animateMainGrid(mainGrid, "list");
-	}
+		const mainGrid = document.getElementById("main-grid");
+		if (mainGrid) {
+			animateMainGrid(mainGrid, "list");
+		}
 	}
 }
 

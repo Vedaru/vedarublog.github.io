@@ -158,4 +158,3 @@ export function isPostPage(): boolean {
 	const path = getCurrentPath();
 	return path.startsWith("/posts/");
 }
-

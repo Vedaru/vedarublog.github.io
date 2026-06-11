@@ -31,9 +31,7 @@ export function getFirstBannerUrl(
 }
 
 /** 将 banner src 转为 URL 数组 */
-export function toBannerSrcList(
-	src: string | string[] | undefined,
-): string[] {
+export function toBannerSrcList(src: string | string[] | undefined): string[] {
 	return Array.isArray(src)
 		? src
 		: typeof src === "string" && src

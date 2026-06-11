@@ -120,7 +120,8 @@ function setupSakura() {
 	if (!sakuraConfig || !sakuraConfig.enable) return;
 	if ((window as Window & { sakuraInitialized?: boolean }).sakuraInitialized)
 		return;
-	(window as Window & { sakuraInitialized?: boolean }).sakuraInitialized = true;
+	(window as Window & { sakuraInitialized?: boolean }).sakuraInitialized =
+		true;
 }
 
 let fancyboxSelectors: string[] = [];
@@ -296,7 +297,10 @@ export function initThemeBootstrap() {
 	if (window?.swup?.hooks) {
 		bootFirstPageEnhancements();
 	} else if (document.readyState === "loading") {
-		document.addEventListener("DOMContentLoaded", bootFirstPageEnhancements);
+		document.addEventListener(
+			"DOMContentLoaded",
+			bootFirstPageEnhancements,
+		);
 	} else {
 		bootFirstPageEnhancements();
 	}

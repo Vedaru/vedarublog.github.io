@@ -18,7 +18,9 @@ export function getActivePreScrollGeneration(): number {
 	return activeVisitGeneration;
 }
 
-export function setActivePreScrollVisit(visit: HomePreScrollVisit | null): void {
+export function setActivePreScrollVisit(
+	visit: HomePreScrollVisit | null,
+): void {
 	activePreScrollVisit = visit;
 }
 

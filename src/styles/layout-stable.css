@@ -50,10 +50,8 @@ html[data-wallpaper-mode="banner"] #banner-wrapper {
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   transition:
-    transform var(--mobile-shift-duration, 700ms)
-      var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94)),
-    opacity var(--mobile-shift-duration, 700ms)
-      var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
+    transform var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94)),
+    opacity var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
 }
 
 html[data-wallpaper-mode="fullscreen"] #banner-wrapper,

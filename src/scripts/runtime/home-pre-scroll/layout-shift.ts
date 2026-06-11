@@ -7,9 +7,7 @@ import {
 import { getScrollY, setScrollY } from "./scroll";
 import type { HomePreScrollVisit } from "./types";
 
-export function beginLeavingHomeLayoutShift(
-	visit: HomePreScrollVisit,
-): number {
+export function beginLeavingHomeLayoutShift(visit: HomePreScrollVisit): number {
 	const anchor = getLayoutShiftAnchor();
 	const scrollBefore = getScrollY();
 	const anchorTopBefore = anchor?.getBoundingClientRect().top ?? 0;

@@ -84,9 +84,7 @@ export function runEnteringHomeLayoutTransition(
 	const isDesktop = window.innerWidth >= 1280;
 	const layoutDelta = measureEnteringHomeLayoutDelta(visit);
 	const gridExtendPx = getExpectedDesktopHomeGridShiftPx();
-	const shouldAnimate = isDesktop
-		? gridExtendPx > 1
-		: layoutDelta > 1;
+	const shouldAnimate = isDesktop ? gridExtendPx > 1 : layoutDelta > 1;
 
 	if (!shouldAnimate) {
 		setScrollY(0);

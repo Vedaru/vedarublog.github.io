@@ -669,4 +669,3 @@ export function registerTocSwupReinit(
 		registered = false;
 	};
 }
-

@@ -23,9 +23,7 @@ function isSamePageNavigation(fromPathname: string, toUrl: string): boolean {
 }
 
 /** 已在当前页时再次点击同页导航：应平滑回顶，而非 Swup 瞬移 */
-export function shouldSmoothScrollSamePage(
-	visit: HomePreScrollVisit,
-): boolean {
+export function shouldSmoothScrollSamePage(visit: HomePreScrollVisit): boolean {
 	const targetUrl = visit?.to?.url || "";
 	if (!targetUrl) return false;
 	if (!isSamePageNavigation(window.location.pathname, targetUrl)) {
@@ -93,9 +91,7 @@ export function isMobileLayoutShiftViewport(): boolean {
 	return window.matchMedia("(max-width: 1279px)").matches;
 }
 
-export function shouldHandleEnteringHome(
-	visit: HomePreScrollVisit,
-): boolean {
+export function shouldHandleEnteringHome(visit: HomePreScrollVisit): boolean {
 	return isEnteringHomePage(visit);
 }
 
@@ -106,9 +102,7 @@ export function shouldHandleMobileEnteringHome(
 	return shouldHandleEnteringHome(visit);
 }
 
-export function shouldPreScrollBeforeLeave(
-	visit: HomePreScrollVisit,
-): boolean {
+export function shouldPreScrollBeforeLeave(visit: HomePreScrollVisit): boolean {
 	const targetUrl = visit?.to?.url || "";
 	if (!targetUrl) return false;
 	if (isSamePageNavigation(window.location.pathname, targetUrl)) {

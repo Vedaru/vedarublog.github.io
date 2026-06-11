@@ -7,11 +7,14 @@ interface CalendarPost {
 	updated?: string;
 }
 
-export function initCalendar(config: { monthNames: string[]; yearSuffix: string }) {
-  const monthNames = config.monthNames;
-  const yearSuffix = config.yearSuffix;
+export function initCalendar(config: {
+	monthNames: string[];
+	yearSuffix: string;
+}) {
+	const monthNames = config.monthNames;
+	const yearSuffix = config.yearSuffix;
 
-const CALENDAR_DATA_CACHE_KEY = "__calendarWidgetPostsData";
+	const CALENDAR_DATA_CACHE_KEY = "__calendarWidgetPostsData";
 
 	let allPostsData: CalendarPost[] = [];
 	const postDateMap = {};
@@ -42,7 +45,9 @@ const CALENDAR_DATA_CACHE_KEY = "__calendarWidgetPostsData";
 		processPostsData(allPostsData);
 		const currentPostId = getCurrentPostId();
 		if (currentPostId) {
-			const matchedPost = allPostsData.find((p) => p.id === currentPostId);
+			const matchedPost = allPostsData.find(
+				(p) => p.id === currentPostId,
+			);
 			if (matchedPost) {
 				const [y, m] = matchedPost.date.split("-");
 				currentYear = parseInt(y);
@@ -421,7 +426,9 @@ const CALENDAR_DATA_CACHE_KEY = "__calendarWidgetPostsData";
 			if (isCurrentMonth)
 				cls +=
 					" border border-[var(--primary)] text-[var(--primary)] bg-[var(--primary)]/5";
-			else cls += " text-neutral-700 dark:text-neutral-300 border border-transparent";
+			else
+				cls +=
+					" text-neutral-700 dark:text-neutral-300 border border-transparent";
 			if (hasPost) cls += " has-post";
 
 			html += `<div class="${cls}" data-month="${index}">${name}</div>`;
@@ -444,7 +451,9 @@ const CALENDAR_DATA_CACHE_KEY = "__calendarWidgetPostsData";
 			if (isCurrent)
 				cls +=
 					" border border-[var(--primary)] text-[var(--primary)] bg-[var(--primary)]/5";
-			else cls += " text-neutral-700 dark:text-neutral-300 border border-transparent";
+			else
+				cls +=
+					" text-neutral-700 dark:text-neutral-300 border border-transparent";
 			if (hasPost) cls += " has-post";
 
 			html += `<div class="${cls}" data-year="${y}" id="year-${y}">${y}</div>`;

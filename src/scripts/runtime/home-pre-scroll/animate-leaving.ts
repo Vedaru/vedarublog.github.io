@@ -51,12 +51,7 @@ export function animateBlendedLeavingHome(
 				onProgress(progress, scrollY);
 			}
 
-			syncNavbarDuringPreScroll(
-				visit,
-				scrollY,
-				sourceIsMainHome,
-				true,
-			);
+			syncNavbarDuringPreScroll(visit, scrollY, sourceIsMainHome, true);
 		},
 		onComplete: function () {
 			window.__applyVisitBodyLayout?.(visit);

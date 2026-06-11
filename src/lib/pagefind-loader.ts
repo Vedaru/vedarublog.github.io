@@ -43,4 +43,3 @@ export function loadPagefind(): Promise<void> {
 
 	return loadPromise;
 }
-

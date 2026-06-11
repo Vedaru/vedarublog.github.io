@@ -2,7 +2,10 @@
 
 export function initThemeCriticalDeferred(): void {
 	const pageScaling = window.__themePageScaling;
-	if (!pageScaling?.enable || typeof window.__adjustPageScale !== "function") {
+	if (
+		!pageScaling?.enable ||
+		typeof window.__adjustPageScale !== "function"
+	) {
 		return;
 	}
 

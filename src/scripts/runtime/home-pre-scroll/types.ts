@@ -3,10 +3,7 @@ export interface HomePreScrollVisit {
 	scroll?: { reset?: boolean };
 }
 
-export type PreScrollProgressFn = (
-	progress: number,
-	scrollY: number,
-) => void;
+export type PreScrollProgressFn = (progress: number, scrollY: number) => void;
 
 export interface NavbarWrapperStyleSnapshot {
 	opacity: string;

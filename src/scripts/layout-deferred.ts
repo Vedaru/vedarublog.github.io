@@ -6,6 +6,12 @@ function runDeferred(): void {
 	if (document.getElementById("last-modified")) {
 		void import("./runtime/last-modified");
 	}
+
+	// 非关键脚本：idle 后加载，Swup 换页仍依赖其钩子
+	void import("./code-collapse.js");
+	void import("./anime-page.js");
+	void import("./mermaid-init.js");
+	void import("./theme-optimizer.js");
 }
 
 if ("requestIdleCallback" in window) {

@@ -88,7 +88,7 @@ export const friendsData: FriendItem[] = [
 	{
 		id: 10,
 		title: "mratgnothing",
-		imgurl:"https://avatars.githubusercontent.com/u/251090025?v=4",
+		imgurl: "https://avatars.githubusercontent.com/u/251090025?v=4",
 		desc: "cpy鸽鸽",
 		siteurl: "https://mratg.netlify.app/",
 		tags: ["Developer"],
@@ -116,7 +116,7 @@ export const friendsData: FriendItem[] = [
 		desc: "sakimidare佬总结的Linux C 编程一站式学习指南",
 		siteurl: "https://c.sakimidare.top/pr01.html",
 		tags: ["Website", "Learning"],
-	}
+	},
 ];
 
 // 获取所有友情链接数据

@@ -141,7 +141,8 @@ class IconifyLoader {
 	}
 
 	addToPreloadQueue(icons: string | string[]): void {
-		if (Array.isArray(icons)) icons.forEach((icon) => this.preloadQueue.add(icon));
+		if (Array.isArray(icons))
+			icons.forEach((icon) => this.preloadQueue.add(icon));
 		else this.preloadQueue.add(icons);
 
 		if (this.isLoaded) void this.processPreloadQueue();
@@ -222,7 +223,10 @@ export function initIconifyLoader(config: IconifyLoaderConfig): void {
 	}
 
 	(["scroll", "click", "touchstart"] as const).forEach((evt) => {
-		window.addEventListener(evt, scheduleLoad, { once: true, passive: true });
+		window.addEventListener(evt, scheduleLoad, {
+			once: true,
+			passive: true,
+		});
 	});
 
 	document.addEventListener("visibilitychange", () => {

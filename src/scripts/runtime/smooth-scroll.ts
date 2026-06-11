@@ -118,19 +118,14 @@ import {
 			return Promise.resolve();
 		}
 
-		if (
-			!activeScrollTrip ||
-			activeScrollTrip.goalY !== goalY
-		) {
+		if (!activeScrollTrip || activeScrollTrip.goalY !== goalY) {
 			activeScrollTrip = {
 				goalY,
 				originalStartY: startY,
 			};
 		}
 
-		const fullDistance = Math.abs(
-			goalY - activeScrollTrip.originalStartY,
-		);
+		const fullDistance = Math.abs(goalY - activeScrollTrip.originalStartY);
 		const adjustedDuration =
 			fullDistance > 8
 				? resolvedDuration * (distance / fullDistance)

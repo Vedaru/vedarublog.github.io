@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
@@ -127,6 +127,32 @@ async function main() {
 	}
 
 	await optimizeBanner("138800451_p0");
+
+	for (const image of [
+		{ name: "jambuddy.webp", maxWidth: 1200, quality: 75 },
+		{ name: "miku_live.webp", maxWidth: 960, quality: 78 },
+	]) {
+		const source = join(root, "public", "images", image.name);
+		if (!existsSync(source)) continue;
+		const meta = await sharp(source).metadata();
+		const width = Math.min(meta.width || image.maxWidth, image.maxWidth);
+		const height = meta.height
+			? Math.round((width / (meta.width || width)) * meta.height)
+			: undefined;
+		const buffer = await sharp(source, { animated: false })
+			.resize(width, height, { fit: "inside", withoutEnlargement: true })
+			.webp({ quality: image.quality, effort: 4 })
+			.toBuffer();
+		const tempPath = `${source}.opt.tmp`;
+		writeFileSync(tempPath, buffer);
+		try {
+			unlinkSync(source);
+		} catch {
+			/* ignore */
+		}
+		renameSync(tempPath, source);
+		logSize(`content ${image.name}`, source);
+	}
 
 	console.log("[images] static image optimization complete");
 }

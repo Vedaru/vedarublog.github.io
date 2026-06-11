@@ -50,8 +50,7 @@ export function applyBlendedLeavingShift(
 	if (bannerWrapper && layoutDelta > 0) {
 		bannerWrapper.style.transition = "none";
 		bannerWrapper.style.opacity = String(Math.max(0, 1 - t));
-		bannerWrapper.style.transform =
-			"translate3d(0, " + -100 * t + "%, 0)";
+		bannerWrapper.style.transform = "translate3d(0, " + -100 * t + "%, 0)";
 	}
 }
 

@@ -28,8 +28,7 @@ export function mapPlaylistEntry(
 ): Song {
 	const unknownSong = labels?.unknownSong ?? "Unknown Song";
 	const unknownArtist = labels?.unknownArtist ?? "Unknown Artist";
-	let title =
-		(song.name as string) ?? (song.title as string) ?? unknownSong;
+	let title = (song.name as string) ?? (song.title as string) ?? unknownSong;
 	let artist =
 		(song.artist as string) ?? (song.author as string) ?? unknownArtist;
 	let dur = (song.duration as number) ?? 0;
@@ -42,8 +41,7 @@ export function mapPlaylistEntry(
 		cover:
 			(song.cover as string) ??
 			`/assets/music/cover/${index}-default.jpg`,
-		url:
-			(song.url as string) ?? `/assets/music/url/${index}-meting.opus`,
+		url: (song.url as string) ?? `/assets/music/url/${index}-meting.opus`,
 		duration: dur,
 	};
 }
@@ -128,7 +126,8 @@ export function createAudioPlayer(options?: CreateAudioPlayerOptions) {
 	}
 
 	function getAssetPath(path: string): string {
-		if (path.startsWith("http://") || path.startsWith("https://")) return path;
+		if (path.startsWith("http://") || path.startsWith("https://"))
+			return path;
 		if (path.startsWith("/")) return path;
 		return `/${path}`;
 	}

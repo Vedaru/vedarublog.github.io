@@ -74,10 +74,7 @@ export function runCancellableTween(
 	cancelActiveTweenInternal("superseded");
 
 	const generation = activeGeneration;
-	const startProgress = Math.min(
-		1,
-		Math.max(0, options.startProgress ?? 0),
-	);
+	const startProgress = Math.min(1, Math.max(0, options.startProgress ?? 0));
 	const remainingRatio = 1 - startProgress;
 	const baseDuration = Math.max(0, options.duration);
 	const duration =

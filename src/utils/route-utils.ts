@@ -9,11 +9,7 @@ export function normalizePath(path: string): string {
 
 /** 是否为首页路径（含分页首页 /2/） */
 export function isHomePagePath(pathname: string): boolean {
-	return (
-		pathname === "/" ||
-		pathname === "" ||
-		/^\/?\d+\/?$/.test(pathname)
-	);
+	return pathname === "/" || pathname === "" || /^\/?\d+\/?$/.test(pathname);
 }
 
 /** 是否为主界面（仅第 1 页 /）；分页 /2/ 等与文章页共用非主界面布局 */

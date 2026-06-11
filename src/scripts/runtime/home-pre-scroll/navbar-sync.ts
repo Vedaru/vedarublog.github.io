@@ -1,10 +1,7 @@
 import { SEMIFULL_SCROLL_THRESHOLD } from "./constants";
 import { getScrollY } from "./scroll";
 import { isTargetMainHomePage } from "./visit";
-import type {
-	HomePreScrollVisit,
-	NavbarWrapperStyleSnapshot,
-} from "./types";
+import type { HomePreScrollVisit, NavbarWrapperStyleSnapshot } from "./types";
 
 export function snapshotNavbarWrapperStyles(): NavbarWrapperStyleSnapshot | null {
 	const navbarWrapper = document.getElementById("navbar-wrapper");

@@ -203,7 +203,10 @@ export async function initPasswordProtection({
 		errorMessage!.style.display = "none";
 
 		try {
-			const result = decryptEncryptedContent(encryptedContent, inputPassword);
+			const result = decryptEncryptedContent(
+				encryptedContent,
+				inputPassword,
+			);
 
 			if (!result.ok) {
 				showError(messages.incorrect);
@@ -215,9 +218,12 @@ export async function initPasswordProtection({
 					if (inputGroup instanceof HTMLElement) {
 						inputGroup.style.visibility = "visible";
 					}
-					const hint = protectionDiv?.querySelector(".password-container p");
+					const hint = protectionDiv?.querySelector(
+						".password-container p",
+					);
 					if (hint?.hasAttribute("data-original-text")) {
-						hint.textContent = hint.getAttribute("data-original-text");
+						hint.textContent =
+							hint.getAttribute("data-original-text");
 					}
 					passwordInput!.value = "";
 					protectionDiv?.classList.remove("auto-unlocking");
@@ -279,7 +285,9 @@ export function initEncryptedCopyHandler(): void {
 			}
 			code = lines.join("\n");
 		} else {
-			const codeElements = codeEle.querySelectorAll(".code:not(summary *)");
+			const codeElements = codeEle.querySelectorAll(
+				".code:not(summary *)",
+			);
 			if (codeElements.length > 0) {
 				const lines: string[] = [];
 				for (let i = 0; i < codeElements.length; i++) {

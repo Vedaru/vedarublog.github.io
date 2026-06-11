@@ -71,7 +71,9 @@ export class WidgetManager {
 
 		return componentTypes
 			.map((type) => {
-				const prop = this.config.properties.find((p) => p.type === type);
+				const prop = this.config.properties.find(
+					(p) => p.type === type,
+				);
 				if (prop && prop.position === position) {
 					return prop;
 				}

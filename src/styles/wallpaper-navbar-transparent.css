@@ -75,14 +75,9 @@ body.wallpaper-transparent #navbar[data-transparent-mode="semifull"]:not(.scroll
 /* 首页 semifull：--semifull-fade 驱动渐变 */
 body.wallpaper-transparent #navbar[data-transparent-mode="semifull"][data-is-home="true"] {
   --sf: var(--semifull-fade, 0);
-  --nav-bg: color-mix(
-    in srgb,
-    var(--card-bg-transparent) calc(var(--sf) * 100%),
-    transparent
-  );
+  --nav-bg: color-mix(in srgb, var(--card-bg-transparent) calc(var(--sf) * 100%), transparent);
   --nav-blur: blur(calc(8px * var(--sf)));
-  --nav-shadow: 0 calc(4px * var(--sf)) calc(16px * var(--sf))
-    rgba(0, 0, 0, calc(0.08 * var(--sf)));
+  --nav-shadow: 0 calc(4px * var(--sf)) calc(16px * var(--sf)) rgba(0, 0, 0, calc(0.08 * var(--sf)));
   --nav-radius: var(--radius-std);
 }
 

@@ -871,14 +871,14 @@ async function compressFonts() {
 			for (const fontFile of fontConfig.files) {
 				const fontSrc = path.join(
 					__dirname,
-					"../public/assets/font",
+					"../src/assets/fonts-src",
 					fontFile,
 				);
 				const ext = path.extname(fontFile).toLowerCase();
 				const baseName = path.basename(fontFile, ext);
 
 				if (!fs.existsSync(fontSrc)) {
-					const errorMsg = `❌ Config error [${fontConfig.type}]: Font file does not exist   In config: "${fontFile}"\n   Expected path: public/assets/font/${fontFile}\n   \n   Please check:\n   1. Is the filename correct (case sensitive)?\n   2. Is the file in public/assets/font/?\n   3. Is ${fontConfig.type}.localFonts in src/config.ts correct?`;
+					const errorMsg = `❌ Config error [${fontConfig.type}]: Font file does not exist   In config: "${fontFile}"\n   Expected path: src/assets/fonts-src/${fontFile}\n   \n   Please check:\n   1. Is the filename correct (case sensitive)?\n   2. Is the file in src/assets/fonts-src/?\n   3. Is ${fontConfig.type}.localFonts in src/config.ts correct?`;
 
 					errors.push(errorMsg);
 					console.log(`\n${errorMsg}\n`);
@@ -943,6 +943,19 @@ async function compressFonts() {
 							100
 						).toFixed(2);
 
+						// 同步 woff2 到 public，供 dev / CSS @font-face 引用
+						const publicFontDir = path.join(
+							__dirname,
+							"../public/assets/font",
+						);
+						if (!fs.existsSync(publicFontDir)) {
+							fs.mkdirSync(publicFontDir, { recursive: true });
+						}
+						fs.copyFileSync(
+							compressedFile,
+							path.join(publicFontDir, `${baseName}.woff2`),
+						);
+
 						console.log(
 							`✓ ${fontFile} → ${baseName}.woff2 (${(compressedSize / 1024).toFixed(2)} KB, reduced ${reduction}%)`,
 						);
@@ -991,7 +1004,7 @@ async function compressFonts() {
 			console.log(`${errors.length} errors, please fix and retry.\n`);
 
 			// 列出实际存在的字体文件
-			const fontDir = path.join(__dirname, "../public/assets/font");
+			const fontDir = path.join(__dirname, "../src/assets/fonts-src");
 			if (fs.existsSync(fontDir)) {
 				const actualFiles = fs
 					.readdirSync(fontDir)

@@ -31,7 +31,13 @@ export const timelineData: TimelineItem[] = [
 			"课余时间学习计算机技术，专注于网页开发、软件工程和人工智能算法。",
 		type: "education",
 		startDate: "2025-09-01",
-		skills: ["Python", "JavaScript", "TypeScript", "Astro", "Machine Learning"],
+		skills: [
+			"Python",
+			"JavaScript",
+			"TypeScript",
+			"Astro",
+			"Machine Learning",
+		],
 		achievements: [
 			"学习了python和前端开发的基础知识",
 			"完成了数据结构与算法的学习",
@@ -182,7 +188,8 @@ export const timelineData: TimelineItem[] = [
 	{
 		id: "high-school-graduation",
 		title: "高中学习",
-		description: "高中计算机课上学习了python的基础知识，激发了对编程的兴趣。",
+		description:
+			"高中计算机课上学习了python的基础知识，激发了对编程的兴趣。",
 		type: "education",
 		startDate: "2022-09-01",
 		endDate: "2025-06-30",
@@ -209,7 +216,8 @@ export const timelineData: TimelineItem[] = [
 export const getTimelineStats = () => {
 	const total = timelineData.length;
 	const byType = {
-		education: timelineData.filter((item) => item.type === "education").length,
+		education: timelineData.filter((item) => item.type === "education")
+			.length,
 		work: timelineData.filter((item) => item.type === "work").length,
 		project: timelineData.filter((item) => item.type === "project").length,
 		achievement: timelineData.filter((item) => item.type === "achievement")
@@ -224,14 +232,16 @@ export const getTimelineByType = (type?: string) => {
 	if (!type || type === "all") {
 		return timelineData.sort(
 			(a, b) =>
-				new Date(b.startDate).getTime() - new Date(a.startDate).getTime(),
+				new Date(b.startDate).getTime() -
+				new Date(a.startDate).getTime(),
 		);
 	}
 	return timelineData
 		.filter((item) => item.type === type)
 		.sort(
 			(a, b) =>
-				new Date(b.startDate).getTime() - new Date(a.startDate).getTime(),
+				new Date(b.startDate).getTime() -
+				new Date(a.startDate).getTime(),
 		);
 };
 
@@ -241,7 +251,8 @@ export const getFeaturedTimeline = () => {
 		.filter((item) => item.featured)
 		.sort(
 			(a, b) =>
-				new Date(b.startDate).getTime() - new Date(a.startDate).getTime(),
+				new Date(b.startDate).getTime() -
+				new Date(a.startDate).getTime(),
 		);
 };
 

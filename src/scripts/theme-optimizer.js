@@ -480,8 +480,7 @@ class ThemeOptimizer {
 			elements.forEach((element) => {
 				const rect = element.getBoundingClientRect();
 				const isVisible =
-					rect.top < window.innerHeight + 100 &&
-					rect.bottom > -100;
+					rect.top < window.innerHeight + 100 && rect.bottom > -100;
 				if (isVisible) {
 					toComposite.push({
 						element,

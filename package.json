@@ -12,6 +12,7 @@
 		"check": "astro check",
 		"update-anime": "node scripts/update-bangumi.mjs",
 		"build": "astro build && pagefind --site dist && node scripts/compress-pagefind.mjs && node scripts/compress-fonts.js",
+		"reencode-music": "node scripts/reencode-music.mjs",
 		"submit": "node scripts/indexnow-submit.js",
 		"preview": "astro preview",
 		"astro": "astro",

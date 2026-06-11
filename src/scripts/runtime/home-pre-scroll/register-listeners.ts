@@ -146,7 +146,9 @@ async function runPreScrollChain(
 	await smoothScrollToY(0, duration, easing, onPreScrollProgress);
 }
 
-function handleVisitStart(visit: HomePreScrollVisit): Promise<void> | undefined {
+function handleVisitStart(
+	visit: HomePreScrollVisit,
+): Promise<void> | undefined {
 	cancelActivePreScrollTween();
 	window.__cancelSmoothScroll?.();
 

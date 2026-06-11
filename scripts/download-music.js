@@ -63,10 +63,15 @@ async function transcodeAudio(inputPath, outputPath, codec = 'libopus', bitrate 
     }
     return true;
   } catch (e) {
-    console.warn(`⚠ ffmpeg not available or failed: ${e.message}`);
-    // 如果ffmpeg不可用，直接复制文件
-    await fs.copyFile(inputPath, outputPath);
-    return false;
+    console.error(`❌ ffmpeg not available or failed: ${e.message}`);
+    try {
+      await fs.unlink(outputPath);
+    } catch {
+      /* ignore */
+    }
+    throw new Error(
+      'ffmpeg is required for music transcoding. Install ffmpeg and retry.',
+    );
   }
 }
 
@@ -290,17 +295,11 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
         console.log(`ℹ Skipping existing file ${filename}`);
       }
 
-      // 转码音频文件到Opus编码，64kbps码率
+      // 转码音频文件到 Opus 64kbps（ffmpeg 不可用时直接失败，避免保留巨型源文件）
       const tempFile = filepath + '.temp';
-      const transcodeSuccess = await transcodeAudio(filepath, tempFile, 'libopus', '64k');
-      if (transcodeSuccess) {
-        // 转码成功，使用转码后的文件
-        await fs.rename(tempFile, filepath);
-        console.log(`✓ Transcoded ${filename} to Opus 64kbps`);
-      } else {
-        // 转码失败，删除临时文件
-        try { await fs.unlink(tempFile); } catch (e) {}
-      }
+      await transcodeAudio(filepath, tempFile, 'libopus', '64k');
+      await fs.rename(tempFile, filepath);
+      console.log(`✓ Transcoded ${filename} to Opus 64kbps`);
 
       // 直接使用转码后的文件，无需额外处理
       let usedFilename = filename;
@@ -355,13 +354,6 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
     const outJson = path.join(outDir, 'playlist.json');
     await fs.writeFile(outJson, JSON.stringify(result, null, 2), 'utf-8');
     console.log(`✓ Wrote ${outJson} with ${result.length} songs`);
-    // Also write a compatibility copy to /public/music/playlist.json so themes that
-    // expect the classic location (Mizuki) can find it via /music/playlist.json
-    const legacyMusicDir = path.join(projectRoot, 'public', 'music');
-    await fs.mkdir(legacyMusicDir, { recursive: true });
-    const legacyOut = path.join(legacyMusicDir, 'playlist.json');
-    await fs.writeFile(legacyOut, JSON.stringify(result, null, 2), 'utf-8');
-    console.log(`✓ Wrote compatibility copy ${legacyOut}`);
   } catch (e) {
     console.error('Error:', e && e.message ? e.message : e);
     process.exit(1);

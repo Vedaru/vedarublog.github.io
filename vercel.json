@@ -71,7 +71,25 @@
 			]
 		},
 		{
-			"source": "/(.*)\\.(js|css|woff2|png|webp|svg)",
+			"source": "/pio/(.*)",
+			"headers": [
+				{
+					"key": "Cache-Control",
+					"value": "public, max-age=31536000, immutable"
+				}
+			]
+		},
+		{
+			"source": "/images/(.*)",
+			"headers": [
+				{
+					"key": "Cache-Control",
+					"value": "public, max-age=31536000, immutable"
+				}
+			]
+		},
+		{
+			"source": "/(.*)\\.(js|css|woff2|png|webp|svg|avif|opus|moc)",
 			"headers": [
 				{
 					"key": "Cache-Control",

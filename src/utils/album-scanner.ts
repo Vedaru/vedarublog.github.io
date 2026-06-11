@@ -68,7 +68,18 @@ async function processAlbumFolder(
 		photos = processExternalPhotos(info.photos || [], folderName);
 	} else {
 		// 本地模式：检查本地文件
-		const coverExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.avif', '.bmp', '.tiff', '.tif'];
+		const coverExtensions = [
+			".jpg",
+			".jpeg",
+			".png",
+			".gif",
+			".webp",
+			".svg",
+			".avif",
+			".bmp",
+			".tiff",
+			".tif",
+		];
 		let coverFile: string | null = null;
 		for (const ext of coverExtensions) {
 			const coverPath = path.join(folderPath, `cover${ext}`);
@@ -78,7 +89,9 @@ async function processAlbumFolder(
 			}
 		}
 		if (!coverFile) {
-			console.warn(`相册 ${folderName} 缺少 cover 文件（支持格式：jpg, jpeg, png, gif, webp, svg, avif, bmp, tiff, tif）`);
+			console.warn(
+				`相册 ${folderName} 缺少 cover 文件（支持格式：jpg, jpeg, png, gif, webp, svg, avif, bmp, tiff, tif）`,
+			);
 			return null;
 		}
 
