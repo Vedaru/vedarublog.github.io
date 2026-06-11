@@ -273,7 +273,7 @@ function handleRoleButtonKeydown(
 					<button
 						class="btn-plain w-8 h-8 rounded-lg flex items-center justify-center"
 						class:text-[var(--primary)]={$showPlaylist}
-						on:click={togglePlaylist}
+						on:click={() => void handlePlayerInteraction(togglePlaylist)}
 						aria-label={i18n(Key.musicPlayerPlaylist)}
 					>
 						<Icon icon="material-symbols:queue-music" class="text-lg" />

@@ -199,6 +199,8 @@ export function createAudioPlayer(options?: CreateAudioPlayerOptions) {
 		} catch {
 			showErrorMessage(i18n(Key.musicPlayerErrorPlaylist));
 			isLoading.set(false);
+			// 允许下次交互重试：不缓存失败的拉取，否则一次瞬时失败会永久空列表
+			playlistFetchPromise = null;
 		}
 	}
 

@@ -22,8 +22,11 @@
 	}
 
 	function createDriftState() {
+		const phase = randomBetween(0, Math.PI * 2);
 		return {
-			phase: randomBetween(0, Math.PI * 2),
+			phase,
+			baseX: Math.cos(phase),
+			baseY: Math.sin(phase),
 			direction: Math.random() < 0.5 ? 1 : -1,
 			startMs: null as number | null,
 			elapsedMs: 0,
@@ -47,8 +50,8 @@
 
 		const angle =
 			state.direction * DRIFT_OMEGA * state.elapsedMs + state.phase;
-		const x = (Math.cos(angle) * DRIFT_AMPLITUDE).toFixed(4);
-		const y = (Math.sin(angle) * DRIFT_AMPLITUDE).toFixed(4);
+		const x = ((Math.cos(angle) - state.baseX) * DRIFT_AMPLITUDE).toFixed(4);
+		const y = ((Math.sin(angle) - state.baseY) * DRIFT_AMPLITUDE).toFixed(4);
 		img.style.transform = `translate3d(${x}%, ${y}%, 0)`;
 	}
 

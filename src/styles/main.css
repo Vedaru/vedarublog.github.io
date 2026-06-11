@@ -58,7 +58,7 @@ body {
       @apply h-[var(--banner-height-home)] translate-y-0;
     }
     .enable-banner #banner {
-      @apply h-[var(--banner-height-home)] translate-y-[var(--bannerOffset)];
+      @apply h-[var(--banner-height-home)] translate-y-0;
     }
     .enable-banner.is-home #main-grid {
       @apply translate-y-[var(--banner-height-extend)];
