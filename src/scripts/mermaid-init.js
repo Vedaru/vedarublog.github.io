@@ -498,3 +498,5 @@ if (document.readyState === "loading") {
 }
 
 document.addEventListener("swup:enable", registerSwupListeners);
+
+export {};

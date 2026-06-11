@@ -44,6 +44,7 @@ declare global {
 			isLoaded: boolean;
 		};
 		siteConfig: any;
+		__pendingLayoutMode?: string;
 		__lastModifiedBootstrapped?: boolean;
 		initLastModifiedPage?: () => void;
 		__twikooInitBootstrapped?: boolean;

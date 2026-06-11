@@ -351,3 +351,5 @@ if (document.readyState === "loading") {
 }
 
 document.addEventListener("swup:enable", registerAnimeSwupListeners);
+
+export {};

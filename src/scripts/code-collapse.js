@@ -372,3 +372,5 @@ if (!setupSwupHooks()) {
 		clearInterval(retryInterval);
 	}, 2000);
 }
+
+export {};

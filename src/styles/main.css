@@ -89,7 +89,16 @@ body {
 @tailwind utilities;
 
 html {
-  scrollbar-gutter: stable;
+  /* 强制隐藏并不渲染全局滚动条（仍可滚动），
+     避免滚动条出现/消失导致 navbar/main-grid 宽度跳变 */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* 旧 Edge / IE */
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none; /* Chromium / WebKit */
 }
 
 /* 平滑滚动仅在锚点导航时通过 JS 按需启用，避免全局 CLS 影响 */
