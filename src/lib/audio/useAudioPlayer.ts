@@ -182,7 +182,12 @@ export function createAudioPlayer(options?: CreateAudioPlayerOptions) {
 	async function fetchMetingPlaylist() {
 		isLoading.set(true);
 		try {
-			const res = await fetch("/assets/music/playlist.json");
+			// playlist.json 的 URL 固定但内容会随歌单更新而变化，而 CDN/_headers
+			// 对 /assets/* 设了 immutable 长缓存，会导致浏览器一直用旧歌单（指向已改名/删除
+			// 的音频与封面，从而 404）。用 no-cache 强制带 ETag 重新校验，内容未变返回 304。
+			const res = await fetch("/assets/music/playlist.json", {
+				cache: "no-cache",
+			});
 			if (!res.ok) throw new Error("playlist.json not found");
 			const list: Record<string, unknown>[] = await res.json();
 			const songs = list.map((song, index) =>
