@@ -18,6 +18,17 @@ import { fileURLToPath } from 'url';
 import { spawnSync } from 'child_process';
 import { saveBufferAsWebp } from './image-to-webp.mjs';
 
+// Meting API 返回的歌曲对象通常没有 id 字段，但 url/lrc 查询串里带有真实歌曲 id
+function extractSongId(song) {
+  if (song.id) return String(song.id);
+  for (const field of [song.lrc, song.url, song.pic]) {
+    if (!field) continue;
+    const match = String(field).match(/[?&]id=(\d+)/);
+    if (match) return match[1];
+  }
+  return '';
+}
+
 async function clearDirectory(dirPath) {
   try {
     const files = await fs.readdir(dirPath);
@@ -32,10 +43,12 @@ async function clearDirectory(dirPath) {
 
 async function transcodeAudio(inputPath, outputPath, codec = 'libopus', bitrate = '64k') {
   // 使用ffmpeg转码音频到指定的编码和码率
+  // 临时文件后缀是 .temp，ffmpeg 无法据此推断容器格式，必须显式指定 ogg（.opus 即 ogg 容器）
   const args = [
     '-i', inputPath,
     '-c:a', codec,
     '-b:a', bitrate,
+    '-f', 'ogg',
     '-y', // 覆盖输出文件
     outputPath
   ];
@@ -233,25 +246,16 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
       let asciiTitle = transliterateFn(decodedTitle);
 
       // Remove remaining non-ASCII and unsafe characters
-      let safeTitle = asciiTitle.replace(/[^\\x00-\\x7F]/g, '').replace(/[\\/:*?"<>|#%&]/g, '-');
+      let safeTitle = asciiTitle.replace(/[^\x00-\x7F]/g, '').replace(/[\\/:*?"<>|#%&\s]/g, '-');
       // Normalize dashes and trim
       safeTitle = safeTitle.replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 120);
 
-      // If still empty, try deriving a filename-safe name from the source URL
+      // 中文/日文等非 ASCII 标题在 transliteration 不可用时会被清空；
+      // meting 源的 url 是 API 链接（basename 恒为 "api"），不能用来推导名字，
+      // 改用真实歌曲 id 兜底，保证文件名唯一且有意义
       if (!safeTitle) {
-        try {
-          const urlPath = new URL(song.url).pathname;
-          const base = path.basename(urlPath);
-          const nameFromUrl = base.replace(/\.[^/.]+$/, '');
-          let decName = decodeURIComponent(nameFromUrl || '');
-          decName = transliterateFn(decName);
-          safeTitle = decName.replace(/[\\/:*?"<>|#%&]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').slice(0, 120);
-        } catch (e) {
-          // ignore
-        }
+        safeTitle = extractSongId(song) || 'untitled';
       }
-
-      if (!safeTitle) safeTitle = 'untitled';
       const namePart = safeTitle ? `-${safeTitle}` : '';
       const filename = `${id}${namePart}${ext}`;
       const filepath = path.join(urlDir, filename);
@@ -344,7 +348,7 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
         url: targetUrl,
         cover: coverUrl,
         lrc: song.lrc || '',
-        id: song.id || ''
+        id: extractSongId(song)
       });
     }
 
