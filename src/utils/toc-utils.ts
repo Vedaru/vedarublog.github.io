@@ -466,13 +466,33 @@ export function isValueInRange(
 	return min < value && value < max;
 }
 
-/** 缓存章节区块的文档坐标 */
+/** 缓存章节区块的文档坐标
+ *  当 section 与 heading 是同一元素（仅标题自身几十像素高）时，
+ *  按"本标题 top → 下一标题 top"计算范围，避免密集标题页出现大量
+ *  极窄 section 导致多个同时 active、触发频繁 updateSync。
+ */
 export function cacheSectionOffsets(
 	sections: HTMLElement[],
+	headings?: HTMLElement[],
 ): Array<{ top: number; bottom: number } | null> {
 	const scrollY = window.scrollY;
-	return sections.map((section) => {
+	const docHeight = document.documentElement.scrollHeight;
+	return sections.map((section, i) => {
 		if (!section) return null;
+		const h = headings?.[i];
+		if (h && h === section) {
+			const top = h.getBoundingClientRect().top + scrollY;
+			let bottom: number;
+			for (let j = i + 1; j < (headings?.length ?? 0); j++) {
+				const next = headings![j];
+				if (next) {
+					bottom = next.getBoundingClientRect().top + scrollY;
+					return { top, bottom };
+				}
+			}
+			bottom = docHeight;
+			return { top, bottom };
+		}
 		const rect = section.getBoundingClientRect();
 		return {
 			top: rect.top + scrollY,

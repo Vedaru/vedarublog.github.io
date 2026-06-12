@@ -113,15 +113,7 @@ class TableOfContents extends HTMLElement {
             return;
         }
 
-        entries.forEach((entry) => {
-            const target = entry.target as HTMLElement;
-            const id =
-                target.getAttribute("id") ||
-                target.children[0]?.getAttribute("id");
-            const idx = id ? this.headingIdxMap.get(id) : undefined;
-            if (idx != undefined && idx < this.active.length)
-                this.active[idx] = entry.isIntersecting;
-
+        for (const entry of entries) {
             if (
                 entry.isIntersecting &&
                 (this.anchorNavTarget === entry.target ||
@@ -129,18 +121,18 @@ class TableOfContents extends HTMLElement {
             ) {
                 this.anchorNavTarget = null;
             }
-        });
+        }
 
         if (!this.heavyLayoutReady) {
             return;
         }
 
-        if (!this.active.includes(true)) this.fallback();
+        this.fallback();
         this.updateSync();
     };
 
     cacheSectionOffsets = () => {
-        this.sectionOffsets = cacheSectionOffsets(this.sections);
+        this.sectionOffsets = cacheSectionOffsets(this.sections, this.headings);
     };
 
     handleResize = () => {

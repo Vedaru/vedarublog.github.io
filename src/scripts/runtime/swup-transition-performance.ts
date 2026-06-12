@@ -18,6 +18,7 @@
 		[];
 	const idlePhaseCallbacks: Array<() => void> = [];
 	let idleWorkQueue: Array<() => void> = [];
+	let idleDrainScheduled = false;
 
 	function getMobileShiftDurationMs() {
 		const raw = getComputedStyle(document.documentElement)
@@ -264,6 +265,23 @@
 	window.__scheduleSwupIdleWork = function (fn) {
 		if (typeof fn === "function") {
 			idleWorkQueue.push(fn);
+		}
+		if (transitionDepth === 0 && !idleDrainScheduled && idleWorkQueue.length > 0) {
+			idleDrainScheduled = true;
+			var schedule =
+				window.requestIdleCallback ||
+				function (cb) {
+					setTimeout(cb, 48);
+				};
+			schedule(
+				function () {
+					idleDrainScheduled = false;
+					if (transitionDepth === 0) {
+						runIdleWorkQueue();
+					}
+				},
+				{ timeout: 500 },
+			);
 		}
 	};
 
