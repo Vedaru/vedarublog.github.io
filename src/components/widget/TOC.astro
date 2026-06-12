@@ -72,6 +72,7 @@ class TableOfContents extends HTMLElement {
     heavyLayoutReady = false;
     heavyLayoutScheduled = false;
     scrollRaf = 0;
+    tocScrollTimer = 0;
 
     resolveTocSection = (heading: HTMLElement): HTMLElement => {
         const path = window.location.pathname;
@@ -171,7 +172,6 @@ class TableOfContents extends HTMLElement {
         this.updateRaf = requestAnimationFrame(() => {
             this.updateRaf = 0;
 
-            // 1. Calculate min and max indices
             let min = this.active.length;
             let max = -1;
             let hasActive = false;
@@ -189,7 +189,6 @@ class TableOfContents extends HTMLElement {
                 max = -1;
             }
 
-            // 2. Read phase: get metrics for min and max entries before modifying classes
             let minTop = 0;
             let maxTop = 0;
             let maxBottom = 0;
@@ -209,7 +208,6 @@ class TableOfContents extends HTMLElement {
                 }
             }
 
-            // 3. Write phase: modify classes and styles
             for (let i = 0; i < this.active.length; i++) {
                 if (this.active[i]) {
                     this.tocEntries[i]?.classList.add(this.visibleClass);
@@ -225,15 +223,21 @@ class TableOfContents extends HTMLElement {
                 );
 
                 if (!this.anchorNavTarget && this.tocEl) {
-                    const scrollTop =
+                    const targetScrollTop =
                         maxBottom - minTop < 0.9 * tocHeight
                             ? minTop - 32
                             : maxTop - tocHeight * 0.8;
-                    this.tocEl.scrollTo({
-                        top: scrollTop,
-                        left: 0,
-                        behavior: "smooth",
-                    });
+
+                    if (this.tocScrollTimer) clearTimeout(this.tocScrollTimer);
+                    const el = this.tocEl;
+                    this.tocScrollTimer = window.setTimeout(() => {
+                        this.tocScrollTimer = 0;
+                        el.scrollTo({
+                            top: targetScrollTop,
+                            left: 0,
+                            behavior: "smooth",
+                        });
+                    }, 120);
                 }
             } else {
                 this.activeIndicator?.setAttribute("style", "opacity: 0");
@@ -364,6 +368,10 @@ class TableOfContents extends HTMLElement {
         if (this.scrollRaf) {
             cancelAnimationFrame(this.scrollRaf);
             this.scrollRaf = 0;
+        }
+        if (this.tocScrollTimer) {
+            clearTimeout(this.tocScrollTimer);
+            this.tocScrollTimer = 0;
         }
         window.removeEventListener("resize", this.handleResize);
         window.removeEventListener("scroll", this.handleScroll);

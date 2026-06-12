@@ -522,7 +522,31 @@ export function findActiveSectionIndex(
 	return activeIdx;
 }
 
-/** 根据滚动位置查找当前激活标题索引（浮动 TOC） */
+/** 缓存标题元素的文档级 top 坐标（避免每帧 getBoundingClientRect） */
+export function cacheHeadingTopOffsets(headings: HTMLElement[]): number[] {
+	const sy = window.scrollY;
+	return headings.map((h) => h.getBoundingClientRect().top + sy);
+}
+
+/** 根据缓存 offset 查找当前激活标题索引（浮动 TOC，零 layout 查询） */
+export function findActiveHeadingByScrollCached(
+	offsets: number[],
+	scrollY: number,
+	offsetTop = 150,
+): number {
+	let activeIndex = -1;
+	const threshold = scrollY + offsetTop;
+	for (let i = 0; i < offsets.length; i++) {
+		if (offsets[i] < threshold) {
+			activeIndex = i;
+		} else {
+			break;
+		}
+	}
+	return activeIndex;
+}
+
+/** 根据滚动位置查找当前激活标题索引（浮动 TOC，兼容旧调用） */
 export function findActiveHeadingByScroll(
 	headings: HTMLElement[],
 	scrollY = window.scrollY,

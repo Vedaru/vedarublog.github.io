@@ -245,7 +245,8 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 <script>
 	import {
 		buildFloatingTocMarkup,
-		findActiveHeadingByScroll,
+		cacheHeadingTopOffsets,
+		findActiveHeadingByScrollCached,
 		getTocConfig,
 		registerTocSwupReinit,
 		scrollToTocHeading,
@@ -259,6 +260,12 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 		private isOpen = false;
 		private observer: MutationObserver | null = null;
 		private headings: HTMLElement[] = [];
+		private headingOffsets: number[] = [];
+		private scrollRaf = 0;
+		private resizeTimer = 0;
+		private prevActiveIndex = -1;
+		private cachedCircle: SVGCircleElement | null = null;
+		private cachedCircumference = 0;
 
 		constructor() {
 			this.btn = document.getElementById("floating-toc-btn");
@@ -270,28 +277,63 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 		}
 
 		private init() {
-			window.addEventListener(
-				"scroll",
-				() => {
-					this.updateProgress();
-					this.updateActiveHeading();
-				},
-				{ passive: true },
-			);
-
-			window.addEventListener(
-				"resize",
-				() => {
-					this.updateActiveHeading();
-					this.updateProgress();
-				},
-				{ passive: true },
-			);
+			window.addEventListener("scroll", this.handleScroll, {
+				passive: true,
+			});
+			window.addEventListener("resize", this.handleResize, {
+				passive: true,
+			});
 
 			this.bindEvents();
 			this.generateTOC();
 			this.observeContent();
-			this.updateProgress();
+
+			this.cacheCircle();
+			this.scheduleUpdate();
+		}
+
+		private handleScroll = () => {
+			if (this.scrollRaf) return;
+			this.scrollRaf = requestAnimationFrame(() => {
+				this.scrollRaf = 0;
+				this.updateProgress();
+				this.updateActiveHeading();
+			});
+		};
+
+		private handleResize = () => {
+			if (this.resizeTimer) clearTimeout(this.resizeTimer);
+			this.resizeTimer = window.setTimeout(() => {
+				this.resizeTimer = 0;
+				this.refreshHeadingOffsets();
+				this.scheduleUpdate();
+			}, 150);
+		};
+
+		private refreshHeadingOffsets() {
+			if (this.headings.length > 0) {
+				this.headingOffsets = cacheHeadingTopOffsets(this.headings);
+			}
+		}
+
+		private cacheCircle() {
+			const circle = this.btn?.querySelector(
+				".progress-ring-circle",
+			) as SVGCircleElement | null;
+			if (circle) {
+				this.cachedCircle = circle;
+				const radius = circle.r.baseVal.value;
+				this.cachedCircumference = radius * 2 * Math.PI;
+			}
+		}
+
+		private scheduleUpdate() {
+			if (this.scrollRaf) return;
+			this.scrollRaf = requestAnimationFrame(() => {
+				this.scrollRaf = 0;
+				this.updateProgress();
+				this.updateActiveHeading();
+			});
 		}
 
 		private observeContent() {
@@ -309,61 +351,60 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 		}
 
 		private updateProgress() {
-			if (!this.btn) return;
+			const circle = this.cachedCircle;
+			if (!circle) return;
 
-			const scrollTop =
-				window.scrollY || document.documentElement.scrollTop;
+			const scrollTop = window.scrollY;
 			const docHeight =
 				document.documentElement.scrollHeight -
 				document.documentElement.clientHeight;
 			const scrollPercent = docHeight > 0 ? scrollTop / docHeight : 0;
 
-			const circle = this.btn.querySelector(
-				".progress-ring-circle",
-			) as SVGCircleElement;
-			if (circle) {
-				const radius = circle.r.baseVal.value;
-				const circumference = radius * 2 * Math.PI;
-				const offset = Math.max(
-					0,
-					Math.min(
-						circumference,
-						circumference - scrollPercent * circumference,
-					),
-				);
-				circle.style.strokeDashoffset = offset.toString();
-			}
+			const circumference = this.cachedCircumference;
+			const offset = Math.max(
+				0,
+				Math.min(
+					circumference,
+					circumference - scrollPercent * circumference,
+				),
+			);
+			circle.style.strokeDashoffset = offset.toString();
 		}
 
 		private updateActiveHeading() {
-			if (!this.content || this.headings.length === 0) return;
+			if (!this.content || this.headingOffsets.length === 0) return;
 
-			const activeIndex = findActiveHeadingByScroll(this.headings);
-			const links = Array.from(
-				this.content.querySelectorAll(".floating-toc-item"),
+			const activeIndex = findActiveHeadingByScrollCached(
+				this.headingOffsets,
+				window.scrollY,
 			);
-			links.forEach((link, index) => {
-				if (index === activeIndex) {
-					link.classList.add("active");
-					if (this.isOpen) {
-						const panelContent = this.content;
-						if (panelContent) {
-							const linkEl = link as HTMLElement;
-							const panelRect =
-								panelContent.getBoundingClientRect();
-							const linkRect = linkEl.getBoundingClientRect();
-							if (
-								linkRect.top < panelRect.top ||
-								linkRect.bottom > panelRect.bottom
-							) {
-								linkEl.scrollIntoView({ block: "nearest" });
-							}
-						}
+
+			if (activeIndex === this.prevActiveIndex) return;
+
+			const links = this.content.querySelectorAll(".floating-toc-item");
+
+			const prevIdx = this.prevActiveIndex;
+			if (prevIdx >= 0 && prevIdx < links.length) {
+				links[prevIdx].classList.remove("active");
+			}
+			if (activeIndex >= 0 && activeIndex < links.length) {
+				links[activeIndex].classList.add("active");
+
+				if (this.isOpen && this.content) {
+					const linkEl = links[activeIndex] as HTMLElement;
+					const contentEl = this.content;
+					const linkTop = linkEl.offsetTop;
+					const linkBottom = linkTop + linkEl.offsetHeight;
+					const scrollTop = contentEl.scrollTop;
+					const viewHeight = contentEl.clientHeight;
+
+					if (linkTop < scrollTop || linkBottom > scrollTop + viewHeight) {
+						contentEl.scrollTop = linkTop - viewHeight / 2;
 					}
-				} else {
-					link.classList.remove("active");
 				}
-			});
+			}
+
+			this.prevActiveIndex = activeIndex;
 		}
 
 		private generateTOC() {
@@ -396,6 +437,7 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 				this.wrapper?.classList.remove("active-toc");
 				this.wrapper?.classList.add("no-toc");
 				this.headings = [];
+				this.headingOffsets = [];
 				return;
 			}
 
@@ -407,7 +449,9 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 				this.content.innerHTML = html;
 			}
 
-			this.updateActiveHeading();
+			this.refreshHeadingOffsets();
+			this.prevActiveIndex = -1;
+			this.scheduleUpdate();
 		}
 
 		private bindEvents() {
@@ -461,7 +505,8 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 			this.close();
 			this.generateTOC();
 			this.observeContent();
-			this.updateProgress();
+			this.cacheCircle();
+			this.scheduleUpdate();
 		}
 	}
 
