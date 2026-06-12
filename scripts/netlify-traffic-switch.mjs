@@ -69,7 +69,9 @@ function isCfAuthError(errors) {
 	return (errors ?? []).some(
 		(e) =>
 			e.code === 10000 ||
-			/authentication error|unauthorized|permission/i.test(String(e.message)),
+			/authentication error|unauthorized|permission/i.test(
+				String(e.message),
+			),
 	);
 }
 
@@ -96,42 +98,24 @@ async function cfRequest(method, path, token, body) {
 	return data;
 }
 
-function monthStartUtc() {
-	const now = new Date();
-	return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
-}
+async function getNetlifyCredits(siteId, token) {
+	const site = await netlifyFetch(`/sites/${siteId}`, token);
+	const accountSlug = site.account_slug;
 
-async function estimateNetlifyCredits(siteId, token) {
-	const monthlyCredits = envInt("NETLIFY_MONTHLY_CREDITS", 300);
-	const start = monthStartUtc();
-	let totalDeploys = 0;
-	let totalDeployTimeSeconds = 0;
-
-	for (let page = 1; page <= 10; page++) {
-		const deploys = await netlifyFetch(
-			`/sites/${siteId}/deploys?page=${page}&per_page=100`,
-			token,
-		);
-		if (!Array.isArray(deploys) || deploys.length === 0) break;
-		let reachedOlder = false;
-		for (const deploy of deploys) {
-			if (new Date(deploy.created_at) < start) {
-				reachedOlder = true;
-				break;
-			}
-			totalDeploys += 1;
-			if (deploy.deploy_time) {
-				totalDeployTimeSeconds += deploy.deploy_time;
-			}
-		}
-		if (reachedOlder) break;
+	if (!accountSlug) {
+		throw new Error("Could not find account_slug from Netlify site");
 	}
 
-	const usedEstimate = Math.ceil(totalDeployTimeSeconds / 60);
+	const status = await netlifyFetch(`/${accountSlug}/builds/status`, token);
+
+	const usedMinutes = status.minutes?.current || 0;
+	const monthlyCredits = status.minutes?.included_minutes || envInt("NETLIFY_MONTHLY_CREDITS", 300);
+	const totalDeploys = status.build_count || 0;
+
 	return {
 		totalDeploys,
-		usedEstimate,
-		remaining: monthlyCredits - usedEstimate,
+		usedEstimate: usedMinutes,
+		remaining: monthlyCredits - usedMinutes,
 		monthlyCredits,
 	};
 }
@@ -143,7 +127,10 @@ async function isNetlifySiteUnavailable(siteId, token, siteUrl) {
 			return { unavailable: true, reason: `site state=${site.state}` };
 		}
 	} catch (error) {
-		return { unavailable: true, reason: `site api error: ${error.message}` };
+		return {
+			unavailable: true,
+			reason: `site api error: ${error.message}`,
+		};
 	}
 
 	if (!siteUrl) return { unavailable: false };
@@ -165,7 +152,10 @@ async function isNetlifySiteUnavailable(siteId, token, siteUrl) {
 			};
 		}
 	} catch (error) {
-		return { unavailable: true, reason: `netlify url probe: ${error.message}` };
+		return {
+			unavailable: true,
+			reason: `netlify url probe: ${error.message}`,
+		};
 	}
 
 	return { unavailable: false };
@@ -205,10 +195,16 @@ function inferModeFromRecord(record, netlifyTarget, cfTarget, netlifyIps) {
 	if (record.type === "A" && netlifyIps.has(content)) return "netlify";
 
 	if (record.type === "CNAME") {
-		if (content.includes("netlify") || content === normalizeDns(netlifyTarget)) {
+		if (
+			content.includes("netlify") ||
+			content === normalizeDns(netlifyTarget)
+		) {
 			return "netlify";
 		}
-		if (content.includes("pages.dev") || content === normalizeDns(cfTarget)) {
+		if (
+			content.includes("pages.dev") ||
+			content === normalizeDns(cfTarget)
+		) {
 			return "cloudflare";
 		}
 	}
@@ -266,9 +262,7 @@ async function getWwwDnsRecord(zoneId, wwwFqdn, domain, token) {
 
 async function getApexDnsRecord(zoneId, domain, token) {
 	const records = await listDnsRecordsByName(zoneId, domain, token);
-	return (
-		records.find((r) => r.type === "A" || r.type === "CNAME") ?? null
-	);
+	return records.find((r) => r.type === "A" || r.type === "CNAME") ?? null;
 }
 
 async function replaceDnsRecord(zoneId, record, next, token) {
@@ -325,7 +319,15 @@ async function missingPagesHostnames(accountId, project, hostnames, token) {
 /** Pages API 鉴权失败时不阻断 DNS 切换，返回待注册列表 */
 async function safeMissingPagesHostnames(accountId, project, hostnames, token) {
 	try {
-		return { missing: await missingPagesHostnames(accountId, project, hostnames, token), pagesAuthOk: true };
+		return {
+			missing: await missingPagesHostnames(
+				accountId,
+				project,
+				hostnames,
+				token,
+			),
+			pagesAuthOk: true,
+		};
 	} catch (error) {
 		if (error.pagesAuth) {
 			console.error(error.message);
@@ -335,7 +337,13 @@ async function safeMissingPagesHostnames(accountId, project, hostnames, token) {
 	}
 }
 
-async function ensurePagesDomains(accountId, project, hostnames, token, dryRun) {
+async function ensurePagesDomains(
+	accountId,
+	project,
+	hostnames,
+	token,
+	dryRun,
+) {
 	const results = [];
 	let registered;
 
@@ -369,7 +377,9 @@ async function ensurePagesDomains(accountId, project, hostnames, token, dryRun) 
 			}
 
 			if (dryRun) {
-				console.log(`[DRY_RUN] Would register Pages domain: ${hostname}`);
+				console.log(
+					`[DRY_RUN] Would register Pages domain: ${hostname}`,
+				);
 				results.push({ hostname, status: "dry-run" });
 				continue;
 			}
@@ -383,7 +393,9 @@ async function ensurePagesDomains(accountId, project, hostnames, token, dryRun) 
 			console.log(`[pages] ✓ Registered domain: ${hostname}`);
 			results.push({ hostname, status: "registered" });
 		} catch (error) {
-			console.warn(`[pages] Register ${hostname} failed: ${error.message}`);
+			console.warn(
+				`[pages] Register ${hostname} failed: ${error.message}`,
+			);
 			results.push({ hostname, status: "error", error: error.message });
 		}
 	}
@@ -495,14 +507,18 @@ async function applyNetlifyMode(ctx) {
 	return changes;
 }
 
-function needsSwitch(record, targetMode, targetContent, targetType, netlifyIps) {
+function needsSwitch(
+	record,
+	targetMode,
+	targetContent,
+	targetType,
+	netlifyIps,
+) {
 	const contentMatch =
 		normalizeDns(record.content) === normalizeDns(targetContent);
 	const typeMatch = record.type === targetType;
 	const proxiedMatch =
-		targetMode === "cloudflare"
-			? record.proxied === true
-			: true;
+		targetMode === "cloudflare" ? record.proxied === true : true;
 
 	if (targetMode === "netlify" && record.type === "A") {
 		return !netlifyIps.has(normalizeDns(record.content));
@@ -542,12 +558,17 @@ function logSummary(state) {
 		lines.push("", "**变更：**", ...state.changes.map((c) => `- ${c}`));
 	}
 	if (state.pagesDomains?.length) {
-		lines.push("", "**Pages 域名：**", ...state.pagesDomains.map(
-			(d) => `- ${d.hostname}: ${d.status}`,
-		));
+		lines.push(
+			"",
+			"**Pages 域名：**",
+			...state.pagesDomains.map((d) => `- ${d.hostname}: ${d.status}`),
+		);
 	}
 	if (state.probe) {
-		lines.push("", `**探测 https://${state.wwwFqdn}:** ${state.probe.status ?? state.probe.error}`);
+		lines.push(
+			"",
+			`**探测 https://${state.wwwFqdn}:** ${state.probe.status ?? state.probe.error}`,
+		);
 	}
 
 	appendFileSync(summaryPath, `${lines.join("\n")}\n`);
@@ -618,16 +639,19 @@ async function main() {
 		let credits = null;
 
 		if (netlifyToken && siteId) {
-			credits = await estimateNetlifyCredits(siteId, netlifyToken);
+			credits = await getNetlifyCredits(siteId, netlifyToken);
 			console.log(
-				`[netlify] deploys=${credits.totalDeploys}, credits≈${credits.usedEstimate}/${credits.monthlyCredits}, remaining≈${credits.remaining}`,
+				`[netlify] deploys=${credits.totalDeploys}, credits=${credits.usedEstimate}/${credits.monthlyCredits}, remaining=${credits.remaining}`,
 			);
 			if (credits.remaining <= reserve) {
 				switchToCloudflare = true;
-				reason = `credits low (remaining≈${credits.remaining} ≤ ${reserve})`;
+				reason = `credits low (remaining=${credits.remaining} ≤ ${reserve})`;
 			}
 
-			const siteMeta = await netlifyFetch(`/sites/${siteId}`, netlifyToken);
+			const siteMeta = await netlifyFetch(
+				`/sites/${siteId}`,
+				netlifyToken,
+			);
 			const unavailable = await isNetlifySiteUnavailable(
 				siteId,
 				netlifyToken,
@@ -644,8 +668,7 @@ async function main() {
 		if (!probe.ok && currentMode === "netlify") {
 			switchToCloudflare = true;
 			reason =
-				reason ||
-				`www probe failed (${probe.error ?? probe.status})`;
+				reason || `www probe failed (${probe.error ?? probe.status})`;
 		}
 
 		if (switchToCloudflare) {
@@ -656,7 +679,7 @@ async function main() {
 			credits.remaining > reserve + restoreBuffer
 		) {
 			targetMode = "netlify";
-			reason = `credits restored (remaining≈${credits.remaining})`;
+			reason = `credits restored (remaining=${credits.remaining})`;
 		}
 	}
 
@@ -676,9 +699,7 @@ async function main() {
 	);
 
 	const apexTargetContent =
-		targetMode === "cloudflare"
-			? cfTarget
-			: [...netlifyIps][0];
+		targetMode === "cloudflare" ? cfTarget : [...netlifyIps][0];
 	const apexTargetType = targetMode === "cloudflare" ? "CNAME" : "A";
 
 	const apexNeedsUpdate =
@@ -770,7 +791,9 @@ async function main() {
 		pagesAuthOk = pagesAuthOk && pagesResult.pagesAuthOk;
 	} else {
 		if (!netlifyTarget) {
-			console.warn("[traffic] NETLIFY_CNAME_TARGET missing, using A record for www");
+			console.warn(
+				"[traffic] NETLIFY_CNAME_TARGET missing, using A record for www",
+			);
 		}
 		state.changes = await applyNetlifyMode({
 			zoneId,
@@ -817,3 +840,4 @@ main().catch((error) => {
 	console.error("❌ netlify-traffic-switch failed:", error.message ?? error);
 	process.exit(1);
 });
+
