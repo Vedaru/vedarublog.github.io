@@ -103,9 +103,9 @@ function monthStartUtc() {
 
 async function estimateNetlifyCredits(siteId, token) {
 	const monthlyCredits = envInt("NETLIFY_MONTHLY_CREDITS", 300);
-	const deployCost = envInt("NETLIFY_DEPLOY_CREDIT_COST", 15);
 	const start = monthStartUtc();
-	let productionDeploys = 0;
+	let totalDeploys = 0;
+	let totalDeployTimeSeconds = 0;
 
 	for (let page = 1; page <= 10; page++) {
 		const deploys = await netlifyFetch(
@@ -119,14 +119,17 @@ async function estimateNetlifyCredits(siteId, token) {
 				reachedOlder = true;
 				break;
 			}
-			if (deploy.context === "production") productionDeploys += 1;
+			totalDeploys += 1;
+			if (deploy.deploy_time) {
+				totalDeployTimeSeconds += deploy.deploy_time;
+			}
 		}
 		if (reachedOlder) break;
 	}
 
-	const usedEstimate = productionDeploys * deployCost;
+	const usedEstimate = Math.ceil(totalDeployTimeSeconds / 60);
 	return {
-		productionDeploys,
+		totalDeploys,
 		usedEstimate,
 		remaining: monthlyCredits - usedEstimate,
 		monthlyCredits,
@@ -617,7 +620,7 @@ async function main() {
 		if (netlifyToken && siteId) {
 			credits = await estimateNetlifyCredits(siteId, netlifyToken);
 			console.log(
-				`[netlify] deploys=${credits.productionDeploys}, credits≈${credits.usedEstimate}/${credits.monthlyCredits}, remaining≈${credits.remaining}`,
+				`[netlify] deploys=${credits.totalDeploys}, credits≈${credits.usedEstimate}/${credits.monthlyCredits}, remaining≈${credits.remaining}`,
 			);
 			if (credits.remaining <= reserve) {
 				switchToCloudflare = true;

@@ -62,7 +62,6 @@ jobs:
           NETLIFY_CNAME_TARGET: ${{ secrets.NETLIFY_CNAME_TARGET }}
           SITE_DOMAIN: vedaru.cn
           NETLIFY_MONTHLY_CREDITS: "300"
-          NETLIFY_DEPLOY_CREDIT_COST: "15"
           NETLIFY_CREDITS_RESERVE: "45"
           NETLIFY_TRAFFIC_MODE: ${{ github.event.inputs.mode || 'auto' }}
           DRY_RUN: ${{ (github.event.inputs.dry_run == true || github.event.inputs.dry_run == 'true') && '1' || '' }}
