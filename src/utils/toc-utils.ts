@@ -466,33 +466,13 @@ export function isValueInRange(
 	return min < value && value < max;
 }
 
-/** 缓存章节区块的文档坐标
- *  当 section 与 heading 是同一元素（仅标题自身几十像素高）时，
- *  用"本标题 top 到下一标题 top"计算范围，避免密集标题页出现大量
- *  极窄 section 导致多个同时 active、触发频繁 updateSync。
- */
+/** 缓存章节区块的文档坐标 */
 export function cacheSectionOffsets(
 	sections: HTMLElement[],
-	headings?: HTMLElement[],
 ): Array<{ top: number; bottom: number } | null> {
 	const scrollY = window.scrollY;
-	const docHeight = document.documentElement.scrollHeight;
-	return sections.map((section, i) => {
+	return sections.map((section) => {
 		if (!section) return null;
-		const h = headings?.[i];
-		if (h && h === section) {
-			const top = h.getBoundingClientRect().top + scrollY;
-			let bottom: number;
-			for (let j = i + 1; j < (headings?.length ?? 0); j++) {
-				const next = headings![j];
-				if (next) {
-					bottom = next.getBoundingClientRect().top + scrollY;
-					return { top, bottom };
-				}
-			}
-			bottom = docHeight;
-			return { top, bottom };
-		}
 		const rect = section.getBoundingClientRect();
 		return {
 			top: rect.top + scrollY,
@@ -542,7 +522,7 @@ export function findActiveSectionIndex(
 	return activeIdx;
 }
 
-/** 缓存标题元素的文档级 top 坐标（避免每次 getBoundingClientRect） */
+/** 缓存标题元素的文档级 top 坐标（避免每帧 getBoundingClientRect） */
 export function cacheHeadingTopOffsets(headings: HTMLElement[]): number[] {
 	const sy = window.scrollY;
 	return headings.map((h) => h.getBoundingClientRect().top + sy);

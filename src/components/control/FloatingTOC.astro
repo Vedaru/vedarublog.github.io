@@ -250,7 +250,6 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 		getTocConfig,
 		registerTocSwupReinit,
 		scrollToTocHeading,
-		shouldSkipTocLayoutWork,
 	} from "../../utils/toc-utils";
 
 	class FloatingTOC {
@@ -264,11 +263,9 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 		private headingOffsets: number[] = [];
 		private scrollRaf = 0;
 		private resizeTimer = 0;
-		private mutationTimer = 0;
 		private prevActiveIndex = -1;
 		private cachedCircle: SVGCircleElement | null = null;
 		private cachedCircumference = 0;
-		private transitionReadyHandler: (() => void) | null = null;
 
 		constructor() {
 			this.btn = document.getElementById("floating-toc-btn");
@@ -287,15 +284,6 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 				passive: true,
 			});
 
-			this.transitionReadyHandler = () => {
-				this.refreshHeadingOffsets();
-				this.scheduleUpdate();
-			};
-			document.addEventListener(
-				"swup:transition-ready",
-				this.transitionReadyHandler,
-			);
-
 			this.bindEvents();
 			this.generateTOC();
 			this.observeContent();
@@ -305,7 +293,6 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 		}
 
 		private handleScroll = () => {
-			if (shouldSkipTocLayoutWork()) return;
 			if (this.scrollRaf) return;
 			this.scrollRaf = requestAnimationFrame(() => {
 				this.scrollRaf = 0;
@@ -341,7 +328,6 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 		}
 
 		private scheduleUpdate() {
-			if (shouldSkipTocLayoutWork()) return;
 			if (this.scrollRaf) return;
 			this.scrollRaf = requestAnimationFrame(() => {
 				this.scrollRaf = 0;
@@ -354,12 +340,8 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 			const contentWrapper = document.getElementById("post-container");
 			if (contentWrapper) {
 				this.observer = new MutationObserver(() => {
-					if (this.mutationTimer) clearTimeout(this.mutationTimer);
-					this.mutationTimer = window.setTimeout(() => {
-						this.mutationTimer = 0;
-						this.generateTOC();
-						this.updateProgress();
-					}, 150);
+					this.generateTOC();
+					this.updateProgress();
 				});
 				this.observer.observe(contentWrapper, {
 					childList: true,
@@ -519,10 +501,6 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 		private reinit() {
 			if (this.observer) {
 				this.observer.disconnect();
-			}
-			if (this.mutationTimer) {
-				clearTimeout(this.mutationTimer);
-				this.mutationTimer = 0;
 			}
 			this.close();
 			this.generateTOC();
