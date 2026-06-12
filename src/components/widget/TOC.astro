@@ -68,7 +68,7 @@ class TableOfContents extends HTMLElement {
     layoutRaf = 0;
     sectionOffsets: Array<{ top: number; bottom: number } | null> = [];
     resizeTimer = 0;
-    transitionUpdater = createTransitionDeferredUpdater(() => this.update());
+    transitionUpdater = createTransitionDeferredUpdater(() => this.updateSync());
     heavyLayoutReady = false;
     heavyLayoutScheduled = false;
     scrollRaf = 0;
@@ -95,7 +95,7 @@ class TableOfContents extends HTMLElement {
         this.scrollRaf = requestAnimationFrame(() => {
             this.scrollRaf = 0;
             this.fallback();
-            this.update();
+            this.updateSync();
         });
     };
 
@@ -135,29 +135,7 @@ class TableOfContents extends HTMLElement {
         }
 
         if (!this.active.includes(true)) this.fallback();
-        this.update();
-    };
-
-    applyActiveClasses = (): { min: number; max: number } => {
-        let min = this.active.length;
-        let max = -1;
-        let hasActive = false;
-
-        for (let i = 0; i < this.active.length; i++) {
-            if (this.active[i]) {
-                hasActive = true;
-                min = Math.min(min, i);
-                max = Math.max(max, i);
-                this.tocEntries[i]?.classList.add(this.visibleClass);
-            } else {
-                this.tocEntries[i]?.classList.remove(this.visibleClass);
-            }
-        }
-
-        if (!hasActive) {
-            return { min: this.active.length, max: -1 };
-        }
-        return { min, max };
+        this.updateSync();
     };
 
     cacheSectionOffsets = () => {
@@ -172,64 +150,13 @@ class TableOfContents extends HTMLElement {
         }, 150);
     };
 
-    applyLayoutUpdate = (min: number, max: number) => {
-        if (min > max || !this.tocEl) {
-            this.activeIndicator?.setAttribute("style", "opacity: 0");
-            return;
-        }
-
-        const minEntry = this.tocEntries[min];
-        const maxEntry = this.tocEntries[max];
-        if (!minEntry || !maxEntry) return;
-
-        // 批量读取几何属性，再统一写入，避免交错触发强制重排
-        const tocHeight = this.tocEl.clientHeight;
-        const entryMetrics: Array<{ top: number; height: number } | null> = [];
-        for (let i = 0; i < this.tocEntries.length; i++) {
-            const entry = this.tocEntries[i];
-            if (!entry) {
-                entryMetrics[i] = null;
-                continue;
-            }
-            entryMetrics[i] = {
-                top: entry.offsetTop,
-                height: entry.offsetHeight,
-            };
-        }
-
-        const minMetrics = entryMetrics[min];
-        const maxMetrics = entryMetrics[max];
-        if (!minMetrics || !maxMetrics) return;
-
-        const minTop = minMetrics.top;
-        const maxTop = maxMetrics.top;
-        const maxBottom = maxTop + maxMetrics.height;
-
-        this.activeIndicator?.setAttribute(
-            "style",
-            `top: ${minTop}px; height: ${maxBottom - minTop}px; opacity: 1`,
-        );
-
-        if (!this.anchorNavTarget) {
-            const scrollTop =
-                maxBottom - minTop < 0.9 * tocHeight
-                    ? minTop - 32
-                    : maxTop - tocHeight * 0.8;
-            this.tocEl.scrollTo({
-                top: scrollTop,
-                left: 0,
-                behavior: "smooth",
-            });
-        }
-    };
-
     observeSections = () => {
         this.sections.forEach((section) => {
             if (section) this.observer.observe(section);
         });
     };
 
-    update = () => {
+    updateSync = () => {
         if (shouldSkipTocLayoutWork()) {
             this.transitionUpdater.schedule();
             return;
@@ -243,13 +170,74 @@ class TableOfContents extends HTMLElement {
         if (this.updateRaf) cancelAnimationFrame(this.updateRaf);
         this.updateRaf = requestAnimationFrame(() => {
             this.updateRaf = 0;
-            const { min, max } = this.applyActiveClasses();
 
-            if (this.layoutRaf) cancelAnimationFrame(this.layoutRaf);
-            this.layoutRaf = requestAnimationFrame(() => {
-                this.layoutRaf = 0;
-                this.applyLayoutUpdate(min, max);
-            });
+            // 1. Calculate min and max indices
+            let min = this.active.length;
+            let max = -1;
+            let hasActive = false;
+
+            for (let i = 0; i < this.active.length; i++) {
+                if (this.active[i]) {
+                    hasActive = true;
+                    min = Math.min(min, i);
+                    max = Math.max(max, i);
+                }
+            }
+
+            if (!hasActive) {
+                min = this.active.length;
+                max = -1;
+            }
+
+            // 2. Read phase: get metrics for min and max entries before modifying classes
+            let minTop = 0;
+            let maxTop = 0;
+            let maxBottom = 0;
+            let tocHeight = 0;
+            let shouldUpdateIndicator = false;
+
+            if (min <= max && this.tocEl) {
+                const minEntry = this.tocEntries[min];
+                const maxEntry = this.tocEntries[max];
+                
+                if (minEntry && maxEntry) {
+                    tocHeight = this.tocEl.clientHeight;
+                    minTop = minEntry.offsetTop;
+                    maxTop = maxEntry.offsetTop;
+                    maxBottom = maxTop + maxEntry.offsetHeight;
+                    shouldUpdateIndicator = true;
+                }
+            }
+
+            // 3. Write phase: modify classes and styles
+            for (let i = 0; i < this.active.length; i++) {
+                if (this.active[i]) {
+                    this.tocEntries[i]?.classList.add(this.visibleClass);
+                } else {
+                    this.tocEntries[i]?.classList.remove(this.visibleClass);
+                }
+            }
+
+            if (shouldUpdateIndicator) {
+                this.activeIndicator?.setAttribute(
+                    "style",
+                    `top: ${minTop}px; height: ${maxBottom - minTop}px; opacity: 1`,
+                );
+
+                if (!this.anchorNavTarget && this.tocEl) {
+                    const scrollTop =
+                        maxBottom - minTop < 0.9 * tocHeight
+                            ? minTop - 32
+                            : maxTop - tocHeight * 0.8;
+                    this.tocEl.scrollTo({
+                        top: scrollTop,
+                        left: 0,
+                        behavior: "smooth",
+                    });
+                }
+            } else {
+                this.activeIndicator?.setAttribute("style", "opacity: 0");
+            }
         });
     };
 
@@ -330,7 +318,7 @@ class TableOfContents extends HTMLElement {
             this.fallback();
             this.observeSections();
             this.heavyLayoutReady = true;
-            this.update();
+            this.updateSync();
         };
 
         scheduleTocIdleWork(runHeavy);

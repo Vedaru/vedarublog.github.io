@@ -112,8 +112,7 @@ if (typeof window !== "undefined") {
 <!-- Mobile TOC Panel -->
 <div 
 	id="mobile-toc-panel" 
-	class="float-panel float-panel-closed mobile-toc-panel absolute md:w-[20rem] w-[calc(100vw-2rem)]
-		top-20 left-4 md:left-[unset] right-4 shadow-2xl rounded-2xl p-4"
+	class="float-panel float-panel-closed mobile-toc-panel absolute md:w-[20rem] w-[calc(100vw-2rem)] top-20 left-4 md:left-[unset] right-4 shadow-2xl rounded-2xl p-4"
 >
 	<div class="flex items-center justify-between mb-4">
 		<h3 class="text-lg font-bold text-[var(--primary)]">{isHomePage ? i18n(I18nKey.postList) : i18n(I18nKey.tableOfContents)}</h3>
@@ -162,7 +161,7 @@ if (typeof window !== "undefined") {
 				{#each tocItems as item}
 					<button
 						on:click={() => scrollToHeading(item.id)}
-						class="toc-item level-{item.level} {activeId === item.id ? 'active' : ''}"
+						class="toc-item level-{item.level}"
 						class:active={activeId === item.id}
 					>
 						{#if item.level === 1}

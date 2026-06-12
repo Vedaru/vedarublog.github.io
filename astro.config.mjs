@@ -138,8 +138,8 @@ export default defineConfig({
 			HTML: {
 				"html-minifier-terser": {
 					removeAttributeQuotes: false,
-					collapseWhitespace: true,
-					removeComments: true,
+					collapseWhitespace: false,
+					removeComments: false,
 					// 关闭属性/类名排序：会重排 SSR HTML 里 island 的 class 与属性顺序，
 					// 导致 Svelte 5 水合时与客户端按源码顺序渲染的结果不一致（hydration_mismatch）。
 					sortAttributes: false,

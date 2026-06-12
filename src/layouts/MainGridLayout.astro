@@ -292,6 +292,7 @@ const transparentClass = shouldEnableTransparency
             </div>
 
             <main id="swup-container" class={`${mainContentClass} transition-main min-w-0`}>
+                <div class="sr-only" data-swup-a11y-title>{title || siteConfig.title}</div>
                 <div id="content-wrapper" class="transition-leaving overflow-hidden">
                     <!-- the overflow-hidden here prevent long text break the layout-->
                     <!-- make id different from windows.swup global property -->
