@@ -75,6 +75,7 @@ class TableOfContents extends HTMLElement {
     heavyLayoutReady = false;
     heavyLayoutScheduled = false;
     scrollRaf = 0;
+    tocScrollTimer = 0;
 
     resolveTocSection = (heading: HTMLElement): HTMLElement => {
         const path = window.location.pathname;
@@ -142,7 +143,10 @@ class TableOfContents extends HTMLElement {
     };
 
     cacheSectionOffsets = () => {
-        this.sectionOffsets = cacheSectionOffsets(this.sections);
+        this.sectionOffsets = cacheSectionOffsets(
+            this.sections,
+            this.headings,
+        );
         this.cacheEntryOffsets();
     };
 
@@ -245,15 +249,21 @@ class TableOfContents extends HTMLElement {
                 );
 
                 if (!this.anchorNavTarget && this.tocEl) {
-                    const scrollTop =
+                    const targetScrollTop =
                         maxBottom - minTop < 0.9 * tocHeight
                             ? minTop - 32
                             : maxTop - tocHeight * 0.8;
-                    this.tocEl.scrollTo({
-                        top: scrollTop,
-                        left: 0,
-                        behavior: "smooth",
-                    });
+
+                    if (this.tocScrollTimer) clearTimeout(this.tocScrollTimer);
+                    const el = this.tocEl;
+                    this.tocScrollTimer = window.setTimeout(() => {
+                        this.tocScrollTimer = 0;
+                        el.scrollTo({
+                            top: targetScrollTop,
+                            left: 0,
+                            behavior: "smooth",
+                        });
+                    }, 120);
                 }
             } else {
                 if (this.lastIndicatorKey === "none") return;
@@ -389,6 +399,10 @@ class TableOfContents extends HTMLElement {
         if (this.scrollRaf) {
             cancelAnimationFrame(this.scrollRaf);
             this.scrollRaf = 0;
+        }
+        if (this.tocScrollTimer) {
+            clearTimeout(this.tocScrollTimer);
+            this.tocScrollTimer = 0;
         }
         window.removeEventListener("resize", this.handleResize);
         window.removeEventListener("scroll", this.handleScroll);

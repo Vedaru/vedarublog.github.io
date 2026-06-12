@@ -258,6 +258,9 @@ class ThemeOptimizer {
 	}
 
 	observeCodeBlocks() {
+		if (this.codeBlockObserver) {
+			this.codeBlockObserver.disconnect();
+		}
 		this.visibleBlocks.clear();
 
 		requestAnimationFrame(() => {
