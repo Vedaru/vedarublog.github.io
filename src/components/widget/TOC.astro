@@ -67,12 +67,14 @@ class TableOfContents extends HTMLElement {
     updateRaf = 0;
     layoutRaf = 0;
     sectionOffsets: Array<{ top: number; bottom: number } | null> = [];
+    entryOffsets: Array<{ top: number; height: number }> = [];
+    tocHeightCache = 0;
+    lastIndicatorKey = "";
     resizeTimer = 0;
     transitionUpdater = createTransitionDeferredUpdater(() => this.updateSync());
     heavyLayoutReady = false;
     heavyLayoutScheduled = false;
     scrollRaf = 0;
-    tocScrollTimer = 0;
 
     resolveTocSection = (heading: HTMLElement): HTMLElement => {
         const path = window.location.pathname;
@@ -113,7 +115,15 @@ class TableOfContents extends HTMLElement {
             return;
         }
 
-        for (const entry of entries) {
+        entries.forEach((entry) => {
+            const target = entry.target as HTMLElement;
+            const id =
+                target.getAttribute("id") ||
+                target.children[0]?.getAttribute("id");
+            const idx = id ? this.headingIdxMap.get(id) : undefined;
+            if (idx != undefined && idx < this.active.length)
+                this.active[idx] = entry.isIntersecting;
+
             if (
                 entry.isIntersecting &&
                 (this.anchorNavTarget === entry.target ||
@@ -121,18 +131,29 @@ class TableOfContents extends HTMLElement {
             ) {
                 this.anchorNavTarget = null;
             }
-        }
+        });
 
         if (!this.heavyLayoutReady) {
             return;
         }
 
-        this.fallback();
+        if (!this.active.includes(true)) this.fallback();
         this.updateSync();
     };
 
     cacheSectionOffsets = () => {
-        this.sectionOffsets = cacheSectionOffsets(this.sections, this.headings);
+        this.sectionOffsets = cacheSectionOffsets(this.sections);
+        this.cacheEntryOffsets();
+    };
+
+    // 缓存 TOC 条目的布局信息，滚动热路径中不再读取 DOM（避免强制重排）
+    cacheEntryOffsets = () => {
+        if (!this.tocEl) return;
+        this.tocHeightCache = this.tocEl.clientHeight;
+        this.entryOffsets = this.tocEntries.map((entry) => ({
+            top: entry.offsetTop,
+            height: entry.offsetHeight,
+        }));
     };
 
     handleResize = () => {
@@ -164,6 +185,7 @@ class TableOfContents extends HTMLElement {
         this.updateRaf = requestAnimationFrame(() => {
             this.updateRaf = 0;
 
+            // 1. Calculate min and max indices
             let min = this.active.length;
             let max = -1;
             let hasActive = false;
@@ -181,6 +203,7 @@ class TableOfContents extends HTMLElement {
                 max = -1;
             }
 
+            // 2. Read phase: use cached entry metrics (no DOM reads in hot path)
             let minTop = 0;
             let maxTop = 0;
             let maxBottom = 0;
@@ -188,18 +211,20 @@ class TableOfContents extends HTMLElement {
             let shouldUpdateIndicator = false;
 
             if (min <= max && this.tocEl) {
-                const minEntry = this.tocEntries[min];
-                const maxEntry = this.tocEntries[max];
-                
-                if (minEntry && maxEntry) {
-                    tocHeight = this.tocEl.clientHeight;
-                    minTop = minEntry.offsetTop;
-                    maxTop = maxEntry.offsetTop;
-                    maxBottom = maxTop + maxEntry.offsetHeight;
+                if (!this.entryOffsets.length) this.cacheEntryOffsets();
+                const minMetrics = this.entryOffsets[min];
+                const maxMetrics = this.entryOffsets[max];
+
+                if (minMetrics && maxMetrics) {
+                    tocHeight = this.tocHeightCache;
+                    minTop = minMetrics.top;
+                    maxTop = maxMetrics.top;
+                    maxBottom = maxMetrics.top + maxMetrics.height;
                     shouldUpdateIndicator = true;
                 }
             }
 
+            // 3. Write phase: modify classes and styles
             for (let i = 0; i < this.active.length; i++) {
                 if (this.active[i]) {
                     this.tocEntries[i]?.classList.add(this.visibleClass);
@@ -209,29 +234,30 @@ class TableOfContents extends HTMLElement {
             }
 
             if (shouldUpdateIndicator) {
+                // 高亮区间没变就跳过指示器更新和 scrollTo，避免每帧重复触发平滑滚动
+                const indicatorKey = `${min}:${max}`;
+                if (indicatorKey === this.lastIndicatorKey) return;
+                this.lastIndicatorKey = indicatorKey;
+
                 this.activeIndicator?.setAttribute(
                     "style",
                     `top: ${minTop}px; height: ${maxBottom - minTop}px; opacity: 1`,
                 );
 
                 if (!this.anchorNavTarget && this.tocEl) {
-                    const targetScrollTop =
+                    const scrollTop =
                         maxBottom - minTop < 0.9 * tocHeight
                             ? minTop - 32
                             : maxTop - tocHeight * 0.8;
-
-                    if (this.tocScrollTimer) clearTimeout(this.tocScrollTimer);
-                    const el = this.tocEl;
-                    this.tocScrollTimer = window.setTimeout(() => {
-                        this.tocScrollTimer = 0;
-                        el.scrollTo({
-                            top: targetScrollTop,
-                            left: 0,
-                            behavior: "smooth",
-                        });
-                    }, 120);
+                    this.tocEl.scrollTo({
+                        top: scrollTop,
+                        left: 0,
+                        behavior: "smooth",
+                    });
                 }
             } else {
+                if (this.lastIndicatorKey === "none") return;
+                this.lastIndicatorKey = "none";
                 this.activeIndicator?.setAttribute("style", "opacity: 0");
             }
         });
@@ -352,6 +378,9 @@ class TableOfContents extends HTMLElement {
         this.tocEl = null;
         this.activeIndicator = null;
         this.sectionOffsets = [];
+        this.entryOffsets = [];
+        this.tocHeightCache = 0;
+        this.lastIndicatorKey = "";
 
         if (this.resizeTimer) {
             window.clearTimeout(this.resizeTimer);
@@ -360,10 +389,6 @@ class TableOfContents extends HTMLElement {
         if (this.scrollRaf) {
             cancelAnimationFrame(this.scrollRaf);
             this.scrollRaf = 0;
-        }
-        if (this.tocScrollTimer) {
-            clearTimeout(this.tocScrollTimer);
-            this.tocScrollTimer = 0;
         }
         window.removeEventListener("resize", this.handleResize);
         window.removeEventListener("scroll", this.handleScroll);
