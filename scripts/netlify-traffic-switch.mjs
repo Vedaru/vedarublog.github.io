@@ -98,24 +98,39 @@ async function cfRequest(method, path, token, body) {
 	return data;
 }
 
-async function getNetlifyCredits(siteId, token) {
-	const site = await netlifyFetch(`/sites/${siteId}`, token);
-	const accountSlug = site.account_slug;
+function monthStartUtc() {
+	const now = new Date();
+	return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+}
 
-	if (!accountSlug) {
-		throw new Error("Could not find account_slug from Netlify site");
+async function estimateNetlifyCredits(siteId, token) {
+	const monthlyCredits = envInt("NETLIFY_MONTHLY_CREDITS", 300);
+	const deployCost = envInt("NETLIFY_DEPLOY_CREDIT_COST", 15);
+	const start = monthStartUtc();
+	let productionDeploys = 0;
+
+	for (let page = 1; page <= 10; page++) {
+		const deploys = await netlifyFetch(
+			`/sites/${siteId}/deploys?page=${page}&per_page=100`,
+			token,
+		);
+		if (!Array.isArray(deploys) || deploys.length === 0) break;
+		let reachedOlder = false;
+		for (const deploy of deploys) {
+			if (new Date(deploy.created_at) < start) {
+				reachedOlder = true;
+				break;
+			}
+			if (deploy.context === "production") productionDeploys += 1;
+		}
+		if (reachedOlder) break;
 	}
 
-	const status = await netlifyFetch(`/${accountSlug}/builds/status`, token);
-
-	const usedMinutes = status.minutes?.current || 0;
-	const monthlyCredits = status.minutes?.included_minutes || envInt("NETLIFY_MONTHLY_CREDITS", 300);
-	const totalDeploys = status.build_count || 0;
-
+	const usedEstimate = productionDeploys * deployCost;
 	return {
-		totalDeploys,
-		usedEstimate: usedMinutes,
-		remaining: monthlyCredits - usedMinutes,
+		productionDeploys,
+		usedEstimate,
+		remaining: monthlyCredits - usedEstimate,
 		monthlyCredits,
 	};
 }
@@ -639,13 +654,13 @@ async function main() {
 		let credits = null;
 
 		if (netlifyToken && siteId) {
-			credits = await getNetlifyCredits(siteId, netlifyToken);
+			credits = await estimateNetlifyCredits(siteId, netlifyToken);
 			console.log(
-				`[netlify] deploys=${credits.totalDeploys}, credits=${credits.usedEstimate}/${credits.monthlyCredits}, remaining=${credits.remaining}`,
+				`[netlify] deploys=${credits.productionDeploys}, credits≈${credits.usedEstimate}/${credits.monthlyCredits}, remaining≈${credits.remaining}`,
 			);
 			if (credits.remaining <= reserve) {
 				switchToCloudflare = true;
-				reason = `credits low (remaining=${credits.remaining} ≤ ${reserve})`;
+				reason = `credits low (remaining≈${credits.remaining} ≤ ${reserve})`;
 			}
 
 			const siteMeta = await netlifyFetch(
@@ -679,7 +694,7 @@ async function main() {
 			credits.remaining > reserve + restoreBuffer
 		) {
 			targetMode = "netlify";
-			reason = `credits restored (remaining=${credits.remaining})`;
+			reason = `credits restored (remaining≈${credits.remaining})`;
 		}
 	}
 
