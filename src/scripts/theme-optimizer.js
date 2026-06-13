@@ -64,9 +64,14 @@ class ThemeOptimizer {
 	// ==================== Swup 钩子设置 ====================
 
 	setupSwupHooks() {
+		let swupHooksRegistered = false;
+
 		// 设置 Swup 钩子的函数
 		const setupHooks = () => {
+			if (swupHooksRegistered) return true;
 			if (window.swup) {
+				swupHooksRegistered = true;
+
 				// 监听 page:view 事件
 				window.swup.hooks.on("page:view", () => {
 					// 页面切换后重新初始化代码块优化
@@ -248,13 +253,7 @@ class ThemeOptimizer {
 
 		// 监听主题变化
 		this.setupThemeListener();
-
-		// 页面变化时重新观察
-		if (window.swup) {
-			window.swup.hooks.on("page:view", () => {
-				setTimeout(() => this.observeCodeBlocks(), 100);
-			});
-		}
+		// 注意：page:view 时重新观察代码块由 setupSwupHooks() 统一处理
 	}
 
 	observeCodeBlocks() {

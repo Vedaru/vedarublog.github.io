@@ -10,11 +10,25 @@ const pioOptions = {
 	model: pioConfig.models || ["/pio/models/pio/model.json"],
 };
 
+// ── 渲染控制常量 ────────────────────────────────────────────────────────────
+/** 固定渲染帧率（始终节流，不随鼠标交互改变） */
+const IDLE_FPS = 20;
+
 // 全局Pio实例引用
 let pioInstance = null;
 let pioInitialized = false;
 let pioContainer;
 let pioCanvas;
+let visibilityHandler = null;
+
+// ── 渲染控制辅助 ────────────────────────────────────────────────────────────
+function setRenderMode(mode, fps) {
+	if (typeof window === "undefined") return;
+	const rc = window.__PIO_RENDER_CONTROL;
+	if (!rc) return;
+	if (fps !== undefined) rc.reduceFPS = fps;
+	rc.mode = mode;
+}
 
 function handlePioMouseEnter() {
 	if (typeof window === "undefined") return;
@@ -52,6 +66,8 @@ function initPio() {
 				window.__pioInstance = pioInstance;
 				mountPioPortal();
 				window.__PIO_MOUSE_HOVER = false;
+				// 初始化完成后确认为节流模式（l2d.js 初始化可能重置为 normal）
+				setRenderMode("reduced", IDLE_FPS);
 				console.log("Pio initialized successfully (Svelte)");
 			} else if (!pioContainer || !pioCanvas) {
 				console.warn("Pio DOM elements not found, retrying...");
@@ -104,12 +120,41 @@ onMount(async () => {
 
 	window.__PIO_MOUSE_HOVER = false;
 
+	// 在 l2d.js 加载之前预设节流模式，避免初始 60fps 开销
+	window.__PIO_RENDER_CONTROL = window.__PIO_RENDER_CONTROL || {
+		mode: "reduced",
+		reduceFPS: IDLE_FPS,
+		_lastRender: 0,
+	};
+	window.__PIO_RENDER_CONTROL.mode = "reduced";
+	window.__PIO_RENDER_CONTROL.reduceFPS = IDLE_FPS;
+
+	// 标签页隐藏时暂停渲染，可见时恢复 20fps 节流模式
+	visibilityHandler = () => {
+		if (!window.__PIO_RENDER_CONTROL) return;
+		if (document.hidden) {
+			setRenderMode("paused");
+		} else {
+			setRenderMode("reduced", IDLE_FPS);
+		}
+	};
+	document.addEventListener("visibilitychange", visibilityHandler);
+
 	await tick();
 	mountPioPortal();
-	loadPioAssets();
+
+	// 延迟到浏览器空闲时再加载 Live2D 资源，减少对首屏渲染的影响
+	const scheduleLoad = window.requestIdleCallback
+		? (cb) => window.requestIdleCallback(cb, { timeout: 3000 })
+		: (cb) => setTimeout(cb, 1500);
+	scheduleLoad(loadPioAssets);
 });
 
 onDestroy(() => {
+	if (visibilityHandler) {
+		document.removeEventListener("visibilitychange", visibilityHandler);
+		visibilityHandler = null;
+	}
 	console.log("Pio Svelte component destroyed (keeping instance alive)");
 });
 </script>

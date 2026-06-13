@@ -4,6 +4,7 @@ let currentTheme = null;
 let isRendering = false;
 let retryCount = 0;
 let swupListenersRegistered = false;
+let renderGeneration = 0; // 每次 content:replace 时递增，使旧渲染任务可感知导航发生
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 
@@ -240,6 +241,7 @@ function registerSwupListeners() {
 	swupListenersRegistered = true;
 
 	window.swup.hooks.on("content:replace", () => {
+		renderGeneration++; // 使所有进行中的旧渲染任务感知到导航已发生
 		isRendering = false;
 		currentTheme = null;
 		if (!hasMermaidDiagrams()) return;
@@ -292,6 +294,7 @@ async function initializeMermaid() {
 
 async function renderMermaidDiagrams(options = {}) {
 	const { forceThemeRefresh = false } = options;
+	const generation = renderGeneration; // 记录本次渲染的代数
 
 	if (isRendering) {
 		return;
@@ -306,6 +309,9 @@ async function renderMermaidDiagrams(options = {}) {
 			return;
 		}
 	}
+
+	// 检测是否在等待期间发生了导航
+	if (generation !== renderGeneration) return;
 
 	const mermaidElements = document.querySelectorAll(
 		".mermaid[data-mermaid-code]",
@@ -358,6 +364,11 @@ async function renderMermaidDiagrams(options = {}) {
 			const maxAttempts = 3;
 
 			while (attempts < maxAttempts) {
+				// 导航后元素已脱离 DOM，终止渲染以释放内存
+				if (!element.isConnected || generation !== renderGeneration) {
+					break;
+				}
+
 				try {
 					const code = element.getAttribute("data-mermaid-code");
 

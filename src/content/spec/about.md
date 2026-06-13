@@ -3,9 +3,9 @@ This website is built with the **Astro** framework using the [Mizuki](https://gi
 
 ::github{repo="matsuzaka-yuki/Mizuki"}
 
-## 🌟 关于我
+# 🌟 关于我
 
-### 🎨 请多指教
+## 🎨 请多指教
 - **身份** - 大一编程小白，正在探索技术的海洋🌊
 - **兴趣** - 二次元文化爱好者，热爱动画、漫画与游戏，吉他编曲新手，正在学习音乐制作
 - **状态** - 永远在学习路上的萌新，乐于分享与交流
@@ -13,18 +13,18 @@ This website is built with the **Astro** framework using the [Mizuki](https://gi
 ## 📝 本站内容
 这里主要记录我的学习成长和兴趣分享：
 
-### 🎵 音乐创作
+## 🎵 音乐创作
 - VOCALOID 使用心得与技巧分享
 - Cubase 编曲经验与问题探讨
 - 原创音乐作品与幕后制作过程
 - 吉他编配与音乐理论实践
 
-### 🎨 二次元文化
+## 🎨 二次元文化
 - 新番观后感与推荐
 - ACG 文化现象杂谈
 - 个人创作（同人、插画等）分享
 
-### 💻 技术学习
+## 💻 技术学习
 - 编程学习过程中的笔记与总结
 - 网站开发技术实践记录
 - 技术问题解决方案分享

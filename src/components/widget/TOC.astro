@@ -82,9 +82,10 @@ class TableOfContents extends HTMLElement {
 
         const parent = heading.parentElement;
         if (!parent) return heading;
-        const parentHeight = parent.getBoundingClientRect().height;
-        const headingHeight = heading.getBoundingClientRect().height;
-        if (parentHeight > headingHeight * 2.5) {
+        // 父元素有多个直接子元素说明是整体内容容器（非纯节容器），
+        // 用标题本身作 section anchor。
+        // 避免 getBoundingClientRect 在 innerHTML 写入后立即触发强制重排。
+        if (parent.childElementCount > 1) {
             return heading;
         }
         return parent;

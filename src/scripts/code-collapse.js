@@ -315,8 +315,12 @@ window.CodeBlockCollapser = CodeBlockCollapser;
 window.codeBlockCollapser = codeBlockCollapser;
 
 // 设置 Swup 钩子的函数
+let swupHooksRegistered = false;
+
 function setupSwupHooks() {
+	if (swupHooksRegistered) return true;
 	if (window.swup) {
+		swupHooksRegistered = true;
 		codeBlockCollapser.log("Setting up Swup hooks");
 
 		// 监听 page:view 事件

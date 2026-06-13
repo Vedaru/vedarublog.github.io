@@ -106,9 +106,24 @@ if (window.__twikooInitBootstrapped) {
 		);
 	}
 
+	function tryUnmountTwikoo(commentEl) {
+		// Vue 3 在挂载容器上设置 __vue_app__；卸载可释放 watchers/事件监听/响应式数据
+		const vueApp =
+			commentEl.__vue_app__ ||
+			commentEl.querySelector(".twikoo")?.__vue_app__;
+		if (vueApp && typeof vueApp.unmount === "function") {
+			try {
+				vueApp.unmount();
+			} catch (e) {
+				// 忽略卸载期间的错误
+			}
+		}
+	}
+
 	function prepareTwikooContainer(commentEl) {
 		commentEl.classList.remove("twikoo-ready", "twikoo-error-state");
 		if (commentEl.querySelector(".twikoo")) {
+			tryUnmountTwikoo(commentEl);
 			commentEl.innerHTML = "";
 		} else if (!commentEl.querySelector(".twikoo-loading")) {
 			showTwikooLoading(commentEl);
@@ -166,6 +181,7 @@ if (window.__twikooInitBootstrapped) {
 
 			// 仅清除旧实例，保留 loading 占位，避免空白卡片
 			if (commentEl.querySelector(".twikoo")) {
+				tryUnmountTwikoo(commentEl);
 				commentEl.innerHTML = "";
 			}
 			if (abortIfStale(generation, commentEl)) return;

@@ -109,5 +109,13 @@ export function shouldPreScrollBeforeLeave(visit: HomePreScrollVisit): boolean {
 		return false;
 	}
 
+	// 仅在首页相关导航时触发预滚动动画。
+	// 文章页间导航（如上一篇/下一篇）在长文章底部触发时，
+	// 全程渲染数千像素的滚动动画会导致浏览器 OOM，
+	// 直接让 Swup 自行重置滚动位置即可。
+	if (!isLeavingHomePage(visit) && !isEnteringHomePage(visit)) {
+		return false;
+	}
+
 	return getScrollY() > PRE_SCROLL_Y_THRESHOLD;
 }

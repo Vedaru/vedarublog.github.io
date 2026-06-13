@@ -43,6 +43,22 @@ function invalidateSwupCacheIfStale() {
 	sessionStorage.setItem(storageKey, buildId);
 }
 
+const MAX_SWUP_CACHE_ENTRIES = 10;
+
+function evictSwupCacheIfOversized() {
+	if (
+		typeof window.swup?.cache?.all !== "function" ||
+		typeof window.swup?.cache?.delete !== "function"
+	)
+		return;
+	const cached = Object.keys(window.swup.cache.all());
+	if (cached.length > MAX_SWUP_CACHE_ENTRIES) {
+		cached
+			.slice(0, cached.length - MAX_SWUP_CACHE_ENTRIES)
+			.forEach((url) => window.swup.cache.delete(url));
+	}
+}
+
 function attachStylesheetErrorGuard() {
 	document
 		.querySelectorAll('link[rel="stylesheet"][href*="/_astro/"]')
@@ -235,6 +251,10 @@ export function applyVisitStartLayout(
 	const navbarWrapper = document.getElementById("navbar-wrapper");
 	if (navbarWrapper) {
 		navbarWrapper.classList.remove("navbar-hidden");
+		// 清除 __syncNavbarWrapperForScrollY 遗留的内联 opacity/transform。
+		// 若不清除，从文章底部（opacity:0）跳转时 navbar-wrapper 会保持不可见，
+		// 直到下次 scroll 事件才被修正。
+		window.__clearNavbarWrapperInlineStyles?.();
 	}
 
 	const toc = document.getElementById("toc-wrapper");
@@ -481,6 +501,7 @@ function setup() {
 
 	window.swup.hooks.on("visit:end", () => {
 		window.__pendingVisitBodyLayout = undefined;
+		evictSwupCacheIfOversized();
 
 		setTimeout(() => {
 			if (!window.__homePreScrollWasUsed) {
