@@ -270,7 +270,7 @@ export function buildSidebarTocMarkup(
 
 	return (
 		tocHTML +
-		'<div id="active-indicator" style="opacity: 0" class="-z-10 absolute bg-[var(--toc-btn-hover)] left-0 right-0 rounded-xl transition-all group-hover:bg-transparent border-2 border-[var(--toc-btn-hover)] group-hover:border-[var(--toc-btn-active)] border-dashed"></div>'
+		'<div id="active-indicator" style="opacity: 0" class="-z-10 absolute bg-[var(--toc-btn-hover)] left-0 right-0 rounded-xl group-hover:bg-transparent border-2 border-[var(--toc-btn-hover)] group-hover:border-[var(--toc-btn-active)] border-dashed pointer-events-none"></div>'
 	);
 }
 
@@ -464,6 +464,44 @@ export function isValueInRange(
 	max: number,
 ): boolean {
 	return min < value && value < max;
+}
+
+/** 判断值是否在范围内 */
+export function isInRange(value: number, min: number, max: number): boolean {
+	return min < value && value < max;
+}
+
+/** 节流函数 */
+export function throttle<T extends (...args: unknown[]) => unknown>(
+	fn: T,
+	limit: number,
+): (...args: Parameters<T>) => void {
+	let inThrottle = false;
+	return (...args: Parameters<T>) => {
+		if (!inThrottle) {
+			fn(...args);
+			inThrottle = true;
+			setTimeout(() => {
+				inThrottle = false;
+			}, limit);
+		}
+	};
+}
+
+/** 计算活动指示器的位置（基于 getBoundingClientRect，避免 forced reflow） */
+export function calculateActiveIndicatorPosition(
+	container: HTMLElement,
+	minEntry: HTMLElement,
+	maxEntry: HTMLElement,
+): { top: number; height: number } {
+	const containerRect = container.getBoundingClientRect();
+	const minRect = minEntry.getBoundingClientRect();
+	const maxRect = maxEntry.getBoundingClientRect();
+
+	const top = minRect.top - containerRect.top + container.scrollTop;
+	const height = maxRect.bottom - minRect.top;
+
+	return { top, height };
 }
 
 /** 缓存章节区块的文档坐标 */

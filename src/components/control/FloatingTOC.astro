@@ -261,7 +261,6 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 		private observer: MutationObserver | null = null;
 		private headings: HTMLElement[] = [];
 		private headingOffsets: number[] = [];
-		private headingOffsets: number[] = [];
 		private resizeTimer = 0;
 		private prevActiveIndex = -1;
 		private cachedCircle: SVGCircleElement | null = null;
@@ -346,7 +345,7 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 			if (contentWrapper) {
 				this.observer = new MutationObserver(() => {
 					this.generateTOC();
-					this.updateProgress();
+					this.updateProgress(window.scrollY);
 				});
 				this.observer.observe(contentWrapper, {
 					childList: true,
