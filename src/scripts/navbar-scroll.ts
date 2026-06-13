@@ -20,7 +20,6 @@ export function initNavbarScroll() {
 	const contentWrapperRef = document.getElementById("content-wrapper");
 	let backToTopThreshold = 0;
 	let scrollEndTimer: ReturnType<typeof setTimeout> | null = null;
-	let scrollTicking = false;
 
 	function cacheContentWrapperOffset() {
 		if (contentWrapperRef) {
@@ -43,12 +42,10 @@ export function initNavbarScroll() {
 		});
 	});
 
-	function scrollFunction() {
+	function scrollFunction(scrollTop: number, innerHeight: number) {
 		if (shouldSkipNavbarScrollSync()) {
 			return;
 		}
-
-		const scrollTop = document.documentElement.scrollTop;
 
 		if (backToTopBtn) {
 			if (scrollTop > backToTopThreshold) {
@@ -59,11 +56,17 @@ export function initNavbarScroll() {
 		}
 
 		if (bannerEnabled) {
-			window.__syncTocHideForScroll?.(scrollTop, window.innerHeight);
+			window.__syncTocHideForScroll?.(scrollTop, innerHeight);
 		}
 
 		if (bannerEnabled && navbar) {
-			document.documentElement.classList.add("is-manual-scroll-syncing");
+			if (
+				!document.documentElement.classList.contains(
+					"is-manual-scroll-syncing",
+				)
+			) {
+				document.documentElement.classList.add("is-manual-scroll-syncing");
+			}
 			window.__syncNavbarWrapperForScrollY?.(scrollTop);
 		}
 
@@ -88,13 +91,7 @@ export function initNavbarScroll() {
 	}
 
 	function onScroll() {
-		if (!scrollTicking) {
-			scrollTicking = true;
-			requestAnimationFrame(() => {
-				scrollTicking = false;
-				scrollFunction();
-			});
-		}
+		window.__scheduleScrollSync?.(scrollFunction);
 		scheduleScrollEndFinalize();
 	}
 

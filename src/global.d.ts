@@ -151,6 +151,14 @@ declare global {
 		) => void;
 		__finalizeNavbarWrapperAfterScroll?: () => void;
 		__clearNavbarWrapperInlineStyles?: () => void;
+		__scrollSyncBootstrapped?: boolean;
+		__scheduleScrollSync?: (
+			fn: (scrollTop: number, innerHeight: number) => void,
+		) => void;
+		__cancelScrollSync?: (
+			fn: (scrollTop: number, innerHeight: number) => void,
+		) => void;
+		__flushScrollSync?: () => void;
 		__normalizePath?: (path: string) => string;
 		__isHomePagePath?: (pathname: string) => boolean;
 		__isMainHomePage?: (pathname: string) => boolean;

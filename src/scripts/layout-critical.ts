@@ -1,3 +1,4 @@
+import "./runtime/scroll-sync";
 import "./runtime/shell-bootstrap";
 import "./runtime/cancellable-tween";
 import "./runtime/smooth-scroll";

@@ -45,7 +45,6 @@ import {
 	collectHeadingsFromDocument,
 	createTransitionDeferredUpdater,
 	findActiveSectionIndex,
-	findVisibleSectionIndices,
 	isPostPagePath,
 	scheduleTocDomInit,
 	scheduleTocIdleWork,
@@ -68,13 +67,22 @@ class TableOfContents extends HTMLElement {
     tocHeightCached = 0;
     prevIndicatorMin = -1;
     prevIndicatorMax = -1;
+    lastTocScrollTarget = -1;
     resizeTimer = 0;
     transitionUpdater = createTransitionDeferredUpdater(() =>
         this.refreshActiveState(true),
     );
     heavyLayoutReady = false;
     heavyLayoutScheduled = false;
-    scrollRaf = 0;
+
+    onScrollSync = (scrollTop: number) => {
+        this.refreshActiveState(false, scrollTop);
+    };
+
+    handleScroll = () => {
+        if (!this.heavyLayoutReady || shouldSkipTocLayoutWork()) return;
+        window.__scheduleScrollSync?.(this.onScrollSync);
+    };
 
     resolveTocSection = (heading: HTMLElement): HTMLElement => {
         const path = window.location.pathname;
@@ -91,15 +99,6 @@ class TableOfContents extends HTMLElement {
             return heading;
         }
         return parent;
-    };
-
-    handleScroll = () => {
-        if (!this.heavyLayoutReady || shouldSkipTocLayoutWork()) return;
-        if (this.scrollRaf) return;
-        this.scrollRaf = requestAnimationFrame(() => {
-            this.scrollRaf = 0;
-            this.refreshActiveState(false);
-        });
     };
 
     cacheSectionOffsets = () => {
@@ -127,7 +126,7 @@ class TableOfContents extends HTMLElement {
         }, 150);
     };
 
-    computeActiveFromScroll = (): boolean[] => {
+    computeActiveFromScroll = (scrollTop: number): boolean[] => {
         const nextActive = new Array(this.tocEntries.length).fill(false);
         if (!this.sections.length) return nextActive;
 
@@ -135,27 +134,12 @@ class TableOfContents extends HTMLElement {
             this.cacheSectionOffsets();
         }
 
-        const scrollTop = window.scrollY;
-        const viewportBottom = scrollTop + window.innerHeight;
-        const visibleIndices = findVisibleSectionIndices(
+        const activeIdx = findActiveSectionIndex(
             this.sectionOffsets,
             scrollTop,
-            viewportBottom,
         );
-
-        if (visibleIndices.length > 0) {
-            for (const idx of visibleIndices) {
-                nextActive[idx] = true;
-            }
-        } else {
-            const activeIdx = findActiveSectionIndex(
-                this.sectionOffsets,
-                scrollTop,
-                viewportBottom,
-            );
-            if (activeIdx !== null) {
-                nextActive[activeIdx] = true;
-            }
+        if (activeIdx !== null) {
+            nextActive[activeIdx] = true;
         }
 
         return nextActive;
@@ -170,6 +154,7 @@ class TableOfContents extends HTMLElement {
 
     syncVisibleClasses = (nextActive: boolean[]) => {
         for (let i = 0; i < nextActive.length; i++) {
+            if (nextActive[i] === this.active[i]) continue;
             const entry = this.tocEntries[i];
             if (!entry) continue;
             if (nextActive[i]) {
@@ -218,10 +203,12 @@ class TableOfContents extends HTMLElement {
                 const tocHeight = this.tocHeightCached;
 
                 if (indicatorChanged) {
-                    this.activeIndicator?.setAttribute(
-                        "style",
-                        `top: ${minTop}px; height: ${maxBottom - minTop}px; opacity: 1`,
+                    this.style.setProperty("--toc-indicator-top", `${minTop}px`);
+                    this.style.setProperty(
+                        "--toc-indicator-height",
+                        `${maxBottom - minTop}px`,
                     );
+                    this.activeIndicator?.style.setProperty("opacity", "1");
                     this.prevIndicatorMin = min;
                     this.prevIndicatorMax = max;
                 }
@@ -232,9 +219,9 @@ class TableOfContents extends HTMLElement {
                             ? minTop - 32
                             : maxTop - tocHeight * 0.8;
 
-                    const currentScroll = this.tocEl.scrollTop;
-                    if (Math.abs(currentScroll - targetScrollTop) > 4) {
+                    if (Math.abs(this.lastTocScrollTarget - targetScrollTop) > 4) {
                         this.tocEl.scrollTop = targetScrollTop;
+                        this.lastTocScrollTarget = targetScrollTop;
                     }
                 }
                 return;
@@ -242,13 +229,13 @@ class TableOfContents extends HTMLElement {
         }
 
         if (indicatorChanged) {
-            this.activeIndicator?.setAttribute("style", "opacity: 0");
+            this.activeIndicator?.style.setProperty("opacity", "0");
             this.prevIndicatorMin = -1;
             this.prevIndicatorMax = -1;
         }
     };
 
-    refreshActiveState = (forceUpdate: boolean) => {
+    refreshActiveState = (forceUpdate: boolean, scrollTop?: number) => {
         if (shouldSkipTocLayoutWork()) {
             this.transitionUpdater.schedule();
             return;
@@ -259,7 +246,9 @@ class TableOfContents extends HTMLElement {
             return;
         }
 
-        const nextActive = this.computeActiveFromScroll();
+        const resolvedScrollTop =
+            typeof scrollTop === "number" ? scrollTop : window.scrollY;
+        const nextActive = this.computeActiveFromScroll(resolvedScrollTop);
         const changed = forceUpdate || this.hasActiveChanged(nextActive);
         if (!changed) return;
 
@@ -272,7 +261,7 @@ class TableOfContents extends HTMLElement {
         ) {
             const anchorIdx = this.headingIdxMap.get(this.anchorNavTarget.id)!;
             const anchorOffset = this.sectionOffsets[anchorIdx];
-            if (anchorOffset && anchorOffset.top <= window.scrollY + 120) {
+            if (anchorOffset && anchorOffset.top <= resolvedScrollTop + 120) {
                 this.anchorNavTarget = null;
             }
         }
@@ -360,15 +349,13 @@ class TableOfContents extends HTMLElement {
         this.tocHeightCached = 0;
         this.prevIndicatorMin = -1;
         this.prevIndicatorMax = -1;
+        this.lastTocScrollTarget = -1;
 
         if (this.resizeTimer) {
             window.clearTimeout(this.resizeTimer);
             this.resizeTimer = 0;
         }
-        if (this.scrollRaf) {
-            cancelAnimationFrame(this.scrollRaf);
-            this.scrollRaf = 0;
-        }
+        window.__cancelScrollSync?.(this.onScrollSync);
         window.removeEventListener("resize", this.handleResize);
         window.removeEventListener("scroll", this.handleScroll);
 
@@ -456,6 +443,8 @@ if (!customElements.get("table-of-contents")) {
 
 <style>
   table-of-contents#toc {
+      --toc-indicator-top: 0px;
+      --toc-indicator-height: 0px;
       /* 限制为视口高度的一部分，超出时在 TOC 内部滚动 */
       max-height: calc(100vh - 200px);
       overflow: auto;
@@ -464,9 +453,12 @@ if (!customElements.get("table-of-contents")) {
       position: relative;
       scroll-behavior: auto;
       display: block;
+      contain: layout style;
   }
 
   table-of-contents#toc #active-indicator {
+      top: var(--toc-indicator-top);
+      height: var(--toc-indicator-height);
       transition: opacity 0.15s ease;
   }
 

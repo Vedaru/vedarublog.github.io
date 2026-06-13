@@ -107,12 +107,15 @@
 		return window.innerHeight * (bannerHeight / 100) - 88;
 	};
 
+	let lastNavbarFadeKey = "";
+
 	window.__clearNavbarWrapperInlineStyles =
 		function clearNavbarWrapperInlineStyles() {
 			const navbarWrapper = document.getElementById("navbar-wrapper");
 			if (!navbarWrapper) return;
 			navbarWrapper.style.removeProperty("opacity");
 			navbarWrapper.style.removeProperty("transform");
+			lastNavbarFadeKey = "";
 		};
 
 	function computeNavbarWrapperFade(scrollY, threshold) {
@@ -154,6 +157,12 @@
 			window.__getNavbarHideThreshold?.(options) ??
 			Number.POSITIVE_INFINITY;
 		const fade = computeNavbarWrapperFade(scrollY, threshold);
+		const fadeKey =
+			fade.opacity.toFixed(3) + ":" + fade.translateRem.toFixed(3);
+		if (fadeKey === lastNavbarFadeKey) {
+			return;
+		}
+		lastNavbarFadeKey = fadeKey;
 
 		navbarWrapper.style.opacity = String(fade.opacity);
 		if (fade.opacity < 0.05) {

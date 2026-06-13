@@ -261,11 +261,14 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 		private observer: MutationObserver | null = null;
 		private headings: HTMLElement[] = [];
 		private headingOffsets: number[] = [];
-		private scrollRaf = 0;
+		private headingOffsets: number[] = [];
 		private resizeTimer = 0;
 		private prevActiveIndex = -1;
 		private cachedCircle: SVGCircleElement | null = null;
 		private cachedCircumference = 0;
+		private cachedDocScrollHeight = 0;
+		private cachedDocClientHeight = 0;
+		private lastScrollTop = -1;
 
 		constructor() {
 			this.btn = document.getElementById("floating-toc-btn");
@@ -289,16 +292,17 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 			this.observeContent();
 
 			this.cacheCircle();
+			this.refreshDocScrollMetrics();
 			this.scheduleUpdate();
 		}
 
+		private onScrollSync = (scrollTop: number) => {
+			this.updateProgress(scrollTop);
+			this.updateActiveHeading(scrollTop);
+		};
+
 		private handleScroll = () => {
-			if (this.scrollRaf) return;
-			this.scrollRaf = requestAnimationFrame(() => {
-				this.scrollRaf = 0;
-				this.updateProgress();
-				this.updateActiveHeading();
-			});
+			window.__scheduleScrollSync?.(this.onScrollSync);
 		};
 
 		private handleResize = () => {
@@ -306,9 +310,15 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 			this.resizeTimer = window.setTimeout(() => {
 				this.resizeTimer = 0;
 				this.refreshHeadingOffsets();
+				this.refreshDocScrollMetrics();
 				this.scheduleUpdate();
 			}, 150);
 		};
+
+		private refreshDocScrollMetrics() {
+			this.cachedDocScrollHeight = document.documentElement.scrollHeight;
+			this.cachedDocClientHeight = document.documentElement.clientHeight;
+		}
 
 		private refreshHeadingOffsets() {
 			if (this.headings.length > 0) {
@@ -328,12 +338,7 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 		}
 
 		private scheduleUpdate() {
-			if (this.scrollRaf) return;
-			this.scrollRaf = requestAnimationFrame(() => {
-				this.scrollRaf = 0;
-				this.updateProgress();
-				this.updateActiveHeading();
-			});
+			window.__scheduleScrollSync?.(this.onScrollSync);
 		}
 
 		private observeContent() {
@@ -350,14 +355,15 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 			}
 		}
 
-		private updateProgress() {
+		private updateProgress(scrollTop: number) {
 			const circle = this.cachedCircle;
 			if (!circle) return;
 
-			const scrollTop = window.scrollY;
+			if (scrollTop === this.lastScrollTop) return;
+			this.lastScrollTop = scrollTop;
+
 			const docHeight =
-				document.documentElement.scrollHeight -
-				document.documentElement.clientHeight;
+				this.cachedDocScrollHeight - this.cachedDocClientHeight;
 			const scrollPercent = docHeight > 0 ? scrollTop / docHeight : 0;
 
 			const circumference = this.cachedCircumference;
@@ -371,12 +377,12 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 			circle.style.strokeDashoffset = offset.toString();
 		}
 
-		private updateActiveHeading() {
+		private updateActiveHeading(scrollTop: number) {
 			if (!this.content || this.headingOffsets.length === 0) return;
 
 			const activeIndex = findActiveHeadingByScrollCached(
 				this.headingOffsets,
-				window.scrollY,
+				scrollTop,
 			);
 
 			if (activeIndex === this.prevActiveIndex) return;
@@ -450,7 +456,9 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 			}
 
 			this.refreshHeadingOffsets();
+			this.refreshDocScrollMetrics();
 			this.prevActiveIndex = -1;
+			this.lastScrollTop = -1;
 			this.scheduleUpdate();
 		}
 
