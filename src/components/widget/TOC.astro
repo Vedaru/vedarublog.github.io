@@ -56,7 +56,6 @@ import {
 class TableOfContents extends HTMLElement {
     tocEl: HTMLElement | null = null;
     visibleClass = "visible";
-    observer: IntersectionObserver;
     anchorNavTarget: HTMLElement | null = null;
     headingIdxMap = new Map<string, number>();
     headings: HTMLElement[] = [];
@@ -64,15 +63,18 @@ class TableOfContents extends HTMLElement {
     tocEntries: HTMLAnchorElement[] = [];
     active: boolean[] = [];
     activeIndicator: HTMLElement | null = null;
-    updateRaf = 0;
-    layoutRaf = 0;
     sectionOffsets: Array<{ top: number; bottom: number } | null> = [];
+    tocEntryMetrics: Array<{ top: number; height: number }> = [];
+    tocHeightCached = 0;
+    prevIndicatorMin = -1;
+    prevIndicatorMax = -1;
     resizeTimer = 0;
-    transitionUpdater = createTransitionDeferredUpdater(() => this.updateSync());
+    transitionUpdater = createTransitionDeferredUpdater(() =>
+        this.refreshActiveState(true),
+    );
     heavyLayoutReady = false;
     heavyLayoutScheduled = false;
     scrollRaf = 0;
-    tocScrollTimer = 0;
 
     resolveTocSection = (heading: HTMLElement): HTMLElement => {
         const path = window.location.pathname;
@@ -96,52 +98,21 @@ class TableOfContents extends HTMLElement {
         if (this.scrollRaf) return;
         this.scrollRaf = requestAnimationFrame(() => {
             this.scrollRaf = 0;
-            this.fallback();
-            this.updateSync();
+            this.refreshActiveState(false);
         });
-    };
-
-    constructor() {
-        super();
-        this.observer = new IntersectionObserver(
-            this.markVisibleSection, { threshold: 0 }
-        );
-    };
-
-    markVisibleSection = (entries: IntersectionObserverEntry[]) => {
-        if (shouldSkipTocLayoutWork()) {
-            this.transitionUpdater.schedule();
-            return;
-        }
-
-        entries.forEach((entry) => {
-            const target = entry.target as HTMLElement;
-            const id =
-                target.getAttribute("id") ||
-                target.children[0]?.getAttribute("id");
-            const idx = id ? this.headingIdxMap.get(id) : undefined;
-            if (idx != undefined && idx < this.active.length)
-                this.active[idx] = entry.isIntersecting;
-
-            if (
-                entry.isIntersecting &&
-                (this.anchorNavTarget === entry.target ||
-                    this.anchorNavTarget === entry.target.firstChild)
-            ) {
-                this.anchorNavTarget = null;
-            }
-        });
-
-        if (!this.heavyLayoutReady) {
-            return;
-        }
-
-        if (!this.active.includes(true)) this.fallback();
-        this.updateSync();
     };
 
     cacheSectionOffsets = () => {
         this.sectionOffsets = cacheSectionOffsets(this.sections);
+    };
+
+    cacheTocEntryMetrics = () => {
+        if (!this.tocEl) return;
+        this.tocHeightCached = this.tocEl.clientHeight;
+        this.tocEntryMetrics = this.tocEntries.map((entry) => ({
+            top: entry.offsetTop,
+            height: entry.offsetHeight,
+        }));
     };
 
     handleResize = () => {
@@ -149,106 +120,16 @@ class TableOfContents extends HTMLElement {
         this.resizeTimer = window.setTimeout(() => {
             this.resizeTimer = 0;
             this.cacheSectionOffsets();
+            this.cacheTocEntryMetrics();
+            this.prevIndicatorMin = -1;
+            this.prevIndicatorMax = -1;
+            this.refreshActiveState(true);
         }, 150);
     };
 
-    observeSections = () => {
-        this.sections.forEach((section) => {
-            if (section) this.observer.observe(section);
-        });
-    };
-
-    updateSync = () => {
-        if (shouldSkipTocLayoutWork()) {
-            this.transitionUpdater.schedule();
-            return;
-        }
-
-        if (!this.heavyLayoutReady) {
-            this.scheduleHeavyLayout();
-            return;
-        }
-
-        if (this.updateRaf) cancelAnimationFrame(this.updateRaf);
-        this.updateRaf = requestAnimationFrame(() => {
-            this.updateRaf = 0;
-
-            let min = this.active.length;
-            let max = -1;
-            let hasActive = false;
-
-            for (let i = 0; i < this.active.length; i++) {
-                if (this.active[i]) {
-                    hasActive = true;
-                    min = Math.min(min, i);
-                    max = Math.max(max, i);
-                }
-            }
-
-            if (!hasActive) {
-                min = this.active.length;
-                max = -1;
-            }
-
-            let minTop = 0;
-            let maxTop = 0;
-            let maxBottom = 0;
-            let tocHeight = 0;
-            let shouldUpdateIndicator = false;
-
-            if (min <= max && this.tocEl) {
-                const minEntry = this.tocEntries[min];
-                const maxEntry = this.tocEntries[max];
-                
-                if (minEntry && maxEntry) {
-                    tocHeight = this.tocEl.clientHeight;
-                    minTop = minEntry.offsetTop;
-                    maxTop = maxEntry.offsetTop;
-                    maxBottom = maxTop + maxEntry.offsetHeight;
-                    shouldUpdateIndicator = true;
-                }
-            }
-
-            for (let i = 0; i < this.active.length; i++) {
-                if (this.active[i]) {
-                    this.tocEntries[i]?.classList.add(this.visibleClass);
-                } else {
-                    this.tocEntries[i]?.classList.remove(this.visibleClass);
-                }
-            }
-
-            if (shouldUpdateIndicator) {
-                this.activeIndicator?.setAttribute(
-                    "style",
-                    `top: ${minTop}px; height: ${maxBottom - minTop}px; opacity: 1`,
-                );
-
-                if (!this.anchorNavTarget && this.tocEl) {
-                    const targetScrollTop =
-                        maxBottom - minTop < 0.9 * tocHeight
-                            ? minTop - 32
-                            : maxTop - tocHeight * 0.8;
-
-                    if (this.tocScrollTimer) clearTimeout(this.tocScrollTimer);
-                    const el = this.tocEl;
-                    this.tocScrollTimer = window.setTimeout(() => {
-                        this.tocScrollTimer = 0;
-                        el.scrollTo({
-                            top: targetScrollTop,
-                            left: 0,
-                            behavior: "smooth",
-                        });
-                    }, 120);
-                }
-            } else {
-                this.activeIndicator?.setAttribute("style", "opacity: 0");
-            }
-        });
-    };
-
-    fallback = () => {
-        if (!this.sections.length) return;
-        if (shouldSkipTocLayoutWork()) return;
+    computeActiveFromScroll = (): boolean[] => {
+        const nextActive = new Array(this.tocEntries.length).fill(false);
+        if (!this.sections.length) return nextActive;
 
         if (!this.sectionOffsets.length) {
             this.cacheSectionOffsets();
@@ -262,10 +143,9 @@ class TableOfContents extends HTMLElement {
             viewportBottom,
         );
 
-        this.active.fill(false);
         if (visibleIndices.length > 0) {
             for (const idx of visibleIndices) {
-                this.active[idx] = true;
+                nextActive[idx] = true;
             }
         } else {
             const activeIdx = findActiveSectionIndex(
@@ -274,14 +154,139 @@ class TableOfContents extends HTMLElement {
                 viewportBottom,
             );
             if (activeIdx !== null) {
-                this.active[activeIdx] = true;
+                nextActive[activeIdx] = true;
+            }
+        }
+
+        return nextActive;
+    };
+
+    hasActiveChanged = (nextActive: boolean[]): boolean => {
+        for (let i = 0; i < nextActive.length; i++) {
+            if (nextActive[i] !== this.active[i]) return true;
+        }
+        return false;
+    };
+
+    syncVisibleClasses = (nextActive: boolean[]) => {
+        for (let i = 0; i < nextActive.length; i++) {
+            const entry = this.tocEntries[i];
+            if (!entry) continue;
+            if (nextActive[i]) {
+                entry.classList.add(this.visibleClass);
+            } else {
+                entry.classList.remove(this.visibleClass);
             }
         }
     };
 
+    applyTocUiUpdate = (nextActive: boolean[]) => {
+        if (shouldSkipTocLayoutWork()) {
+            this.transitionUpdater.schedule();
+            return;
+        }
+
+        if (!this.heavyLayoutReady) {
+            this.scheduleHeavyLayout();
+            return;
+        }
+
+        let min = nextActive.length;
+        let max = -1;
+
+        for (let i = 0; i < nextActive.length; i++) {
+            if (nextActive[i]) {
+                min = Math.min(min, i);
+                max = Math.max(max, i);
+            }
+        }
+
+        const indicatorChanged =
+            min !== this.prevIndicatorMin || max !== this.prevIndicatorMax;
+
+        if (indicatorChanged) {
+            this.syncVisibleClasses(nextActive);
+        }
+
+        if (min <= max && this.tocEl && this.tocEntryMetrics.length) {
+            const minMetric = this.tocEntryMetrics[min];
+            const maxMetric = this.tocEntryMetrics[max];
+            if (minMetric && maxMetric) {
+                const minTop = minMetric.top;
+                const maxTop = maxMetric.top;
+                const maxBottom = maxTop + maxMetric.height;
+                const tocHeight = this.tocHeightCached;
+
+                if (indicatorChanged) {
+                    this.activeIndicator?.setAttribute(
+                        "style",
+                        `top: ${minTop}px; height: ${maxBottom - minTop}px; opacity: 1`,
+                    );
+                    this.prevIndicatorMin = min;
+                    this.prevIndicatorMax = max;
+                }
+
+                if (!this.anchorNavTarget) {
+                    const targetScrollTop =
+                        maxBottom - minTop < 0.9 * tocHeight
+                            ? minTop - 32
+                            : maxTop - tocHeight * 0.8;
+
+                    const currentScroll = this.tocEl.scrollTop;
+                    if (Math.abs(currentScroll - targetScrollTop) > 4) {
+                        this.tocEl.scrollTop = targetScrollTop;
+                    }
+                }
+                return;
+            }
+        }
+
+        if (indicatorChanged) {
+            this.activeIndicator?.setAttribute("style", "opacity: 0");
+            this.prevIndicatorMin = -1;
+            this.prevIndicatorMax = -1;
+        }
+    };
+
+    refreshActiveState = (forceUpdate: boolean) => {
+        if (shouldSkipTocLayoutWork()) {
+            this.transitionUpdater.schedule();
+            return;
+        }
+
+        if (!this.heavyLayoutReady) {
+            this.scheduleHeavyLayout();
+            return;
+        }
+
+        const nextActive = this.computeActiveFromScroll();
+        const changed = forceUpdate || this.hasActiveChanged(nextActive);
+        if (!changed) return;
+
+        this.active = nextActive;
+
+        if (
+            this.anchorNavTarget &&
+            this.anchorNavTarget.id &&
+            this.headingIdxMap.has(this.anchorNavTarget.id)
+        ) {
+            const anchorIdx = this.headingIdxMap.get(this.anchorNavTarget.id)!;
+            const anchorOffset = this.sectionOffsets[anchorIdx];
+            if (anchorOffset && anchorOffset.top <= window.scrollY + 120) {
+                this.anchorNavTarget = null;
+            }
+        }
+
+        this.applyTocUiUpdate(nextActive);
+    };
+
     markActiveHeading = (idx: number) => {
-        this.active.fill(false);
-        this.active[idx] = true;
+        const nextActive = new Array(this.tocEntries.length).fill(false);
+        nextActive[idx] = true;
+        this.active = nextActive;
+        this.prevIndicatorMin = -1;
+        this.prevIndicatorMax = -1;
+        this.applyTocUiUpdate(nextActive);
     };
 
     handleAnchorClick = (event: Event) => {
@@ -320,10 +325,9 @@ class TableOfContents extends HTMLElement {
                 return;
             }
             this.cacheSectionOffsets();
-            this.fallback();
-            this.observeSections();
+            this.cacheTocEntryMetrics();
             this.heavyLayoutReady = true;
-            this.updateSync();
+            this.refreshActiveState(true);
         };
 
         scheduleTocIdleWork(runHeavy);
@@ -339,15 +343,6 @@ class TableOfContents extends HTMLElement {
     };
 
     teardown() {
-        if (this.updateRaf) cancelAnimationFrame(this.updateRaf);
-        if (this.layoutRaf) cancelAnimationFrame(this.layoutRaf);
-        this.updateRaf = 0;
-        this.layoutRaf = 0;
-
-        this.sections.forEach((section) => {
-            if (section) this.observer.unobserve(section);
-        });
-
         this.tocEl?.removeEventListener("click", this.handleAnchorClick, {
             capture: true,
         });
@@ -361,6 +356,10 @@ class TableOfContents extends HTMLElement {
         this.tocEl = null;
         this.activeIndicator = null;
         this.sectionOffsets = [];
+        this.tocEntryMetrics = [];
+        this.tocHeightCached = 0;
+        this.prevIndicatorMin = -1;
+        this.prevIndicatorMax = -1;
 
         if (this.resizeTimer) {
             window.clearTimeout(this.resizeTimer);
@@ -369,10 +368,6 @@ class TableOfContents extends HTMLElement {
         if (this.scrollRaf) {
             cancelAnimationFrame(this.scrollRaf);
             this.scrollRaf = 0;
-        }
-        if (this.tocScrollTimer) {
-            clearTimeout(this.tocScrollTimer);
-            this.tocScrollTimer = 0;
         }
         window.removeEventListener("resize", this.handleResize);
         window.removeEventListener("scroll", this.handleScroll);
@@ -451,7 +446,6 @@ class TableOfContents extends HTMLElement {
 
     disconnectedCallback() {
         this.teardown();
-        this.observer.disconnect();
     };
 }
 
@@ -468,8 +462,12 @@ if (!customElements.get("table-of-contents")) {
       -webkit-overflow-scrolling: touch; /* 平滑滚动（移动端） */
       overscroll-behavior: contain; /* 防止滚动穿透 */
       position: relative;
-      scroll-behavior: smooth;
+      scroll-behavior: auto;
       display: block;
+  }
+
+  table-of-contents#toc #active-indicator {
+      transition: opacity 0.15s ease;
   }
 
   /* 隐藏滚动条（仍允许滚动） */

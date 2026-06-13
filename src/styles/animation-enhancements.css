@@ -206,9 +206,9 @@
     scroll-behavior: auto !important;
   }
 
-  /* 确保TOC组件仍然有平滑滚动 */
+  /* TOC 跟随滚动时使用即时定位，避免 Chrome 中 smooth 动画堆积 */
   table-of-contents#toc {
-    scroll-behavior: smooth !important;
+    scroll-behavior: auto !important;
   }
 }
 
