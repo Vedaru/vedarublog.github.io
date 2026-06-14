@@ -167,6 +167,32 @@ class TableOfContents extends HTMLElement {
                     "style",
                     `top: ${top}px; height: ${height}px`,
                 );
+
+                // 自动滚动 TOC 确保高亮指示器始终在可见范围内
+                const tocEl = this.tocEl;
+                const tocHeight = tocEl.clientHeight;
+                const tocScrollTop = tocEl.scrollTop || 0;
+                const indicatorBottom = top + height;
+                const visibleBottom = tocScrollTop + tocHeight;
+
+                let targetScroll = tocScrollTop;
+                // 指示器超出可视区域底部 → 向下滚动
+                if (indicatorBottom > visibleBottom - 4) {
+                    targetScroll = indicatorBottom - tocHeight + 40;
+                }
+                // 指示器超出可视区域顶部 → 向上滚动
+                else if (top < tocScrollTop + 4) {
+                    targetScroll = top - 40;
+                }
+
+                targetScroll = Math.max(
+                    0,
+                    Math.min(targetScroll, tocEl.scrollHeight - tocHeight),
+                );
+
+                if (Math.abs(targetScroll - tocScrollTop) > 8) {
+                    tocEl.scrollTo({ top: targetScroll, behavior: "smooth" });
+                }
             }
         }
     };
@@ -211,7 +237,6 @@ class TableOfContents extends HTMLElement {
         this.updateRaf = requestAnimationFrame(() => {
             this.updateRaf = 0;
             this.toggleActiveHeading();
-            this.scrollToActiveHeading();
         });
     };
 
