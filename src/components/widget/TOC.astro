@@ -145,20 +145,22 @@ class TableOfContents extends HTMLElement {
         });
 
         if (min > max) {
-            this.activeIndicator?.setAttribute("style", "opacity: 0");
+            if (this.activeIndicator) {
+                this.activeIndicator.style.opacity = "0";
+            }
         } else {
             const minEntry = this.tocEntries[min];
             const maxEntry = this.tocEntries[max];
-            if (minEntry && maxEntry && this.tocEl) {
+            if (minEntry && maxEntry && this.tocEl && this.activeIndicator) {
                 const { top, height } = calculateActiveIndicatorPosition(
                     this.tocEl,
                     minEntry,
                     maxEntry,
                 );
-                this.activeIndicator?.setAttribute(
-                    "style",
-                    `top: ${top}px; height: ${height}px; opacity: 1`,
-                );
+                const indicator = this.activeIndicator;
+                indicator.style.top = `${top}px`;
+                indicator.style.height = `${height}px`;
+                indicator.style.opacity = "1";
             }
         }
     };
@@ -193,7 +195,7 @@ class TableOfContents extends HTMLElement {
         if (Math.abs((scrollContainer.scrollTop || 0) - top) < 24) return;
 
         scrollContainer.scrollTo({ top, left: 0, behavior: "smooth" });
-    }, 100);
+    }, 200);
 
     updateSync = () => {
         if (this.updateRaf) cancelAnimationFrame(this.updateRaf);
@@ -366,7 +368,7 @@ if (!customElements.get("table-of-contents")) {
       -webkit-overflow-scrolling: touch;
       overscroll-behavior: contain;
       position: relative;
-      scroll-behavior: smooth;
+      scroll-behavior: auto;
       display: block;
   }
 
@@ -375,7 +377,8 @@ if (!customElements.get("table-of-contents")) {
       left: 0;
       right: 0;
       pointer-events: none;
-      transition: all 0.2s ease;
+      transition: top 0.15s ease-out, height 0.15s ease-out, opacity 0.2s ease;
+      will-change: top, height, opacity;
   }
 
   table-of-contents#toc a.visible > div:last-child {

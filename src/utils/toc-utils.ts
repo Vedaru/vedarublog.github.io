@@ -488,7 +488,7 @@ export function throttle<T extends (...args: unknown[]) => unknown>(
 	};
 }
 
-/** 计算活动指示器的位置（基于 getBoundingClientRect，避免 forced reflow） */
+/** 计算活动指示器的位置（纯 getBoundingClientRect，零 layout 查询，参考 Mizuki TOCManager） */
 export function calculateActiveIndicatorPosition(
 	container: HTMLElement,
 	minEntry: HTMLElement,
@@ -498,7 +498,8 @@ export function calculateActiveIndicatorPosition(
 	const minRect = minEntry.getBoundingClientRect();
 	const maxRect = maxEntry.getBoundingClientRect();
 
-	const top = minRect.top - containerRect.top + container.scrollTop;
+	// 仅用 getBoundingClientRect 差值定位，不读 scrollTop 避免强制同步布局
+	const top = minRect.top - containerRect.top;
 	const height = maxRect.bottom - minRect.top;
 
 	return { top, height };
