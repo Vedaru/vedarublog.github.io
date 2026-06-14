@@ -1,8 +1,6 @@
-/* 动画增强样式 - 参考 yukina 主题优化 */
-
-/* 页面切换离场/进场过渡统一由 transition.css 定义，
-   此处不再重复定义 .transition-leaving / .transition-main 的目标值，
-   避免与 transition.css 的 -1.5rem 目标冲突导致中间列二次抽动。 */
+/* 动画增强样式 — 参考 Mizuki 主题优化
+   页面切换离场/进场过渡统一由 transition.css 定义（基于 CSS 变量），
+   此文件仅定义组件级动画增强和 GPU 加速工具类。 */
 
 /* 离开动画类 */
 .animate-leave {
@@ -232,7 +230,7 @@
   }
 }
 
-/* 性能优化 */
+/* 性能优化 — GPU 硬件加速（灵感来自 Mizuki） */
 .animate-gpu {
   will-change: transform, opacity;
   backface-visibility: hidden;
@@ -241,7 +239,13 @@
   -webkit-transform: translateZ(0);
 }
 
-/* 动画完成后清理 */
+/* 导航栏稳定 — 页面切换时禁止 navbar 自身 transition */
+html.is-changing .animate-gpu,
+html.is-animating .animate-gpu {
+  will-change: transform, opacity;
+}
+
+/* 动画完成后清理 will-change 以释放 GPU 内存 */
 .animation-complete {
   will-change: auto;
 }

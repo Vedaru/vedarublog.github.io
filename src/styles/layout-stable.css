@@ -12,6 +12,23 @@ html:not(.layout-ready) .banner-breathe-wrap {
   transition: none !important;
 }
 
+/* 页面切换时冻结 navbar / top-row 的所有过渡，消除 navbar 抽动 */
+html.is-changing #navbar-wrapper,
+html.is-animating #navbar-wrapper,
+html.is-changing #top-row,
+html.is-animating #top-row,
+html.swup-perf-active #navbar-wrapper,
+html.swup-perf-active #top-row {
+  transition: none !important;
+}
+
+/* 页面切换时确保导航栏高度稳定 */
+html.is-changing #navbar,
+html.is-animating #navbar {
+  min-height: 4.5rem;
+  height: 4.5rem;
+}
+
 /* 主内容 top — desktop banner 重叠布局 */
 html[data-wallpaper-mode="banner"] .main-panel {
   top: var(--banner-height, 35vh);
