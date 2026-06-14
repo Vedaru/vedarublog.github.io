@@ -116,7 +116,14 @@ class TableOfContents extends HTMLElement {
         if (!this.active.includes(true)) {
             this.fallback();
         }
-        this.updateSync();
+
+        // 页面平滑滚动期间不执行 layout 密集型更新（避免 forced reflow），
+        // 改为调度滚动结束后的延迟更新
+        if (this.isSmoothScrollActive()) {
+            this.scheduleSmoothScrollEndUpdate();
+        } else {
+            this.updateSync();
+        }
     };
 
     observeSections = () => {
@@ -145,22 +152,21 @@ class TableOfContents extends HTMLElement {
         });
 
         if (min > max) {
-            if (this.activeIndicator) {
-                this.activeIndicator.style.opacity = "0";
-            }
+            // 无可⻅标题时保持指示器在上次位置，不隐藏
+            return;
         } else {
             const minEntry = this.tocEntries[min];
             const maxEntry = this.tocEntries[max];
-            if (minEntry && maxEntry && this.tocEl && this.activeIndicator) {
+            if (minEntry && maxEntry && this.tocEl) {
                 const { top, height } = calculateActiveIndicatorPosition(
                     this.tocEl,
                     minEntry,
                     maxEntry,
                 );
-                const indicator = this.activeIndicator;
-                indicator.style.top = `${top}px`;
-                indicator.style.height = `${height}px`;
-                indicator.style.opacity = "1";
+                this.activeIndicator?.setAttribute(
+                    "style",
+                    `top: ${top}px; height: ${height}px`,
+                );
             }
         }
     };
@@ -168,6 +174,9 @@ class TableOfContents extends HTMLElement {
     scrollToActiveHeading = throttle(() => {
         const scrollContainer = this.scrollContainer || this.tocEl;
         if (this.anchorNavTarget || !this.tocEl || !scrollContainer) return;
+
+        // 页面平滑滚动期间跳过 TOC 内部滚动，避免与页面滚动冲突导致 forced reflow
+        if (this.isSmoothScrollActive()) return;
 
         const activeEntries = this.tocEntries.filter((entry) =>
             entry.classList.contains(this.visibleClass),
@@ -207,6 +216,8 @@ class TableOfContents extends HTMLElement {
     };
 
     fallback = () => {
+        // 平滑滚动期间跳过 fallback，避免 getBoundingClientRect 导致 forced reflow
+        if (this.isSmoothScrollActive()) return;
         if (!this.sections.length) return;
 
         for (let i = 0; i < this.sections.length; i++) {
@@ -370,6 +381,7 @@ if (!customElements.get("table-of-contents")) {
       position: relative;
       scroll-behavior: auto;
       display: block;
+      contain: layout style;
   }
 
   table-of-contents#toc #active-indicator {
@@ -377,8 +389,7 @@ if (!customElements.get("table-of-contents")) {
       left: 0;
       right: 0;
       pointer-events: none;
-      transition: top 0.15s ease-out, height 0.15s ease-out, opacity 0.2s ease;
-      will-change: top, height, opacity;
+      transition: opacity 0.2s ease;
   }
 
   table-of-contents#toc a.visible > div:last-child {

@@ -270,7 +270,7 @@ export function buildSidebarTocMarkup(
 
 	return (
 		tocHTML +
-		'<div id="active-indicator" style="opacity: 0" class="-z-10 absolute bg-[var(--toc-btn-hover)] left-0 right-0 rounded-xl group-hover:bg-transparent border-2 border-[var(--toc-btn-hover)] group-hover:border-[var(--toc-btn-active)] border-dashed pointer-events-none"></div>'
+				'<div id="active-indicator" style="opacity: 0; top: 0; height: 0" class="-z-10 absolute bg-[var(--toc-btn-hover)] left-0 right-0 rounded-xl transition-all group-hover:bg-transparent border-2 border-[var(--toc-btn-hover)] group-hover:border-[var(--toc-btn-active)] border-dashed pointer-events-none"></div>'
 	);
 }
 
@@ -374,18 +374,21 @@ export function isTocOrInPageAnchorLink(
 	);
 }
 
-/** 平滑滚动到标题 */
+/** 平滑滚动到标题（使用原生 scrollIntoView，GPU 合成，避免 JS 驱动滚动导致的 forced reflow） */
 export function scrollToTocHeading(
 	id: string,
-	offset = 80,
-	duration = 650,
+	_offset = 80,
+	_duration?: number,
 ): boolean {
 	const element = document.getElementById(id);
 	if (!element) return false;
 
 	(window as Window & { tocClickTimestamp?: number }).tocClickTimestamp =
 		Date.now();
-	window.__smoothScrollToElement?.(element, offset, duration);
+
+	// 使用原生 scrollIntoView 替代 JS 驱动的 tween 动画：
+	// 原生滚动由浏览器合成器线程处理，不阻塞主线程，Chrome 上无 forced reflow
+	element.scrollIntoView({ block: "start", behavior: "smooth" });
 	return true;
 }
 
@@ -488,7 +491,7 @@ export function throttle<T extends (...args: unknown[]) => unknown>(
 	};
 }
 
-/** 计算活动指示器的位置（纯 getBoundingClientRect，零 layout 查询，参考 Mizuki TOCManager） */
+/** 计算活动指示器的位置（参考 Mizuki useTocScroll） */
 export function calculateActiveIndicatorPosition(
 	container: HTMLElement,
 	minEntry: HTMLElement,
@@ -498,8 +501,8 @@ export function calculateActiveIndicatorPosition(
 	const minRect = minEntry.getBoundingClientRect();
 	const maxRect = maxEntry.getBoundingClientRect();
 
-	// 仅用 getBoundingClientRect 差值定位，不读 scrollTop 避免强制同步布局
-	const top = minRect.top - containerRect.top;
+	// scrollTop 用于将 viewport 相对坐标转换为容器内容坐标，absolutely positioned 元素需要它
+	const top = minRect.top - containerRect.top + container.scrollTop;
 	const height = maxRect.bottom - minRect.top;
 
 	return { top, height };
