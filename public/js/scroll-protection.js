@@ -63,6 +63,16 @@
 
 	// 启动滚动保护
 	function enableScrollProtection(duration = 3000, currentY = null) {
+		// Swup 换页期间不启动保护，避免阻止换页后的 scrollTo(0) 恢复
+		var html = document.documentElement;
+		if (
+			html.classList.contains("is-changing") ||
+			html.classList.contains("is-animating") ||
+			html.classList.contains("swup-perf-active")
+		) {
+			return;
+		}
+
 		scrollProtection.enabled = true;
 		scrollProtection.allowedY =
 			currentY !== null ? currentY : window.scrollY || window.pageYOffset;

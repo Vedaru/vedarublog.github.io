@@ -400,9 +400,18 @@
 			if (isHomePage) {
 				bannerWrapper.classList.remove("mobile-hide-banner");
 				mainContentWrapper.classList.remove("mobile-main-no-banner");
+				// 清除 settlePageLayoutBeforeResume 遗留的 inline top/minHeight
+				mainContentWrapper.style.removeProperty("top");
+				mainContentWrapper.style.removeProperty("min-height");
 			} else {
+				// mobile-hide-banner 正常添加（banner 不在 Swup 容器内，不会被替换）
+				// CSS 抑制规则会在换页期间覆盖其视觉效果
 				bannerWrapper.classList.add("mobile-hide-banner");
-				mainContentWrapper.classList.add("mobile-main-no-banner");
+				// 移动端：不添加 mobile-main-no-banner，避免容器位移
+				// 换页期间由 CSS 抑制规则保持稳定
+				if (window.innerWidth > 1279) {
+					mainContentWrapper.classList.add("mobile-main-no-banner");
+				}
 			}
 		}
 	};

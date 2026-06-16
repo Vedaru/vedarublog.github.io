@@ -50,10 +50,36 @@
 	}
 
 	function settlePageLayoutBeforeResume(epoch, done) {
-		if (epoch !== transitionEpoch) return;
+			if (epoch !== transitionEpoch) return;
+
+			// 移动端：在解锁前先设置 .main-panel 位置，避免解锁后闪现空挡
+			if (window.innerWidth <= 1279) {
+				var mainPanel = document.querySelector(".absolute.w-full.z-30") as HTMLElement | null;
+				if (mainPanel) {
+					var isHome = document.body.classList.contains("is-home");
+					if (!isHome) {
+						mainPanel.style.transition = "none";
+						mainPanel.style.top = "calc(5.5rem + 1rem)";
+						mainPanel.style.minHeight = "calc(100vh - 6.5rem)";
+						mainPanel.classList.add("mobile-main-no-banner");
+					} else {
+						// 回到首页：清理旧文章页遗留的 inline 样式，让 CSS 规则接管
+						mainPanel.style.removeProperty("top");
+						mainPanel.style.removeProperty("min-height");
+						mainPanel.style.removeProperty("transition");
+						mainPanel.classList.remove("mobile-main-no-banner");
+					}
+				}
+			}
 
 		window.__pinPageScrollTop?.();
 		window.__unlockSwupScroll?.();
+
+		// 移动端：解锁后立即滚到顶部（body 已恢复，滚动生效）
+		if (window.innerWidth <= 1279) {
+			var nativeST = window.__nativeScrollTo || window.scrollTo.bind(window);
+			nativeST(0, 0);
+		}
 
 		requestAnimationFrame(function () {
 			if (epoch !== transitionEpoch) return;
@@ -235,6 +261,18 @@
 		window.swup.hooks.on("animation:out:start", pauseTransitionHeavyWork);
 		window.swup.hooks.on("animation:in:end", resumeTransitionHeavyWork);
 		window.swup.hooks.on("visit:end", resumeTransitionHeavyWork);
+
+		// 移动端：content:replace 时立即设置文章页布局，避免过渡期间的 gap 闪现
+		window.swup.hooks.on("content:replace", function () {
+			if (window.innerWidth > 1279) return;
+			if (document.body.classList.contains("is-home")) return;
+			var mainPanel = document.querySelector(".absolute.w-full.z-30") as HTMLElement | null;
+			if (!mainPanel) return;
+			mainPanel.style.transition = "none";
+			mainPanel.style.top = "calc(5.5rem + 1rem)";
+			mainPanel.style.minHeight = "calc(100vh - 6.5rem)";
+			mainPanel.classList.add("mobile-main-no-banner");
+		});
 	}
 
 	function bootstrapSwupPerf() {

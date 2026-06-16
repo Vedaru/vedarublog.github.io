@@ -225,7 +225,12 @@ export function applyVisitStartLayout(
 	if (options?.deferBodyLayout) {
 		window.__pendingVisitBodyLayout = visit;
 	} else if (!window.__homePreScrollWasUsed) {
-		window.__lockSwupScrollAndPin?.();
+		// 移动端：锁定当前滚动位置（不滚动到顶部），避免换页时视觉跳变
+		if (window.innerWidth <= 1279) {
+			window.__lockSwupScroll?.();
+		} else {
+			window.__lockSwupScrollAndPin?.();
+		}
 	}
 
 	const scrollForSemifull =
@@ -427,6 +432,12 @@ function setup() {
 					tocEarly.classList.add("toc-not-ready");
 				}
 				return;
+			}
+
+			// 移动端：禁止 Swup 默认的 scroll-to-top，避免换页时视觉跳变
+			// scroll-to-top 由 settlePageLayoutBeforeResume 统一处理
+			if (window.innerWidth <= 1279 && visit.scroll) {
+				visit.scroll.reset = false;
 			}
 
 			applyVisitStartLayout(visit);

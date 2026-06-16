@@ -471,14 +471,27 @@ html.is-visit-layout-shifting #navbar-wrapper.navbar-hidden {
     font-size: 16px;
   }
 
-  /* Swup 换页期间禁用 top/height 过渡，避免 banner/main 位移计入 CLS */
+  /* Swup 换页期间：冻结 banner 过渡 + 抑制 mobile-* 类的布局效果，
+     让容器像桌面端一样稳定；换页结束后 CSS transition 自然接管 */
   html.is-changing #banner-wrapper,
-  html.is-changing .main-panel,
-  html.is-changing .absolute.w-full.z-30,
-  html.is-animating #banner-wrapper,
-  html.is-animating .main-panel,
-  html.is-animating .absolute.w-full.z-30 {
+  html.is-animating #banner-wrapper {
     transition: none !important;
+  }
+
+  /* 换页期间阻止 mobile-hide-banner 隐藏 banner */
+  html.is-changing #banner-wrapper.mobile-hide-banner,
+  html.is-animating #banner-wrapper.mobile-hide-banner {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    visibility: visible !important;
+  }
+
+  /* 换页期间阻止 mobile-main-no-banner 改变 main-panel 的 top */
+  html.is-changing .main-panel.mobile-main-no-banner,
+  html.is-animating .main-panel.mobile-main-no-banner {
+    top: auto !important;
+    min-height: auto !important;
   }
 
   /* Swup 换页期间：banner 保持常驻合成层，避免 toggling contain/will-change 导致换页结束时抽动 */

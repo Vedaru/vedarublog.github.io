@@ -263,7 +263,9 @@ import {
 		document.body.style.position = "";
 		document.body.style.top = "";
 		document.body.style.width = "";
-		window.scrollTo(0, lockedScrollY);
+		// 使用原生 scrollTo 绕过 scroll-protection 的拦截,避免被误导向旧滚动位置
+		var nativeScrollTo = window.__nativeScrollTo || window.scrollTo.bind(window);
+		nativeScrollTo(0, lockedScrollY);
 		isScrollLocked = false;
 	};
 })();

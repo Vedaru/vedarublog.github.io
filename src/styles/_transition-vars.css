@@ -10,6 +10,9 @@
   --transition-easing-out: cubic-bezier(0.55, 0.055, 0.675, 0.19);
   --transition-translate: 1.5rem;
   --transition-stagger: 35ms;
+  /* 移动端主面板位置过渡变量 — 桌面端保持较慢的 700ms */
+  --mobile-shift-duration: 700ms;
+  --mobile-shift-easing: cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 @media (max-width: 768px) {
@@ -23,6 +26,13 @@
   :root {
     --transition-translate: 0.3rem;
     --transition-duration: 180ms;
+  }
+}
+
+/* 移动端使用更快的面板位移过渡(≤1279px)，与桌面端(700ms)隔离 */
+@media (max-width: 1279px) {
+  :root {
+    --mobile-shift-duration: 380ms;
   }
 }
 

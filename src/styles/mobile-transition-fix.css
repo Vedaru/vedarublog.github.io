@@ -55,10 +55,9 @@
     transition: all 0.2s ease-in-out;
   }
 
-  /* 优化网格布局切换 — 减少 transition 以避免重排闪烁 */
-  #main-grid {
-    transition: all 0.3s ease-in-out;
-  }
+  /* 网格布局切换由 layout-switching 类 + main-grid-float 动画处理；
+     页面过渡由 transition.css 的 .transition-main 统一管理，
+     #main-grid 自身不设置 transition，避免与页面过渡动画冲突 */
 
   /* 防止图片加载时的闪烁 */
   img {
