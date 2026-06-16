@@ -549,8 +549,15 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
 }
 
 /* Grid 模式下调整主网格布局 */
-/* 注意：页面过渡动画由 transition.css 的 .transition-main 统一管理；
-   #main-grid 自身不设置 transition，避免与页面过渡动画冲突 */
+/* 桌面端：需要 transform 过渡（首页 translateY(30dvh) ↔ 文章页 none）；
+   移动端 transform 始终为 none，无需过渡，由 .transition-main 接管 */
+@media (min-width: 1280px) {
+    #main-grid {
+        transition:
+            transform var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94)),
+            opacity var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
+    }
+}
 
 #main-grid.layout-switching {
     animation: main-grid-float var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));

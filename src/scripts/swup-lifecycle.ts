@@ -426,6 +426,18 @@ function setup() {
 				return;
 			}
 
+			// 桌面端：当前已在目标页时跳过换页，避免同页替换闪动
+			if (window.__pathsEqual) {
+				var targetP = (function () {
+					try { return new URL(visit.to.url, window.location.origin).pathname; }
+					catch (_) { return visit.to.url; }
+				})();
+				if (window.__pathsEqual(window.location.pathname, targetP)) {
+					if (visit.scroll) visit.scroll.reset = false;
+					return;
+				}
+			}
+
 			if (window.__homePreScrollWasUsed) {
 				const tocEarly = document.getElementById("toc-wrapper");
 				if (tocEarly) {
