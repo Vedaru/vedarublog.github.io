@@ -1,5 +1,5 @@
 ---
-title: Cloudflare + Netlify 双层部署的改造：省 credits 与自动回退
+title: Cloudflare + Netlify 双层部署的改造
 published: 2026-06-09
 description: 记录博客从 Netlify 回源 Cloudflare Pages 的架构痛点，以及通过构建跳过与 GitHub Actions DNS 自动切换脚本实现的改进方案。
 tags: [部署, Cloudflare, Netlify, 博客, GitHub Actions]

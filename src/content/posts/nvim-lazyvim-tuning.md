@@ -1,5 +1,5 @@
 ---
-title: 把 Neovim 调教成现代编辑器：从 LazyVim 增强到全盘搜索免 UAC
+title: 把 Neovim 调教成现代编辑器
 published: 2026-06-17
 description: 记录在 LazyVim 基础上把 Neovim 打磨成高效现代编辑器的全过程——核心选项与键位增强、语言支持、纯黑主题、blink.cmp 补全键位改造，以及用 Everything 实现全盘文件名秒搜并通过计划任务绕过 UAC 的踩坑与解法。
 tags: [Neovim, LazyVim, 配置, Windows, Everything]
