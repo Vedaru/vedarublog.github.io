@@ -173,6 +173,20 @@ function handleVisitStart(
 	const needsPreScroll = shouldPreScrollBeforeLeave(visit);
 	const enteringHome = shouldHandleEnteringHome(visit);
 
+	// 桌面“纯进入首页”(article→home，且非离开首页)：不启用预滚动机制，
+	// 交给 Swup 默认换页动画(交叉淡入 + 卡片入场)。预滚动机制会加抑制类并锁滚动，
+	// 把动画整个关掉；其“混合进入”动画又只能跑在离场的文章 DOM 上、布局不成立，
+	// 必然出现瞬移 / 顶部纯色背景抽动。普通导航路径稳定且有动画——
+	// 此时 __homePreScrollWasUsed 保持 false，swup-lifecycle 的 visit:start(优先级 0，
+	// 先于本钩子的 -100)已应用首页 banner/is-home 布局，Swup 会正常播放换页动画。
+	if (
+		window.innerWidth >= 1280 &&
+		enteringHome &&
+		!isLeavingHomePage(visit)
+	) {
+		return;
+	}
+
 	if (!needsPreScroll && !enteringHome) {
 		return;
 	}

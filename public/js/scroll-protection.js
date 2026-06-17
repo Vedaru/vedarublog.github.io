@@ -102,6 +102,17 @@
 			return true;
 		}
 
+		// Swup 换页阶段：放行所有滚动，避免换页后的回顶滚动被旧的 allowedY 拦截/重定向，
+		// 造成"先跳回底部再纠正"的界面抽动（典型：文章底部 Twikoo 触发保护 → 回到顶端 → 主页）
+		var html = document.documentElement;
+		if (
+			html.classList.contains("is-changing") ||
+			html.classList.contains("is-animating") ||
+			html.classList.contains("swup-perf-active")
+		) {
+			return true;
+		}
+
 		// 换页预滚动 / 平滑回顶组件自行驱动 scrollTop
 		if (window.__homePreScrollActive) {
 			return true;
@@ -363,9 +374,29 @@
 		document.addEventListener("DOMContentLoaded", startObserver);
 	}
 
+	// Swup 换页开始时关闭滚动保护：导航属于跨页行为，
+	// 不应让上一页（如文章底部 Twikoo 交互）遗留的保护拦截换页滚动。
+	// 换页结束后若新页面再次发生 Twikoo 交互，会由观察器重新启用。
+	function disableProtectionForNavigation() {
+		scrollProtection.enabled = false;
+		if (scrollProtection.timeout) {
+			clearTimeout(scrollProtection.timeout);
+			scrollProtection.timeout = null;
+		}
+	}
+
+	function registerSwupNavGuard() {
+		if (window.swup && window.swup.hooks) {
+			window.swup.hooks.on("visit:start", disableProtectionForNavigation);
+		}
+	}
+
 	document.addEventListener("swup:enable", () => {
+		registerSwupNavGuard();
 		setTimeout(startObserver, 200);
 	});
+
+	registerSwupNavGuard();
 
 	// 提供全局接口
 	window.scrollProtectionManager = {

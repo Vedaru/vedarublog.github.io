@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 过渡动画 CSS 变量 — 灵感来自 Mizuki 主题
  * 通过 JS 动态控制，实现可配置的过渡效果
  * 所有页面过渡统一使用这些变量，消除 navbar 切换页面时的抽动
@@ -17,15 +17,20 @@
 
 @media (max-width: 768px) {
   :root {
-    --transition-translate: 0rem;
-    --transition-duration: 150ms;
+    /* 对齐 Mizuki：移动端保留轻微上滑位移（0.5rem），不再用 transform:none 砍掉动效。
+       时长向 Mizuki 的 150ms 收敛、略放宽到 180ms，靠缓动曲线而非拖长时间实现丝滑 */
+    --transition-translate: 0.5rem;
+    --transition-duration: 180ms;
+    /* 进入：easeOutCubic 平滑减速尾段更顺；离开：easeInCubic 自然加速淡出 */
+    --transition-easing: cubic-bezier(0.33, 1, 0.68, 1);
+    --transition-easing-out: cubic-bezier(0.32, 0, 0.67, 0);
   }
 }
 
 @media (max-width: 480px) {
   :root {
-    --transition-translate: 0rem;
-    --transition-duration: 120ms;
+    --transition-translate: 0.4rem;
+    --transition-duration: 165ms;
   }
 }
 

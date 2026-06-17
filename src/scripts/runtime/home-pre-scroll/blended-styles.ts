@@ -65,7 +65,11 @@ export function applyBlendedEnteringShift(
 	const bannerWrapper = document.getElementById("banner-wrapper");
 
 	if (isDesktop && gridExtendPx > 0) {
-		const transform = "translateY(" + gridExtendPx * t + "px)";
+		// 进入首页：is-home 已把 banner+grid 整体下推 gridExtendPx，
+		// 这里需先用 -gridExtendPx 把它补偿回文章位置（t=0），再动画归零（t=1）。
+		// 与下方 mainPanel 分支的 -layoutDelta*(1-t) 同构，避免 t=1 残留偏移在
+		// 清除内联样式时瞬间 snap 回 0，导致顶部纯色背景上下抽动。
+		const transform = "translateY(" + -gridExtendPx * (1 - t) + "px)";
 
 		if (mainGrid) {
 			mainGrid.style.transition = "none";

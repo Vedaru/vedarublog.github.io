@@ -168,20 +168,15 @@ html.is-animating .transition-swup-fade {
    移动端优化 — 零位移纯透明度过渡，避免 jitter
    ============================================================ */
 @media (max-width: 768px) {
-  html.is-animating .transition-main {
-    transform: none;
-  }
-
-  html.is-animating.is-leaving .transition-leaving {
-    transform: none;
-  }
+  /* 页面级内容保留轻微上滑位移（仅合成层 transform，不影响布局），
+     配合 _transition-vars.css 的 --transition-translate 让换页更顺滑 */
 
   .transition-slide-in {
-    transform: none;
+    transform: translateY(calc(var(--transition-translate) * 1.2));
   }
 
   .card-animation {
-    transform: scale(0.99);
+    transform: translateY(var(--transition-translate)) scale(0.99);
   }
 
   /* 移动端 — 仅 will-change，不强制合成层避免 stacking context 冲突 */
