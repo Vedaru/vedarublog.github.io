@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 过渡动画 CSS 变量 — 灵感来自 Mizuki 主题
  * 通过 JS 动态控制，实现可配置的过渡效果
  * 所有页面过渡统一使用这些变量，消除 navbar 切换页面时的抽动
@@ -17,22 +17,22 @@
 
 @media (max-width: 768px) {
   :root {
-    --transition-translate: 0.5rem;
+    --transition-translate: 0rem;
     --transition-duration: 150ms;
   }
 }
 
 @media (max-width: 480px) {
   :root {
-    --transition-translate: 0.3rem;
-    --transition-duration: 180ms;
+    --transition-translate: 0rem;
+    --transition-duration: 120ms;
   }
 }
 
 /* 移动端使用更快的面板位移过渡(≤1279px)，与桌面端(700ms)隔离 */
 @media (max-width: 1279px) {
   :root {
-    --mobile-shift-duration: 380ms;
+    --mobile-shift-duration: 280ms;
   }
 }
 

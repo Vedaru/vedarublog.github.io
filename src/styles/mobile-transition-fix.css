@@ -4,47 +4,7 @@
  */
 
 @media (max-width: 768px) {
-  /* 为所有动画元素添加硬件加速 */
-  .transition-main,
-  .transition-leaving,
-  .onload-animation,
-  .transition-slide-in,
-  .card-animation,
-  .nav-animation,
-  #dynamic-sidebar,
-  .widget-container {
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-    -webkit-backface-visibility: hidden;
-    backface-visibility: hidden;
-    -webkit-perspective: 1000px;
-    perspective: 1000px;
-    will-change: transform, opacity;
-  }
-
-  /* 优化页面切换动画 — 移动端使用稍长的 duration 减少急促感 */
-  html.is-changing .transition-main {
-    transition:
-      opacity 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94),
-      transform 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  }
-
-  html.is-leaving .transition-main {
-    transition:
-      opacity 200ms cubic-bezier(0.55, 0.055, 0.675, 0.19),
-      transform 200ms cubic-bezier(0.55, 0.055, 0.675, 0.19);
-  }
-
-  /* 减少移动端动画幅度 */
-  html.is-animating .transition-main {
-    opacity: 0;
-    transform: translateY(0.5rem);
-  }
-
-  html.is-animating.is-leaving .transition-leaving {
-    transform: translateY(-0.5rem);
-    opacity: 0;
-  }
+  /* 为所有动画元素添加硬件加速（不加 perspective 避免子像素抖动） */
 
   /* 优化侧边栏动画 */
   #dynamic-sidebar {
@@ -85,11 +45,11 @@
 /* 超小屏幕设备优化 */
 @media (max-width: 480px) {
   html.is-animating .transition-main {
-    transform: translateY(0.3rem);
+    transform: none;
   }
 
   html.is-animating.is-leaving .transition-leaving {
-    transform: translateY(-0.3rem);
+    transform: none;
   }
 
   #dynamic-sidebar {

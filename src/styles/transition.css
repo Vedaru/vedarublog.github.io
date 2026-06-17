@@ -165,34 +165,35 @@ html.is-animating .transition-swup-fade {
 }
 
 /* ============================================================
-   移动端优化 — 减少动画幅度，避免闪烁
+   移动端优化 — 零位移纯透明度过渡，避免 jitter
    ============================================================ */
 @media (max-width: 768px) {
   html.is-animating .transition-main {
-    transform: translateY(0.5rem);
+    transform: none;
   }
 
   html.is-animating.is-leaving .transition-leaving {
-    transform: translateY(-0.5rem);
+    transform: none;
   }
 
   .transition-slide-in {
-    transform: translateY(0.5rem);
+    transform: none;
   }
 
   .card-animation {
-    transform: translateY(0.5rem) scale(0.99);
+    transform: scale(0.99);
   }
 
-  /* 移动端硬件加速 */
+  /* 移动端 — 仅 will-change，不强制合成层避免 stacking context 冲突 */
   .transition-main,
   .transition-leaving,
   .onload-animation,
   .transition-slide-in,
   .card-animation,
   .nav-animation {
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
   }
 }
 

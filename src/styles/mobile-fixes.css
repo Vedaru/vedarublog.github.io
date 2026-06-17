@@ -448,19 +448,19 @@ html.is-visit-layout-shifting #navbar-wrapper.navbar-hidden {
 
   /* 移动端去掉横向位移动画，避免撑出视口 */
   .card-animation {
-    transform: translateY(10px) scale(0.99);
+    transform: scale(0.99);
   }
 
   .card-animation.visible {
-    transform: translateY(0) scale(1);
+    transform: scale(1);
   }
 
   .transition-slide-in {
-    transform: translateY(8px);
+    transform: none;
   }
 
   .transition-slide-in.active {
-    transform: translateY(0);
+    transform: none;
   }
 
   /* Pio 看板娘：切换页面时保持 fixed 定位，不受主内容 transform 影响 */
@@ -498,7 +498,7 @@ html.is-visit-layout-shifting #navbar-wrapper.navbar-hidden {
   html.is-changing #swup-container,
   html.is-animating #swup-container,
   html.swup-perf-active #swup-container {
-    contain: paint;
+    contain: layout style paint;
     pointer-events: none;
   }
 }
@@ -521,10 +521,8 @@ html.is-visit-layout-shifting #navbar-wrapper.navbar-hidden {
   .nav-animation,
   #dynamic-sidebar,
   .widget-container {
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-    -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
   }
 }
 
