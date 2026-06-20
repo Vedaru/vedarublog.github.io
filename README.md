@@ -76,7 +76,7 @@ DRY_RUN=1 node scripts/netlify-traffic-switch.mjs
 
 切换状态记录在 `.github/netlify-traffic-state.json`。
 
-更详细的背景与踩坑记录见博客：[Cloudflare + Netlify 双层部署的改造](/posts/cloudflare-netlify-traffic-switch)。
+更详细的背景与踩坑记录见博客：[Cloudflare + Netlify 双层部署的改造](https://www.vedaru.cn/posts/cloudflare-netlify-traffic-switch)。
 
 ---
 
