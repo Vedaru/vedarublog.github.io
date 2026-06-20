@@ -23,6 +23,7 @@ const className = Astro.props.class;
 import {
 	buildSidebarTocMarkup,
 	calculateActiveIndicatorPosition,
+	cacheTocEntryOffsets,
 	collectHeadingsFromDocument,
 	isInRange,
 	isPostPagePath,
@@ -42,9 +43,15 @@ class TableOfContents extends HTMLElement {
     headings: HTMLElement[] = [];
     sections: HTMLElement[] = [];
     tocEntries: HTMLAnchorElement[] = [];
+    tocEntryOffsets: (Array<{ offsetTop: number; offsetHeight: number } | null>) = [];
     active: boolean[] = [];
     activeIndicator: HTMLElement | null = null;
     updateRaf = 0;
+    lastToggleTime = 0;
+    cachedTocClientHeight = 0;
+    cachedTocScrollTop = 0;
+    cachedTocScrollHeight = 0;
+    tocScrollHandler: ((() => void) | null) = null;
     smoothScrollEndRaf = 0;
     navbarHeight = 80;
 
@@ -143,6 +150,7 @@ class TableOfContents extends HTMLElement {
             }
         }
 
+        // 阶段1：批量写入 classList（无效化样式，但不触发 layout）
         this.tocEntries.forEach((entry, i) => {
             if (this.active[i]) {
                 entry.classList.add(this.visibleClass);
@@ -154,47 +162,42 @@ class TableOfContents extends HTMLElement {
         if (min > max) {
             // 无可⻅标题时保持指示器在上次位置，不隐藏
             return;
-        } else {
-            const minEntry = this.tocEntries[min];
-            const maxEntry = this.tocEntries[max];
-            if (minEntry && maxEntry && this.tocEl) {
-                const { top, height } = calculateActiveIndicatorPosition(
-                    this.tocEl,
-                    minEntry,
-                    maxEntry,
-                );
-                this.activeIndicator?.setAttribute(
-                    "style",
-                    `top: ${top}px; height: ${height}px`,
-                );
-
-                // 自动滚动 TOC 确保高亮指示器始终在可见范围内
-                const tocEl = this.tocEl;
-                const tocHeight = tocEl.clientHeight;
-                const tocScrollTop = tocEl.scrollTop || 0;
-                const indicatorBottom = top + height;
-                const visibleBottom = tocScrollTop + tocHeight;
-
-                let targetScroll = tocScrollTop;
-                // 指示器超出可视区域底部 → 向下滚动
-                if (indicatorBottom > visibleBottom - 4) {
-                    targetScroll = indicatorBottom - tocHeight + 40;
-                }
-                // 指示器超出可视区域顶部 → 向上滚动
-                else if (top < tocScrollTop + 4) {
-                    targetScroll = top - 40;
-                }
-
-                targetScroll = Math.max(
-                    0,
-                    Math.min(targetScroll, tocEl.scrollHeight - tocHeight),
-                );
-
-                if (Math.abs(targetScroll - tocScrollTop) > 8) {
-                    tocEl.scrollTo({ top: targetScroll, behavior: "smooth" });
-                }
-            }
         }
+
+	const minOffset = this.tocEntryOffsets[min];
+	const maxOffset = this.tocEntryOffsets[max];
+	if (!minOffset || !maxOffset || !this.tocEl) return;
+
+	// 全部使用缓存值计算：offsetTop/offsetHeight 缓存于 init()，clientHeight/scrollHeight/scrollTop 缓存 + 被动跟踪
+	const { top, height } = calculateActiveIndicatorPosition(minOffset, maxOffset);
+	const tocHeight = this.cachedTocClientHeight;
+	const tocScrollTop = this.cachedTocScrollTop;
+	const tocScrollHeight = this.cachedTocScrollHeight;
+	const indicatorBottom = top + height;
+	const visibleBottom = tocScrollTop + tocHeight;
+
+	// 阶段3：批量写入（所有布局读取完成后，不再读取布局属性）
+	this.activeIndicator?.setAttribute(
+		"style",
+		`top: ${top}px; height: ${height}px`,
+	);
+
+	// 纯算术计算目标位置（使用缓存值，零 live 布局查询）
+	let targetScroll = tocScrollTop;
+	if (indicatorBottom > visibleBottom - 4) {
+		targetScroll = indicatorBottom - tocHeight + 40;
+	} else if (top < tocScrollTop + 4) {
+		targetScroll = top - 40;
+	}
+
+	targetScroll = Math.max(
+		0,
+		Math.min(targetScroll, tocScrollHeight - tocHeight),
+	);
+
+	if (Math.abs(targetScroll - tocScrollTop) > 8) {
+		this.tocEl.scrollTo({ top: targetScroll, behavior: "smooth" });
+	}
     };
 
     scrollToActiveHeading = throttle(() => {
@@ -209,26 +212,34 @@ class TableOfContents extends HTMLElement {
         );
         if (activeEntries.length === 0) return;
 
-        const topmost = activeEntries[0];
-        const bottommost = activeEntries[activeEntries.length - 1];
+        const topmost = activeEntries[0] as HTMLElement;
+        const bottommost = activeEntries[activeEntries.length - 1] as HTMLElement;
         const tocHeight = scrollContainer.clientHeight;
 
-        const visibleHeight =
-            bottommost.getBoundingClientRect().bottom -
-            topmost.getBoundingClientRect().top;
+        // 阶段1：批量读取所有布局值（避免与后续 scrollTo 写入交错导致 forced reflow）
+        const topmostRect = topmost.getBoundingClientRect();
+        const bottommostRect = bottommost.getBoundingClientRect();
+        const topmostOffset = topmost.offsetTop;
+        const bottommostOffset = bottommost.offsetTop;
+        const scrollHeight = scrollContainer.scrollHeight;
+        const currentScrollTop = scrollContainer.scrollTop || 0;
 
+        const visibleHeight = bottommostRect.bottom - topmostRect.top;
+
+        // 阶段2：计算目标滚动位置（纯算术，无布局查询）
         let top: number;
         if (visibleHeight < 0.9 * tocHeight) {
-            top = (topmost as HTMLElement).offsetTop - 32;
+            top = topmostOffset - 32;
         } else {
-            top = (bottommost as HTMLElement).offsetTop - tocHeight * 0.8;
+            top = bottommostOffset - tocHeight * 0.8;
         }
 
-        const maxTop = Math.max(0, scrollContainer.scrollHeight - tocHeight);
+        const maxTop = Math.max(0, scrollHeight - tocHeight);
         top = Math.max(0, Math.min(top, maxTop));
 
-        if (Math.abs((scrollContainer.scrollTop || 0) - top) < 24) return;
+        if (Math.abs(currentScrollTop - top) < 24) return;
 
+        // 阶段3：写入（触发滚动，无后续布局读取）
         scrollContainer.scrollTo({ top, left: 0, behavior: "smooth" });
     }, 200);
 
@@ -245,16 +256,31 @@ class TableOfContents extends HTMLElement {
         if (this.isSmoothScrollActive()) return;
         if (!this.sections.length) return;
 
+        const innerHeight = window.innerHeight;
+
+        // 阶段1：批量读取所有布局信息（只读，避免读写交错导致 forced reflow）
+        const rects: Array<{ top: number; bottom: number } | null> = [];
         for (let i = 0; i < this.sections.length; i++) {
-            if (!this.sections[i]) continue;
-            const rect = this.sections[i].getBoundingClientRect();
+            const section = this.sections[i];
+            if (!section) {
+                rects.push(null);
+                continue;
+            }
+            const r = section.getBoundingClientRect();
+            rects.push({ top: r.top, bottom: r.bottom });
+        }
+
+        // 阶段2：基于缓存的布局数据更新状态（只写，不触发额外 reflow）
+        for (let i = 0; i < rects.length; i++) {
+            const rect = rects[i];
+            if (!rect) continue;
             if (
-                isInRange(rect.top, 0, window.innerHeight) ||
-                isInRange(rect.bottom, 0, window.innerHeight) ||
-                (rect.top < 0 && rect.bottom > window.innerHeight)
+                isInRange(rect.top, 0, innerHeight) ||
+                isInRange(rect.bottom, 0, innerHeight) ||
+                (rect.top < 0 && rect.bottom > innerHeight)
             ) {
                 this.active[i] = true;
-            } else if (rect.top > window.innerHeight) {
+            } else if (rect.top > innerHeight) {
                 break;
             }
         }
@@ -311,7 +337,11 @@ class TableOfContents extends HTMLElement {
 
         this.sections = [];
         this.headings = [];
-        this.tocEntries = [];
+        this.tocEntries = []; this.tocEntryOffsets = [];
+if (this.tocScrollHandler && this.scrollContainer) {
+		this.scrollContainer.removeEventListener("scroll", this.tocScrollHandler);
+		this.tocScrollHandler = null;
+	}
         this.active = [];
         this.headingIdxMap.clear();
         this.anchorNavTarget = null;
@@ -357,11 +387,29 @@ class TableOfContents extends HTMLElement {
                 this.headingIdxMap.set(id, i);
             }
         }
-        this.active = new Array(this.tocEntries.length).fill(false);
+	this.active = new Array(this.tocEntries.length).fill(false);
 
-        this.observeSections();
-        this.fallback();
-        this.updateSync();
+	// 将布局读取推迟到 rAF，避免初始化期间 sticky 重算导致 41ms 强制重排
+	requestAnimationFrame(() => {
+		if (!this.isConnected || this.tocEntries.length === 0) return;
+
+		this.tocEntryOffsets = cacheTocEntryOffsets(this.tocEntries as any as HTMLElement[]);
+
+		const container = this.scrollContainer || this.tocEl;
+		if (container) {
+			this.cachedTocClientHeight = container.clientHeight;
+			this.cachedTocScrollHeight = container.scrollHeight;
+			this.cachedTocScrollTop = container.scrollTop || 0;
+
+			if (this.tocScrollHandler) container.removeEventListener("scroll", this.tocScrollHandler);
+			this.tocScrollHandler = () => { this.cachedTocScrollTop = container.scrollTop || 0; };
+			container.addEventListener("scroll", this.tocScrollHandler, { passive: true });
+		}
+
+		this.observeSections();
+		this.fallback();
+		this.updateSync();
+	});
     }
 
     regenerateTOC(retryCount = 0) {

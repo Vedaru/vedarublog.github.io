@@ -270,7 +270,7 @@ export function buildSidebarTocMarkup(
 
 	return (
 		tocHTML +
-				'<div id="active-indicator" style="opacity: 0; top: 0; height: 0" class="-z-10 absolute bg-[var(--toc-btn-hover)] left-0 right-0 rounded-xl transition-all group-hover:bg-transparent border-2 border-[var(--toc-btn-hover)] group-hover:border-[var(--toc-btn-active)] border-dashed pointer-events-none"></div>'
+				'<div id="active-indicator" style="opacity:0;top:0;height:0" class="-z-10 absolute left-0 right-0 rounded-xl transition-all pointer-events-none border-2 border-dashed text-[var(--toc-btn-hover)] bg-[currentColor] border-current group-hover:bg-transparent group-hover:border-[var(--toc-btn-active)]"></div>'
 	);
 }
 
@@ -491,21 +491,37 @@ export function throttle<T extends (...args: unknown[]) => unknown>(
 	};
 }
 
-/** 计算活动指示器的位置（参考 Mizuki useTocScroll） */
+/** 活动指示器位置计算结果（无 layout 查询，使用缓存 offset 值） */
+export interface ActiveIndicatorRect {
+	top: number;
+	height: number;
+}
+
+/** 计算活动指示器的位置
+ *
+ * 使用预缓存的 offsetTop / offsetHeight（TOC 条目位置在滚动期间不变），
+ * 完全避免 getBoundingClientRect() 引发的强制重排。
+ *
+ * @param minEntry - 第一个可见的 TOC 条目（带缓存 offset）
+ * @param maxEntry - 最后一个可见的 TOC 条目（带缓存 offset）
+ */
 export function calculateActiveIndicatorPosition(
-	container: HTMLElement,
-	minEntry: HTMLElement,
-	maxEntry: HTMLElement,
-): { top: number; height: number } {
-	const containerRect = container.getBoundingClientRect();
-	const minRect = minEntry.getBoundingClientRect();
-	const maxRect = maxEntry.getBoundingClientRect();
-
-	// scrollTop 用于将 viewport 相对坐标转换为容器内容坐标，absolutely positioned 元素需要它
-	const top = minRect.top - containerRect.top + container.scrollTop;
-	const height = maxRect.bottom - minRect.top;
-
+	minEntry: { offsetTop: number; offsetHeight: number },
+	maxEntry: { offsetTop: number; offsetHeight: number },
+): ActiveIndicatorRect {
+	const top = minEntry.offsetTop;
+	const height = maxEntry.offsetTop + maxEntry.offsetHeight - minEntry.offsetTop;
 	return { top, height };
+}
+
+/** 为 TOC 条目批量缓存 offsetTop / offsetHeight（在 TOC 生成后调用一次） */
+export function cacheTocEntryOffsets(
+	entries: HTMLElement[],
+): Array<{ offsetTop: number; offsetHeight: number } | null> {
+	return entries.map((el) => {
+		if (!el) return null;
+		return { offsetTop: el.offsetTop, offsetHeight: el.offsetHeight };
+	});
 }
 
 /** 缓存章节区块的文档坐标 */

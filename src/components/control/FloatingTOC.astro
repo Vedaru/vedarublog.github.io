@@ -398,13 +398,18 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 				if (this.isOpen && this.content) {
 					const linkEl = links[activeIndex] as HTMLElement;
 					const contentEl = this.content;
-					const linkTop = linkEl.offsetTop;
-					const linkBottom = linkTop + linkEl.offsetHeight;
-					const scrollTop = contentEl.scrollTop;
-					const viewHeight = contentEl.clientHeight;
 
-					if (linkTop < scrollTop || linkBottom > scrollTop + viewHeight) {
-						contentEl.scrollTop = linkTop - viewHeight / 2;
+					// 阶段1：批量读取所有布局值（避免与后续写入交错导致 forced reflow）
+					const linkOffsetTop = linkEl.offsetTop;
+					const linkOffsetHeight = linkEl.offsetHeight;
+					const contentScrollTop = contentEl.scrollTop;
+					const contentClientHeight = contentEl.clientHeight;
+
+					const linkBottom = linkOffsetTop + linkOffsetHeight;
+
+					// 阶段2：纯算术判断 + 写入
+					if (linkOffsetTop < contentScrollTop || linkBottom > contentScrollTop + contentClientHeight) {
+						contentEl.scrollTop = linkOffsetTop - contentClientHeight / 2;
 					}
 				}
 			}

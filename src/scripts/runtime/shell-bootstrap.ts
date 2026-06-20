@@ -98,7 +98,7 @@
 		} else {
 			isHome =
 				document.body.classList.contains("lg:is-home") &&
-				window.innerWidth >= 1024;
+				(window.__cachedInnerWidth ?? window.innerWidth) >= 1024;
 		}
 		const bannerHeight = isHome
 			? NAVBAR_BANNER_HEIGHT_HOME
@@ -143,8 +143,6 @@
 			return;
 		}
 
-		navbarWrapper.classList.remove("navbar-hidden");
-
 		if (typeof scrollY !== "number") {
 			scrollY =
 				window.__getScrollY?.() ??
@@ -159,6 +157,10 @@
 		const fade = computeNavbarWrapperFade(scrollY, threshold);
 		const fadeKey =
 			fade.opacity.toFixed(3) + ":" + fade.translateRem.toFixed(3);
+
+		// Write class + style after layout reads to avoid forced reflow
+		navbarWrapper.classList.remove("navbar-hidden");
+
 		if (fadeKey === lastNavbarFadeKey) {
 			return;
 		}
@@ -177,15 +179,17 @@
 
 	window.__finalizeNavbarWrapperAfterScroll =
 		function finalizeNavbarWrapperAfterScroll() {
-			document.documentElement.classList.remove(
-				"is-manual-scroll-syncing",
-			);
+		const scrollY =
+			window.__getScrollY?.() ??
+			window.scrollY ??
+			document.documentElement.scrollTop ??
+			0;
 
-			const scrollY =
-				window.__getScrollY?.() ??
-				window.scrollY ??
-				document.documentElement.scrollTop ??
-				0;
+		// Remove sync class after layout reads to avoid forced reflow
+		document.documentElement.classList.remove(
+			"is-manual-scroll-syncing",
+		);
+
 
 			const navbarEl = document.getElementById("navbar");
 			if (

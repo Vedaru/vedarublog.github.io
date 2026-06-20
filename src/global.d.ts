@@ -152,6 +152,7 @@ declare global {
 		__finalizeNavbarWrapperAfterScroll?: () => void;
 		__clearNavbarWrapperInlineStyles?: () => void;
 		__scrollSyncBootstrapped?: boolean;
+		__cachedInnerWidth?: number; // pre-read by flushScrollSync to avoid inter-callback forced reflow
 		__scheduleScrollSync?: (
 			fn: (scrollTop: number, innerHeight: number) => void,
 		) => void;

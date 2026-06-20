@@ -28,23 +28,11 @@
 	};
 
 	// 检测是否为TOC导航触发的滚动
+	// 不再使用 new Error().stack（在每次 scrollTo/scrollBy 拦截中生成调用栈极其昂贵，
+	// 是 Chrome "Forced reflow" Violation 的主要来源之一）。
+	// 改为完全依赖轻量级标记：tocClickTimestamp + activeElement 检测。
 	function checkIsTOCNavigation() {
-		// 检查调用堆栈，看是否来自TOC组件
-		const stack = new Error().stack;
-		if (
-			stack &&
-			(stack.includes("handleAnchorClick") ||
-				stack.includes("TOC.astro") ||
-				stack.includes("MobileTOC") ||
-				stack.includes("FloatingTOC") ||
-				stack.includes("__smoothScrollToElement") ||
-				stack.includes("__smoothScrollToTop") ||
-				stack.includes("__smoothScrollToY"))
-		) {
-			return true;
-		}
-
-		// 检查最近是否有TOC点击事件
+		// 检查最近是否有TOC点击事件（由 TOC.astro / FloatingTOC.astro 在点击时设置）
 		if (
 			window.tocClickTimestamp &&
 			Date.now() - window.tocClickTimestamp < 1000

@@ -427,6 +427,19 @@ body::-webkit-scrollbar {
     @apply opacity-0 pointer-events-none;
   }
 
+  /* 优化 sticky 元素滚动性能：隔离布局重算，提升至合成层减少强制重排开销 */
+  #sidebar-sticky,
+  #right-sidebar-sticky {
+    contain: layout style;
+    will-change: transform;
+  }
+
+  /* #top-row 是 navbar-wrapper 的父容器；transition-all 会使子元素 sticky
+     位置变化时触发全属性过渡快照，显著放大强制重排耗时 */
+  #top-row {
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+
   html.is-home-pre-scrolling #toc-wrapper,
   html.is-visit-pre-scrolling #toc-wrapper,
   html.swup-perf-active #toc-wrapper,

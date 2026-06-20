@@ -13,6 +13,8 @@
 		const scrollTop =
 			window.scrollY || document.documentElement.scrollTop || 0;
 		const innerHeight = window.innerHeight;
+		// 预读 innerWidth，供回调链使用，避免回调 A 写入后回调 B 再读 layout 导致 forced reflow
+		window.__cachedInnerWidth = window.innerWidth;
 		const pending = Array.from(callbacks);
 		callbacks.clear();
 
