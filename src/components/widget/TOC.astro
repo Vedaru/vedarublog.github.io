@@ -196,7 +196,7 @@ class TableOfContents extends HTMLElement {
 	);
 
 	if (Math.abs(targetScroll - tocScrollTop) > 8) {
-		this.tocEl.scrollTo({ top: targetScroll, behavior: "smooth" });
+			this.tocEl.scrollTo({ top: targetScroll, behavior: "smooth" });
 	}
     };
 
@@ -357,9 +357,10 @@ if (this.tocScrollHandler && this.scrollContainer) {
         this.regenerateTOC();
 
         this.tocEl = this;
-        this.scrollContainer =
-            (this.closest("#toc-inner-wrapper") as HTMLElement | null) ||
-            this.tocEl;
+        // #toc-inner-wrapper has overflow:hidden and never scrolls.
+        // The actual scrollable element is <table-of-contents> itself,
+        // which has overflow:auto via its CSS.
+        this.scrollContainer = this.tocEl;
 
         this.tocEl.addEventListener("click", this.handleAnchorClick, {
             capture: true,
