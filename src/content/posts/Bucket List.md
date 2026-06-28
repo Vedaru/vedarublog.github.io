@@ -8,7 +8,7 @@ draft: false
 
 # Bucket List  
 
-一个助力我不知死活的理想的愿望清单    
+一个助力我不知死活的理想的愿望清单
 
 "Stay hungry, stay foolish."  --Steve Jobs
 
@@ -22,6 +22,8 @@ NVIDIA DGX Spark
 
 NVIDIA RTX 4090
 
+Wacom CTL672
+
 ---  
 
 ## Things to Do  
@@ -33,3 +35,9 @@ NVIDIA RTX 4090
 本地部署一个AI智能体（并把ta调教成猫娘bushi）  
 
 弹奏出如同拿不拿一样抓耳的电吉他riff  
+
+完成一张板绘作品
+
+参与一个开源软件项目的开发或者是维护
+
+渲染一部2D或者是3D动画小短片
