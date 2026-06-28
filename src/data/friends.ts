@@ -90,7 +90,7 @@ export const friendsData: FriendItem[] = [
 		title: "mratgnothing",
 		imgurl: "https://avatars.githubusercontent.com/u/251090025?v=4",
 		desc: "cpy鸽鸽",
-		siteurl: "https://mratg.netlify.app/",
+		siteurl: "https://mra-t-g-blog.cn/",
 		tags: ["Developer"],
 	},
 	{
