@@ -12,7 +12,8 @@
   /* 复制按钮样式 (Copy Button) */
   .copy-btn {
     all: initial;
-    @apply opacity-0 absolute active:scale-90 h-8 w-8 top-3 right-3 text-sm rounded-lg transition-all ease-in-out z-20 cursor-pointer;
+    @apply opacity-0 absolute active:scale-90 h-8 w-8 top-3 right-3 text-sm rounded-lg ease-in-out z-20 cursor-pointer;
+    transition: background-color 0.15s, transform 0.15s;
     background: var(--btn-regular-bg);
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     display: flex;
@@ -50,9 +51,16 @@
     @apply opacity-100;
   }
 
-  /* 悬停 frame 时显示复制按钮 */
+  /* Desktop: hover 显示复制按钮 */
   .frame:hover .copy-btn {
     opacity: 1;
+  }
+
+  /* Mobile: 触碰 frame 切换显示按钮 */
+  @media (hover: none) {
+    .frame.show-buttons .copy-btn {
+      opacity: 1;
+    }
   }
 }
 
@@ -95,7 +103,7 @@
   color: var(--btn-content);
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   cursor: pointer;
-  transition: all 0.15s ease-in-out;
+  transition: background-color 0.15s, transform 0.15s;
 }
 
 /* 悬停状态 */
@@ -108,9 +116,16 @@
   transform: scale(0.9);
 }
 
-/* Frame 悬停时显示按钮 */
+/* Desktop: hover 显示折叠按钮 */
 .expressive-code.collapsible .frame:hover .collapse-toggle-btn {
   opacity: 1;
+}
+
+/* Mobile: 触碰 frame 切换显示折叠按钮 */
+@media (hover: none) {
+  .expressive-code.collapsible .frame.show-buttons .collapse-toggle-btn {
+    opacity: 1;
+  }
 }
 
 /* 按钮图标 */
@@ -185,11 +200,6 @@
   /* 折叠高度微调 */
   .expressive-code.collapsed .frame pre {
     max-height: 4.5rem;
-  }
-
-  /* 隐藏语言标签以节省空间 */
-  .expressive-code [data-language]::before {
-    display: none !important;
   }
 }
 

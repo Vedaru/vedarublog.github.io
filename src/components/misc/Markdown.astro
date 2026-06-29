@@ -13,7 +13,26 @@ const className = Astro.props.class;
 <script>
 document.addEventListener("click", function (e: MouseEvent) {
     const target = e.target as Element | null;
-    if (target && target.classList.contains("copy-btn")) {
+    if (!target) return;
+
+    // Mobile: tap frame to toggle between badge and buttons
+    const frame = target.closest(".frame");
+    if (frame && !target.closest(".copy-btn") && !target.closest(".collapse-toggle-btn")) {
+        // Remove .show-buttons from all other frames
+        document.querySelectorAll(".frame.show-buttons").forEach(f => {
+            if (f !== frame) f.classList.remove("show-buttons");
+        });
+        // Toggle this frame
+        frame.classList.toggle("show-buttons");
+        return;
+    }
+
+    // Clicked outside any frame — dismiss all
+    if (!frame) {
+        document.querySelectorAll(".frame.show-buttons").forEach(f => f.classList.remove("show-buttons"));
+    }
+
+    if (target.classList.contains("copy-btn")) {
         const codeEle = target.parentElement?.querySelector("code");
         
         // 精确的代码提取逻辑

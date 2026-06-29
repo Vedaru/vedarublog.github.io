@@ -1,5 +1,8 @@
 /**
  * Based on the discussion at https://github.com/expressive-code/expressive-code/issues/153#issuecomment-2282218684
+ *
+ * Desktop (hover): badge visible, hides on hover to reveal copy/collapse buttons.
+ * Mobile  (touch): badge visible, hides on touch to reveal copy/collapse buttons.
  */
 import { definePlugin } from "@expressive-code/core";
 
@@ -8,17 +11,16 @@ export function pluginLanguageBadge() {
 		name: "Language Badge",
 		hooks: {
 			postprocessRenderedBlock: ({ codeBlock, renderData }) => {
-				// 把语言信息添加到 .frame 上
 				const language = codeBlock.language;
 				if (language && renderData.blockAst.properties) {
 					renderData.blockAst.properties["data-language"] = language;
 				}
 			},
 		},
-		baseStyles: ({}) => `
+		baseStyles: () => `
       .frame[data-language]:not(.has-title):not(.is-terminal) {
         position: relative;
-        
+
         &::after {
           position: absolute;
           z-index: 2;
@@ -34,15 +36,25 @@ export function pluginLanguageBadge() {
           background: var(--btn-regular-bg);
           border-radius: 0.5rem;
           pointer-events: none;
-          transition: opacity 0.3s;
           opacity: 0;
         }
-        
+
+        /* Desktop: show badge, swap to buttons on hover */
         @media (hover: hover) {
           &::after {
             opacity: 1;
           }
           &:hover::after {
+            opacity: 0;
+          }
+        }
+
+        /* Mobile: show badge, tap frame to reveal buttons */
+        @media (hover: none) {
+          &::after {
+            opacity: 1;
+          }
+          &.show-buttons::after {
             opacity: 0;
           }
         }
