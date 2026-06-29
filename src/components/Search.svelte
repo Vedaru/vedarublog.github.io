@@ -77,16 +77,24 @@ const toggleDesktopSearch = () => {
 	}
 };
 
+// 折叠搜索栏前先 blur 输入框，避免 aria-hidden 施加于已聚焦的元素
+const collapseSearchBar = () => {
+	clearTimeout(blurTimer);
+	const input = document.getElementById("search-input-desktop") as HTMLInputElement;
+	input?.blur();
+	isDesktopSearchExpanded = false;
+};
+
 const collapseDesktopSearch = () => {
 	if (!keywordDesktop) {
-		isDesktopSearchExpanded = false;
+		collapseSearchBar();
 	}
 };
 
 const handleBlur = () => {
 	// 延迟处理以允许搜索结果的点击事件先于折叠逻辑执行
 	blurTimer = setTimeout(() => {
-		isDesktopSearchExpanded = false;
+		collapseSearchBar();
 		// 仅隐藏面板并折叠，保留搜索关键词和结果以便下次展开时查看
 		setPanelVisibility(false, true);
 	}, 200);
@@ -111,6 +119,8 @@ const closeSearchPanel = (): void => {
 	keywordDesktop = "";
 	keywordMobile = "";
 	result = [];
+	// 立即折叠桌面搜索框，避免空搜索栏保持展开状态造成 jitter
+	collapseSearchBar();
 };
 
 const handleResultClick = (event: Event, url: string): void => {
@@ -261,7 +271,7 @@ onDestroy(() => {
         onfocus={() => {
             handleSearchInteraction();
             clearTimeout(blurTimer);
-            if (!isDesktopSearchExpanded) toggleDesktopSearch(); 
+            if (!isDesktopSearchExpanded) toggleDesktopSearch();
             search(keywordDesktop, true);
         }}
         onblur={handleBlur}
