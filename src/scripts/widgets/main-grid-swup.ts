@@ -3,6 +3,7 @@ export interface MainGridSwupConfig {
 	defaultWallpaperMode: string;
 	defaultPostListLayout: string;
 	allowPostListSwitch: boolean;
+	allowWallpaperSwitch: boolean;
 }
 
 export function initMainGridSwup(config: MainGridSwupConfig): void {
@@ -11,6 +12,7 @@ export function initMainGridSwup(config: MainGridSwupConfig): void {
 		defaultWallpaperMode,
 		defaultPostListLayout,
 		allowPostListSwitch,
+		allowWallpaperSwitch,
 	} = config;
 
 	function setMainGridLayout(mainGrid, layout) {
@@ -20,7 +22,10 @@ export function initMainGridSwup(config: MainGridSwupConfig): void {
 	}
 
 	function getWallpaperMode() {
-		return localStorage.getItem("wallpaperMode") || defaultWallpaperMode;
+		if (allowWallpaperSwitch) {
+			return localStorage.getItem("wallpaperMode") || defaultWallpaperMode;
+		}
+		return defaultWallpaperMode;
 	}
 
 	function getPostListLayout() {

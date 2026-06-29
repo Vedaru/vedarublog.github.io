@@ -298,19 +298,10 @@ if (siteConfig.font) {
 				bannerOffset,
 			);
 
-			// 壁纸模式 — 首屏前写入 html data 属性，CSS 驱动布局（避免 CLS）
-			var wallpaperMode =
-				localStorage.getItem("wallpaperMode") || defaultWallpaperMode;
-			if (
-				wallpaperMode !== "banner" &&
-				wallpaperMode !== "fullscreen" &&
-				wallpaperMode !== "none"
-			) {
-				wallpaperMode = defaultWallpaperMode;
-			}
+			// 壁纸模式 — 始终使用默认值（禁止用户切换）
 			document.documentElement.setAttribute(
 				"data-wallpaper-mode",
-				wallpaperMode,
+				defaultWallpaperMode,
 			);
 
 			// 文章列表布局 — allowSwitch 关闭时忽略 localStorage 陈旧值

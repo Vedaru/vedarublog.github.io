@@ -224,6 +224,7 @@ const transparentClass = shouldEnableTransparency
 		defaultWallpaperMode: siteConfig.wallpaperMode.defaultMode,
 		defaultPostListLayout: siteConfig.postListLayout?.defaultMode || "list",
 		allowPostListSwitch: siteConfig.postListLayout?.allowSwitch ?? false,
+			allowWallpaperSwitch: siteConfig.wallpaperMode?.showModeSwitchOnMobile !== "off",
 	})} />
 <script>
 	import { initMainGridSwup } from "../scripts/widgets/main-grid-swup";
