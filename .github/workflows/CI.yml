@@ -6,33 +6,105 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
-  actions: write
 
+# 不用 cancel-in-progress：download-music 会 commit+push 触发新 run，
+# 旧 run 继续跑完也不影响（第二次 deploy 覆盖第一次）
 concurrency:
   group: "pages-${{ github.ref }}"
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  check:
-    name: Astro Check
+  download-and-commit:
+    name: Download Music & Commit
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: "10.22.0"
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://github.com/${{ github.repository }}.git
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Fetch latest Bangumi data
+        run: pnpm update-anime
+        env:
+          CI: true
+          BANGUMI_ACCESS_TOKEN: ${{ secrets.BANGUMI_ACCESS_TOKEN }}
+
+      - name: Download music playlist
+        run: node scripts/download-music.js
+
+      - name: Commit and push changes
+        run: |
+          git add -A public/assets/music/ src/data/bangumi-data.json public/assets/anime/cover/ || true
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          # 防循环：如果最新 commit 已经是自动更新，跳过
+          LATEST_MSG=$(git log -1 --pretty=%B 2>/dev/null || true)
+          if echo "$LATEST_MSG" | grep -qE '^chore: update (music|bangumi)'; then
+            echo "Skipping — latest commit is already an automated update"
+            exit 0
+          fi
+
+          git commit -m "chore: update music & bangumi data (automated)"
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+  check:
+    name: Astro Check
+    needs: download-and-commit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Pull 拿到 download-and-commit 刚推的代码
+      - name: Pull latest main
+        run: |
+          git remote set-url origin https://github.com/${{ github.repository }}.git
+          git pull --rebase origin main
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - name: Enable corepack
         run: corepack enable
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 10.22.0
           run_install: false
+
       - name: Cache pnpm store
         uses: actions/cache@v4
         with:
@@ -42,19 +114,22 @@ jobs:
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
+
       - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libvips-dev build-essential
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
       - name: Run Astro Check
         run: pnpm astro check
         env:
           ENABLE_CONTENT_SYNC: false
 
   build-and-deploy:
-    name: Build and Deploy
+    name: Build and Deploy to GitHub Pages
     needs: check
     runs-on: ubuntu-latest
     environment:
@@ -64,6 +139,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Pull 拿到 download-and-commit 刚推的代码
+      - name: Pull latest main
+        run: |
+          git remote set-url origin https://github.com/${{ github.repository }}.git
+          git pull --rebase origin main
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -77,10 +158,6 @@ jobs:
         with:
           version: 10.22.0
           run_install: false
-
-      - name: Install ffmpeg
-        run: |
-          sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Cache pnpm store
         uses: actions/cache@v4
@@ -100,27 +177,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Download latest music playlist
-        run: node scripts/download-music.js
-
-      - name: Fetch latest Bangumi data
-        run: pnpm update-anime
-        env:
-          CI: true
-          BANGUMI_ACCESS_TOKEN: ${{ secrets.BANGUMI_ACCESS_TOKEN }}
-
       - name: Run Astro Build
         run: pnpm build
         env:
           BASE_PATH: "/vedarublog.github.io/"
           PUBLIC_URL: "https://${{ github.repository_owner }}.github.io/vedarublog.github.io"
-
-      - name: Verify build output
-        run: |
-          echo "=== playlist.json in build ==="
-          cat dist/assets/music/playlist.json | head -5 || echo "NOT FOUND"
-          echo "=== dist contents ==="
-          ls -la dist/
 
       - name: Create .nojekyll
         run: touch dist/.nojekyll
@@ -140,8 +201,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
-      - name: Display deployment info
-        run: |
-          echo "🎉 部署成功！"
-          echo "🌐 https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
