@@ -113,8 +113,10 @@ export function initCalendar(config: {
 
 	let currentYear = todayYear;
 	let currentMonth = todayMonth;
-	let selectedDateKey: string | null = null;
+	const todayDateKey = `${todayYear}-${String(todayMonth + 1).padStart(2, "0")}-${String(todayDate).padStart(2, "0")}`;
+	let selectedDateKey: string | null = todayDateKey;
 	let currentView = "day";
+	let transitionTimer: number | null = null;
 
 	const dom = {
 		titleContainer: document.getElementById("calendar-title-container")!,
@@ -183,6 +185,8 @@ export function initCalendar(config: {
 			applyPostsData(cachedData);
 			remoteDataLoaded = true;
 		}
+		// Always try to load remote data on init
+		void loadRemoteCalendarData();
 		renderCalendar();
 	}
 
@@ -219,7 +223,7 @@ export function initCalendar(config: {
 			onCalendarInteraction();
 			currentYear = todayYear;
 			currentMonth = todayMonth;
-			selectedDateKey = null;
+			selectedDateKey = todayDateKey;
 			if (currentView !== "day") closeSelectionPanel();
 			else renderCalendar();
 		});
@@ -236,11 +240,6 @@ export function initCalendar(config: {
 			else selectedDateKey = dateKey;
 
 			renderCalendar();
-			if (selectedDateKey && postDateMap[selectedDateKey]) {
-				renderPostList(postDateMap[selectedDateKey]);
-			} else {
-				showMonthlyPosts();
-			}
 		});
 
 		dom.selectionContent.addEventListener("click", (e) => {
@@ -284,7 +283,8 @@ export function initCalendar(config: {
 		dom.title.textContent = `${currentYear}${yearSuffix} ${monthNames[currentMonth]}`;
 		const isCurrentRealMonth =
 			currentYear === todayYear && currentMonth === todayMonth;
-		const shouldShowReset = !isCurrentRealMonth || selectedDateKey !== null;
+		const shouldShowReset =
+			!isCurrentRealMonth || selectedDateKey !== todayDateKey;
 
 		if (shouldShowReset) dom.backTodayBtn.classList.remove("invisible");
 		else dom.backTodayBtn.classList.add("invisible");
@@ -344,12 +344,26 @@ export function initCalendar(config: {
 			html += `<div ${attrs.join(" ")}>${day}</div>`;
 		}
 
-		dom.grid.innerHTML = html;
-		if (selectedDateKey && postDateMap[selectedDateKey]) {
-			renderPostList(postDateMap[selectedDateKey]);
-		} else {
-			showMonthlyPosts();
+		// Cancel any pending transition and fade out
+		if (transitionTimer !== null) {
+			clearTimeout(transitionTimer);
+			dom.calendarView.classList.remove("cal-fading");
 		}
+		dom.calendarView.classList.add("cal-fading");
+
+		transitionTimer = window.setTimeout(() => {
+			dom.grid.innerHTML = html;
+			if (selectedDateKey && postDateMap[selectedDateKey]) {
+				renderPostList(postDateMap[selectedDateKey]);
+			} else {
+				renderPostList([]);
+			}
+
+			// Fade in
+			void dom.calendarView.offsetHeight;
+			dom.calendarView.classList.remove("cal-fading");
+			transitionTimer = null;
+		}, 150);
 	}
 
 	function showMonthlyPosts() {

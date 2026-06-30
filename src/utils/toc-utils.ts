@@ -270,7 +270,7 @@ export function buildSidebarTocMarkup(
 
 	return (
 		tocHTML +
-				'<div id="active-indicator" style="opacity:0;top:0;height:0" class="-z-10 absolute left-0 right-0 rounded-xl transition-all pointer-events-none border-2 border-dashed text-[var(--toc-btn-hover)] bg-[currentColor] border-current group-hover:bg-transparent group-hover:border-[var(--toc-btn-active)]"></div>'
+		'<div id="active-indicator" style="opacity:0;top:0;height:0" class="-z-10 absolute left-0 right-0 rounded-xl transition-all pointer-events-none border-2 border-dashed text-[var(--toc-btn-hover)] bg-[currentColor] border-current group-hover:bg-transparent group-hover:border-[var(--toc-btn-active)]"></div>'
 	);
 }
 
@@ -510,7 +510,8 @@ export function calculateActiveIndicatorPosition(
 	maxEntry: { offsetTop: number; offsetHeight: number },
 ): ActiveIndicatorRect {
 	const top = minEntry.offsetTop;
-	const height = maxEntry.offsetTop + maxEntry.offsetHeight - minEntry.offsetTop;
+	const height =
+		maxEntry.offsetTop + maxEntry.offsetHeight - minEntry.offsetTop;
 	return { top, height };
 }
 

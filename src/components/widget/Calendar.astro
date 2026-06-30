@@ -182,4 +182,11 @@ const yearSuffix = isChinese ? "年" : " ";
 	.custom-scrollbar::-webkit-scrollbar-thumb:hover {
 		background-color: rgba(156, 163, 175, 0.8);
 	}
+
+	#calendar-view {
+		transition: opacity 150ms ease;
+	}
+	#calendar-view.cal-fading {
+		opacity: 0;
+	}
 </style>

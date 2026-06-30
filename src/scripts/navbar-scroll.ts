@@ -65,7 +65,9 @@ export function initNavbarScroll() {
 					"is-manual-scroll-syncing",
 				)
 			) {
-				document.documentElement.classList.add("is-manual-scroll-syncing");
+				document.documentElement.classList.add(
+					"is-manual-scroll-syncing",
+				);
 			}
 			window.__syncNavbarWrapperForScrollY?.(scrollTop);
 		}

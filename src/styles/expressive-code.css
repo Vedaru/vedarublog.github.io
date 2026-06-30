@@ -13,7 +13,9 @@
   .copy-btn {
     all: initial;
     @apply opacity-0 absolute active:scale-90 h-8 w-8 top-3 right-3 text-sm rounded-lg ease-in-out z-20 cursor-pointer;
-    transition: background-color 0.15s, transform 0.15s;
+    transition:
+      background-color 0.15s,
+      transform 0.15s;
     background: var(--btn-regular-bg);
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     display: flex;
@@ -103,7 +105,9 @@
   color: var(--btn-content);
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   cursor: pointer;
-  transition: background-color 0.15s, transform 0.15s;
+  transition:
+    background-color 0.15s,
+    transform 0.15s;
 }
 
 /* 悬停状态 */

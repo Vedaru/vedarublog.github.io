@@ -50,8 +50,12 @@
 
 		const angle =
 			state.direction * DRIFT_OMEGA * state.elapsedMs + state.phase;
-		const x = ((Math.cos(angle) - state.baseX) * DRIFT_AMPLITUDE).toFixed(4);
-		const y = ((Math.sin(angle) - state.baseY) * DRIFT_AMPLITUDE).toFixed(4);
+		const x = ((Math.cos(angle) - state.baseX) * DRIFT_AMPLITUDE).toFixed(
+			4,
+		);
+		const y = ((Math.sin(angle) - state.baseY) * DRIFT_AMPLITUDE).toFixed(
+			4,
+		);
 		img.style.transform = `translate3d(${x}%, ${y}%, 0)`;
 	}
 

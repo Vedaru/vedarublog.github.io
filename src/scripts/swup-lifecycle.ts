@@ -327,10 +327,7 @@ function setup() {
 	// 返回 false 取消此次 Swup 导航，同时 preventDefault 防止浏览器跟随链接。
 	window.swup.hooks.on(
 		"link:click",
-		(
-			_visit: unknown,
-			context?: { el?: Element; event?: Event },
-		) => {
+		(_visit: unknown, context?: { el?: Element; event?: Event }) => {
 			const html = document.documentElement;
 			const isInTransition =
 				html.classList.contains("is-changing") ||
@@ -429,8 +426,12 @@ function setup() {
 			// 桌面端：当前已在目标页时跳过换页，避免同页替换闪动
 			if (window.__pathsEqual) {
 				var targetP = (function () {
-					try { return new URL(visit.to.url, window.location.origin).pathname; }
-					catch (_) { return visit.to.url; }
+					try {
+						return new URL(visit.to.url, window.location.origin)
+							.pathname;
+					} catch (_) {
+						return visit.to.url;
+					}
 				})();
 				if (window.__pathsEqual(window.location.pathname, targetP)) {
 					if (visit.scroll) visit.scroll.reset = false;

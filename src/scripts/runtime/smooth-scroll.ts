@@ -264,7 +264,8 @@ import {
 		document.body.style.top = "";
 		document.body.style.width = "";
 		// 使用原生 scrollTo 绕过 scroll-protection 的拦截,避免被误导向旧滚动位置
-		var nativeScrollTo = window.__nativeScrollTo || window.scrollTo.bind(window);
+		var nativeScrollTo =
+			window.__nativeScrollTo || window.scrollTo.bind(window);
 		nativeScrollTo(0, lockedScrollY);
 		isScrollLocked = false;
 	};

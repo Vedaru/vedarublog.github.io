@@ -23,7 +23,9 @@ export function initMainGridSwup(config: MainGridSwupConfig): void {
 
 	function getWallpaperMode() {
 		if (allowWallpaperSwitch) {
-			return localStorage.getItem("wallpaperMode") || defaultWallpaperMode;
+			return (
+				localStorage.getItem("wallpaperMode") || defaultWallpaperMode
+			);
 		}
 		return defaultWallpaperMode;
 	}
@@ -226,67 +228,67 @@ export function initMainGridSwup(config: MainGridSwupConfig): void {
 
 	// Swup 页面过渡布局同步
 	function setupSwupLayoutSync() {
+		// @ts-ignore
+		if (typeof window !== "undefined" && window.swup) {
+			// animation:out:start 前准备布局
 			// @ts-ignore
-			if (typeof window !== "undefined" && window.swup) {
-				// animation:out:start 前准备布局
-				// @ts-ignore
-					window.swup.hooks.on("animation:out:start", function () {
-						var pendingLayout = getPostListLayout();
-						if (pendingLayout) {
-							// @ts-ignore
-							window.__pendingLayoutMode = pendingLayout;
-						}
-					});
-
-					// 在内容替换后立即应用布局，不等待其他脚本
+			window.swup.hooks.on("animation:out:start", function () {
+				var pendingLayout = getPostListLayout();
+				if (pendingLayout) {
 					// @ts-ignore
-					window.swup.hooks.on("content:replace", function () {
-						const mainGrid = document.getElementById("main-grid");
-						if (mainGrid) {
-							// @ts-ignore
-							const currentLayout =
-								window.__pendingLayoutMode || getPostListLayout();
-							setMainGridLayout(mainGrid, currentLayout);
-							syncPostListDataset(currentLayout);
-							const postListContainer = document.getElementById(
-								"post-list-container",
+					window.__pendingLayoutMode = pendingLayout;
+				}
+			});
+
+			// 在内容替换后立即应用布局，不等待其他脚本
+			// @ts-ignore
+			window.swup.hooks.on("content:replace", function () {
+				const mainGrid = document.getElementById("main-grid");
+				if (mainGrid) {
+					// @ts-ignore
+					const currentLayout =
+						window.__pendingLayoutMode || getPostListLayout();
+					setMainGridLayout(mainGrid, currentLayout);
+					syncPostListDataset(currentLayout);
+					const postListContainer = document.getElementById(
+						"post-list-container",
+					);
+					if (postListContainer) {
+						// 移除现有布局类
+						postListContainer.classList.remove(
+							"list-mode",
+							"grid-mode",
+						);
+
+						if (currentLayout === "grid") {
+							postListContainer.classList.add("grid-mode");
+							postListContainer.classList.add(
+								"grid",
+								"grid-cols-1",
+								"lg:grid-cols-2",
+								"gap-6",
 							);
-							if (postListContainer) {
-								// 移除现有布局类
-								postListContainer.classList.remove(
-									"list-mode",
-									"grid-mode",
-								);
-
-								if (currentLayout === "grid") {
-									postListContainer.classList.add("grid-mode");
-									postListContainer.classList.add(
-										"grid",
-										"grid-cols-1",
-										"lg:grid-cols-2",
-										"gap-6",
-									);
-									postListContainer.classList.remove(
-										"flex",
-										"flex-col",
-									);
-								} else {
-									postListContainer.classList.add("list-mode");
-									postListContainer.classList.add("flex", "flex-col");
-									postListContainer.classList.remove(
-										"grid",
-										"grid-cols-1",
-										"lg:grid-cols-2",
-										"gap-6",
-									);
-								}
-							}
-
-							// 清除临时状态
-							// @ts-ignore
-							delete window.__pendingLayoutMode;
+							postListContainer.classList.remove(
+								"flex",
+								"flex-col",
+							);
+						} else {
+							postListContainer.classList.add("list-mode");
+							postListContainer.classList.add("flex", "flex-col");
+							postListContainer.classList.remove(
+								"grid",
+								"grid-cols-1",
+								"lg:grid-cols-2",
+								"gap-6",
+							);
 						}
-					});
+					}
+
+					// 清除临时状态
+					// @ts-ignore
+					delete window.__pendingLayoutMode;
+				}
+			});
 
 			return true;
 		}

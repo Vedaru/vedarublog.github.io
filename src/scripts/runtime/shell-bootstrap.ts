@@ -179,17 +179,16 @@
 
 	window.__finalizeNavbarWrapperAfterScroll =
 		function finalizeNavbarWrapperAfterScroll() {
-		const scrollY =
-			window.__getScrollY?.() ??
-			window.scrollY ??
-			document.documentElement.scrollTop ??
-			0;
+			const scrollY =
+				window.__getScrollY?.() ??
+				window.scrollY ??
+				document.documentElement.scrollTop ??
+				0;
 
-		// Remove sync class after layout reads to avoid forced reflow
-		document.documentElement.classList.remove(
-			"is-manual-scroll-syncing",
-		);
-
+			// Remove sync class after layout reads to avoid forced reflow
+			document.documentElement.classList.remove(
+				"is-manual-scroll-syncing",
+			);
 
 			const navbarEl = document.getElementById("navbar");
 			if (

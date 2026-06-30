@@ -89,8 +89,12 @@ html.is-animating .transition-swup-fade {
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* 页面加载动画 — 仅 opacity，避免 translateY 计入 CLS */
@@ -109,11 +113,21 @@ html.is-animating .transition-swup-fade {
 }
 
 /* 渐进式动画延迟 */
-.onload-animation:nth-child(1) { animation-delay: calc(var(--transition-stagger) * 0); }
-.onload-animation:nth-child(2) { animation-delay: calc(var(--transition-stagger) * 1); }
-.onload-animation:nth-child(3) { animation-delay: calc(var(--transition-stagger) * 2); }
-.onload-animation:nth-child(4) { animation-delay: calc(var(--transition-stagger) * 3); }
-.onload-animation:nth-child(5) { animation-delay: calc(var(--transition-stagger) * 4); }
+.onload-animation:nth-child(1) {
+  animation-delay: calc(var(--transition-stagger) * 0);
+}
+.onload-animation:nth-child(2) {
+  animation-delay: calc(var(--transition-stagger) * 1);
+}
+.onload-animation:nth-child(3) {
+  animation-delay: calc(var(--transition-stagger) * 2);
+}
+.onload-animation:nth-child(4) {
+  animation-delay: calc(var(--transition-stagger) * 3);
+}
+.onload-animation:nth-child(5) {
+  animation-delay: calc(var(--transition-stagger) * 4);
+}
 
 /* 特殊元素的动画 */
 .transition-slide-in {
