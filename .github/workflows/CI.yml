@@ -16,82 +16,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  download-music:
-    name: Download Music
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: "10.22.0"
-      - name: Install ffmpeg
-        run: |
-          sudo apt-get update && sudo apt-get install -y ffmpeg
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Download music and generate playlist
-        run: node scripts/download-music.js
-      - name: Upload music assets as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: music-data
-          path: |
-            public/assets/music/playlist.json
-            public/assets/music/url/
-            public/assets/music/cover/
-          retention-days: 1
-
-  update-bangumi:
-    name: Update Bangumi Data
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: "10.22.0"
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Fetch Bangumi collections
-        run: pnpm update-anime
-        env:
-          CI: true
-          BANGUMI_ACCESS_TOKEN: ${{ secrets.BANGUMI_ACCESS_TOKEN }}
-      - name: Upload bangumi data as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: bangumi-data
-          path: |
-            src/data/bangumi-data.json
-            public/assets/anime/cover/
-          retention-days: 1
-
   check:
     name: Astro Check
     runs-on: ubuntu-latest
-    needs: [download-music, update-bangumi]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Download music artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: music-data
-      - name: Download bangumi artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: bangumi-data
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -112,7 +42,7 @@ jobs:
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
-      - name: Install system dependencies (libvips)
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libvips-dev build-essential
@@ -133,25 +63,25 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Download music artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: music-data
-      - name: Download bangumi artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: bangumi-data
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
       - name: Enable corepack
         run: corepack enable
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 10.22.0
           run_install: false
+
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+
       - name: Cache pnpm store
         uses: actions/cache@v4
         with:
@@ -161,42 +91,56 @@ jobs:
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-pnpm-store-
-      - name: Install system dependencies (libvips)
+
+      - name: Install system dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libvips-dev build-essential
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Download latest music playlist
+        run: node scripts/download-music.js
+
+      - name: Fetch latest Bangumi data
+        run: pnpm update-anime
+        env:
+          CI: true
+          BANGUMI_ACCESS_TOKEN: ${{ secrets.BANGUMI_ACCESS_TOKEN }}
+
       - name: Run Astro Build
         run: pnpm build
         env:
           BASE_PATH: "/vedarublog.github.io/"
           PUBLIC_URL: "https://${{ github.repository_owner }}.github.io/vedarublog.github.io"
+
       - name: Verify build output
         run: |
-          echo "=== 验证构建输出 ==="
+          echo "=== playlist.json in build ==="
+          cat dist/assets/music/playlist.json | head -5 || echo "NOT FOUND"
+          echo "=== dist contents ==="
           ls -la dist/
-          if [ -f "dist/index.html" ]; then
-            echo "✅ index.html 存在"
-          else
-            echo "❌ index.html 不存在"
-            find . -name "*.html" -type f
-          fi
+
       - name: Create .nojekyll
         run: touch dist/.nojekyll
+
       - name: Create 404 page
         run: |
           if [ -f "dist/index.html" ]; then
             cp dist/index.html dist/404.html
           fi
+
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist
           retention-days: 1
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
       - name: Display deployment info
         run: |
           echo "🎉 部署成功！"
