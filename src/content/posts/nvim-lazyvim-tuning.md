@@ -258,6 +258,176 @@ end or nil,
 
 最终效果：`<leader>fF` 全盘秒搜文件名，**不再弹任何 UAC**；本来就开着 Everything 时不动它，是 nvim 自己拉起的就在关闭时收尾。
 
+## 十、Session 管理：把 `%` 路径改回 `/`
+
+LazyVim 用 `persistence.nvim` 自动保存/恢复 session。这东西在 Linux 上没什么存在感，但在 **Windows 上文件名不能用 `\`、`/`、`:`**，所以它会把路径编码成 `%`：
+
+```
+sessions/D%Personal_Files%Projects%Github%krita-master.vim
+```
+
+我用 Oil 浏览 session 目录时，文件名全是这种鬼东西，根本没法看。
+
+### 排查
+
+翻 `persistence.nvim` 源码，罪魁祸首在 `lua/persistence/init.lua` 第 13 行：
+
+```lua
+local name = vim.fn.getcwd():gsub("[\\/:]+", "%%")
+```
+
+`\`、`/`、`:` 全部被替换成 `%`。这在 Windows 上无可避免——这些字符就是不能出现在文件名里。
+
+最初试了嵌套目录方案（`sessions/D/Personal_Files/Projects/Github/krita-master.vim`），结果 Oil 里变成一棵要层层展开的目录树，找个 session 得点四五层。**我需要的是平铺列表**，每个文件名直接展示完整路径。
+
+### 解法：换一个编码字符
+
+思路很简单：既然 `%` 看着像乱码、`/` 又不合法，那就换一个合法的、视觉上不那么扎眼的字符。选了 `+`，在 Windows 文件名里完全合法，看着也干净：
+
+```lua
+-- lua/plugins/persistence.lua
+return {
+  "folke/persistence.nvim",
+  config = function(_, opts)
+    require("persistence").setup(opts)
+    local P = require("persistence")
+    local Config = require("persistence.config")
+
+    -- 覆盖 current()：用 + 替掉原来的 %
+    P.current = function(opts_arg)
+      opts_arg = opts_arg or {}
+      local name = vim.fn.getcwd():gsub("[\\/:]+", "+")
+      if Config.options.branch and opts_arg.branch ~= false then
+        local branch = P.branch()
+        if branch and branch ~= "main" and branch ~= "master" then
+          name = name .. "+" .. branch:gsub("[\\/:]+", "+")
+        end
+      end
+      return Config.options.dir .. name .. ".vim"
+    end
+
+    -- 覆盖 select()：解码 + → / 用于显示
+    P.select = function()
+      -- ... 遍历 session 文件，把 + 转回 / ...
+      -- 用 vim.ui.select 展示解码后的路径
+    end
+  end,
+}
+```
+
+效果对比：
+
+| 之前 (`%`) | 之后 (`+`) |
+|---|---|
+| `D%Personal_Files%Projects%Github%krita-master.vim` | `D+Personal_Files+Projects+Github+krita-master.vim` |
+
+### Oil 侧的配合
+
+光是文件名改了还不够——加载 session 时的通知、`gy` 复制路径，都应该展示真正的 `/` 而非 `+`。在 `oil.lua` 的 `<CR>` 和 `gy` 里加一层解码：
+
+```lua
+-- 加载 session 时的通知
+local display_name = entry.name:gsub("%.vim$", ""):gsub("%+", "/")
+display_name = display_name:gsub("^([A-Za-z])/", "%1:/")
+vim.notify("Loaded session: " .. display_name)
+
+-- gy 复制路径
+local display_path = abs_path:gsub("\\", "/"):gsub("%+", "/")
+display_path = display_path:gsub("^([A-Za-z])/", "%1:/")
+vim.fn.setreg("+", display_path)
+```
+
+这样通知显示的是 `D:/Personal_Files/Projects/Github/krita-master`，而不是一坨 `%`。
+
+### 顺手修了俩 Bug
+
+追 session 编码的过程中还修了两个 Oil 的小问题：
+
+1. **`-` 回上级目录偶尔失灵**——默认 keymap 写的是 `{ "actions.parent", mode = "n" }`，格式不严谨会掉 mode，补上就好了。
+2. **`E5108: attempt to call field 'select'`**——`oil.actions.select` 是个 action 定义 table，不是函数。需要用 `oil.select()` 而不是 `oil.actions.select()`。
+
+### 收获
+
+- Windows 文件名限制是绕不过去的物理定律，能做的只是挑一个视觉上不那么恶心的编码字符。
+- 改 persistence 的编码要同时改 select 的解码，否则 LazyVim 的 `<leader>qS` 选 session 界面也是乱码。
+- 嵌套目录方案在理论上更「干净」，但在 Oil 这种文件管理器里反而变成坏体验——**平铺列表 + 编码字符**才是正确权衡。
+
+### 补全操作：添加、手动保存、任意 Oil 确认
+
+编码问题解决后，顺手把 session 的日常操作补全了：
+
+**`<leader>qa` — 选目录添加 session**。打开 Oil 让你浏览文件系统，找到项目目录后按 `ga` 即保存 session。代码很简单——Oil buffer 里加一个 keymap，取光标所在目录 `chdir` 后调 `persistence.save()`：
+
+```lua
+-- oil.lua keymaps
+["ga"] = {
+  mode = "n",
+  callback = function()
+    local entry = require("oil").get_cursor_entry()
+    local dir = require("oil").get_current_dir()
+    -- 如果光标在目录上，保存那个目录而不是当前目录
+    if entry and entry.type == "directory" then
+      dir = dir .. entry.name
+    end
+    dir = dir:gsub("\\", "/"):gsub("/+$", "")
+    require("oil").close()
+    vim.fn.chdir(dir)
+    require("persistence").save()
+    vim.notify("Session saved: " .. dir)
+  end,
+},
+```
+
+这里踩了两个坑：
+
+1. **`<leader>a` 被其他插件占用了**，换了 `ga`。虽然 `ga` 在 vim 里是「显示字符编码」的内置命令，但在 Oil buffer 里 buffer-local 映射会覆盖它，完全没有影响。
+
+2. **保存的是当前目录而不是光标所在的目录**。最初只取 `get_current_dir()`，用户把光标移到 `.android` 目录上按 `ga`，结果保存的是 `C:/Users/lenovo`。加了一行判断——光标在 directory 类型条目上时，拼上 `entry.name` 作为目标路径。这样浏览到隐藏目录（如 `.android`）也能直接保存了。
+
+而且 `ga` 不只在 `qa` 里用——**任何 Oil 窗口都能用**。开着 `<leader>qS` 浏览 session 时想存当前目录？`ga` 直接搞定。
+
+**`<leader>qw` — 手动保存当前 session**。persistence.nvim 默认只在退出时自动存，中间想存一下得手动：
+
+```lua
+{ "<leader>qw", function()
+    require("persistence").save()
+    vim.notify("Session saved")
+  end, desc = "Save Current Session" },
+```
+
+**`<leader>qd` — 不保存直接退出**。原来只调 `persistence.stop()` 阻止自动保存，但还是得手动 `:qa`。改成一步到位：
+
+```lua
+{ "<leader>qd", function()
+    require("persistence").stop()
+    vim.cmd("qa")
+  end, desc = "Quit Without Saving Session" },
+```
+
+### 键位冲突：LazyVim 的默认 key 偷偷覆盖
+
+调试时发现一个诡异现象：`<leader>qS` 在 dashboard 能打开 Oil，进了文件缓冲区就失效。
+
+翻了一圈发现是 LazyVim 默认的 persistence 配置里绑了 `keys = { { "<leader>qS", persistence.select } }`。lazy.nvim 的 `keys` 机制会在这个插件加载时（`BufReadPre`，即打开第一个文件）注册键位，**后注册的覆盖先注册的**。所以 dashboard 里我写在 `keymaps.lua` 的绑定生效，一开文件就被 LazyVim 默认值覆盖。
+
+解决方式：把自己的所有 session 键位写进 `plugins/persistence.lua` 的 `keys` 字段里，**替换掉 LazyVim 原始的 keys**，而不是放在 `config/keymaps.lua`。这样加载顺序就对了：
+
+```lua
+return {
+  "folke/persistence.nvim",
+  keys = {
+    { "<leader>qS", function() ... end, desc = "Manage Sessions (Oil)" },
+    { "<leader>qs", function() require("persistence").load() end },
+    { "<leader>ql", function() require("persistence").load({ last = true }) end },
+    { "<leader>qw", function() require("persistence").save() end },
+    { "<leader>qd", function() require("persistence").stop(); vim.cmd("qa") end },
+  },
+  -- ...
+}
+```
+
+规律是：凡是要覆盖 LazyVim 插件自带的 keymap，别写 `keymaps.lua`，写进对应插件的 `keys` 里。
+
 ## 收获小结
 
 - **在 LazyVim 上增强**远比从零搭好维护：只覆盖默认值、用官方扩展补语言，注意 `import` 顺序。
