@@ -56,12 +56,12 @@
     "id": "1966112058"
   },
   {
-    "name": "千鳥",
-    "artist": "ヨルシカ",
-    "url": "/assets/music/url/7-Qian-Niao.opus",
-    "cover": "/assets/music/cover/7-Qian-Niao.webp",
-    "lrc": "https://api.i-meto.com/meting/api?server=netease&type=lrc&id=3355479297&auth=63ebaef80284bee63e23c491534d9bfc76046faf",
-    "id": "3355479297"
+    "name": "Summer Ghost",
+    "artist": "小瀬村晶",
+    "url": "/assets/music/url/7-Summer-Ghost.opus",
+    "cover": "/assets/music/cover/7-Summer-Ghost.webp",
+    "lrc": "https://api.i-meto.com/meting/api?server=netease&type=lrc&id=1930226368&auth=b967672cd0c6a926403376941e8bee1002b030cc",
+    "id": "1930226368"
   },
   {
     "name": "アスノヨゾラ哨戒班",
