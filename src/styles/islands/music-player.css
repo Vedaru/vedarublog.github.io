@@ -48,8 +48,8 @@
 }
 
 .music-player.hidden-mode {
-  width: 48px;
-  height: 48px;
+  /* No explicit width/height — the orb's w-12 h-12 (48px) naturally sizes the container.
+     Avoids CSS transition failure (cannot transition between fixed length and auto). */
 }
 
 .music-player {
@@ -98,9 +98,11 @@
     right: 8px !important;
   }
   .music-player.expanded {
+    right: 8px !important;
+  }
+  .music-player .expanded-player {
     width: calc(100vw - 16px);
     max-width: none;
-    right: 8px !important;
   }
   .music-player .playlist-panel {
     width: calc(100vw - 16px) !important;
@@ -169,6 +171,7 @@
 @media (hover: none) and (pointer: coarse) {
   .music-player button,
   .music-player .playlist-item {
+    min-width: 44px;
     min-height: 44px;
   }
   .music-player .progress-section > div,
