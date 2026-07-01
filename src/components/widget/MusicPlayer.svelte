@@ -56,6 +56,13 @@ onMount(() => {
 	interactionEvents.forEach((event) => {
 		document.addEventListener(event, handleUserInteraction, { capture: true });
 	});
+	// Defer playlist preload until the browser is idle so it never competes
+	// with critical rendering resources (FCP/LCP). Falls back to a short
+	// timeout in browsers that don't support requestIdleCallback.
+	const schedule = window.requestIdleCallback ?? ((fn) => setTimeout(fn, 200));
+	schedule(() => {
+		void ensurePlaylistLoaded();
+	});
 });
 
 async function handlePlayerInteraction(action: () => void) {
@@ -96,7 +103,7 @@ function handleRoleButtonKeydown(
 	on:ended={handleAudioEnded}
 	on:error={handleLoadError}
 	on:loadeddata={handleLoadSuccess}
-	preload="none"
+	preload="metadata"
 ></audio>
 
 <svelte:window

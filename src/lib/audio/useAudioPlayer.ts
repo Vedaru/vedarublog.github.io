@@ -197,10 +197,14 @@ export function createAudioPlayer(options?: CreateAudioPlayerOptions) {
 				}),
 			);
 			playlist.set(songs);
-			if (songs.length > 0) {
-				loadSong(songs[0]);
-			}
-			isLoading.set(false);
+				if (songs.length > 0) {
+					loadSong(songs[0]);
+					// Preload the first song's audio metadata so duration is
+					// available immediately — browser fetches just the metadata
+					// (not the full file) thanks to preload="metadata".
+					syncAudioSrc(songs[0]);
+				}
+				isLoading.set(false);
 		} catch {
 			showErrorMessage(i18n(Key.musicPlayerErrorPlaylist));
 			isLoading.set(false);
