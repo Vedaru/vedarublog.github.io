@@ -173,10 +173,10 @@ export function initCalendar(config: {
 		if (Array.isArray(cachedData) && cachedData.length > 0) {
 			applyPostsData(cachedData);
 			remoteDataLoaded = true;
+			renderCalendar();
 		}
 		// Always try to load remote data on init
 		void loadRemoteCalendarData();
-		renderCalendar();
 	}
 
 	function setupEventListeners() {
