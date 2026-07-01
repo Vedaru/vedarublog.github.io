@@ -13,11 +13,11 @@ draft: false
 
 整个过程踩了不少坑（导入顺序、`fillchars` 报错、神秘竖黑条、UAC 反复弹窗……），所以与其说是「配置教程」，不如说是一份带弯路的实录。
 
-## 起点：一份 LazyVim 配置
+# 起点：一份 LazyVim 配置
 
 初始配置是标准的 LazyVim 脚手架，已有：tokyonight 主题、snacks（picker / explorer / dashboard）、oil 文件管理、基础 LSP，以及一组全模式统一的窗口导航键 `Ctrl-h/j/k/l`。目标是「保留合理的部分，补齐现代编辑器该有的体验」。
 
-## 一、核心选项增强
+# 一、核心选项增强
 
 在 `lua/config/options.lua` 里只追加对 LazyVim 默认值的增强，避免大改：
 
@@ -44,7 +44,7 @@ opt.confirm = true         -- 退出未保存时提示而非报错
 
 > 一个小教训：原本我还设了 Windows 下把内置终端 `shell` 改成 PowerShell，但这需要同时正确设置 `shellcmdflag` / `shellredir` / `shellpipe` 一整套，否则会悄悄破坏 `:!`、Mason 和部分插件的进程调用。权衡之下直接放弃，保持默认 shell 最稳。
 
-## 二、键位与自动命令
+# 二、键位与自动命令
 
 `keymaps.lua` 里补了一批不与 LazyVim 默认冲突的高效键位：
 
@@ -69,7 +69,7 @@ map("n", "n", "nzzzv")
 
 > 我一度想加「失焦自动保存」，但它会与保存时格式化、LSP、文件监听产生意外交互，比较激进，最终砍掉。
 
-## 三、通用语言支持（以及导入顺序的坑）
+# 三、通用语言支持（以及导入顺序的坑）
 
 LazyVim 自带了大量官方语言扩展，直接 `import` 即可获得对应的 LSP、格式化和 Treesitter。我选了通用基础包：JSON / YAML / TOML / Markdown / Docker / Git（Lua 已由 LazyVim 默认内置）。
 
@@ -94,9 +94,9 @@ spec = {
 },
 ```
 
-## 四、外观：纯黑主题与做旧 banner
+# 四、外观：纯黑主题与做旧 banner
 
-### `fillchars` 的一个小报错
+## `fillchars` 的一个小报错
 
 我想用 `opt.fillchars = { eob = " ", foldopen = "...", ... }` 隐藏行尾 `~` 并自定义折叠图标，结果启动报：
 
@@ -110,11 +110,11 @@ E1511: Wrong number of characters for field "foldclose"
 opt.fillchars:append({ eob = " " }) -- 隐藏行尾的 ~
 ```
 
-### 神秘的竖黑条
+## 神秘的竖黑条
 
 启动后画面里时不时出现一条贯穿上下的竖黑条，排查发现是我加的 `colorcolumn = "100"`——在 tokyonight 下 `ColorColumn` 是深色背景，于是变成一条「竖黑条」，窗口够宽时才出现，所以看着像「偶尔」才有。直接删掉了事。
 
-### 纯黑背景
+## 纯黑背景
 
 把 tokyonight 的各类背景统一改成纯黑 `#000000`：
 
@@ -137,7 +137,7 @@ opts = {
 
 顺手把 dashboard 的 banner 改成一种深色泛黄的旧纸张色 `#c2a86b`。这里有个细节：snacks 设置自己的高亮时用的是 `default = true`，**不会覆盖已存在的定义**，所以把 `SnacksDashboardHeader` 写进 tokyonight 的 `on_highlights` 就能稳稳生效。
 
-## 五、补全键位：Tab 确认、Enter 就是 Enter
+# 五、补全键位：Tab 确认、Enter 就是 Enter
 
 LazyVim 现在默认用 **blink.cmp**，其默认是「Enter 接受补全」。我更习惯 **Tab 确认、Enter 只换行**，命令行里则希望「上下方向键选择、Tab 确认」。
 
@@ -164,13 +164,13 @@ return {
 
 一个关键认知：blink 对 `live = true` 的源会把输入文字放进 `filter.search`、而 `pattern` 为空（**不会二次过滤**），这一点在下一节自定义全盘搜索时正好用得上。
 
-## 六、`<leader>fg` 为什么能快速全局搜索
+# 六、`<leader>fg` 为什么能快速全局搜索
 
 顺带理解了一下 `<leader>fg`（snacks 的 live grep）为什么快：它不是用 Lua 自己遍历文件，而是后台 spawn **ripgrep**（多线程、自动遵守 `.gitignore`、异步流式返回），你每改一次关键词就用新词**带防抖地重启查询**，再由 snacks 的快速 matcher 做排序高亮。本质是「ripgrep + 自动忽略无关文件 + 异步流式 + 实时查询」。
 
 注意 `<leader>fg` 搜的是**文件内容**，搜**文件名**是 `<leader>ff`。
 
-## 七、`<leader>fF`：全盘文件名秒搜（Everything）
+# 七、`<leader>fF`：全盘文件名秒搜（Everything）
 
 接着想要一个能搜**整台电脑**文件名的入口。直接用 `fd`/`rg` 扫整个 `C:\` 既慢又吃内存，Windows 上的正解是 **Everything（voidtools）** 的命令行 `es.exe`——它有全盘文件名索引，毫秒级返回。
 
@@ -211,13 +211,13 @@ return {
 1. **Error 8: Everything IPC window not found** —— `es` 只是客户端，必须有 `Everything.exe` 在后台运行。
 2. 我装的是 **Everything 1.5 alpha**，它用**命名实例 `1.5a`**，而 `es` 默认连无名实例，所以必须加 `-instance 1.5a` 才连得上。
 
-## 八、自动启动与退出关闭
+# 八、自动启动与退出关闭
 
 为了不用手动开 Everything，给 `<leader>fF` 加了逻辑：**没运行就启动、且仅当是本次启动的才在 picker 关闭时退出**（用 es 能否连上来判断是否在运行，snacks picker 支持 `on_close` 回调）。
 
 但实测发现：用 `Everything.exe -startup` 拉起的实例是**管理员权限**的（进程 Path 读不到、`taskkill` 拒绝访问、`-exit` 也关不掉）。Everything 1.5a 默认会以服务级权限常驻做 NTFS 索引——这部分非管理员的 nvim 根本动不了。
 
-## 九、最后的硬骨头：绕过 UAC
+# 九、最后的硬骨头：绕过 UAC
 
 调整后 Everything 能以普通权限运行、可被 `-exit` 关闭了，但又冒出新问题：**每次 `<leader>fF` 都弹一次 UAC**（因为 Everything 启动需要管理员去读 NTFS 主文件表）。
 
@@ -258,7 +258,7 @@ end or nil,
 
 最终效果：`<leader>fF` 全盘秒搜文件名，**不再弹任何 UAC**；本来就开着 Everything 时不动它，是 nvim 自己拉起的就在关闭时收尾。
 
-## 十、Session 管理：回到 `%` 编码
+# 十、Session 管理：回到 `%` 编码
 
 LazyVim 用 `persistence.nvim` 自动保存/恢复 session。在 **Windows 上文件名不能用 `\`、`/`、`:`**，所以它会把路径编码成 `%`：
 
@@ -268,7 +268,7 @@ sessions/D%Personal_Files%Projects%Github%krita-master.vim
 
 一开始觉得这太难看了，折腾了好几轮想换掉它。
 
-### 失败的尝试
+## 失败的尝试
 
 **方案一：嵌套目录**。把 `D%Personal_Files%...%krita-master.vim` 拆成 `sessions/D/Personal_Files/.../Github/krita-master.vim`。Oil 里变成一棵层层展开的目录树，找个 session 要穿过四五层——**完全不可用**。
 
@@ -286,12 +286,12 @@ local display_name = entry.name:gsub("%.vim$", ""):gsub("%%", "/")
 display_name = display_name:gsub("^([A-Za-z])/", "%1:/")
 ```
 
-### 顺手修了俩 Bug
+## 顺手修了俩 Bug
 
 1. **`-` 回上级目录偶尔失灵**——默认 keymap 格式不严谨会掉 mode，补上 `{ "actions.parent", mode = "n" }` 就好。
 2. **`E5108: attempt to call field 'select'`**——`oil.actions.select` 是个 action 定义 table，不是函数。需要用 `oil.select()` 而不是 `oil.actions.select()`。
 
-### 补全操作：`ga`、`qw`、`qd`
+## 补全操作：`ga`、`qw`、`qd`
 
 **`<leader>qa` — 选目录添加 session**。打开 Oil，浏览到目标目录，按 `ga` 保存。`ga` 是所有 Oil 窗口通用的——`qS` 里浏览 session 时也能直接存。
 
@@ -320,7 +320,7 @@ display_name = display_name:gsub("^([A-Za-z])/", "%1:/")
 
 **`<leader>qd`** — `persistence.stop()` + `:qa`，不保存直接退出。
 
-### 清理 Dashboard
+## 清理 Dashboard
 
 Snacks dashboard 默认有个「Restore Session」（`s` 键），但 dashboard 的 cwd 是 home 目录，基本不会有 session，按了静默失败。禁用掉：
 
@@ -328,7 +328,7 @@ Snacks dashboard 默认有个「Restore Session」（`s` 键），但 dashboard 
 dashboard = { sections = { session = { enabled = false } } },
 ```
 
-### 键位冲突：LazyVim 默认 key 覆盖
+## 键位冲突：LazyVim 默认 key 覆盖
 
 调试时发现 `<leader>qS` 在 dashboard 能打开 Oil，一打开文件就失效。原因是 LazyVim 默认在 persistence 配置里绑了 `keys = { { "<leader>qS", persistence.select } }`，在 `BufReadPre` 时注册，**后注册的覆盖先注册的**。
 
@@ -349,7 +349,7 @@ return {
 
 规律：覆盖 LazyVim 插件自带的 keymap，别写 `keymaps.lua`，写进对应插件的 `keys` 里。
 
-## 收获小结
+# 收获小结
 
 - **在 LazyVim 上增强**远比从零搭好维护：只覆盖默认值、用官方扩展补语言，注意 `import` 顺序。
 - 视觉问题往往来自某个不起眼的选项（`colorcolumn` 的竖黑条、`fillchars` 的字符数）。
@@ -358,3 +358,5 @@ return {
 - **不要自己发明编码方案**——`C++` 项目让 `+` 编码彻底翻车，最终回归 Vim 几十年的 `%` 惯例才是正解。
 
 至此，这套 Neovim 配置基本满足我对「高效现代编辑器」的全部期待了。
+
+::github{repo="Vedaru/nvim"}
