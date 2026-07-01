@@ -43,17 +43,6 @@ export function initCalendar(config: {
 		allPostsData = Array.isArray(posts) ? posts : [];
 		resetProcessedData();
 		processPostsData(allPostsData);
-		const currentPostId = getCurrentPostId();
-		if (currentPostId) {
-			const matchedPost = allPostsData.find(
-				(p) => p.id === currentPostId,
-			);
-			if (matchedPost) {
-				const [y, m] = matchedPost.date.split("-");
-				currentYear = parseInt(y);
-				currentMonth = parseInt(m) - 1;
-			}
-		}
 	}
 
 	function arePostsEqual(oldPosts: CalendarPost[], newPosts: CalendarPost[]) {
