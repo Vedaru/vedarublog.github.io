@@ -1,7 +1,7 @@
 ---
-title: 从 Cursor 到终端：我的 GitHub 工作流重构
+title: 工作流重构
 published: 2026-07-05
-description: 从 Cursor IDE + GitHub Copilot 迁移到 Neovim + tmux + Hermes Agent 的全终端工作流，涵盖 WSL2 环境搭建、包管理切换、AI 辅助方式的转变，以及在 4GB 内存下做减法的取舍。
+description: 从 Cursor IDE + GitHub Copilot 迁移到 Neovim + tmux + Hermes Agent 的全终端工作流。
 tags: [Neovim, WSL2, tmux, Hermes, Git, 工作流]
 category: 编程
 draft: false
