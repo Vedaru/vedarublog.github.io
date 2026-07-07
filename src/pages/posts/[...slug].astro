@@ -289,7 +289,7 @@ const jsonLd = {
 
             {
                 isEncrypted ? (
-                    <Encryptor password={entry.data.password}>
+                    <Encryptor password={entry.data.password ?? ""}>
                          <Markdown class="mb-6 markdown-content onload-animation">
                             <Content />
                         </Markdown>
@@ -343,10 +343,10 @@ const jsonLd = {
                     title={entry.data.title}
                     id={entry.id}
                     pubDate={entry.data.published}
-                    author={entry.data.author}
+                    author={entry.data.author || ""}
                     sourceLink={entry.data.sourceLink}
-                    licenseName={entry.data.licenseName}
-                    licenseUrl={entry.data.licenseUrl}
+                    licenseName={entry.data.licenseName || ""}
+                    licenseUrl={entry.data.licenseUrl || ""}
                     class="mb-6 rounded-xl license-container onload-animation"
                 />
                 </div>
