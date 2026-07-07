@@ -11,13 +11,13 @@ if (!siteConfig.featurePages.diary) {
 	return Astro.redirect("/404/");
 }
 
-// 获取日记数据
-const moments = getDiaryList();
-const diaryStats = getDiaryStats();
+// 获取日记数据（异步）
+const moments = await getDiaryList();
+const diaryStats = await getDiaryStats();
 
 // Build grouped year->month structure for TOC and anchor mapping
 const groupedMoments = {} as Record<string, Record<string, typeof moments>>;
-const monthAnchorMap: Record<number, string> = {};
+const monthAnchorMap: Record<string, string> = {};
 for (const m of moments) {
 	const d = new Date(m.date);
 	const y = String(d.getFullYear());
@@ -31,7 +31,7 @@ for (const [y, months] of Object.entries(groupedMoments)) {
 	for (const [month, items] of Object.entries(months)) {
 		if (items.length > 0) {
 			const anchorId = `year-${y}-month-${month}`;
-			monthAnchorMap[items[0].id] = anchorId; // first item for that month
+			monthAnchorMap[items[0].id] = anchorId;
 		}
 	}
 }
@@ -39,7 +39,6 @@ for (const [y, months] of Object.entries(groupedMoments)) {
 // Build a sorted grouped structure (years desc, months desc, items desc)
 const sortedGroupedMoments = {} as Record<string, Record<string, typeof moments>>;
 const yearKeys = Object.keys(groupedMoments).sort((a, b) => parseInt(b) - parseInt(a));
-const sortedYearKeys = yearKeys; // keep explicit array (object keys may reorder numeric-like keys)
 const sortedMonthKeysByYear: Record<string, string[]> = {};
 for (const y of yearKeys) {
 	const months = groupedMoments[y];
@@ -82,52 +81,52 @@ for (const y of yearKeys) {
 
 					<div class="moments-timeline">
 						<div class="timeline-list space-y-4">
-{sortedYearKeys.map((year) => (
-						<>
-							<h1 id={`year-${year}`} class="diary-year-heading mt-2 mb-4 text-xl font-semibold text-90 dark:text-20">{year} 年</h1>
-							{sortedMonthKeysByYear[year].map((month) => (
-								<>
-									<h2 id={`year-${year}-month-${month}`} class="diary-month-heading mt-1 mb-3 text-md font-medium text-black/70 dark:text-white/40">{month} 月</h2>
-									{sortedGroupedMoments[year][month].map((moment) => (
-											<div id={monthAnchorMap[moment.id] ?? undefined} class="moment-item card-base-daily p-4 md:p-6 lg:p-8 hover:shadow-lg transition-all">
-												<div class="moment-content">
-													<p class="moment-text text-sm md:text-base lg:text-lg text-90 leading-relaxed mb-3 md:mb-4" set:html={moment.content.replace(/\n/g, '<br>')}></p>
-													{moment.images && moment.images.length > 0 && (
-													<div class="diary-images grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3 lg:gap-4 mb-3 md:mb-4">
-														{moment.images.map((image, _index) => (
-														<div class="image-item relative rounded-md overflow-hidden aspect-square cursor-pointer hover:scale-105 transition-transform">
-															<a href="javascript:void(0)" data-src={image} data-fancybox={`gallery-${moment.id}-${_index}`} class="block w-full h-full">
-																<img 
-																src={image} 
-																alt="diary moment image"
-																class="w-full h-full object-cover"
-																loading="lazy"
-															/>
-															</a>
+{sortedGroupedMoments && yearKeys.map((year) => (
+							<>
+								<h1 id={`year-${year}`} class="diary-year-heading mt-2 mb-4 text-xl font-semibold text-90 dark:text-20">{year} 年</h1>
+								{sortedMonthKeysByYear[year] && sortedMonthKeysByYear[year].map((month) => (
+									<>
+										<h2 id={`year-${year}-month-${month}`} class="diary-month-heading mt-1 mb-3 text-md font-medium text-black/70 dark:text-white/40">{month} 月</h2>
+										{sortedGroupedMoments[year] && sortedGroupedMoments[year][month] && sortedGroupedMoments[year][month].map((moment) => (
+												<div id={monthAnchorMap[moment.id] ?? undefined} class="moment-item card-base-daily p-4 md:p-6 lg:p-8 hover:shadow-lg transition-all">
+													<div class="moment-content">
+														<div class="moment-text text-sm md:text-base lg:text-lg text-90 leading-relaxed mb-3 md:mb-4" set:html={moment.content.replace(/\n/g, '<br>')}></div>
+														{moment.images && moment.images.length > 0 && (
+														<div class="diary-images grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-3 lg:gap-4 mb-3 md:mb-4">
+															{moment.images.map((image, _index) => (
+															<div class="image-item relative rounded-md overflow-hidden aspect-square cursor-pointer hover:scale-105 transition-transform">
+																<a href="javascript:void(0)" data-src={image} data-fancybox={`gallery-${moment.id}-${_index}`} class="block w-full h-full">
+																	<img 
+																	src={image} 
+																	alt="diary moment image"
+																	class="w-full h-full object-cover"
+																	loading="lazy"
+																	/>
+																</a>
+															</div>
+															))}
 														</div>
-													))}
+														)}
 													</div>
-												)}
-											</div>
-											<hr class="moment-divider border-t border-[var(--line-divider)] my-3 md:my-4" />
-											<div class="moment-footer flex justify-between items-center">
-												<div class="moment-time flex items-center gap-1.5 text-75 text-xs md:text-sm lg:text-base">
-													<i class="time-icon text-xs md:text-sm">🕐</i>
-													<time datetime={moment.date}>
-														{(() => {
-															const d = new Date(moment.date);
-															const m = d.getMonth() + 1;
-															const day = d.getDate();
-															return `${m}月${day}日`;
-														})()}
-													</time>
+													<hr class="moment-divider border-t border-[var(--line-divider)] my-3 md:my-4" />
+													<div class="moment-footer flex justify-between items-center">
+														<div class="moment-time flex items-center gap-1.5 text-75 text-xs md:text-sm lg:text-base">
+															<i class="time-icon text-xs md:text-sm">🕐</i>
+															<time datetime={moment.date}>
+																{(() => {
+																	const d = new Date(moment.date);
+																	const m = d.getMonth() + 1;
+																	const day = d.getDate();
+																	return `${m}月${day}日`;
+																})()}
+															</time>
+														</div>
+													</div>
 												</div>
-											</div>
-										</div>
-									))}
-								</>
-							))}
-						</>
+											))}
+									</>
+								))}
+							</>
 						))}
 					</div>
 
