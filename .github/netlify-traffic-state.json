@@ -1,15 +1,24 @@
 {
-  "checkedAt": "2026-07-01T03:36:11.929Z",
-  "currentMode": "cloudflare",
-  "targetMode": "netlify",
-  "reason": "credits restored (remaining≈300)",
+  "checkedAt": "2026-07-07T07:36:03.915Z",
+  "currentMode": "netlify",
+  "targetMode": "cloudflare",
+  "reason": "credits low (remaining≈-90 ≤ 45)",
   "wwwFqdn": "www.vedaru.cn",
   "dryRun": false,
   "changes": [
-    "www: → CNAME lustrous-sunburst-2ed6f8.netlify.app (dns-only)",
-    "apex: → A 75.2.60.5 (dns-only)"
+    "www: CNAME lustrous-sunburst-2ed6f8.netlify.app → CNAME vedarublog-github-io.pages.dev (proxied)",
+    "apex: A 75.2.60.5 → CNAME vedarublog-github-io.pages.dev (proxied)"
   ],
-  "pagesDomains": [],
+  "pagesDomains": [
+    {
+      "hostname": "www.vedaru.cn",
+      "status": "exists"
+    },
+    {
+      "hostname": "vedaru.cn",
+      "status": "exists"
+    }
+  ],
   "probe": {
     "ok": true,
     "status": 200
