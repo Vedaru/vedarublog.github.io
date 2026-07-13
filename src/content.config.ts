@@ -31,11 +31,7 @@ const postsCollection = defineCollection({
 
 const diaryCollection = defineCollection({
   schema: z.object({
-    date: z.string(),
-    images: z.array(z.string()).optional(),
-    location: z.string().optional(),
-    mood: z.string().optional(),
-    tags: z.array(z.string()).optional(),
+    month: z.string(),
   }),
 });
 

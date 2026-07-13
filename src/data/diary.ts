@@ -1,30 +1,42 @@
 // 日记工具函数
-// 日记条目存放在 src/content/diary/ 目录下，每个 .md 文件代表一条日记
+// 日记条目存放在 src/content/diary/ 目录下，每月一个 .md 文件，## DD 分隔各条目
 
 import { getCollection } from "astro:content";
 
 export interface DiaryItem {
-  id: string;           // slug (filename without extension, e.g. "2025-12-11")
+  id: string;           // slug ("YYYY-MM-DD")
   content: string;      // rendered markdown body
-  date: string;         // ISO date string
+  date: string;         // ISO date string ("YYYY-MM-DDT00:00:00")
   images?: string[];
-  location?: string;
-  mood?: string;
+  location?: string[];
+  mood?: string[];
   tags?: string[];
 }
 
-// 加载所有日记条目
+// 加载所有日记条目（从月文件中按 ## DD 分割提取每日条目）
 async function loadDiaries() {
   const entries = await getCollection("diary");
-  return entries.map((entry) => ({
-    id: entry.id,
-    content: entry.body ?? "",
-    date: String(entry.data.date),
-    images: entry.data.images,
-    location: entry.data.location,
-    mood: entry.data.mood,
-    tags: entry.data.tags,
-  })) as DiaryItem[];
+  const diaryItems: DiaryItem[] = [];
+
+  for (const entry of entries) {
+    const month = entry.data.month as string;
+    const body = entry.body ?? "";
+
+    const sections = body.split(/^## (\d{1,2})$/m);
+    // sections: ['', 'DD', '\n\ncontent...', 'DD', '\n\ncontent...']
+    for (let i = 1; i < sections.length; i += 2) {
+      const day = sections[i].padStart(2, "0");
+      const content = (sections[i + 1] ?? "").trim();
+      if (!content) continue;
+      diaryItems.push({
+        id: `${month}-${day}`,
+        content,
+        date: `${month}-${day}T00:00:00`,
+      });
+    }
+  }
+
+  return diaryItems;
 }
 
 // 获取日记统计数据
