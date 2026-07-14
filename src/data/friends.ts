@@ -117,6 +117,14 @@ export const friendsData: FriendItem[] = [
 		siteurl: "https://c.sakimidare.top/pr01.html",
 		tags: ["Website", "Learning"],
 	},
+  {
+    id: 14,
+    title: "The Rust Programming Language"
+    imgurl: "https://doc.rust-lang.org/book/favicon-8114d1fc.png"
+    desc: "The Book"
+    siteurl: "https://doc.rust-lang.org/book/title-page.html"
+    tags: ["Website", "Learning"]
+  },
 ];
 
 // 获取所有友情链接数据
