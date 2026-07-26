@@ -55,9 +55,9 @@ export default defineConfig({
 			animationClass: "transition-swup-",
 			containers: ["main"],
 			smoothScrolling: false,
-			cache: true,
+			cache: false,
 			// 仅悬停预加载，避免首屏拉取 archive 等页面的脚本链
-			preload: { hover: true, visible: false },
+			preload: { hover: false, visible: false },
 			loadOnIdle: false,
 			accessibility: true,
 			// 各页 CSS head 一致；关闭 head 交换避免换页/切壁纸时外链样式短暂卸载导致线框 FOUC

@@ -2,7 +2,8 @@
 import ConfigCarrier from "@components/ConfigCarrier.astro";
 import FullscreenWallpaper from "@components/misc/FullscreenWallpaper.astro";
 import MusicPlayer from "@components/widget/MusicPlayer.svelte";
-import Pio from "@components/widget/Pio.svelte"; // 使用 Svelte 版本的 Pio 组件
+import Pio from "@components/widget/Pio.svelte";
+import TerminalEasterEgg from "@components/widget/TerminalEasterEgg.svelte";
 import {
 	fullscreenWallpaperConfig,
 	musicPlayerConfig,
@@ -470,6 +471,9 @@ if (siteConfig.font) {
 
 		<!-- Pio 看板娘组件 - 仅在启用时加载 -->
 		{pioConfig.enable && <Pio client:visible />}
+
+<!-- Easter egg: type "holo" on any page -->
+<TerminalEasterEgg client:only="svelte" />
 
 		<!-- Swup 换页滚动锁占位（不参与文档流，避免 300vh 撑高引发 CLS） -->
 		<div id="page-height-extend" aria-hidden="true"></div>
