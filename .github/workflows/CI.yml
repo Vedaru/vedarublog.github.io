@@ -76,7 +76,14 @@ jobs:
           fi
 
           git commit -m "chore: update music & bangumi data (automated)"
-          git pull --rebase origin main
+          # 并发 run 防护：二进制音乐文件冲突时取远端版本（theirs=origin/main），
+          # 若仍有文本冲突则放弃本次更新（下次 run 会自动重试，自愈）。
+          git fetch origin main
+          if ! git rebase -X theirs origin/main 2>/dev/null; then
+            git rebase --abort 2>/dev/null || true
+            echo "Skipping auto-update: rebase conflict (next run will retry)"
+            exit 0
+          fi
           git push origin HEAD:main
 
   check:
