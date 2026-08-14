@@ -68,6 +68,7 @@ declare global {
 		__bannerDriftPause?: () => void;
 		__bannerDriftResume?: () => void;
 		__bannerDriftBootstrapped?: boolean;
+	__bannerDriftResizeBound?: boolean;
 		__homePreScrollActive?: boolean;
 		__smoothScrollActive?: boolean;
 		__smoothScrollBootstrapped?: boolean;

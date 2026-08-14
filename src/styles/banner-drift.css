@@ -26,8 +26,19 @@
   backface-visibility: hidden;
   /* 稳定提升为合成层：动画全程仅 GPU 合成，不触发主线程 layout/paint */
   will-change: transform;
-  /* 对角呼吸漂移：±0.44%（元素尺寸），峰值速度与原 rAF 版（18s 圆周）接近 */
-  animation: banner-drift 20s ease-in-out infinite alternate;
+  /* drift 幅度（px）。由 banner-drift.ts 按图片实际宽度写入（≈0.44% 图宽，
+     与原设计一致）。必须用 px：Firefox 无法将百分比 transform 动画放到
+     合成线程，会退回主线程采样 → 步进式“跳帧”观感。 */
+  --drift-amp: 14px;
+  /* 匀速对角漂移（linear 恒定速度，避免 ease-in-out 两端龟速造成的步进感） */
+  animation: banner-drift 14s linear infinite alternate;
+}
+
+@media (max-width: 767px) {
+  #banner-single-container .banner-breathe-wrap img {
+    /* 无 JS 时的移动端兜底幅度（JS 就绪后会按图宽覆盖） */
+    --drift-amp: 6px;
+  }
 }
 
 /* JS 在换页 / 回顶 / 离屏时添加此类冻结动画（保留当前帧画面） */
@@ -41,12 +52,17 @@ html.is-animating #banner-single-container .banner-breathe-wrap img {
   animation-play-state: paused;
 }
 
+/* px 幅度 + calc 镜像，保证两端关键帧在合成线程可插值 */
 @keyframes banner-drift {
   from {
-    transform: translate3d(-0.44%, -0.44%, 0);
+    transform: translate3d(
+      calc(var(--drift-amp) * -1),
+      calc(var(--drift-amp) * -1),
+      0
+    );
   }
   to {
-    transform: translate3d(0.44%, 0.44%, 0);
+    transform: translate3d(var(--drift-amp), var(--drift-amp), 0);
   }
 }
 

@@ -50,6 +50,42 @@
 	}
 
 	/**
+	 * 按图片实际宽度写入 px 幅度（≈0.44% 图宽，与原设计一致）。
+	 * px 幅度是 Firefox 将动画留在合成线程的关键（百分比 transform 会退回主线程）。
+	 */
+	const DRIFT_AMP_RATIO = 0.0044;
+
+	function updateDriftAmplitude(img: HTMLImageElement) {
+		const width =
+			img.clientWidth || (img.getBoundingClientRect?.().width ?? 0);
+		if (width > 0) {
+			const amp = Math.round(width * DRIFT_AMP_RATIO * 10) / 10;
+			img.style.setProperty("--drift-amp", `${amp}px`);
+		}
+	}
+
+	function updateAllDriftAmplitudes() {
+		getDriftImages().forEach(function (img) {
+			updateDriftAmplitude(img as HTMLImageElement);
+		});
+	}
+
+	let resizeRafId = 0;
+	function onViewportResize() {
+		if (resizeRafId) return;
+		resizeRafId = requestAnimationFrame(function () {
+			resizeRafId = 0;
+			updateAllDriftAmplitudes();
+		});
+	}
+
+	function ensureResizeListener() {
+		if (window.__bannerDriftResizeBound) return;
+		window.__bannerDriftResizeBound = true;
+		window.addEventListener("resize", onViewportResize);
+	}
+
+	/**
 	 * 为单个 drift 图片挂载离屏暂停（IntersectionObserver）。
 	 * observe 后浏览器会立即回调一次当前可见性，因此首屏状态无需额外处理。
 	 */
@@ -57,6 +93,9 @@
 		if (prefersReducedMotion() || img.hasAttribute(OBSERVED_MARK)) return;
 		if (typeof IntersectionObserver === "undefined") return;
 		img.setAttribute(OBSERVED_MARK, "");
+
+		updateDriftAmplitude(img);
+		ensureResizeListener();
 
 		const io = new IntersectionObserver(
 			function (entries) {
