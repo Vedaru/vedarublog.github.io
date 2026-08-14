@@ -1,17 +1,19 @@
 /**
- * Banner / 全屏壁纸微移飘动（布局样式）
+ * Banner 微移飘动（布局样式）
  * 动画由纯 CSS @keyframes 驱动（compositor-only，无 rAF 主线程开销）；
  * 暂停/恢复由 src/scripts/runtime/banner-drift.ts 通过 .banner-drift-paused 类控制。
+ * 注意：仅作用于 #banner-single-container（banner 模式）。全屏壁纸不参与 drift——
+ * 它位于所有毛玻璃卡片之下，动画会迫使 backdrop-filter 逐帧重采样。
  */
 
-.banner-breathe-wrap {
+#banner-single-container .banner-breathe-wrap {
   overflow: hidden;
   position: relative;
   width: 100%;
   height: 100%;
 }
 
-.banner-breathe-wrap img {
+#banner-single-container .banner-breathe-wrap img {
   position: absolute;
   left: -3%;
   top: -3%;
@@ -29,13 +31,13 @@
 }
 
 /* JS 在换页 / 回顶 / 离屏时添加此类冻结动画（保留当前帧画面） */
-.banner-breathe-wrap img.banner-drift-paused {
+#banner-single-container .banner-breathe-wrap img.banner-drift-paused {
   animation-play-state: paused;
 }
 
 /* 换页动画期间全局冻结 drift，避免与新页面动画叠加 */
-html.is-changing .banner-breathe-wrap img,
-html.is-animating .banner-breathe-wrap img {
+html.is-changing #banner-single-container .banner-breathe-wrap img,
+html.is-animating #banner-single-container .banner-breathe-wrap img {
   animation-play-state: paused;
 }
 
@@ -49,7 +51,7 @@ html.is-animating .banner-breathe-wrap img {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .banner-breathe-wrap img {
+  #banner-single-container .banner-breathe-wrap img {
     position: static;
     left: auto;
     top: auto;

@@ -21,7 +21,10 @@
 	}
 
 	function getDriftImages(root?: ParentNode | null) {
-		return (root || document).querySelectorAll(".banner-breathe-wrap img");
+		// 仅 banner 模式下的横幅图参与 drift（全屏壁纸位于毛玻璃之下，不宜动画）
+		return (root || document).querySelectorAll(
+			"#banner-single-container .banner-breathe-wrap img",
+		);
 	}
 
 	/** 与旧 rAF 版相同的滚动守卫：换页回顶 / 平滑滚动期间保持冻结 */

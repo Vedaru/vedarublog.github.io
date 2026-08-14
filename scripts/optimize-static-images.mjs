@@ -67,7 +67,7 @@ async function optimizeBanner(baseName) {
 	const meta = await sharp(source).metadata();
 	const aspect = (meta.width || 16) / (meta.height || 9);
 
-	for (const width of [768, 1280]) {
+	for (const width of [768, 1280, 2560]) {
 		const height = Math.round(width / aspect);
 		const out = join(bannerDir, `${baseName}-${width}.webp`);
 		await writeWebp(source, out, { width, height, quality: 78 });
