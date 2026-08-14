@@ -64,11 +64,6 @@ declare global {
 			_softResumeUntil?: number;
 		};
 		__PIO_RESET_ANIMATION_DELTA?: () => void;
-		__bannerSessionApplyDrift?: (root?: ParentNode | null) => void;
-		__bannerDriftPause?: () => void;
-		__bannerDriftResume?: () => void;
-		__bannerDriftBootstrapped?: boolean;
-	__bannerDriftResizeBound?: boolean;
 		__homePreScrollActive?: boolean;
 		__smoothScrollActive?: boolean;
 		__smoothScrollBootstrapped?: boolean;

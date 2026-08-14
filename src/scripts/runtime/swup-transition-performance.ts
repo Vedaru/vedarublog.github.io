@@ -143,7 +143,6 @@
 
 	function runPioAndBannerResume() {
 		resumePioSoftly();
-		window.__bannerDriftResume?.();
 		window.__resetHomePreScrollState?.();
 	}
 

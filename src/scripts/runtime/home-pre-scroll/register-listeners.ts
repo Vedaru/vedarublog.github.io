@@ -211,8 +211,6 @@ function handleVisitStart(
 		visit.scroll.reset = false;
 	}
 
-	window.__bannerDriftPause?.();
-
 	if (leavingHome && !useBlendedShift) {
 		beginLeavingHomeLayoutShift(visit);
 		restoreNavbarWrapperStyles(navbarWrapperSnapshot);

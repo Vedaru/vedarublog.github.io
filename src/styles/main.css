@@ -1,7 +1,6 @@
 /* 导入动画样式 */
 @import "./_transition-vars.css";
 @import "./transition.css";
-@import "./banner-drift.css";
 @import "./banner-responsive.css";
 @import "./mobile-fixes.css";
 @import "./mobile-transition-fix.css";
