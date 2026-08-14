@@ -14,15 +14,12 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 桌面端 - 亮色
-   注意：banner 模式下 navbar 悬浮于 drift 动画之上，backdrop-filter 会每帧重采样
-   背景（Firefox 尤其昂贵），导致 drift 帧率不稳。因此 semi 模式改用更高不透明度的
-   背景色替代毛玻璃（视觉接近，零逐帧模糊开销）。 */
+/* 桌面端 - 亮色 */
 @media (min-width: 1280px) {
   #banner-wrapper ~ * #navbar[data-transparent-mode="semi"] > div,
   body:has(#banner-wrapper) #navbar[data-transparent-mode="semi"] > div {
-    backdrop-filter: none;
-    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.55);
     border: 1px solid rgba(255, 255, 255, 0.55);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   }
@@ -32,8 +29,8 @@
 @media (max-width: 1279px) {
   #banner-wrapper ~ * #navbar[data-transparent-mode="semi"][data-is-home="true"] > div,
   body:has(#banner-wrapper) #navbar[data-transparent-mode="semi"][data-is-home="true"] > div {
-    backdrop-filter: none;
-    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.55);
     border: 1px solid rgba(255, 255, 255, 0.55);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   }
@@ -43,8 +40,8 @@
 @media (min-width: 1280px) {
   :root.dark #banner-wrapper ~ * #navbar[data-transparent-mode="semi"] > div,
   :root.dark body:has(#banner-wrapper) #navbar[data-transparent-mode="semi"] > div {
-    backdrop-filter: none;
-    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(20px);
+    background: rgba(0, 0, 0, 0.55);
     border: 1px solid rgba(0, 0, 0, 0.55);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   }
@@ -54,8 +51,8 @@
 @media (max-width: 1279px) {
   :root.dark #banner-wrapper ~ * #navbar[data-transparent-mode="semi"][data-is-home="true"] > div,
   :root.dark body:has(#banner-wrapper) #navbar[data-transparent-mode="semi"][data-is-home="true"] > div {
-    backdrop-filter: none;
-    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(20px);
+    background: rgba(0, 0, 0, 0.55);
     border: 1px solid rgba(0, 0, 0, 0.55);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   }

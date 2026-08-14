@@ -6,7 +6,6 @@ import { url } from "../../utils/url-utils";
 type BannerResponsive = {
 	w768: string;
 	w1280: string;
-	w2560: string;
 	full: string;
 } | null;
 
@@ -44,7 +43,7 @@ const {
                         />
                         <source
                             media="(min-width: 768px)"
-                            srcset={`${url(desktopBannerResponsive.w1280)} 1280w, ${url(desktopBannerResponsive.w2560)} 2560w, ${url(desktopBannerResponsive.full)} 1920w`}
+                            srcset={`${url(desktopBannerResponsive.w1280)} 1280w, ${url(desktopBannerResponsive.full)} 1920w`}
                             sizes="100vw"
                         />
                         <img

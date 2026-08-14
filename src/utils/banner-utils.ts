@@ -105,7 +105,6 @@ export function getBannerResponsive(src: string | undefined | null) {
 	return {
 		w768: `${stem}-768.webp`,
 		w1280: `${stem}-1280.webp`,
-		w2560: `${stem}-2560.webp`,
 		full: src,
 	};
 }
