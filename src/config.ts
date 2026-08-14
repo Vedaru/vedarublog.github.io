@@ -540,7 +540,7 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 export const pioConfig: import("./types/config").PioConfig & {
 	eagerLoad?: boolean;
 } = {
-	enable: true, // 启用看板娘
+	enable: false, // 启用看板娘（已关闭：Live2D 持续 canvas 渲染是页面最大 GPU 消耗来源）
 	models: ["/pio/models/pio/model.json"], // 默认模型路径
 	position: "left", // 默认位置在左侧
 	width: 280, // 默认宽度

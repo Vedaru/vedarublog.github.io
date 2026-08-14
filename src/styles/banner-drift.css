@@ -1,6 +1,7 @@
 /**
  * Banner / 全屏壁纸微移飘动（布局样式）
- * 动画由 src/scripts/runtime/banner-drift.ts 的 rAF 驱动
+ * 动画由纯 CSS @keyframes 驱动（compositor-only，无 rAF 主线程开销）；
+ * 暂停/恢复由 src/scripts/runtime/banner-drift.ts 通过 .banner-drift-paused 类控制。
  */
 
 .banner-breathe-wrap {
@@ -21,6 +22,30 @@
   object-fit: cover;
   transform-origin: center center;
   backface-visibility: hidden;
+  /* 稳定提升为合成层：动画全程仅 GPU 合成，不触发主线程 layout/paint */
+  will-change: transform;
+  /* 对角呼吸漂移：±0.44%（元素尺寸），峰值速度与原 rAF 版（18s 圆周）接近 */
+  animation: banner-drift 20s ease-in-out infinite alternate;
+}
+
+/* JS 在换页 / 回顶 / 离屏时添加此类冻结动画（保留当前帧画面） */
+.banner-breathe-wrap img.banner-drift-paused {
+  animation-play-state: paused;
+}
+
+/* 换页动画期间全局冻结 drift，避免与新页面动画叠加 */
+html.is-changing .banner-breathe-wrap img,
+html.is-animating .banner-breathe-wrap img {
+  animation-play-state: paused;
+}
+
+@keyframes banner-drift {
+  from {
+    transform: translate3d(-0.44%, -0.44%, 0);
+  }
+  to {
+    transform: translate3d(0.44%, 0.44%, 0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -31,5 +56,6 @@
     width: 100% !important;
     height: 100% !important;
     transform: none;
+    animation: none;
   }
 }
