@@ -187,6 +187,18 @@ function handleVisitStart(
 		return;
 	}
 
+	// 离开首页（桌面端）走预滚动：grid transform 会被强制 none 接管布局位移。
+	// 同步把单一时钟变量归零（不触发过渡）：否则过渡启动瞬间会按 slide=1
+	// 重新写入 30dvh，造成 grid 先跳下再滑回的跳变。
+	if (window.innerWidth >= 1280 && isLeavingHomePage(visit)) {
+		const body = document.body;
+		const prevTransition = body.style.transition;
+		body.style.transition = "none";
+		body.style.setProperty("--banner-slide", "0");
+		void body.offsetHeight;
+		body.style.transition = prevTransition;
+	}
+
 	if (!needsPreScroll && !enteringHome) {
 		return;
 	}
