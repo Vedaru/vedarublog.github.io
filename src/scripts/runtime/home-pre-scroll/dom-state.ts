@@ -111,4 +111,8 @@ export function clearPreScrollOnVisitEnd(): void {
 	window.__homePreScrollActive = false;
 	activePreScrollVisit = null;
 	removePreScrollClasses();
+	// 清理离开首页预滚动时写入的时钟内联快照（--banner-slide: 0），
+	// 恢复由样式表类规则（body.enable-banner.is-home → 1）驱动；
+	// 否则内联值永久压过类规则，再回首页时 banner/grid 卡在文章位置不动画。
+	document.body.style.removeProperty("--banner-slide");
 }
