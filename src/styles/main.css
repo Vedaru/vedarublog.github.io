@@ -65,7 +65,7 @@ body {
       @apply translate-y-[var(--banner-height-extend)];
     }
     .enable-banner #top-row {
-      @apply h-[calc(var(--banner-height-home)_-_4.5rem)] transition-all duration-300;
+      @apply h-[calc(var(--banner-height-home)_-_4.5rem)];
     }
     .enable-banner.is-home #sidebar-sticky {
       @apply top-[calc(1rem_-_var(--banner-height-extend))];

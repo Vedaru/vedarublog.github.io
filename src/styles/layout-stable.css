@@ -104,6 +104,13 @@ html[data-wallpaper-mode="fullscreen"] [data-fullscreen-wallpaper] {
   html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #main-grid {
     transform: translateY(var(--banner-height-extend, 30dvh));
   }
+
+  /* 桌面端：#banner-wrapper 的 transform 切换（banner 布局出现/隐藏）发生在页面过渡
+     或模式切换时，由 swup 过渡独占，不设常驻 transform 过渡（避免双重动画竞争）；
+     移动端保留原过渡以支持 mobile-hide-banner 收起动画。 */
+  html[data-wallpaper-mode="banner"] #banner-wrapper {
+    transition: opacity var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
+  }
 }
 
 /* 全屏 / 无壁纸：主内容区与 navbar 保留间距 */
