@@ -106,7 +106,9 @@ html[data-wallpaper-mode="fullscreen"] [data-fullscreen-wallpaper] {
     min-height: calc(var(--banner-height-home, 65vh) - 4.5rem);
   }
 
-  /* 单一时钟：banner 与 grid 共用 --banner-slide 的插值（在 body 上过渡一次） */
+  /* 单一时钟：banner 与 grid 共用 --banner-slide 的插值（在 body 上过渡一次）。
+     关键：transform 规则不得随 is-home 等类消失——否则类切换瞬间规则失效，
+     元素直接回到无规则状态造成“瞬移”。状态只由变量携带，变量变化即触发过渡。 */
   body {
     transition: --banner-slide var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
   }
@@ -115,14 +117,12 @@ html[data-wallpaper-mode="fullscreen"] [data-fullscreen-wallpaper] {
     --banner-slide: 1;
   }
 
-  html[data-wallpaper-mode="banner"] body.enable-banner.is-home #banner-wrapper:not(.mobile-hide-banner),
-  html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #banner-wrapper:not(.mobile-hide-banner) {
+  html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
     transform: translateY(calc(var(--banner-height-extend, 30dvh) * var(--banner-slide, 0)));
     transition: opacity var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
   }
 
-  html[data-wallpaper-mode="banner"] body.enable-banner.is-home #main-grid,
-  html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #main-grid {
+  #main-grid {
     transform: translateY(calc(var(--banner-height-extend, 30dvh) * var(--banner-slide, 0)));
   }
 }
