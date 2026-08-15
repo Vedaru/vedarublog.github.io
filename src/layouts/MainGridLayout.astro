@@ -550,14 +550,15 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
 }
 
 /* Grid 模式下调整主网格布局 */
-/* 桌面端布局变换（首页 translateY(30dvh) ↔ 文章页 none）不设常驻过渡：
-   页面切换的动画由 swup 过渡独占，元素自身的过渡会与其双重竞争造成抖动；
-   壁纸模式切换（无页面过渡）由 body.wallpaper-switching 显式开启过渡。 */
+/* 桌面端布局变换（首页 translateY(30dvh) ↔ 文章页 none）保持 transform 过渡：
+   transform 是合成器属性，动画平滑；真正造成抖动的布局属性动画（如 #top-row
+   的 height 过渡，逐帧 reflow）已移除。页面切换时 swup 淡入 + 网格/横幅滑入
+   协调播放，不互相竞争。 */
 @media (min-width: 1280px) {
-    body.wallpaper-switching #main-grid {
+    #main-grid {
         transition:
-            transform 350ms var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94)),
-            opacity 350ms var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
+            transform var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94)),
+            opacity var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
     }
 }
 
