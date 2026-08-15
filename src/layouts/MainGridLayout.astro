@@ -550,17 +550,9 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
 }
 
 /* Grid 模式下调整主网格布局 */
-/* 桌面端布局变换（首页 translateY(30dvh) ↔ 文章页 none）保持 transform 过渡：
-   transform 是合成器属性，动画平滑；真正造成抖动的布局属性动画（如 #top-row
-   的 height 过渡，逐帧 reflow）已移除。页面切换时 swup 淡入 + 网格/横幅滑入
-   协调播放，不互相竞争。 */
-@media (min-width: 1280px) {
-    #main-grid {
-        transition:
-            transform var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94)),
-            opacity var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
-    }
-}
+/* #main-grid 的 transform 由 layout-stable.css 的单一时钟（--banner-slide）
+   驱动，与 banner 完全同步；这里不再设置 transform transition，避免
+   双时钟相位差导致接缝抖动。 */
 
 #main-grid.layout-switching {
     animation: main-grid-float var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));

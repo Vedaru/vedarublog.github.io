@@ -50,7 +50,7 @@ body {
 @layer components {
   @media (min-width: 1280px) {
     .enable-banner.is-home #banner-wrapper {
-      @apply h-[var(--banner-height-home)] translate-y-[var(--banner-height-extend)];
+      @apply h-[var(--banner-height-home)];
     }
     .enable-banner #banner-wrapper {
       @apply h-[var(--banner-height-home)];
@@ -61,9 +61,7 @@ body {
     .enable-banner #banner {
       @apply h-[var(--banner-height-home)] translate-y-0;
     }
-    .enable-banner.is-home #main-grid {
-      @apply translate-y-[var(--banner-height-extend)];
-    }
+    /* #main-grid 的位移由 layout-stable.css 的单一时钟（--banner-slide）驱动 */
     .enable-banner #top-row {
       @apply h-[calc(var(--banner-height-home)_-_4.5rem)];
     }

@@ -58,6 +58,17 @@ html[data-wallpaper-mode="none"] .main-panel {
   }
 }
 
+/* ─── 单一时钟动画 ──────────────────────────────────────────────────────
+   banner 与 main-grid 的位移由同一个过渡变量 --banner-slide 驱动：
+   两个元素每帧读取同一个插值，banner 下边缘与 grid 上边缘全程锁定，
+   消除两条独立 transition 的相位差抖动。
+   不支持 @property 的旧浏览器：变量瞬时切换（无动画），但布局正确。 */
+@property --banner-slide {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+
 /* Banner 基础高度（与 Layout.astro enable-banner 一致） */
 html[data-wallpaper-mode="banner"] #banner-wrapper {
   display: block;
@@ -95,14 +106,24 @@ html[data-wallpaper-mode="fullscreen"] [data-fullscreen-wallpaper] {
     min-height: calc(var(--banner-height-home, 65vh) - 4.5rem);
   }
 
+  /* 单一时钟：banner 与 grid 共用 --banner-slide 的插值（在 body 上过渡一次） */
+  body {
+    transition: --banner-slide var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
+  }
+  body.enable-banner.is-home,
+  body.enable-banner.lg\:is-home {
+    --banner-slide: 1;
+  }
+
   html[data-wallpaper-mode="banner"] body.enable-banner.is-home #banner-wrapper:not(.mobile-hide-banner),
   html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #banner-wrapper:not(.mobile-hide-banner) {
-    transform: translateY(var(--banner-height-extend, 30dvh));
+    transform: translateY(calc(var(--banner-height-extend, 30dvh) * var(--banner-slide, 0)));
+    transition: opacity var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
   }
 
   html[data-wallpaper-mode="banner"] body.enable-banner.is-home #main-grid,
   html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #main-grid {
-    transform: translateY(var(--banner-height-extend, 30dvh));
+    transform: translateY(calc(var(--banner-height-extend, 30dvh) * var(--banner-slide, 0)));
   }
 }
 
