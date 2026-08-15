@@ -777,11 +777,12 @@ body::-webkit-scrollbar {
    （内联 iconify SVG symbol + 日历/标签组件 + 排版光栅化），持续 1-3s，
    期间合成器掉帧（240Hz 面板上呈现间隔从 4.2ms 拉长到 13-21ms），
    即换页滑动抖动。content-visibility:auto 让视口外的内容跳过首帧绘制，
-   滚动到附近才按需光栅化，把换页期的主线程负担降到只剩可见区域。 */
-#post-list-container > .card-base,
-#sidebar widget-layout,
-#right-sidebar-sticky widget-layout,
-#sidebar-sticky widget-layout {
+   滚动到附近才按需光栅化，把换页期的主线程负担降到只剩可见区域。
+
+   注意：只作用于文章卡片列表。侧边栏组件不加此属性——swup 保留滚动
+   位置时组件可能在动画调度时位于视口外，入场动画会被跳过，滚动回来
+   时组件直接"瞬移"出现。 */
+#post-list-container > .card-base {
   content-visibility: auto;
   contain-intrinsic-size: auto 200px;
 }
