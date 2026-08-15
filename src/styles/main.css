@@ -771,3 +771,19 @@ body::-webkit-scrollbar {
 :root:not(.dark) .custom-md spoiler {
   --_spoiler-mask: color-mix(in oklch, var(--primary) 55%, white 45%);
 }
+
+/* ============================================================
+   换页性能 — 折叠区内容按需绘制
+   ============================================================
+   实测（Firefox Profiler）：每次换页主线程产生数千次 Image Paint
+   （内联 iconify SVG symbol + 日历/标签组件 + 排版光栅化），持续 1-3s，
+   期间合成器掉帧（240Hz 面板上呈现间隔从 4.2ms 拉长到 13-21ms），
+   即换页滑动抖动。content-visibility:auto 让视口外的内容跳过首帧绘制，
+   滚动到附近才按需光栅化，把换页期的主线程负担降到只剩可见区域。 */
+#post-list-container > .card-base,
+#sidebar widget-layout,
+#right-sidebar-sticky widget-layout,
+#sidebar-sticky widget-layout {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 200px;
+}
