@@ -125,6 +125,12 @@ html[data-wallpaper-mode="fullscreen"] [data-fullscreen-wallpaper] {
   #main-grid {
     transform: translateY(calc(var(--banner-height-extend, 30dvh) * var(--banner-slide, 0)));
   }
+
+  /* 左侧 sticky 偏移同样由时钟驱动：阈值随滑入滑出连续变化，
+     避免离开/进入首页瞬间 sticky 约束突变造成卡片跳位。 */
+  #sidebar-sticky {
+    top: calc(1rem - (var(--banner-height-extend, 30dvh) * var(--banner-slide, 0)));
+  }
 }
 
 /* 全屏 / 无壁纸：主内容区与 navbar 保留间距 */
