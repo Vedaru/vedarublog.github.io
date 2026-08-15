@@ -6,13 +6,13 @@
    ============================================================ */
 
 /* 主要内容区域的过渡动画 - 纯垂直效果 */
+/* 注意：will-change 不在基础规则里常驻——整页内容永久占用 GPU 纹理会在
+   60Hz/dpr3 环境下超出纹理预算，导致换页动画期间逐片重光栅化（实测抖动根源）。
+   图层提升只发生在过渡窗口内（见文件末尾的 is-changing/is-animating 规则）。 */
 .transition-main {
   transition:
     opacity var(--transition-duration) var(--transition-easing),
     transform var(--transition-duration) var(--transition-easing);
-  will-change: transform, opacity;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
 }
 
 /* 离开动画 */
@@ -20,9 +20,6 @@
   transition:
     transform var(--transition-duration) var(--transition-easing-out),
     opacity var(--transition-duration) var(--transition-easing-out);
-  will-change: transform, opacity;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
 }
 
 html.is-changing .transition-main {
@@ -54,7 +51,6 @@ html.is-changing .transition-swup-fade {
   transition:
     opacity var(--transition-duration) ease-out,
     transform var(--transition-duration) ease-out;
-  will-change: transform, opacity;
 }
 
 html.is-animating .transition-swup-fade {
@@ -101,15 +97,11 @@ html.is-animating .transition-swup-fade {
 .onload-animation {
   opacity: 0;
   animation: fade-in-up var(--transition-duration) ease-out forwards;
-  will-change: transform, opacity;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
 }
 
 .onload-animation-fade-in {
   opacity: 0;
   animation: fade-in var(--transition-duration) ease-in forwards;
-  will-change: opacity;
 }
 
 /* 渐进式动画延迟 */
@@ -136,9 +128,6 @@ html.is-animating .transition-swup-fade {
   transition:
     opacity calc(var(--transition-duration) * 1.5) var(--transition-easing),
     transform calc(var(--transition-duration) * 1.5) var(--transition-easing);
-  will-change: transform, opacity;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
 }
 
 .transition-slide-in.active {
@@ -153,9 +142,6 @@ html.is-animating .transition-swup-fade {
   transition:
     opacity calc(var(--transition-duration) * 1.2) var(--transition-easing),
     transform calc(var(--transition-duration) * 1.2) var(--transition-easing);
-  will-change: transform, opacity;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
 }
 
 .card-animation.visible {
@@ -170,7 +156,6 @@ html.is-animating .transition-swup-fade {
   transition:
     opacity 250ms var(--transition-easing),
     transform 250ms var(--transition-easing);
-  will-change: transform, opacity;
 }
 
 .nav-animation.loaded {
@@ -192,18 +177,41 @@ html.is-animating .transition-swup-fade {
   .card-animation {
     transform: translateY(var(--transition-translate)) scale(0.99);
   }
+}
 
-  /* 移动端 — 仅 will-change，不强制合成层避免 stacking context 冲突 */
-  .transition-main,
-  .transition-leaving,
-  .onload-animation,
-  .transition-slide-in,
-  .card-animation,
-  .nav-animation {
-    will-change: transform, opacity;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-  }
+/* ============================================================
+   图层提升 — 仅过渡窗口内生效
+   ============================================================
+   常驻 will-change 会让整页内容（transition-main/transition-leaving
+   及全部 onload-animation 组件）永久占用 GPU 纹理。在 60Hz + 高 dpr
+   的机器上这会超出纹理预算，浏览器只能在动画中途逐片重光栅化，
+   表现为换页滑动时的抖动。因此只在 is-changing/is-animating/is-leaving
+   窗口内提升图层，窗口结束由浏览器自动回收。 */
+html.is-changing .transition-main,
+html.is-animating .transition-main,
+html.is-leaving .transition-main,
+html.is-changing .transition-leaving,
+html.is-animating .transition-leaving,
+html.is-leaving .transition-leaving,
+html.is-changing .transition-swup-fade,
+html.is-animating .transition-swup-fade,
+html.is-changing .onload-animation,
+html.is-changing .onload-animation-fade-in,
+html.is-changing .transition-slide-in,
+html.is-changing .card-animation,
+html.is-changing .nav-animation {
+  will-change: transform, opacity;
+}
+
+html.is-changing .transition-main,
+html.is-leaving .transition-main,
+html.is-changing .transition-leaving,
+html.is-leaving .transition-leaving,
+html.is-changing .transition-slide-in,
+html.is-changing .card-animation,
+html.is-changing .nav-animation {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 /* ============================================================
