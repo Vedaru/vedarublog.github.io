@@ -255,6 +255,46 @@
 		scheduleTransitionResume();
 	}
 
+	// 桌面端：在换页动画开始前完成新页面图片解码与首帧光栅化。
+	// 实测：动画期间若发生图片解码/重绘，Firefox 会把合成呈现速率在 60Hz↔240Hz
+	// 之间切换（此机器 240Hz 面板），切换瞬间即为主网格滑动的“抖动”。
+	// 提前完成全部重绘工作，让整个过渡在单一帧率模式下完成。
+	function primeNewPageContent(): Promise<void> {
+		const images = Array.from(
+			document.querySelectorAll("#swup-container img"),
+		) as HTMLImageElement[];
+		const decodes: Array<Promise<void>> = [];
+		for (const img of images) {
+			if (!img.complete && typeof img.decode === "function") {
+				decodes.push(
+					img.decode().then(
+						function () {
+							return undefined;
+						},
+						function () {
+							return undefined;
+						},
+					),
+				);
+			}
+		}
+
+		return new Promise<void>(function (resolve) {
+			requestAnimationFrame(function () {
+				void document.documentElement.offsetHeight; // 强制样式/布局
+				requestAnimationFrame(function () {
+					void document.documentElement.offsetHeight; // 强制首帧绘制
+					Promise.all(decodes).then(function () {
+						requestAnimationFrame(function () {
+							void document.documentElement.offsetHeight;
+							resolve();
+						});
+					});
+				});
+			});
+		});
+	}
+
 	function registerSwupPerfListeners() {
 		if (perfListenersRegistered || !window.swup?.hooks) return;
 		perfListenersRegistered = true;
@@ -266,16 +306,21 @@
 
 		// 移动端：content:replace 时立即设置文章页布局，避免过渡期间的 gap 闪现
 		window.swup.hooks.on("content:replace", function () {
-			if (window.innerWidth > 1279) return;
-			if (document.body.classList.contains("is-home")) return;
-			var mainPanel = document.querySelector(
-				".absolute.w-full.z-30",
-			) as HTMLElement | null;
-			if (!mainPanel) return;
-			mainPanel.style.transition = "none";
-			mainPanel.style.top = "calc(5.5rem + 1rem)";
-			mainPanel.style.minHeight = "calc(100vh - 6.5rem)";
-			mainPanel.classList.add("mobile-main-no-banner");
+			if (window.innerWidth <= 1279) {
+				var mainPanel = document.querySelector(
+					".absolute.w-full.z-30",
+				) as HTMLElement | null;
+				if (mainPanel && !document.body.classList.contains("is-home")) {
+					mainPanel.style.transition = "none";
+					mainPanel.style.top = "calc(5.5rem + 1rem)";
+					mainPanel.style.minHeight = "calc(100vh - 6.5rem)";
+					mainPanel.classList.add("mobile-main-no-banner");
+				}
+				return;
+			}
+
+			// 桌面端：先完成解码/光栅化再进入动画（swup 会等待返回的 Promise）
+			return primeNewPageContent();
 		});
 	}
 
