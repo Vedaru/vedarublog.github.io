@@ -61,11 +61,11 @@ body {
     .enable-banner #banner {
       @apply h-[var(--banner-height-home)] translate-y-0;
     }
-    /* #main-grid 的位移由 layout-stable.css 的单一时钟（--banner-slide）驱动 */
+    /* #main-grid 与 #banner-wrapper 的 transform 各自 transition（700ms），
+       与上游 Fuwari 一致。详见 layout-stable.css。 */
     .enable-banner #top-row {
       @apply h-[calc(var(--banner-height-home)_-_4.5rem)];
     }
-    /* #sidebar-sticky 的 top 偏移由 layout-stable.css 的单一时钟驱动 */
   }
   .navbar-hidden {
     @apply opacity-0 -translate-y-16;

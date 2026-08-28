@@ -41,7 +41,7 @@ const initialLayoutClass = defaultLayout === "grid" ? "grid-mode" : "list-mode";
 <script>
 	// 动态布局切换脚本
 	// 仅同步 data-layout-mode 属性；不要在 #main-grid 上跑任何 transform
-	// 动画（layout-stable.css 已经在 #main-grid 上跑 --banner-slide 过渡），
+	// 动画（layout-stable.css 已经在 #main-grid 上跑 700ms transform 过渡），
 	// 否则两套 transform 会同时改写同一属性导致回顶抖动。
 	function syncMainGridLayoutMode(mainGrid: HTMLElement | null, layout: string) {
 		if (!mainGrid) return;

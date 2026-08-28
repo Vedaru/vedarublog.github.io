@@ -398,8 +398,8 @@ html.is-visit-layout-shifting #banner-wrapper {
   }
 }
 
-/* 离开首页布局切换：sticky 偏移由单一时钟（--banner-slide）随预滚动归零，
-   不再需要 !important 硬切 1rem——硬切正是点击文章时左侧卡片先跳位的来源。 */
+/* 离开首页布局切换：预滚动期间强制 #sidebar-sticky 不参与 transform，
+   防止 sticky 偏移与 grid 的 transform 过渡叠加造成左侧卡片跳位。 */
 
 html.is-visit-layout-shifting.is-home-pre-scrolling #sidebar-sticky,
 html.is-visit-layout-shifting.is-visit-pre-scrolling #sidebar-sticky {

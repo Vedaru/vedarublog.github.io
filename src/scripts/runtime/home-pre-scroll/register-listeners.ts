@@ -187,17 +187,11 @@ function handleVisitStart(
 		return;
 	}
 
-	// 离开首页（桌面端）走预滚动：grid transform 会被强制 none 接管布局位移。
-	// 同步把单一时钟变量归零（不触发过渡）：否则过渡启动瞬间会按 slide=1
-	// 重新写入 30dvh，造成 grid 先跳下再滑回的跳变。
-	if (window.innerWidth >= 1280 && isLeavingHomePage(visit)) {
-		const body = document.body;
-		const prevTransition = body.style.transition;
-		body.style.transition = "none";
-		body.style.setProperty("--banner-slide", "0");
-		void body.offsetHeight;
-		body.style.transition = prevTransition;
-	}
+	// 离开首页（桌面端）：banner 与 grid 已经分别带
+	// `transition: transform 700ms ...`，body 上的 is-home 类在 visit:start
+	// 时被移除，两个元素会各自 0.7s 滑回 0 位置。这里不需要再额外干预
+	// 任何内联 transform（旧版本在这里写 body.style.--banner-slide = 0，
+	// 是因为旧实现是单一变量驱动 transform——已不再使用）。
 
 	if (!needsPreScroll && !enteringHome) {
 		return;

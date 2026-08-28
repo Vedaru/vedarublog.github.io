@@ -58,16 +58,21 @@ html[data-wallpaper-mode="none"] .main-panel {
   }
 }
 
-/* ─── 单一时钟动画 ──────────────────────────────────────────────────────
-   banner 与 main-grid 的位移由同一个过渡变量 --banner-slide 驱动：
-   两个元素每帧读取同一个插值，banner 下边缘与 grid 上边缘全程锁定，
-   消除两条独立 transition 的相位差抖动。
-   不支持 @property 的旧浏览器：变量瞬时切换（无动画），但布局正确。 */
-@property --banner-slide {
-  syntax: "<number>";
-  inherits: true;
-  initial-value: 0;
-}
+/* ─── 桌面端 banner 模式：banner 与 main-grid 各自走自己的 transition ──
+   上游 Fuwari 的设计：#banner-wrapper 与 #main-grid 都带
+   `transition: transform 700ms ...`，body 加上 `is-home` 类时两者
+   的 transform 各自从 0 过渡到 banner-height-extend。easing 与 duration
+   一致→视觉上同步，不需要共享一个变量。
+
+   此前版本试图用单一 @property --banner-slide 在 body 上做过渡，让
+   两个元素读取同一个插值，理论上能消除相位差，但实测：
+   - #banner-wrapper 在媒体查询里 transition 被重写为 `opacity`，
+     缺少 `transform` 条目，导致 transform 实际不参与原生过渡
+   - 不同合成层上同一 transform 浮点值的栅格化舍入会让 banner 底
+     边与 grid 顶边出现像素级错位
+   - 60Hz + dpr3 下"接缝抖动"明显
+
+   改为各自独立 transition，与上游对齐，逻辑更简单、像素更稳。 */
 
 /* Banner 基础高度（与 Layout.astro enable-banner 一致） */
 html[data-wallpaper-mode="banner"] #banner-wrapper {
@@ -97,39 +102,50 @@ html[data-wallpaper-mode="fullscreen"] [data-fullscreen-wallpaper] {
 
 /* 桌面端 banner 模式主内容 + 首页 banner 重叠布局 */
 @media (min-width: 1280px) {
-  html[data-wallpaper-mode="banner"] body.enable-banner .main-panel {
+  html[data-wallpaper-mode=”banner”] body.enable-banner .main-panel {
     top: 35vh !important;
   }
 
-  html[data-wallpaper-mode="banner"] #top-row {
+  html[data-wallpaper-mode=”banner”] #top-row {
     height: calc(var(--banner-height-home, 65vh) - 4.5rem);
     min-height: calc(var(--banner-height-home, 65vh) - 4.5rem);
   }
 
-  /* 单一时钟：banner 与 grid 共用 --banner-slide 的插值（在 body 上过渡一次）。
-     关键：transform 规则不得随 is-home 等类消失——否则类切换瞬间规则失效，
-     元素直接回到无规则状态造成“瞬移”。状态只由变量携带，变量变化即触发过渡。 */
-  body {
-    transition: --banner-slide var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
-  }
-  body.enable-banner.is-home,
-  body.enable-banner.lg\:is-home {
-    --banner-slide: 1;
+  /* banner 与 grid 各自 transition，与上游 Fuwari 一致。easing 与
+     duration 完全相同→视觉上同步。is-home 类切换时两者 transform
+     各自从 0 过渡到 var(--banner-height-extend)。 */
+  body.enable-banner #banner-wrapper,
+  body.enable-banner #main-grid {
+    transition: transform var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
   }
 
-  html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
-    transform: translateY(calc(var(--banner-height-extend, 30dvh) * var(--banner-slide, 0)));
-    transition: opacity var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
+  html[data-wallpaper-mode=”banner”] body.enable-banner #banner-wrapper {
+    transform: translateY(0);
   }
 
-  #main-grid {
-    transform: translateY(calc(var(--banner-height-extend, 30dvh) * var(--banner-slide, 0)));
+  html[data-wallpaper-mode=”banner”] body.enable-banner.is-home #banner-wrapper,
+  html[data-wallpaper-mode=”banner”] body.enable-banner.lg\:is-home #banner-wrapper {
+    transform: translateY(var(--banner-height-extend, 30dvh));
   }
 
-  /* 左侧 sticky 偏移同样由时钟驱动：阈值随滑入滑出连续变化，
-     避免离开/进入首页瞬间 sticky 约束突变造成卡片跳位。 */
+  html[data-wallpaper-mode=”banner”] body.enable-banner #main-grid {
+    transform: translateY(0);
+  }
+
+  html[data-wallpaper-mode=”banner”] body.enable-banner.is-home #main-grid,
+  html[data-wallpaper-mode=”banner”] body.enable-banner.lg\:is-home #main-grid {
+    transform: translateY(var(--banner-height-extend, 30dvh));
+  }
+
+  /* 左侧 sticky 阈值随 is-home 类跳变（不需要平滑插值——sticky 偏移
+     跟随 grid transform 即可，grid 自身走 700ms 过渡）。 */
   #sidebar-sticky {
-    top: calc(1rem - (var(--banner-height-extend, 30dvh) * var(--banner-slide, 0)));
+    top: 1rem;
+    transition: top var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
+  }
+  html[data-wallpaper-mode=”banner”] body.enable-banner.is-home #sidebar-sticky,
+  html[data-wallpaper-mode=”banner”] body.enable-banner.lg\:is-home #sidebar-sticky {
+    top: calc(1rem - var(--banner-height-extend, 30dvh));
   }
 }
 

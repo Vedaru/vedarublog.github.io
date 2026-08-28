@@ -3,9 +3,9 @@
 // 的 hidden-in-grid-mode 类（MainGridLayout.astro 里 `display: none !important;`）。
 //
 // #main-grid 的 data-layout-mode 由 main-grid-swup.ts 统一管理；本文件不再
-// 触碰它——过去的 animateMainGrid 与 #main-grid 的 main-grid-float 关键帧
-// 与 body 上 --banner-slide 过渡在同一 transform 属性上叠加，是回顶
-// 抖动的根因（实测：换页到首页时 localStorage 与 SSR 默认值不一致触发）。
+// 触碰它。历史的 animateMainGrid（添加 layout-switching 类触发 main-grid-float
+// 关键帧）会与 #main-grid 自身的 700ms transform 过渡叠加造成回顶抖动，
+// 已删除。
 
 function isGridLayout() {
 	return (localStorage.getItem("postListLayout") || "list") === "grid";
