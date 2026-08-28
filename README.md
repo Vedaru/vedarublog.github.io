@@ -80,6 +80,60 @@ DRY_RUN=1 node scripts/netlify-traffic-switch.mjs
 
 ---
 
+## 自建 Meting API（音乐源）
+
+本站歌曲元数据、封面、播放 URL 通过自建的 [Meting API](https://github.com/xizeyoupan/Meting-API) 兼容接口获取，地址：`https://meting.vedaru.cn`。
+
+第三方 Meting 镜像（`api.i-meto.com`、`metingapi.nanorocky.top` 等）经常 404、限流（418）或者返回失效的 CDN 签名链接。自建实例可控、稳定，且支持通过密钥隔离公共访问。
+
+### 架构
+
+```text
+GitHub Actions（CI）
+  ↓ HTTPS + X-Meting-Key
+Cloudflare Tunnel（ssh.vedaru.cn）
+  ↓ HTTP
+自建 meting-api 容器（127.0.0.1:3300）
+  ├─ wrapper.js（auth + rate limit + 日志）
+  └─ upstream Meting 应用（从网易云获取元数据）
+       ↓ 服务端代理（不再 302）
+       网易云 CDN
+```
+
+### 关键点
+
+- **服务端代理播放 URL**：上游 Meting 默认 `?type=url` 返回 302 跳转到网易云带签名的 CDN URL，跨区域（GitHub Actions runner 在美/欧）访问时偶尔返回 104 KB 错误页。`wrapper.js` 改为服务端 fetch 后流式返回（带 `X-Proxied-By` 头），稳定拿到完整 MP3。
+- **认证**：`X-Meting-Key` 请求头，密钥从 Forgejo / GitHub Secrets 注入。仅对 `meting.vedaru.cn` 域名附加，不影响其他 Meting 镜像。
+- **限流**：内存内令牌桶，60 req/min/IP（`RATE_LIMIT_PER_MIN` 可调）。日志输出每条请求的 IP、密钥状态、状态码、耗时。
+- **隧道独占入口**：容器只监听 `127.0.0.1:3300`，外部只能通过 `https://meting.vedaru.cn`（Cloudflare Tunnel）访问，无直连。
+- **失败关闭**：未配置 `METING_KEY` 时返回 503，避免误用。
+- **资源上限**：128 MiB 内存硬限、PID 64、max-old-images 自动清理。
+
+### 仓库与 CI
+
+| 组件 | 位置 |
+|------|------|
+| 源码 | `git.vedaru.cn/Vedaru/meting-api`（自建 Forgejo） |
+| 镜像构建 | `.forgejo/workflows/deploy.yml`，跑在已有的 `forgejo-runner`（host backend，无需 docker-in-docker） |
+| Dockerfile | `src/Dockerfile`（多阶段：先在 PC 端 `podman build` 出一个 `meting-api-deps` 侧车镜像预装 `node_modules`，再由 runner 复用以避免 runner 沙箱内 `npm ci` 崩溃） |
+| 部署目录 | `~/docker/meting-api/`（服务器上的 `docker compose up -d`） |
+
+### Secrets
+
+| Secret | 在哪 | 用途 |
+|--------|-----|------|
+| `METING_KEY` | Forgejo `Vedaru/meting-api` + GitHub `Vedaru/vedarublog.github.io` | API 鉴权 |
+| `REGISTRY_USER` / `REGISTRY_TOKEN` | Forgejo | 镜像推送到本地 registry（备用，当前未用） |
+
+本地生成新密钥：
+
+```bash
+openssl rand -hex 32
+# 然后更新 .env、重启容器、再同步到 Forgejo/GitHub Secrets
+```
+
+---
+
 # 修改内容
 
 优化了Musicplayer，取消了进度条动画，添加了显示进度条时长和音量百分比的卡片。
