@@ -303,8 +303,16 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
           });
           if (!r.ok) { console.warn(`⚠ Failed to download ${song.url}: ${r.status}`); continue; }
           const arrayBuf = await r.arrayBuffer();
-          await fs.writeFile(filepath, Buffer.from(arrayBuf));
-          console.log(`✓ Saved ${filename}`);
+          const bytes = Buffer.from(arrayBuf);
+
+          // Reject obviously broken downloads (empty, or < 10 KB which is never a real song)
+          if (bytes.length < 10_000) {
+            console.warn(`⚠ Downloaded ${title} too small (${bytes.length} bytes) — likely truncated/redirect, skipping`);
+            continue;
+          }
+
+          await fs.writeFile(filepath, bytes);
+          console.log(`✓ Saved ${filename} (${(bytes.length / 1024 / 1024).toFixed(2)} MB)`);
         } catch (e) {
           console.warn(`⚠ Error downloading ${song.url}: ${e.message}`);
           continue;
@@ -314,10 +322,17 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
       }
 
       // 转码音频文件到 Opus 64kbps（ffmpeg 不可用时直接失败，避免保留巨型源文件）
-      const tempFile = filepath + '.temp';
-      await transcodeAudio(filepath, tempFile, 'libopus', '64k');
-      await fs.rename(tempFile, filepath);
-      console.log(`✓ Transcoded ${filename} to Opus 64kbps`);
+      // Wrap in try/catch so one bad file doesn't kill the whole run.
+      try {
+        const tempFile = filepath + '.temp';
+        await transcodeAudio(filepath, tempFile, 'libopus', '64k');
+        await fs.rename(tempFile, filepath);
+        console.log(`✓ Transcoded ${filename} to Opus 64kbps`);
+      } catch (e) {
+        console.warn(`⚠ Failed to transcode ${filename}: ${e.message} — removing corrupt file and skipping`);
+        try { await fs.unlink(filepath); } catch { /* ignore */ }
+        continue;
+      }
 
       // 直接使用转码后的文件，无需额外处理
       let usedFilename = filename;
