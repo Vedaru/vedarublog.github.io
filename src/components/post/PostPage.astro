@@ -40,22 +40,13 @@ const initialLayoutClass = defaultLayout === "grid" ? "grid-mode" : "list-mode";
 
 <script>
 	// 动态布局切换脚本
-	function animateMainGrid(mainGrid: HTMLElement | null, layout: string) {
+	// 仅同步 data-layout-mode 属性；不要在 #main-grid 上跑任何 transform
+	// 动画（layout-stable.css 已经在 #main-grid 上跑 --banner-slide 过渡），
+	// 否则两套 transform 会同时改写同一属性导致回顶抖动。
+	function syncMainGridLayoutMode(mainGrid: HTMLElement | null, layout: string) {
 		if (!mainGrid) return;
 		if (mainGrid.getAttribute("data-layout-mode") === layout) return;
-
-		mainGrid.classList.remove("layout-switching");
-		void mainGrid.offsetWidth;
-		mainGrid.classList.add("layout-switching");
 		mainGrid.setAttribute("data-layout-mode", layout);
-
-		mainGrid.addEventListener(
-			"animationend",
-			() => {
-				mainGrid.classList.remove("layout-switching");
-			},
-			{ once: true },
-		);
 	}
 
 	function initLayout() {
@@ -113,7 +104,7 @@ const initialLayoutClass = defaultLayout === "grid" ? "grid-mode" : "list-mode";
 			if (rightSidebar) rightSidebar.classList.add("hidden-in-grid-mode");
 
 			const mainGrid = document.getElementById("main-grid");
-			animateMainGrid(mainGrid, "grid");
+			syncMainGridLayoutMode(mainGrid, "grid");
 		} else {
 			container.classList.remove("grid-mode");
 			container.classList.add("list-mode");
@@ -126,7 +117,7 @@ const initialLayoutClass = defaultLayout === "grid" ? "grid-mode" : "list-mode";
 				rightSidebar.classList.remove("hidden-in-grid-mode");
 
 			const mainGrid = document.getElementById("main-grid");
-			animateMainGrid(mainGrid, "list");
+			syncMainGridLayoutMode(mainGrid, "list");
 		}
 
 		container.classList.add("js-initialized");

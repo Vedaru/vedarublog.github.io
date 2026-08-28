@@ -551,23 +551,15 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
 
 /* Grid 模式下调整主网格布局 */
 /* #main-grid 的 transform 由 layout-stable.css 的单一时钟（--banner-slide）
-   驱动，与 banner 完全同步；这里不再设置 transform transition，避免
-   双时钟相位差导致接缝抖动。 */
+   驱动，与 banner 完全同步。这里不得再为 #main-grid 自身的 transform 写
+   transition / animation——任何在 #main-grid 上同时驱动 transform 的 CSS
+   都会与 body 上的 --banner-slide 过渡在同一属性上叠加，引起 60Hz 抖动
+   与回顶接缝跳变（实测复现路径：换页到首页时 localStorage.postListLayout
+   与 SSR 默认值不一致，PostPage.astro 的 initLayout 触发旧的
+   main-grid-float 关键帧，与 --banner-slide 0→1 过渡并行）。
 
-#main-grid.layout-switching {
-    animation: main-grid-float var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
-}
-
-@keyframes main-grid-float {
-    from {
-        opacity: 0.92;
-        transform: translateY(0.5rem);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
+   data-layout-mode 变化由下方 [data-layout-mode="grid"] 选择器只切换
+   grid-template-columns（布局结构），不触碰 transform。 */
 
 #main-grid[data-layout-mode="grid"] {
     /* 在桌面端只显示左侧边栏和主内容 */

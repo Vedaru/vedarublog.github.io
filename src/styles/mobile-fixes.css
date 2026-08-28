@@ -448,7 +448,6 @@ html.is-visit-layout-shifting #navbar-wrapper.navbar-hidden {
     overflow-x: clip;
   }
 
-  #main-grid.layout-switching,
   #post-list-container.layout-switching {
     overflow-x: clip;
   }
