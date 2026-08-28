@@ -305,9 +305,12 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
           const arrayBuf = await r.arrayBuffer();
           const bytes = Buffer.from(arrayBuf);
 
-          // Reject obviously broken downloads (empty, or < 10 KB which is never a real song)
-          if (bytes.length < 10_000) {
-            console.warn(`⚠ Downloaded ${title} too small (${bytes.length} bytes) — likely truncated/redirect, skipping`);
+          // Reject obviously broken downloads. NetEase occasionally returns a tiny
+          // HTML/JSON error page (or a redirect body) instead of the MP3 when the
+          // signed URL is stale, region-restricted, or rate-limited. A real song
+          // is at least ~1 MB; anything under 500 KB is almost certainly an error.
+          if (bytes.length < 500_000) {
+            console.warn(`⚠ Downloaded ${title} too small (${(bytes.length/1024).toFixed(1)} KB) — likely expired URL, skipping`);
             continue;
           }
 
