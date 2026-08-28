@@ -102,11 +102,11 @@ html[data-wallpaper-mode="fullscreen"] [data-fullscreen-wallpaper] {
 
 /* 桌面端 banner 模式主内容 + 首页 banner 重叠布局 */
 @media (min-width: 1280px) {
-  html[data-wallpaper-mode=”banner”] body.enable-banner .main-panel {
+  html[data-wallpaper-mode="banner"] body.enable-banner .main-panel {
     top: 35vh !important;
   }
 
-  html[data-wallpaper-mode=”banner”] #top-row {
+  html[data-wallpaper-mode="banner"] #top-row {
     height: calc(var(--banner-height-home, 65vh) - 4.5rem);
     min-height: calc(var(--banner-height-home, 65vh) - 4.5rem);
   }
@@ -119,21 +119,21 @@ html[data-wallpaper-mode="fullscreen"] [data-fullscreen-wallpaper] {
     transition: transform var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
   }
 
-  html[data-wallpaper-mode=”banner”] body.enable-banner #banner-wrapper {
+  html[data-wallpaper-mode="banner"] body.enable-banner #banner-wrapper {
     transform: translateY(0);
   }
 
-  html[data-wallpaper-mode=”banner”] body.enable-banner.is-home #banner-wrapper,
-  html[data-wallpaper-mode=”banner”] body.enable-banner.lg\:is-home #banner-wrapper {
+  html[data-wallpaper-mode="banner"] body.enable-banner.is-home #banner-wrapper,
+  html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #banner-wrapper {
     transform: translateY(var(--banner-height-extend, 30dvh));
   }
 
-  html[data-wallpaper-mode=”banner”] body.enable-banner #main-grid {
+  html[data-wallpaper-mode="banner"] body.enable-banner #main-grid {
     transform: translateY(0);
   }
 
-  html[data-wallpaper-mode=”banner”] body.enable-banner.is-home #main-grid,
-  html[data-wallpaper-mode=”banner”] body.enable-banner.lg\:is-home #main-grid {
+  html[data-wallpaper-mode="banner"] body.enable-banner.is-home #main-grid,
+  html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #main-grid {
     transform: translateY(var(--banner-height-extend, 30dvh));
   }
 
@@ -143,8 +143,8 @@ html[data-wallpaper-mode="fullscreen"] [data-fullscreen-wallpaper] {
     top: 1rem;
     transition: top var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
   }
-  html[data-wallpaper-mode=”banner”] body.enable-banner.is-home #sidebar-sticky,
-  html[data-wallpaper-mode=”banner”] body.enable-banner.lg\:is-home #sidebar-sticky {
+  html[data-wallpaper-mode="banner"] body.enable-banner.is-home #sidebar-sticky,
+  html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #sidebar-sticky {
     top: calc(1rem - var(--banner-height-extend, 30dvh));
   }
 }
