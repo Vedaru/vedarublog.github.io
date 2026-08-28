@@ -110,6 +110,24 @@ async function safeFetch(url, opts = {}) {
   }
 }
 
+// METING_KEY: optional shared secret for our self-hosted meting.vedaru.cn.
+// Only sent to URLs whose host matches a known self-hosted list — never to
+// third-party Meting mirrors, which don't (and shouldn't) know the key.
+const SELF_HOSTED_METING_HOSTS = new Set(['meting.vedaru.cn']);
+const METING_KEY = process.env.METING_KEY || '';
+
+function headersForUrl(url, baseHeaders = {}) {
+    try {
+        const h = new URL(url).hostname;
+        if (METING_KEY && SELF_HOSTED_METING_HOSTS.has(h)) {
+            return { ...baseHeaders, 'X-Meting-Key': METING_KEY };
+        }
+    } catch {
+        // not a parseable URL — just return base headers
+    }
+    return baseHeaders;
+}
+
 async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, backoff = 1000 } = {}) {
   // Simple exponential-backoff retry wrapper around safeFetch
   let attempt = 0;
@@ -187,11 +205,11 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
         response = await fetchWithRetry(candidateUrl, {
           timeout: 20000,
           retries: 2,
-          headers: {
+          headers: headersForUrl(candidateUrl, {
             'User-Agent': 'Mozilla/5.0 (compatible; VedaruMusicDownloader/1.0; +https://vedaru.cn)',
             'Accept': 'application/json, text/plain, */*',
             'Referer': 'https://vedaru.cn'
-          }
+          })
         });
         if (response.ok) break;
         lastErr = new Error('Meting API request failed: ' + response.status);
@@ -277,11 +295,11 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
           const r = await fetchWithRetry(song.url, {
             timeout: 30000,
             retries: 2,
-            headers: {
+            headers: headersForUrl(song.url, {
               'User-Agent': 'Mozilla/5.0 (compatible; VedaruMusicDownloader/1.0; +https://vedaru.cn)',
               'Accept': '*/*',
               'Referer': 'https://vedaru.cn'
-            }
+            })
           });
           if (!r.ok) { console.warn(`⚠ Failed to download ${song.url}: ${r.status}`); continue; }
           const arrayBuf = await r.arrayBuffer();

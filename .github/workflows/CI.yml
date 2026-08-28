@@ -58,6 +58,7 @@ jobs:
         env:
           CI: true
           BANGUMI_ACCESS_TOKEN: ${{ secrets.BANGUMI_ACCESS_TOKEN }}
+          METING_KEY: ${{ secrets.METING_KEY }}
 
       - name: Commit and push changes
         run: |
