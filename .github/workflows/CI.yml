@@ -48,6 +48,33 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # 在 runner 上临时起一个 meting-api wrapper。runner 的出口 IP 在 US/EU，
+      # 不会被 NetEase 按 mainland-China 处理而把某些曲目从 playlist 响应里漏掉。
+      # 用完即弃，job 结束自动消失。
+      - name: Start local meting-api wrapper
+        run: |
+          git clone --depth 1 https://git.vedaru.cn/Vedaru/meting-api.git /tmp/meting-api
+          cd /tmp/meting-api/src
+          # 允许用私有 forgejo（runner 自带的 git 默认不信任自签证书）
+          git config --global http.sslVerify false
+          npm install --omit=dev --no-audit --no-fund --loglevel=error || \
+            npm install --no-audit --no-fund --loglevel=error
+          PORT=3300 nohup node wrapper.js > /tmp/meting.log 2>&1 &
+          echo $! > /tmp/meting.pid
+          # 等 wrapper 就绪（最多 30s）
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:3300/healthz > /dev/null; then
+              echo "✓ wrapper ready (pid=$(cat /tmp/meting.pid))"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "❌ wrapper failed to start within 30s" >&2
+          tail -50 /tmp/meting.log >&2
+          exit 1
+        env:
+          METING_KEY: ${{ secrets.METING_KEY }}
+
       - name: Fetch Bangumi & download music (parallel)
         run: |
           pnpm update-anime &
@@ -59,6 +86,7 @@ jobs:
           CI: true
           BANGUMI_ACCESS_TOKEN: ${{ secrets.BANGUMI_ACCESS_TOKEN }}
           METING_KEY: ${{ secrets.METING_KEY }}
+          METING_API_BASE: http://127.0.0.1:3300/api
 
       - name: Commit and push changes
         run: |

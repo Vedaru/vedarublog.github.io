@@ -113,7 +113,9 @@ async function safeFetch(url, opts = {}) {
 // METING_KEY: optional shared secret for our self-hosted meting.vedaru.cn.
 // Only sent to URLs whose host matches a known self-hosted list — never to
 // third-party Meting mirrors, which don't (and shouldn't) know the key.
-const SELF_HOSTED_METING_HOSTS = new Set(['meting.vedaru.cn']);
+// `127.0.0.1` / `localhost` are also recognized so CI can point
+// METING_API_BASE at a wrapper running inside the same job.
+const SELF_HOSTED_METING_HOSTS = new Set(['meting.vedaru.cn', '127.0.0.1', 'localhost', '::1']);
 const METING_KEY = process.env.METING_KEY || '';
 
 function headersForUrl(url, baseHeaders = {}) {
@@ -183,6 +185,16 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
 
     // Build candidate list: meting_api_candidates (if present) -> meting_api -> default
     const candidates = [];
+
+    // METING_API_BASE env var overrides all candidates. Used by CI to point at a
+    // temporary wrapper.js running inside the same job (its egress IP is the
+    // runner's US/EU IP, bypassing NetEase's mainland-China geo-blocking that
+    // makes some tracks intermittently disappear from playlist responses).
+    const apiBase = process.env.METING_API_BASE;
+    if (apiBase) {
+      candidates.push(`${apiBase.replace(/\/$/, '')}?server=:server&type=:type&id=:id`);
+    }
+
     const candMatch = cfgStr.match(/meting_api_candidates:\s*\[([\s\S]*?)\]/);
     if (candMatch) {
       const inner = candMatch[1];
