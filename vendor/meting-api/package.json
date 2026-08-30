@@ -1,0 +1,18 @@
+{
+  "name": "meting-api-vendored",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vendored copy of https://git.vedaru.cn/Vedaru/meting-api (now offline) — see ../../scripts/vendor-meting-api.sh. CI runs `node wrapper.js` here on each build to fetch playlist metadata + song URLs from NetEase.",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "main": "wrapper.js",
+  "dependencies": {
+    "@hono/node-server": "^1.19.17",
+    "buffer": "^6.0.3",
+    "crypto-browserify": "^3.12.0",
+    "hono": "^4.13.5",
+    "nanoid": "^4.0.0"
+  }
+}

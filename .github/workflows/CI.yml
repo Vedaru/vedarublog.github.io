@@ -48,15 +48,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # 在 runner 上临时起一个 meting-api wrapper。runner 的出口 IP 在 US/EU，
-      # 不会被 NetEase 按 mainland-China 处理而把某些曲目从 playlist 响应里漏掉。
-      # 用完即弃，job 结束自动消失。
+      # 在 runner 上临时起一个 meting-api wrapper。wrapper 代码在 vendor/meting-api/
+      # （之前从 https://git.vedaru.cn/Vedaru/meting-api 拷贝过来的，源仓已下线）。
+      # runner 的出口 IP 在 US/EU，不会被 NetEase 按 mainland-China 处理而把某些
+      # 曲目从 playlist 响应里漏掉。用完即弃，job 结束自动消失。
       - name: Start local meting-api wrapper
         run: |
-          git clone --depth 1 https://git.vedaru.cn/Vedaru/meting-api.git /tmp/meting-api
-          cd /tmp/meting-api/src
-          # 允许用私有 forgejo（runner 自带的 git 默认不信任自签证书）
-          git config --global http.sslVerify false
+          cd vendor/meting-api
           npm install --omit=dev --no-audit --no-fund --loglevel=error || \
             npm install --no-audit --no-fund --loglevel=error
           PORT=3300 nohup node wrapper.js > /tmp/meting.log 2>&1 &
