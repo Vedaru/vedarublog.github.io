@@ -75,16 +75,16 @@ jobs:
         env:
           METING_KEY: ${{ secrets.METING_KEY }}
 
-      - name: Fetch Bangumi & download music (parallel)
-        run: |
-          pnpm update-anime &
-          PID_BANGUMI=$!
-          node scripts/download-music.js &
-          PID_MUSIC=$!
-          wait $PID_BANGUMI $PID_MUSIC
+      - name: Fetch Bangumi
+        run: pnpm update-anime
         env:
           CI: true
           BANGUMI_ACCESS_TOKEN: ${{ secrets.BANGUMI_ACCESS_TOKEN }}
+
+      - name: Download music
+        run: node scripts/download-music.js
+        env:
+          CI: true
           METING_KEY: ${{ secrets.METING_KEY }}
           METING_API_BASE: http://127.0.0.1:3300/api
 
@@ -97,10 +97,15 @@ jobs:
             exit 0
           fi
 
-          # 防循环：如果最新 commit 已经是自动更新，跳过
-          LATEST_MSG=$(git log -1 --pretty=%B 2>/dev/null || true)
-          if echo "$LATEST_MSG" | grep -qE '^chore: update (music|bangumi)'; then
-            echo "Skipping — latest commit is already an automated update"
+          # 防循环：如果最新 commit 的内容跟当前 staged 完全一致（说明上一次
+          # run 已经 commit 过同样的内容，这次只是重跑），跳过。
+          # 注意：不能用"最新 commit message 是 chore:"判断，因为那会阻止
+          # 修复上游临时漏歌的情况（比如某首歌本次 failed，下次 run 必须能
+          # 把 playlist 改回 10 首）。
+          LATEST_TREE=$(git rev-parse HEAD^{tree} 2>/dev/null || true)
+          STAGED_TREE=$(git write-tree)
+          if [ "$LATEST_TREE" = "$STAGED_TREE" ]; then
+            echo "Skipping — staged content already matches HEAD (previous run committed this)"
             exit 0
           fi
 

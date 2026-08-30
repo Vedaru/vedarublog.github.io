@@ -245,10 +245,20 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
     await fs.mkdir(urlDir, { recursive: true });
     await fs.mkdir(coverDir, { recursive: true });
 
+    // Capture the previous playlist size BEFORE we wipe it, so we can
+    // refuse to regress later (see write guard below).
+    const playlistPath = path.join(outDir, 'playlist.json');
+    let prevLen = 0;
+    try {
+      const prev = JSON.parse(await fs.readFile(playlistPath, 'utf-8'));
+      if (Array.isArray(prev)) prevLen = prev.length;
+    } catch {
+      // no previous file — first run, fine
+    }
+
     // Clear existing files in url and cover directories, and remove playlist.json
     await clearDirectory(urlDir);
     await clearDirectory(coverDir);
-    const playlistPath = path.join(outDir, 'playlist.json');
     try { await fs.unlink(playlistPath); } catch (e) {} // ignore if not exists
 
 
@@ -400,6 +410,29 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
     }
 
     const outJson = path.join(outDir, 'playlist.json');
+
+    // Safety: if the previous playlist had more songs than this run
+    // produced, that means some downloads failed. Don't overwrite — we'd
+    // regress the live site. Restore the previous playlist.json from the
+    // last commit so the build step still has a working state to ship.
+    if (prevLen > 0 && result.length < prevLen) {
+      console.error(`\n✗ This run produced ${result.length} songs but the previous playlist had ${prevLen}.`);
+      console.error(`  Restoring previous playlist.json to avoid regressing the live site.`);
+      console.error(`  Failed songs will be retried on the next CI run.`);
+      try {
+        const { execFileSync } = await import('child_process');
+        const restored = execFileSync('git', [
+          'show', 'HEAD:public/assets/music/playlist.json',
+        ]).toString();
+        await fs.writeFile(outJson, restored, 'utf-8');
+      } catch {
+        // if git is unavailable, write an empty playlist as last resort
+        await fs.writeFile(outJson, '[]', 'utf-8');
+      }
+      // exit 0 so build still runs; warning is loud enough
+      return;
+    }
+
     await fs.writeFile(outJson, JSON.stringify(result, null, 2), 'utf-8');
     console.log(`✓ Wrote ${outJson} with ${result.length} songs`);
   } catch (e) {
