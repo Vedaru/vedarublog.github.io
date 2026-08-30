@@ -75,6 +75,19 @@ jobs:
         env:
           METING_KEY: ${{ secrets.METING_KEY }}
 
+      # 把 wrapper 内部的请求日志在所有 download 步骤之后打出来，方便排查
+      # 哪首歌为啥失败了。Always run — wrapper 是 nohup 后台进程，CI 不会
+      # 自动把它的 stdout 上报。
+      - name: Dump wrapper log
+        if: always()
+        run: |
+          if [ -f /tmp/meting.log ]; then
+            echo "===== wrapper.js log ====="
+            tail -200 /tmp/meting.log
+          else
+            echo "(no wrapper log)"
+          fi
+
       - name: Fetch Bangumi
         run: pnpm update-anime
         env:
