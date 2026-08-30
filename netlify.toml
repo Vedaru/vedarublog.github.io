@@ -23,9 +23,9 @@
   # 源站地址（不含末尾斜杠），也可在 Netlify 环境变量中覆盖
   CLOUDFLARE_ORIGIN = "https://vedarublog-github-io.pages.dev"
 
-# force = true：即使存在静态文件也强制回源代理
+# 默认回源代理；不写 force = true，让 Netlify 在本地缓存命中的静态文件直接返回
+# （dist 由 netlify-proxy-build.js 在构建期从源站拉取并 commit，符合 Netlify SPA/静态站的标准做法）
 [[redirects]]
   from = "/*"
   to = "https://vedarublog-github-io.pages.dev/:splat"
   status = 200
-  force = true

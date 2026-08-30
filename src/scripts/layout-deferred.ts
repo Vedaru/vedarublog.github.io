@@ -9,7 +9,10 @@ function runDeferred(): void {
 
 	// 非关键脚本：idle 后加载，Swup 换页仍依赖其钩子
 	void import("./code-collapse.js");
-	void import("./anime-page.js");
+	// 仅 /anime 页加载；用动态 import 让其他页跳过该 chunk
+	if (document.getElementById("anime-list-container")) {
+		void import("./anime-page.js");
+	}
 	void import("./mermaid-init.js");
 	void import("./theme-optimizer.js");
 }
