@@ -259,35 +259,63 @@
 	// 实测：动画期间若发生图片解码/重绘，Firefox 会把合成呈现速率在 60Hz↔240Hz
 	// 之间切换（此机器 240Hz 面板），切换瞬间即为主网格滑动的“抖动”。
 	// 提前完成全部重绘工作，让整个过渡在单一帧率模式下完成。
+	//
+	// 关键：只解码视口内（视口高 1.5 倍以内）的图片。
+	// 视口外、且处于 content-visibility: auto 跳过态的图片，调 .decode()
+	// 在 Chromium 上会无限挂起——浏览器认为该元素没在渲染中，没有要解码的
+	// 表面。Promise.all 因此永远不 settle，content:replace 的返回 Promise
+	// 不 resolve，Swup 不发 animation:in:start，is-animating 一直留在 <html>
+	// 上，.transition-main（即 #swup-container）卡在 opacity:0。追番页有 21
+	// 张 cover 全在 content-visibility:auto 的卡里，是唯一会触发的页面。
+	// 再加一个 400ms 硬超时兜底：即便将来某个 in-viewport 图解码也卡住，
+	// 也不会再卡死整次 visit。
 	function primeNewPageContent(): Promise<void> {
 		const images = Array.from(
 			document.querySelectorAll("#swup-container img"),
 		) as HTMLImageElement[];
+		const viewportHeight =
+			window.__swupPhaseInnerHeight || window.innerHeight;
+		const margin = viewportHeight * 1.5;
 		const decodes: Array<Promise<void>> = [];
 		for (const img of images) {
-			if (!img.complete && typeof img.decode === "function") {
-				decodes.push(
-					img.decode().then(
-						function () {
-							return undefined;
-						},
-						function () {
-							return undefined;
-						},
-					),
-				);
+			if (img.complete || typeof img.decode !== "function") continue;
+			const rect = img.getBoundingClientRect();
+			// content-visibility:auto + 视口外 = 跳过态。decode 会挂起。
+			// 只对真正会在首帧绘制的图调用 decode。
+			if (rect.bottom < -margin || rect.top > viewportHeight + margin) {
+				continue;
 			}
+			decodes.push(
+				img.decode().then(
+					function () {
+						return undefined;
+					},
+					function () {
+						return undefined;
+					},
+				),
+			);
 		}
 
 		return new Promise<void>(function (resolve) {
+			let settled = false;
+			const finish = function () {
+				if (settled) return;
+				settled = true;
+				resolve();
+			};
+			// 硬超时：即使所有 decode 都被 content-visibility 卡住也不会阻塞
+			// 页面切换。实测正常情况 0–50ms 内 settle，400ms 是极保守兜底。
+			const timeoutId = window.setTimeout(finish, 400);
 			requestAnimationFrame(function () {
 				void document.documentElement.offsetHeight; // 强制样式/布局
 				requestAnimationFrame(function () {
 					void document.documentElement.offsetHeight; // 强制首帧绘制
 					Promise.all(decodes).then(function () {
+						window.clearTimeout(timeoutId);
 						requestAnimationFrame(function () {
 							void document.documentElement.offsetHeight;
-							resolve();
+							finish();
 						});
 					});
 				});
