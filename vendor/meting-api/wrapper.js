@@ -176,7 +176,15 @@ async function proxyNeteaseSong(c) {
             // trust netResp.ok and let the blog-side size check catch issues.
             const clHeader = netResp.headers.get('content-length')
             const cl = clHeader ? Number(clHeader) : null
-            if (netResp.ok && (cl === null || cl >= 500_000)) break
+            if (netResp.ok && (cl === null || cl >= 500_000)) {
+                // Diagnostic: log what the upstream gave us so we can see
+                // whether chunked (CL missing) responses are common.
+                console.log(JSON.stringify({
+                    t: now(), level: 'song_ok', attempt, url: c.req.path,
+                    cl: clHeader ?? 'chunked', status: netResp.status,
+                }))
+                break
+            }
             if (netResp.ok) {
                 // Drain so the connection can be reused/closed cleanly
                 try { await netResp.arrayBuffer() } catch {}
@@ -186,7 +194,7 @@ async function proxyNeteaseSong(c) {
             // song was eventually rejected after 4 retries.
             console.log(JSON.stringify({
                 t: now(), level: 'song_retry', attempt, url: c.req.path,
-                cl: clHeader ?? '?', status: netResp?.status, lastErr,
+                cl: clHeader ?? 'chunked', status: netResp?.status, lastErr,
             }))
         } catch (e) {
             lastErr = e.message
