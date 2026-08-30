@@ -238,9 +238,6 @@ function initAnimePageLayout() {
 
 	const currentLayout = localStorage.getItem("postListLayout") || "list";
 	updateAnimeListLayout(currentLayout, false);
-	requestAnimationFrame(() => {
-		animeListContainer.classList.remove("opacity-0");
-	});
 	return true;
 }
 

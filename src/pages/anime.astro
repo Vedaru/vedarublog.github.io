@@ -199,7 +199,7 @@ const hiddenAnimeList = animeList.slice(INITIAL_DISPLAY_COUNT);
 						<>
 							<div
 								id="anime-list-container"
-								class={`anime-grid-container grid gap-4 md:gap-6 opacity-0 transition-opacity duration-300`}
+								class={`anime-grid-container grid gap-4 md:gap-6`}
 							>
 								{visibleAnimeList.map((anime) => {
 									const statusInfo = getStatusInfo(
