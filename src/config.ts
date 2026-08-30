@@ -390,17 +390,11 @@ export const announcementConfig: AnnouncementConfig = {
 export const musicPlayerConfig: MusicPlayerConfig = {
 	enable: true, // 启用音乐播放器功能
 	mode: "local", // 音乐播放器模式：运行时仅支持 "local"（使用本地歌单）；Meting 仅在静态构建时用于下载并生成本地歌单
-	// 当前使用：官方 Meting API（主源），仅用于构建脚本下载音乐。
-	// 可选：按优先级提供多个候选 Meting API 源，构建时会按顺序尝试备用源（仅用于构建/下载阶段）。
-	meting_api:
-		"https://meting.vedaru.cn/api?server=netease&type=playlist&id=17514570572",
-	// 推荐：配置多个候选 API 源以在主源不可用（403/限流/超时）时自动回退
-	meting_api_candidates: [
-		"https://meting.vedaru.cn/api?server=:server&type=:type&id=:id",
-		"https://metingapi.nanorocky.top/?server=:server&type=:type&id=:id",
-		"https://api.i-meto.com/meting/api?server=:server&type=:type&id=:id",
-		"https://meting.qjqq.cn/api.php?server=:server&type=:type&id=:id",
-	],
+	// Meting API 不再在 CI 之外使用：构建脚本在 CI runner 上跑本地 wrapper.js
+	// （通过 METING_API_BASE 环境变量注入）。这里保留字段是为了让 MusicPlayerConfig
+	// 类型保持兼容；如果以后想重新用外部 Meting 镜像，可以恢复。
+	meting_api: undefined,
+	meting_api_candidates: undefined,
 	id: "17514570572", // 歌单ID
 	server: "netease", // 音乐源服务器。有的meting的api源支持更多平台,一般来说,netease=网易云音乐, tencent=QQ音乐, kugou=酷狗音乐, xiami=虾米音乐, baidu=百度音乐
 	type: "playlist", // 播单类型

@@ -80,56 +80,42 @@ DRY_RUN=1 node scripts/netlify-traffic-switch.mjs
 
 ---
 
-## 自建 Meting API（音乐源）
+## 音乐源（CI 自带 wrapper）
 
-本站歌曲元数据、封面、播放 URL 通过自建的 [Meting API](https://github.com/xizeyoupan/Meting-API) 兼容接口获取，地址：`https://meting.vedaru.cn`。
+歌曲元数据、封面、播放 URL 在 CI 构建时通过 Meting API 拉取并落到 `public/assets/music/`，运行时**完全不依赖**外部 API。
 
-第三方 Meting 镜像（`api.i-meto.com`、`metingapi.nanorocky.top` 等）经常 404、限流（418）或者返回失效的 CDN 签名链接。自建实例可控、稳定，且支持通过密钥隔离公共访问。
+### 工作流
 
-### 架构
+1. **CI runner 临时启动 wrapper**：每次构建在 `ubuntu-latest` runner 上 clone [`Vedaru/meting-api`](https://git.vedaru.cn/Vedaru/meting-api)，`npm install` 后 `node wrapper.js` 在 `127.0.0.1:3300` 跑后台。
+2. **下载脚本连本地 API**：`scripts/download-music.js` 读 `METING_API_BASE=http://127.0.0.1:3300/api` 环境变量，把这首歌单的元数据/封面/音频流式写入 `public/assets/music/`。
+3. **提交到仓库**：所有 `.opus` + `.webp` + `playlist.json` 都作为静态资源进 git。运行时直接从 GitHub Pages / Cloudflare Pages 加载，零外部依赖。
+4. **runner 结束自毁**：job 完成后 wrapper 进程随 runner 一起消失，无需维护。
 
-```text
-GitHub Actions（CI）
-  ↓ HTTPS + X-Meting-Key
-Cloudflare Tunnel（ssh.vedaru.cn）
-  ↓ HTTP
-自建 meting-api 容器（127.0.0.1:3300）
-  ├─ wrapper.js（auth + rate limit + 日志）
-  └─ upstream Meting 应用（从网易云获取元数据）
-       ↓ 服务端代理（不再 302）
-       网易云 CDN
-```
+### 为什么不直接连网易云
 
-### 关键点
+- **跨区域 CD**N：GitHub Actions runner 在美/欧，网易云 CDN 偶发返回 104 KB 错误页。`wrapper.js` 服务端代理 + 失败重试 + 重新解析签名 URL 解决。
+- **地理封禁**：某些歌（如 夜明けと蛍 arrange ver.）对中国大陆 IP 不返回，导致自建服务器版 wrapper 漏歌。CI runner 的 US/EU IP 不受这个限制。
+- **机器人检测**：伪装 `User-Agent` + `Cookie` 头，匹配 upstream Meting 自身调用 `music.163.com` 用的浏览器指纹。
 
-- **服务端代理播放 URL**：上游 Meting 默认 `?type=url` 返回 302 跳转到网易云带签名的 CDN URL，跨区域（GitHub Actions runner 在美/欧）访问时偶尔返回 104 KB 错误页。`wrapper.js` 改为服务端 fetch 后流式返回（带 `X-Proxied-By` 头），稳定拿到完整 MP3。
-- **认证**：`X-Meting-Key` 请求头，密钥从 Forgejo / GitHub Secrets 注入。仅对 `meting.vedaru.cn` 域名附加，不影响其他 Meting 镜像。
-- **限流**：内存内令牌桶，60 req/min/IP（`RATE_LIMIT_PER_MIN` 可调）。日志输出每条请求的 IP、密钥状态、状态码、耗时。
-- **隧道独占入口**：容器只监听 `127.0.0.1:3300`，外部只能通过 `https://meting.vedaru.cn`（Cloudflare Tunnel）访问，无直连。
-- **失败关闭**：未配置 `METING_KEY` 时返回 503，避免误用。
-- **资源上限**：128 MiB 内存硬限、PID 64、max-old-images 自动清理。
+### 关键文件
 
-### 仓库与 CI
-
-| 组件 | 位置 |
+| 位置 | 作用 |
 |------|------|
-| 源码 | `git.vedaru.cn/Vedaru/meting-api`（自建 Forgejo） |
-| 镜像构建 | `.forgejo/workflows/deploy.yml`，跑在已有的 `forgejo-runner`（host backend，无需 docker-in-docker） |
-| Dockerfile | `src/Dockerfile`（多阶段：先在 PC 端 `podman build` 出一个 `meting-api-deps` 侧车镜像预装 `node_modules`，再由 runner 复用以避免 runner 沙箱内 `npm ci` 崩溃） |
-| 部署目录 | `~/docker/meting-api/`（服务器上的 `docker compose up -d`） |
+| `.github/workflows/CI.yml` | 启 wrapper + 下载 + 提交 |
+| `scripts/download-music.js` | Meting 客户端，含"不删除成功歌曲"回归保护 |
+| `src/wrapper.js`（在 meting-api 仓库） | Hono 服务：auth、限流、NetEase 服务端代理、签名 URL 重新解析 |
 
 ### Secrets
 
 | Secret | 在哪 | 用途 |
 |--------|-----|------|
-| `METING_KEY` | Forgejo `Vedaru/meting-api` + GitHub `Vedaru/vedarublog.github.io` | API 鉴权 |
-| `REGISTRY_USER` / `REGISTRY_TOKEN` | Forgejo | 镜像推送到本地 registry（备用，当前未用） |
+| `METING_KEY` | GitHub `Vedaru/vedarublog.github.io` | CI 内部给 wrapper 鉴权用，本地 `127.0.0.1` |
 
 本地生成新密钥：
 
 ```bash
 openssl rand -hex 32
-# 然后更新 .env、重启容器、再同步到 Forgejo/GitHub Secrets
+# 然后更新 GitHub repo Settings → Secrets → Actions → METING_KEY
 ```
 
 ---
