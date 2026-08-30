@@ -33,34 +33,40 @@
 }
 
 /* === List Mode === */
-.anime-grid-container.anime-list-mode {
+.anime-grid-container.anime-list-mode,
+html[data-post-list-layout="list"] .anime-grid-container {
   grid-template-columns: repeat(1, 1fr);
 }
 @media (min-width: 1024px) {
-  .anime-grid-container.anime-list-mode {
+  .anime-grid-container.anime-list-mode,
+  html[data-post-list-layout="list"] .anime-grid-container {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-.anime-grid-container.anime-list-mode .group {
+.anime-grid-container.anime-list-mode .group,
+html[data-post-list-layout="list"] .anime-grid-container .group {
   display: flex;
   flex-direction: row;
   min-height: 12rem;
 }
 
-.anime-grid-container.anime-list-mode .anime-cover-container {
+.anime-grid-container.anime-list-mode .anime-cover-container,
+html[data-post-list-layout="list"] .anime-grid-container .anime-cover-container {
   width: 8.5rem;
   height: auto;
   aspect-ratio: 2/3;
   flex-shrink: 0;
 }
 @media (min-width: 768px) {
-  .anime-grid-container.anime-list-mode .anime-cover-container {
+  .anime-grid-container.anime-list-mode .anime-cover-container,
+  html[data-post-list-layout="list"] .anime-grid-container .anime-cover-container {
     width: 11rem;
   }
 }
 
-.anime-grid-container.anime-list-mode .p-3 {
+.anime-grid-container.anime-list-mode .p-3,
+html[data-post-list-layout="list"] .anime-grid-container .p-3 {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
@@ -68,13 +74,15 @@
   padding: 0.75rem 1rem;
 }
 
-.anime-grid-container.anime-list-mode h3 {
+.anime-grid-container.anime-list-mode h3,
+html[data-post-list-layout="list"] .anime-grid-container h3 {
   -webkit-line-clamp: unset;
   line-clamp: unset;
   white-space: normal;
 }
 
-.anime-grid-container.anime-list-mode .group p.text-xs {
+.anime-grid-container.anime-list-mode .group p.text-xs,
+html[data-post-list-layout="list"] .anime-grid-container .group p.text-xs {
   -webkit-line-clamp: 4;
   line-clamp: 4;
 }
