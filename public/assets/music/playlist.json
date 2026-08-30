@@ -4,7 +4,7 @@
     "artist": "Sawako碎花",
     "url": "/assets/music/url/0-Yin-Se-Fei-Xing-Chuan.opus",
     "cover": "/assets/music/cover/0-Yin-Se-Fei-Xing-Chuan.webp",
-    "lrc": "http://meting.vedaru.cn/api?server=netease&type=lrc&id=1393497879",
+    "lrc": "http://127.0.0.1:3300/api?server=netease&type=lrc&id=1393497879",
     "id": "1393497879"
   },
   {
@@ -12,7 +12,7 @@
     "artist": "Orangestar / IA",
     "url": "/assets/music/url/1-RIP.opus",
     "cover": "/assets/music/cover/1-RIP.webp",
-    "lrc": "http://meting.vedaru.cn/api?server=netease&type=lrc&id=458238397",
+    "lrc": "http://127.0.0.1:3300/api?server=netease&type=lrc&id=458238397",
     "id": "458238397"
   },
   {
@@ -20,7 +20,7 @@
     "artist": "livetune / 初音ミク",
     "url": "/assets/music/url/2-Last-Night,Good-Night.opus",
     "cover": "/assets/music/cover/2-Last-Night,Good-Night.webp",
-    "lrc": "http://meting.vedaru.cn/api?server=netease&type=lrc&id=22677560",
+    "lrc": "http://127.0.0.1:3300/api?server=netease&type=lrc&id=22677560",
     "id": "22677560"
   },
   {
@@ -28,7 +28,7 @@
     "artist": "はりーP / 初音ミク",
     "url": "/assets/music/url/3-Meng-yoWei-Lai-he.opus",
     "cover": "/assets/music/cover/3-Meng-yoWei-Lai-he.webp",
-    "lrc": "http://meting.vedaru.cn/api?server=netease&type=lrc&id=1372315794",
+    "lrc": "http://127.0.0.1:3300/api?server=netease&type=lrc&id=1372315794",
     "id": "1372315794"
   },
   {
@@ -36,7 +36,7 @@
     "artist": "心华",
     "url": "/assets/music/url/4-Yi-Ren-Xing-Zhe.opus",
     "cover": "/assets/music/cover/4-Yi-Ren-Xing-Zhe.webp",
-    "lrc": "http://meting.vedaru.cn/api?server=netease&type=lrc&id=526116050",
+    "lrc": "http://127.0.0.1:3300/api?server=netease&type=lrc&id=526116050",
     "id": "526116050"
   },
   {
@@ -44,7 +44,7 @@
     "artist": "HACHI",
     "url": "/assets/music/url/5-Rainy-proof.opus",
     "cover": "/assets/music/cover/5-Rainy-proof.webp",
-    "lrc": "http://meting.vedaru.cn/api?server=netease&type=lrc&id=1829811265",
+    "lrc": "http://127.0.0.1:3300/api?server=netease&type=lrc&id=1829811265",
     "id": "1829811265"
   },
   {
@@ -52,7 +52,7 @@
     "artist": "n-buna",
     "url": "/assets/music/url/6-Ye-Ming-ketoYing-arrange-ver..opus",
     "cover": "/assets/music/cover/6-Ye-Ming-ketoYing-arrange-ver..webp",
-    "lrc": "http://meting.vedaru.cn/api?server=netease&type=lrc&id=1966112058",
+    "lrc": "http://127.0.0.1:3300/api?server=netease&type=lrc&id=1966112058",
     "id": "1966112058"
   },
   {
@@ -60,7 +60,7 @@
     "artist": "小瀬村晶",
     "url": "/assets/music/url/7-Summer-Ghost.opus",
     "cover": "/assets/music/cover/7-Summer-Ghost.webp",
-    "lrc": "http://meting.vedaru.cn/api?server=netease&type=lrc&id=1930226368",
+    "lrc": "http://127.0.0.1:3300/api?server=netease&type=lrc&id=1930226368",
     "id": "1930226368"
   },
   {
@@ -68,7 +68,7 @@
     "artist": "Orangestar / IA",
     "url": "/assets/music/url/8-asunoyozoraShao-Jie-Ban.opus",
     "cover": "/assets/music/cover/8-asunoyozoraShao-Jie-Ban.webp",
-    "lrc": "http://meting.vedaru.cn/api?server=netease&type=lrc&id=31830623",
+    "lrc": "http://127.0.0.1:3300/api?server=netease&type=lrc&id=31830623",
     "id": "31830623"
   },
   {
@@ -76,7 +76,7 @@
     "artist": "n-buna / 初音ミク",
     "url": "/assets/music/url/9-mouzikiXia-gaZhong-warukara.opus",
     "cover": "/assets/music/cover/9-mouzikiXia-gaZhong-warukara.webp",
-    "lrc": "http://meting.vedaru.cn/api?server=netease&type=lrc&id=33367332",
+    "lrc": "http://127.0.0.1:3300/api?server=netease&type=lrc&id=33367332",
     "id": "33367332"
   }
 ]
