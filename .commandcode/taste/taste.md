@@ -1,7 +1,0 @@
-# User Taste Profile
-
-## Communication Style
-- Writes in casual, lowercase prose without capitalizing sentence starts (e.g. "when i return to the homepage..."). Treat this as a personal style, not a mistake. Confidence: 0.7
-- Reports bugs as direct, short problem statements followed by a clear directive ("check why and fix") — expects autonomous investigation and root-cause analysis rather than clarifying questions. Confidence: 0.6
-- When the user has already confirmed a bug on the live deployed site (e.g. real Chrome on Cloudflare after cache clear), do NOT spend many turns trying to reproduce locally with various viewports/flags, and do NOT spin up elaborate measurement/sampling scripts to "prove" the issue is gone. Trust the live-site evidence and go straight to the fix. User explicitly corrected twice: "you are spending too much time on trying to get the exact page" and (implicitly) by redirecting to the live URL after a long local measurement loop. Confidence: 0.9
-- After a code change is complete and builds cleanly, do NOT spin up local preview servers, run headless-browser sanity checks, or otherwise verify behavior locally before pushing. Push to GitHub and let CI/CD handle the rest — the user will test the live deployment themselves. User explicitly said: "you are too slow just push to github and let the cicd to the rest of the work and i'll check and test myself". Confidence: 0.95
