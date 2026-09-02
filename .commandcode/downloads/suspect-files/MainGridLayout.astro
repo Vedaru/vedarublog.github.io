@@ -1,0 +1,865 @@
+---
+import BackToTop from "@components/control/BackToTop.astro";
+import FloatingTOC from "@components/control/FloatingTOC.astro";
+import Footer from "@components/Footer.astro";
+import RightSideBar from "@components/layout/RightSideBar.astro";
+import Navbar from "@components/nav/Navbar.astro";
+import SideBar from "@components/widget/SideBar.astro";
+import BannerWrapper from "@components/banner/BannerWrapper.astro";
+import type { MarkdownHeading } from "astro";
+import { Icon } from "astro-icon/components";
+import IconifyLoader from "../components/misc/IconifyLoader.astro";
+import TOC from "../components/widget/TOC.astro";
+import {
+	siteConfig,
+} from "../config";
+import { widgetManager } from "../utils/widget-manager";
+import {
+	getBannerImages,
+	getBannerResponsive,
+	toBannerSrcList,
+} from "../utils/banner-utils";
+import { isMainHomePage } from "../utils/route-utils";
+import { url } from "../utils/url-utils";
+import Layout from "./Layout.astro";
+
+// TOC模式配置
+const tocMode = siteConfig.toc.mode || "float";
+const isFloatTOC = tocMode === "float";
+const isSidebarTOC = tocMode === "sidebar";
+
+interface Props {
+	title?: string;
+	banner?: string;
+	description?: string;
+	lang?: string;
+	setOGTypeArticle?: boolean;
+	postSlug?: string;
+	headings?: MarkdownHeading[];
+}
+
+const bannerImages = await getBannerImages();
+const desktopBannerList = toBannerSrcList(
+	bannerImages.desktop as string | string[] | undefined,
+);
+const mobileBannerList = toBannerSrcList(
+	bannerImages.mobile as string | string[] | undefined,
+);
+const singleDesktopBanner = desktopBannerList[0];
+const singleMobileBanner = mobileBannerList[0];
+
+const desktopBannerResponsive = getBannerResponsive(singleDesktopBanner);
+const mobileBannerResponsive =
+	getBannerResponsive(singleMobileBanner) ?? desktopBannerResponsive;
+
+const {
+	title,
+	banner,
+	description,
+	lang,
+	setOGTypeArticle,
+	postSlug,
+	headings = [],
+} = Astro.props;
+const hasBannerCredit = siteConfig.banner.credit.enable;
+const hasBannerLink = !!siteConfig.banner.credit.url;
+
+// 检查是否为首页
+const isHomePage = isMainHomePage(Astro.url.pathname);
+const shouldPreloadDesktopBanner = Boolean(desktopBannerResponsive);
+const shouldPreloadMobileBanner = isHomePage && Boolean(mobileBannerResponsive);
+const showHomeText = siteConfig.banner.homeText?.enable && isHomePage;
+const bannerObjectPosition = siteConfig.banner.position || "center";
+const mobileBannerObjectPosition =
+	siteConfig.banner.mobilePosition || "left center";
+// 手机端非首页不显示banner的CSS类
+const mobileNonHomeBannerClass = !isHomePage ? "mobile-hide-banner" : "";
+
+// 检查左侧边栏是否有组件
+const hasLeftSidebarComponents =
+	widgetManager.getComponentsByPosition("top", "left", "desktop").length > 0 ||
+	widgetManager.getComponentsByPosition("sticky", "left", "desktop").length > 0;
+
+// 检查右侧边栏是否有组件
+const hasRightSidebarComponents =
+	widgetManager.getComponentsByPosition("top", "right", "desktop").length > 0 ||
+	widgetManager.getComponentsByPosition("sticky", "right", "desktop").length > 0;
+
+// 检查手机端 drawer 是否有组件
+const hasMobileDrawerComponents =
+	widgetManager.getComponentsByPosition("top", "drawer", "mobile").length > 0 ||
+	widgetManager.getComponentsByPosition("sticky", "drawer", "mobile").length > 0;
+
+// 平板端是否有组件（考虑自动移动逻辑）
+const hasTabletLeftSidebarComponents =
+	widgetManager.getComponentsByPosition("top", "left", "tablet").length > 0 ||
+	widgetManager.getComponentsByPosition("sticky", "left", "tablet").length > 0;
+
+// 检查侧边栏是否启用，动态调整网格布局
+const mobileShowSidebar = hasMobileDrawerComponents;
+const tabletShowSidebar = hasTabletLeftSidebarComponents;
+const desktopShowSidebar = hasLeftSidebarComponents || hasRightSidebarComponents;
+
+// 桌面端侧边栏最终显示状态（考虑是否有组件）
+const desktopShowLeftSidebar = hasLeftSidebarComponents;
+const desktopShowRightSidebar = hasRightSidebarComponents;
+
+// 平板端侧边栏最终显示状态
+const tabletShowLeftSidebar = hasTabletLeftSidebarComponents;
+// 如果左侧有组件，则平板端不显示右侧侧栏；只有当左侧为空且右侧有组件时，才显示右侧侧栏（会被移到左侧）
+// 注意：现在 getComponentsByPosition("left", "tablet") 已经包含了这个逻辑
+const tabletShowRightSidebar = false; // 平板端不再有独立的右侧栏，如果右移左了，它就在 tabletShowLeftSidebar 中显示
+const tabletAnySidebar = tabletShowLeftSidebar;
+
+// 检查默认布局模式，如果是 grid 模式，右侧边栏初始就应该隐藏
+const defaultPostListLayout = siteConfig.postListLayout?.defaultMode || "list";
+const initialRightSidebarHidden = defaultPostListLayout === "grid";
+
+// 动态网格布局类名 - 根据侧边栏模式和是否有组件调整列宽
+let desktopGridCols = "lg:grid-cols-1";
+if (desktopShowLeftSidebar && desktopShowRightSidebar) {
+	desktopGridCols = "lg:grid-cols-[17.5rem_1fr_17.5rem]";
+} else if (desktopShowLeftSidebar) {
+	desktopGridCols = "lg:grid-cols-[17.5rem_1fr]";
+} else if (desktopShowRightSidebar) {
+	desktopGridCols = "lg:grid-cols-[1fr_17.5rem]";
+}
+
+const gridCols = `
+	${mobileShowSidebar ? "grid-cols-1" : "grid-cols-1"}
+	${tabletAnySidebar ? "md:grid-cols-[17.5rem_1fr]" : "md:grid-cols-1"}
+	${desktopGridCols}
+`
+	.trim()
+	.replace(/\s+/g, " ");
+
+// 侧边栏容器类名 - 始终在左侧
+const sidebarClass = `
+	onload-animation
+	${mobileShowSidebar && hasMobileDrawerComponents ? "block" : "hidden"}
+	${tabletShowLeftSidebar ? "md:block md:mb-4 md:max-w-[17.5rem]" : "md:hidden"}
+	${desktopShowLeftSidebar ? "lg:block lg:mb-4 lg:row-start-1 lg:row-end-2 lg:max-w-[17.5rem] lg:col-start-1 lg:col-end-2" : "lg:hidden"}
+`
+	.trim()
+	.replace(/\s+/g, " ");
+
+// 右侧边栏容器类名
+// 手机端：隐藏（手机端只通过 drawer 显示组件）
+// 平板端：根据简化逻辑显示（只有当左侧为空时才显示并移到左侧）
+// 桌面端：定位到网格最后一列（右侧）
+// 如果默认是 grid 模式，初始就隐藏
+const rightSidebarClass = `
+	onload-animation
+	hidden
+	${tabletShowRightSidebar ? "md:block md:mb-4 md:max-w-[17.5rem]" : "md:hidden"}
+	${desktopShowRightSidebar ? `lg:block lg:mb-4 lg:row-start-1 lg:row-end-2 lg:max-w-[17.5rem] ${desktopShowLeftSidebar ? "lg:col-start-3 lg:col-end-4" : "lg:col-start-2 lg:col-end-3"} lg:col-span-1` : "lg:hidden"}
+	${initialRightSidebarHidden ? "hidden-in-grid-mode" : ""}
+`
+	.trim()
+	.replace(/\s+/g, " ");
+
+// 主内容区域类名 - 根据侧边栏模式调整grid-column
+// 平板设备和手机端：主内容在最上方row-1，侧边栏在下方
+// 桌面端：主内容和侧边栏并排显示
+let desktopMainPos = "lg:col-span-1";
+if (desktopShowLeftSidebar && desktopShowRightSidebar) {
+	desktopMainPos = "lg:col-start-2 lg:col-end-3";
+} else if (desktopShowLeftSidebar) {
+	desktopMainPos = "lg:col-start-2 lg:col-end-3";
+} else if (desktopShowRightSidebar) {
+	desktopMainPos = "lg:col-start-1 lg:col-end-2";
+}
+
+const mainContentClass = `
+	w-full
+	col-span-1 row-start-1 row-end-2
+	${tabletAnySidebar ? "md:col-start-2 md:col-end-3" : "md:col-start-1 md:col-end-2"}
+	${desktopShowSidebar ? desktopMainPos : "lg:col-span-1"}
+`
+	.trim()
+	.replace(/\s+/g, " ");
+
+// 检查是否应该启用半透明效果（当默认模式为 fullscreen 时）
+const shouldEnableTransparency =
+	siteConfig.wallpaperMode.defaultMode === "fullscreen";
+
+// 为组件添加半透明效果的CSS类
+const transparentClass = shouldEnableTransparency
+	? "wallpaper-transparent"
+	: "";
+---
+
+<Layout title={title} banner={banner} description={description} lang={lang} setOGTypeArticle={setOGTypeArticle} postSlug={postSlug}>
+
+{shouldPreloadDesktopBanner && desktopBannerResponsive && (
+	<link
+		slot="head"
+		rel="preload"
+		as="image"
+		imagesrcset={`${url(desktopBannerResponsive.w1280)} 1280w, ${url(desktopBannerResponsive.full)} 1920w`}
+		imagesizes="100vw"
+		fetchpriority="high"
+		media="(min-width: 768px)"
+	/>
+)}
+<style
+	slot="head"
+	is:inline
+	set:html={`@media (max-width:767px){#banner{object-position:${mobileBannerObjectPosition}!important;-o-object-position:${mobileBannerObjectPosition}!important}}`}
+></style>
+{shouldPreloadMobileBanner && mobileBannerResponsive && (
+	<link
+		slot="head"
+		rel="preload"
+		as="image"
+		imagesrcset={`${url(mobileBannerResponsive.w768)} 768w`}
+		imagesizes="100vw"
+		fetchpriority="high"
+		media="(max-width: 767px)"
+	/>
+)}
+
+<script type="application/json" id="main-grid-swup-config" set:html={JSON.stringify({
+		navbarTransparentMode: siteConfig.banner?.navbar?.transparentMode || "semi",
+		defaultWallpaperMode: siteConfig.wallpaperMode.defaultMode,
+		defaultPostListLayout: siteConfig.postListLayout?.defaultMode || "list",
+		allowPostListSwitch: siteConfig.postListLayout?.allowSwitch ?? false,
+			allowWallpaperSwitch: siteConfig.wallpaperMode?.showModeSwitchOnMobile !== "off",
+	})} />
+<script>
+	import { initMainGridSwup } from "../scripts/widgets/main-grid-swup";
+	const el = document.getElementById("main-grid-swup-config");
+	if (el) initMainGridSwup(JSON.parse(el.textContent || "{}"));
+</script>
+
+<!-- 全局图标加载器 -->
+<IconifyLoader />
+
+<!-- Navbar -->
+<slot slot="head" name="head"></slot>
+<div id="top-row" class="z-50 pointer-events-none relative transition-all duration-700 max-w-[var(--page-width)] px-0 md:px-4 mx-auto" class:list={[""]}>
+    <div id="navbar-wrapper" class="pointer-events-auto sticky top-0 transition-[opacity,background-color,box-shadow] duration-300">
+        <Navbar></Navbar>
+    </div>
+</div>
+
+<BannerWrapper
+	mobileNonHomeBannerClass={mobileNonHomeBannerClass}
+	showHomeText={Boolean(showHomeText)}
+	desktopBannerResponsive={desktopBannerResponsive}
+	mobileBannerResponsive={mobileBannerResponsive}
+	bannerObjectPosition={bannerObjectPosition}
+	hasBannerCredit={hasBannerCredit}
+	hasBannerLink={hasBannerLink}
+/>
+
+<!-- Main content -->
+<div
+	class:list={[
+		"main-panel absolute w-full z-30 pointer-events-none",
+		mobileNonHomeBannerClass ? "mobile-main-no-banner" : "",
+	]}
+>
+    <!-- The pointer-events-none here prevent blocking the click event of the TOC -->
+    <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto min-w-0 w-full overflow-x-clip">
+        <div id="main-grid" class={`w-full min-w-0 left-0 right-0 grid ${gridCols} grid-rows-none md:grid-rows-[auto] mx-auto gap-4 px-2 md:px-4 overflow-x-clip ${!mobileShowSidebar || !hasMobileDrawerComponents ? 'mobile-no-sidebar' : ''} ${hasRightSidebarComponents ? 'mobile-both-sidebar' : ''}`}
+             data-layout-mode={defaultPostListLayout}
+        >
+            <!-- Banner image credit -->
+            {hasBannerCredit && <a href={siteConfig.banner.credit.url} id="banner-credit" target="_blank" rel="noopener" aria-label="Visit image source"
+                                   class:list={["group onload-animation transition-all absolute flex justify-center items-center rounded-full " +
+                                   "px-3 right-4 -top-[3.25rem] bg-black/60 hover:bg-black/70 h-9", {"hover:pr-9 active:bg-black/80": hasBannerLink}]}
+            >
+                <Icon class="text-white/75 text-[1.25rem] mr-1" name="material-symbols:copyright-outline-rounded" ></Icon>
+                <div class="text-white/75 text-xs">{siteConfig.banner.credit.text}</div>
+                <Icon class:list={["transition absolute text-[oklch(0.75_0.14_var(--hue))] right-4 text-[0.75rem] opacity-0",
+                    {"group-hover:opacity-100": hasBannerLink}]}
+                      name="fa7-solid:arrow-up-right-from-square">
+                </Icon>
+            </a>}
+
+
+            {/* 侧边栏和主内容区域容器 */}
+            <div class="contents">
+                {(mobileShowSidebar || tabletShowSidebar || desktopShowSidebar) && (
+                    <SideBar class={`${sidebarClass} ${transparentClass}`} headings={headings}></SideBar>
+                )}
+                
+                {hasRightSidebarComponents && (
+                    <div class={`right-sidebar-container ${rightSidebarClass} ${transparentClass}`}>
+                        <RightSideBar headings={headings}></RightSideBar>
+                    </div>
+                )}
+            </div>
+
+            <main id="swup-container" class={`${mainContentClass} transition-main min-w-0`}>
+                <div class="sr-only" data-swup-a11y-title>{title || siteConfig.title}</div>
+                <div id="content-wrapper" class="transition-leaving overflow-hidden">
+                    <!-- the overflow-hidden here prevent long text break the layout-->
+                    <!-- make id different from windows.swup global property -->
+                    <slot></slot>
+                    <div class="footer col-span-full onload-animation hidden lg:block">
+                        <Footer></Footer>
+                    </div>
+                </div>
+            </main>
+
+            <div class="footer col-span-full onload-animation block lg:hidden">
+                <Footer></Footer>
+            </div>
+        </div>
+
+        <BackToTop></BackToTop>
+        {siteConfig.toc.enable && isFloatTOC && <FloatingTOC />}
+    </div>
+</div>
+
+<!-- 侧边栏TOC模式 -->
+{siteConfig.toc.enable && isSidebarTOC && (
+    <div class="absolute w-full z-0 hidden 2xl:block">
+        <div class="relative max-w-[var(--page-width)] mx-auto">
+            <div id="toc-wrapper" class:list={["hidden lg:block transition absolute top-0 w-[var(--toc-width)] items-center",
+                "-right-[var(--toc-width)]",
+                {"toc-hide": siteConfig.wallpaperMode.defaultMode === "banner"}]}
+            >
+                <div id="toc-inner-wrapper" class="fixed top-14 w-[var(--toc-width)] max-h-[calc(100vh_-_10rem)] overflow-hidden">
+                    <div id="toc-container" class="w-full transition-swup-fade">
+                        <TOC headings={headings}></TOC>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+)}
+
+<!-- 保留此元素以确保Swup正常工作 -->
+{(!siteConfig.toc.enable || isFloatTOC) && <div id="toc-container" class="hidden"></div>}
+</Layout>
+
+<style>
+/* Banner text styles */
+.banner-title {
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+    animation: fadeInUp 1s ease-out both;
+    font-weight: bold;
+    /* transform-only 动画不触发 CLS */
+    will-change: transform, opacity;
+}
+
+.banner-subtitle {
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
+    animation: fadeInUp 1s ease-out 0.3s both;
+    min-height: 1.5em; /* 确保副标题容器有最小高度 */
+    line-height: 1.2; /* 确保一致的行高 */
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 当没有 banner 时，主内容区域移到顶部 */
+body.no-banner-mode .absolute.w-full.z-30 {
+    top: calc(5.5rem + 1rem) !important;
+}
+
+/* TOC 垂直对齐优化 */
+body.no-banner-mode #toc-inner-wrapper {
+    top: 5.5rem !important;
+    max-height: calc(100vh - 8rem) !important;
+}
+
+/* 全屏壁纸模式下的 TOC 毛玻璃背景 - 仅在 TOC 加载完成后显示 */
+body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded="true"]) {
+    background: var(--card-bg-transparent) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-radius: var(--radius-large);
+    padding: 0.5rem;
+    box-shadow: var(--shadow-lg);
+}
+
+/* 桌面端 banner 模式下的主内容位置 — 见 layout-stable.css */
+
+/* 移动端无侧边栏布局优化 */
+@media (max-width: 767px) {
+    .mobile-no-sidebar {
+        display: block !important;
+        width: 100% !important;
+    }
+    
+    .mobile-no-sidebar main {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+    
+    .mobile-no-sidebar #content-wrapper {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+    }
+    
+    /* 修复双侧边栏模式在移动端的布局问题 */
+    .mobile-both-sidebar {
+        /* 确保在移动端使用单列布局 */
+        grid-template-columns: 1fr !important;
+        /* 确保左右padding对称 */
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+    }
+    
+    /* 确保移动端主内容区域居中且全宽 */
+    .mobile-both-sidebar main {
+        grid-column: 1 / -1 !important;
+        width: 100% !important;
+        margin: 0 auto !important;
+    }
+    
+    /* 移动端footer也要居中 */
+    .mobile-both-sidebar .footer {
+        grid-column: 1 / -1 !important;
+    }
+}
+
+/* 平板设备双侧边栏布局优化 (768px - 1279px) */
+@media (min-width: 768px) and (max-width: 1279px) {
+    .mobile-both-sidebar {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+    
+    .mobile-both-sidebar main {
+        width: 100% !important;
+        margin: 0 auto !important;
+    }
+    
+    .mobile-both-sidebar .footer {
+        grid-column: 1 / -1 !important;
+    }
+}
+
+/* 移动端图片优化 */
+@media (max-width: 1279px) {
+    /* object-position 由 head 内 is:inline 按 config.mobilePosition 注入 */
+    
+    /* 移动端banner加载动画优化 */
+    .onload-animation-fade-in {
+        animation: mobile-fade-in 0.8s ease-out forwards !important;
+    }
+}
+
+/* 移动端专用淡入动画 - 与电脑端保持一致 */
+@keyframes mobile-fade-in {
+    0% {
+        opacity: 0;
+        transform: scale(1.1);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1); /* 与电脑端当前图片缩放保持一致 */
+    }
+}
+
+/* #banner-wrapper 定位规则见 layout-stable.css（BannerWrapper 组件化后须用全局样式） */
+
+/* 手机端非首页：主内容区域过渡（banner 隐藏动画见 layout-stable.css） */
+@media (max-width: 1279px) {
+    .absolute.w-full.z-30 {
+        transition: top var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
+    }
+    
+    .absolute.w-full.z-30.mobile-main-no-banner {
+        top: calc(5.5rem + 1rem) !important;
+        min-height: calc(100vh - 6.5rem) !important;
+    }
+}
+
+/* 移动端导航栏与banner的协调 */
+@media (max-width: 1279px) {
+    #navbar-wrapper {
+        /* 移除覆盖样式，让Navbar.astro的圆角和半透明效果生效 */
+    }
+    
+    /* 暗色主题下的导航栏 */
+    :root.dark #navbar-wrapper {
+        /* 移除覆盖样式，让Navbar.astro的圆角和半透明效果生效 */
+    }
+}
+
+/* 移动端banner性能优化 */
+@media (max-width: 1279px) {
+    .banner-container {
+        /* 启用硬件加速 */
+        transform: translateZ(0);
+        -webkit-transform: translateZ(0);
+        
+        /* 优化渲染性能 */
+        contain: layout style paint;
+        
+        /* 减少重绘 */
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+    }
+
+    .banner-text-overlay {
+        /* 文字渲染优化 */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+        
+        /* 减少重排 */
+        contain: layout style;
+    }
+
+    /* 移动端图片优化 */
+    .banner-container img {
+        /* 图片渲染优化 */
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+        
+        /* 防止图片拖拽 */
+        -webkit-user-drag: none;
+        -khtml-user-drag: none;
+        -moz-user-drag: none;
+        -o-user-drag: none;
+        user-drag: none;
+        
+        /* 触摸优化 */
+        pointer-events: none;
+    }
+}
+
+/* 当banner被禁用时的布局样式 */
+.no-banner-layout {
+    top: 5.5rem !important;
+    min-height: calc(100vh - 5.5rem) !important;
+}
+
+/* Grid 模式下隐藏右侧边栏 */
+.right-sidebar-container.hidden-in-grid-mode {
+    display: none !important;
+}
+
+/* Grid 模式下调整主网格布局 */
+/* #main-grid 与 #banner-wrapper 的 transform 各自带 700ms 过渡
+   （layout-stable.css，与上游 Fuwari 一致）。这里不要再为 #main-grid
+   自身的 transform 写额外的 transition / animation——会与原本的 700ms
+   过渡叠加引起接缝抖动。
+
+   data-layout-mode 变化由下方 [data-layout-mode="grid"] 选择器只切换
+   grid-template-columns（布局结构），不触碰 transform。 */
+
+#main-grid[data-layout-mode="grid"] {
+    /* 在桌面端只显示左侧边栏和主内容 */
+}
+
+/* 平板设备Grid模式：使用单列布局，和手机端保持一致 */
+@media (min-width: 768px) and (max-width: 1279px) {
+    #main-grid[data-layout-mode="grid"] {
+        grid-template-columns: 1fr !important;
+        grid-template-rows: auto 1fr auto !important;
+    }
+    
+    #main-grid[data-layout-mode="grid"] #swup-container {
+        grid-column: 1 / 2;
+        grid-row: 1 / 2;
+    }
+}
+
+/* 桌面设备Grid模式：使用双列布局 */
+@media (min-width: 1280px) {
+    #main-grid[data-layout-mode="grid"] {
+        grid-template-columns: 17.5rem 1fr !important;
+    }
+    
+    #main-grid[data-layout-mode="grid"] #swup-container {
+        grid-column: 2 / 3;
+    }
+}
+
+/* 确保大屏桌面设备Grid模式配置 */
+@media (min-width: 1280px) {
+    #main-grid[data-layout-mode="grid"] {
+        grid-template-columns: 17.5rem 1fr !important;
+    }
+    
+    #main-grid[data-layout-mode="grid"] #swup-container {
+        grid-column: 2 / 3;
+    }
+}
+
+/* 移动端当banner被禁用时的布局样式 */
+@media (max-width: 1279px) {
+    .absolute.w-full.z-30.no-banner-layout {
+        top: 5.5rem !important;
+        min-height: calc(100vh - 5.5rem) !important;
+        transition: none !important; /* 移除过渡动画，立即应用位置 */
+    }
+}
+
+/* 小屏手机当banner被禁用时的布局样式 */
+@media (max-width: 479px) {
+    .absolute.w-full.z-30.no-banner-layout {
+        top: 5.5rem !important;
+        min-height: calc(100vh - 5.5rem) !important;
+        transition: none !important;
+    }
+}
+
+/* 平板设备当banner被禁用时的布局样式 */
+@media (min-width: 768px) and (max-width: 1279px) {
+    .absolute.w-full.z-30.no-banner-layout {
+        top: 5.5rem !important;
+        min-height: calc(100vh - 5.5rem) !important;
+        transition: none !important;
+    }
+}
+
+/* 移动端横屏优化 — 布局高度见 layout-stable.css */
+@media (max-width: 1279px) and (orientation: landscape) {
+    .banner-container {
+        height: 60vh;
+        min-height: 300px;
+    }
+
+    .banner-text-overlay {
+        padding: 1rem 1.5rem;
+        align-items: center !important; /* 垂直居中 */
+        justify-content: center !important; /* 水平居中 */
+        text-align: center !important; /* 文字居中对齐 */
+    }
+
+    .banner-title {
+        font-size: 2.2rem !important; /* 增大字体大小 */
+        line-height: 1.3;
+    }
+
+    .banner-subtitle {
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+    }
+}
+
+/* 移动端暗色模式优化 */
+@media (max-width: 1279px) and (prefers-color-scheme: dark) {
+    .banner-text-overlay {
+        background: linear-gradient(
+            to top,
+            rgba(0, 0, 0, 0.8) 0%,
+            rgba(0, 0, 0, 0.4) 50%,
+            transparent 100%
+        );
+    }
+
+    .banner-title {
+        text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8);
+    }
+
+    .banner-subtitle {
+        text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.7);
+    }
+}
+
+/* 水波纹显示优化 */
+.waves {
+    overflow: hidden;
+    z-index: 5;
+    /* 硬件加速，确保与背景同步渲染 */
+    transform: translateZ(0);
+    will-change: transform;
+    /* 确保与页面背景在同一合成层 */
+    contain: layout style paint;
+}
+
+.waves svg {
+    /* 确保SVG完整渲染 */
+    width: 100%;
+    height: 100%;
+    display: block;
+    /* SVG硬件加速 */
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+/* 波浪填充色主题切换优化 */
+.waves use {
+    /* 确保填充色与页面背景同步更新 */
+    will-change: fill;
+}
+
+/* 波浪与背景同步切换优化 - 解决交界线闪烁 */
+#header-waves {
+    /* 确保波浪容器与页面背景在同一合成层 */
+    isolation: isolate;
+    /* 强制重绘，确保与body背景同步 */
+    contain: layout style paint;
+    /* 精确对齐 */
+    margin-bottom: -1px;
+}
+
+/* 主题切换时的额外保护 */
+.theme-changing #header-waves,
+.theme-changing #header-waves svg,
+.theme-changing #header-waves use {
+    /* 在主题切换期间禁用所有可能的渲染延迟 */
+    will-change: auto;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+/* 移动端水波纹特殊优化 */
+@media (max-width: 1279px) {
+    #header-waves {
+        /* 裁剪水波纹动画，避免切换页面时横向溢出 */
+        overflow: hidden;
+        z-index: 5;
+        /* 水波纹快速消失动画 */
+        transition: transform 0.3s ease-in, opacity 0.2s ease-in;
+    }
+    
+    /* 当banner隐藏时，水波纹快速消失 */
+    .mobile-hide-banner #header-waves {
+        transform: translateY(-100%);
+        opacity: 0;
+        /* 水波纹比banner更快消失 */
+        transition: transform 0.25s ease-in, opacity 0.15s ease-in;
+    }
+    
+    .waves svg {
+        /* 移动端SVG优化 */
+        min-height: 60px;
+    }
+    
+    /* 确保水波纹在banner底部正确定位 */
+    .waves {
+        bottom: -1px !important;
+        position: absolute !important;
+    }
+}
+
+/* 超小屏幕水波纹优化 */
+@media (max-width: 360px) {
+    .waves {
+        height: 6vh !important;
+        min-height: 50px !important;
+        max-height: 70px !important;
+    }
+}
+
+/* 基于屏幕高度的 banner 文本优化 — 布局高度见 layout-stable.css */
+/* 极小高度屏幕 (高度 ≤ 500px) */
+@media (max-height: 500px) {
+    .banner-text-overlay {
+        padding: 1rem !important;
+        align-items: center !important; /* 垂直居中 */
+        justify-content: center !important; /* 水平居中 */
+        text-align: center !important; /* 文字居中对齐 */
+    }
+    
+    .banner-title {
+        font-size: 2.8rem !important; /* 增大字体大小 */
+        line-height: 1.1 !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    .banner-subtitle {
+        font-size: 0.9rem !important;
+        line-height: 1.2 !important;
+    }
+    
+    .waves {
+        height: 5vh !important;
+        min-height: 40px !important;
+        max-height: 50px !important;
+    }
+}
+
+/* 小高度屏幕 (高度 501px - 600px) */
+@media (min-height: 501px) and (max-height: 600px) {
+    .banner-text-overlay {
+        padding: 1.5rem !important;
+        align-items: center !important; /* 垂直居中 */
+        justify-content: center !important; /* 水平居中 */
+        text-align: center !important; /* 文字居中对齐 */
+    }
+    
+    .banner-title {
+        font-size: 3.2rem !important; /* 增大字体大小 */
+        line-height: 1.1 !important;
+        margin-bottom: 0.75rem !important;
+    }
+    
+    .banner-subtitle {
+        font-size: 1rem !important;
+        line-height: 1.3 !important;
+    }
+    
+    .waves {
+        height: 6vh !important;
+        min-height: 50px !important;
+        max-height: 60px !important;
+    }
+}
+
+/* 中等高度屏幕 (高度 601px - 700px) */
+@media (min-height: 601px) and (max-height: 700px) {
+    .banner-text-overlay {
+        padding: 2rem !important;
+        align-items: center !important; /* 垂直居中 */
+        justify-content: center !important; /* 水平居中 */
+        text-align: center !important; /* 文字居中对齐 */
+    }
+    
+    .banner-title {
+        font-size: 3.8rem !important; /* 增大字体大小 */
+        line-height: 1.1 !important;
+        margin-bottom: 1rem !important;
+    }
+    
+    .banner-subtitle {
+        font-size: 1.125rem !important;
+        line-height: 1.4 !important;
+    }
+    
+    .waves {
+        height: 8vh !important;
+        min-height: 60px !important;
+        max-height: 80px !important;
+    }
+}
+
+/* 横屏模式特殊处理 - 优先显示banner — 布局高度见 layout-stable.css */
+@media (orientation: landscape) and (max-height: 500px) {
+    .banner-text-overlay {
+        padding: 1rem 2rem !important;
+        align-items: center !important; /* 垂直居中 */
+        justify-content: center !important; /* 水平居中 */
+        text-align: center !important; /* 文字居中对齐 */
+    }
+    
+    .banner-title {
+        font-size: 2.8rem !important; /* 增大字体大小 */
+        line-height: 1.1 !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    .banner-subtitle {
+        font-size: 1rem !important;
+        line-height: 1.2 !important;
+    }
+    
+    .waves {
+        height: 4vh !important;
+        min-height: 30px !important;
+        max-height: 40px !important;
+    }
+}
