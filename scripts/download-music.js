@@ -313,11 +313,20 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
       // Avoid re-downloading if already present
       if (!fssync.existsSync(filepath)) {
         try {
-          console.log(`ℹ Downloading ${title} from ${song.url}`);
-          const r = await fetchWithRetry(song.url, {
-            timeout: 30000,
+          // When the local wrapper is running, download through its proxy
+          // instead of hitting NetEase CDN directly. The wrapper fetches
+          // server-side (close to NetEase CDN) and retries on 104 KB error
+          // pages — something the CI runner can't do reliably due to
+          // geo-blocking and signed-URL expiry.
+          const songId = extractSongId(song);
+          const downloadUrl = (apiBase && songId)
+            ? `${apiBase.replace(/\/$/, '')}?server=${meting_server}&type=url&id=${songId}`
+            : song.url;
+          console.log(`ℹ Downloading ${title} from ${downloadUrl}`);
+          const r = await fetchWithRetry(downloadUrl, {
+            timeout: 60000,
             retries: 2,
-            headers: headersForUrl(song.url, {
+            headers: headersForUrl(downloadUrl, {
               'User-Agent': 'Mozilla/5.0 (compatible; VedaruMusicDownloader/1.0; +https://vedaru.cn)',
               'Accept': '*/*',
               'Referer': 'https://vedaru.cn'
