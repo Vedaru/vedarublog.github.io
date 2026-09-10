@@ -1,19 +1,20 @@
-name: Deploy Astro to GitHub Pages
+name: Update Music & Bangumi + Astro Check
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
+# 只需 contents: write（推送音乐 / 番剧数据提交）。
+# 不再部署 GitHub Pages —— 站点由 Cloudflare Pages 从本仓库自行构建，
+# 故不再需要 pages: write / id-token: write / github-pages environment。
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 # 不用 cancel-in-progress：download-music 会 commit+push 触发新 run，
-# 旧 run 继续跑完也不影响（第二次 deploy 覆盖第一次）
+# 取消会打断尚未推送的更新；旧 run 跑完也无害。
 concurrency:
-  group: "pages-${{ github.ref }}"
+  group: "content-${{ github.ref }}"
   cancel-in-progress: false
 
 jobs:
@@ -184,77 +185,3 @@ jobs:
         run: pnpm astro check
         env:
           ENABLE_CONTENT_SYNC: false
-
-  build-and-deploy:
-    name: Build and Deploy to GitHub Pages
-    needs: check
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      # Pull 拿到 download-and-commit 刚推的代码
-      - name: Pull latest main
-        run: |
-          git remote set-url origin https://github.com/${{ github.repository }}.git
-          git pull --rebase origin main
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Enable corepack
-        run: corepack enable
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.22.0
-          run_install: false
-
-      - name: Cache pnpm store
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.pnpm-store
-            node_modules
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libvips-dev build-essential
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Run Astro Build
-        run: pnpm build
-        env:
-          BASE_PATH: "/vedarublog.github.io/"
-          PUBLIC_URL: "https://${{ github.repository_owner }}.github.io/vedarublog.github.io"
-
-      - name: Create .nojekyll
-        run: touch dist/.nojekyll
-
-      - name: Create 404 page
-        run: |
-          if [ -f "dist/index.html" ]; then
-            cp dist/index.html dist/404.html
-          fi
-
-      - name: Upload Pages Artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist
-          retention-days: 1
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
