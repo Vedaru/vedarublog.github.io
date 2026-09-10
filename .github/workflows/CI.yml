@@ -137,17 +137,10 @@ jobs:
 
   check:
     name: Astro Check
-    needs: download-and-commit
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      # Pull 拿到 download-and-commit 刚推的代码
-      - name: Pull latest main
-        run: |
-          git remote set-url origin https://github.com/${{ github.repository }}.git
-          git pull --rebase origin main
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

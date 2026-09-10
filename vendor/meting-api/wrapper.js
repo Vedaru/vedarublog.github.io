@@ -113,9 +113,27 @@ app.use('/api', async (c, next) => {
 // the bytes on this server (which sits close to NetEase's CDN) and streaming
 // them back, every client gets a consistent, reliable response.
 async function proxyNeteaseSong(c) {
+    // We impersonate a real browser for ALL requests — both the upstream API
+    // call (to get the signed URL) and the CDN fetch (to download the bytes).
+    // NetEase's signed URLs are bound to the requesting context; if the API
+    // call uses node-fetch headers but the CDN fetch uses browser headers,
+    // the CDN rejects the mismatch with a ~104 KB error page.
+    const browserHeaders = {
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': 'https://music.163.com/',
+        'Cookie': 'os=pc; appver=2.10.11; osver=Microsoft-Windows-10-Professional-build-10586-64bit; channel=netease; MUSIC_U=; __remember_me=true',
+        'Accept': '*/*',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+    }
+
+    // Forward the X-Meting-Key so the upstream auth middleware passes.
+    const metingKey = c.req.header('x-meting-key')
+    const upstreamHeaders = { ...browserHeaders }
+    if (metingKey) upstreamHeaders['X-Meting-Key'] = metingKey
+
     // Call the upstream app to get the 302 (we don't follow it).
     const upstreamResp = await upstreamApp.fetch(
-        new Request(c.req.url, { method: 'GET', headers: c.req.raw.headers }),
+        new Request(c.req.url, { method: 'GET', headers: upstreamHeaders }),
         c.env,
     )
     if (upstreamResp.status >= 400) {
@@ -128,26 +146,8 @@ async function proxyNeteaseSong(c) {
     }
 
     // Fetch the actual audio from NetEase, server-side, with retries on
-    // transient failure. NetEase often streams responses with
-    // `Transfer-Encoding: chunked` and no `Content-Length` header, so we
-    // can't use the header to judge success — we just check status.
-    //
-    // IMPORTANT: We impersonate a real browser User-Agent and send a Cookie
-    // header. NetEase's CDN terminates connections that look like bots
-    // (returning 200 then RST'ing mid-stream — manifests as "terminated" on
-    // the client). This matches what the upstream Meting app does for its
-    // own calls to interface.music.163.com.
-    //
-    // On retry we re-call upstreamApp.fetch() to get a FRESH signed URL.
-    // NetEase's signed URLs are short-lived; if the first attempt was
-    // ~expired we'd otherwise loop on the same dead URL.
-    const browserHeaders = {
-        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.90 Safari/537.36',
-        'Referer': 'https://music.163.com/',
-        'Cookie': '__remember_me=true',
-        'Accept': '*/*',
-        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-    }
+    // transient failure. On retry we re-call upstreamApp.fetch() with the
+    // same browser headers to get a FRESH signed URL.
     let netResp
     let lastErr
     for (let attempt = 0; attempt < 4; attempt++) {
@@ -156,7 +156,7 @@ async function proxyNeteaseSong(c) {
         if (attempt > 0) {
             try {
                 const retryUpstream = await upstreamApp.fetch(
-                    new Request(c.req.url, { method: 'GET', headers: c.req.raw.headers }),
+                    new Request(c.req.url, { method: 'GET', headers: upstreamHeaders }),
                     c.env,
                 )
                 const retryLoc = retryUpstream.headers.get('location')
