@@ -4,79 +4,31 @@
 
 ## 部署架构
 
-本站采用 **Cloudflare Pages + Netlify 回源代理** 的双层 CDN，并通过 GitHub Actions 实现 **省 credits** 与 **自动故障切换**。
+本站部署在 **Cloudflare Pages**（Astro 构建 + 静态托管），域名 `vedaru.cn` / `www.vedaru.cn` 通过 **Cloudflare DNS 橙云（proxied）** 直连 Pages，TLS 由 Cloudflare 边缘证书统一终结。
 
 ```text
-正常模式：
-  访客 → www.vedaru.cn（Netlify CDN）
-       → 200 回源 → vedarublog-github-io.pages.dev（Cloudflare Pages）
-
-故障 / credits 不足时（Actions 自动切换）：
-  访客 → www.vedaru.cn（Cloudflare 橙云直连 Pages）
+访客 → www.vedaru.cn（Cloudflare 橙云，自动 HTTPS）
+     → vedarublog-github-io.pages.dev（Cloudflare Pages 源站）
 ```
 
 | 组件 | 职责 |
 |------|------|
-| **Cloudflare Pages** | 源站：Astro 构建、托管 `dist` |
-| **Netlify** | CDN 入口：仅生成全站回源代理规则 |
-| **Cloudflare DNS** | 域名解析，由 Actions 脚本自动切换 |
-| **GitHub Actions** | 定时巡检 credits / HTTPS，自动改 DNS + 注册 Pages 域名 |
+| **Cloudflare Pages** | Astro 构建、托管 `dist`、CDN 边缘 |
+| **Cloudflare DNS** | `www` / apex 记录指向 Pages（橙云 proxied） |
+| **GitHub Actions** | 内容更新与构建（`CI.yml`），不再改 DNS |
+| **GitHub Pages** | 备用镜像（`CI.yml` 顺带部署） |
 
-### 减少 Netlify deploy
+> **历史**：早期采用「Netlify 回源代理 + Actions 自动切换 Netlify / Cloudflare」的双层 CDN。该方案已废弃 —— Netlify 始终拿不到 `vedaru.cn` 的自定义域名证书（DNS 常驻 Cloudflare，Let's Encrypt 的 HTTP-01 校验无法回源到 Netlify），叠加 Netlify 下发的 HSTS 后，脚本一旦把流量切到 Netlify，整站会直接以 `ERR_CERT_COMMON_NAME_INVALID` 打不开且无法跳过。详见博客：[Cloudflare + Netlify 双层部署的改造](https://www.vedaru.cn/posts/cloudflare-netlify-traffic-switch)。
 
-Netlify 只是代理层，博客内容更新**不需要**重新 deploy。`netlify.toml` 配置了 ignore 脚本，仅当以下文件变更时才构建（每次 production deploy 约消耗 15 credits）：
+### 为什么不再做自动切换
 
-- `netlify.toml`
-- `scripts/netlify-proxy-build.js`
-- `scripts/netlify-should-build.mjs`
+- Cloudflare Pages 本身已是完整 CDN；Netlify 只是它前面的一层回源代理，没有额外能力，却引入了一整类证书故障。
+- 切换依赖改 DNS，传播与缓存期间新旧源并存，回滚不可靠。
+- 单层后 `www`、apex、IPv4、IPv6 由同一张橙云证书覆盖，不会再出现「A 记录已切、AAAA 仍指向旧源」这种半切换状态。
 
-改文章、前端、CI 等 → **跳过 deploy**。手动更新代理配置可用 Netlify Build Hook 或 UI 重试 deploy。
+### Netlify 残留文件
 
-### 自动切换流量（Netlify ↔ Cloudflare）
-
-Workflow：`.github/workflows/netlify-traffic.yml`（每 2 小时 cron + 可手动触发）
-
-脚本：`scripts/netlify-traffic-switch.mjs`
-
-**auto 模式**（定时任务默认）满足任一条件即切到 Cloudflare 直连：
-
-- 本月 Netlify credits 估算剩余 ≤ 45
-- Netlify 站点 paused / 不可用
-- `https://www.vedaru.cn` HTTPS 探测失败
-
-切到 Cloudflare 时会自动：
-
-1. 在 Pages 项目注册 `www.vedaru.cn`（及 apex）
-2. 将 `www` CNAME 指向 `vedarublog-github-io.pages.dev` 并开启**橙云**
-3. 同步 apex 记录
-
-credits 恢复充足后（剩余 > 105）自动切回 Netlify。
-
-本地调试：
-
-```bash
-pnpm netlify-traffic
-# 或
-DRY_RUN=1 node scripts/netlify-traffic-switch.mjs
-```
-
-### GitHub Secrets
-
-| Secret | 用途 |
-|--------|------|
-| `CF_API_TOKEN` | Zone DNS Edit（vedaru.cn） |
-| `CF_PAGES_API_TOKEN` | 可选；Account Cloudflare Pages Edit |
-| `CF_ZONE_ID` | vedaru.cn 的 Zone ID |
-| `CF_ACCOUNT_ID` | 可选 |
-| `NETLIFY_AUTH_TOKEN` | credits 检测 |
-| `NETLIFY_SITE_ID` | credits 检测 |
-| `NETLIFY_CNAME_TARGET` | 如 `xxx.netlify.app` |
-
-`CF_API_TOKEN` 也可合并 Pages 权限；若 Pages API 报 `Authentication error`，需为 Token 添加 **Account → Cloudflare Pages → Edit**。
-
-切换状态记录在 `.github/netlify-traffic-state.json`。
-
-更详细的背景与踩坑记录见博客：[Cloudflare + Netlify 双层部署的改造](https://www.vedaru.cn/posts/cloudflare-netlify-traffic-switch)。
+`netlify.toml`、`scripts/netlify-proxy-build.js`、`scripts/netlify-should-build.mjs` 目前仍保留，但不参与线上流量。**在 Netlify 控制台删除该站点后**即可一并删除；保留期间 ignore 脚本会让 Netlify 跳过构建，不消耗 credits。
 
 ---
 
