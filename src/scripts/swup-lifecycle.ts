@@ -391,7 +391,6 @@ function setup() {
 		attachStylesheetErrorGuard();
 		window.initLastModifiedPage?.();
 		window.initTwikooPage?.();
-		window.initArchiveFilter?.();
 
 		if (window.__homePreScrollWasUsed && window.__pendingVisitBodyLayout) {
 			requestAnimationFrame(() => {

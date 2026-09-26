@@ -1,5 +1,5 @@
 ---
-import ArchivePanel from "@components/ArchivePanel.astro";
+import ArchivePanel from "@components/features/archive/ArchivePanel.svelte";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 import MainGridLayout from "@layouts/MainGridLayout.astro";
@@ -7,19 +7,25 @@ import { getSortedPostsList } from "@utils/content-utils";
 
 const sortedPostsList = await getSortedPostsList();
 
+// 1. 修复类型兼容性：将 category 的 null 转换为 undefined
 const posts = sortedPostsList.map((post) => ({
-	...post,
+	id: post.id,
+	url: post.url,
 	data: {
-		...post.data,
+		title: post.data.title,
+		tags: post.data.tags,
 		category: post.data.category === null ? undefined : post.data.category,
+		published: post.data.published,
 	},
 }));
 ---
 
 <MainGridLayout title={i18n(I18nKey.archive)}>
+	<!-- 引入右侧边栏布局管理器 -->
 	<script>
 		import("../scripts/right-sidebar-layout.js");
 	</script>
 
-	<ArchivePanel sortedPosts={posts} />
+	<!-- 筛选在客户端按 URL 参数重建列表（见 ArchivePanel.svelte） -->
+	<ArchivePanel sortedPosts={posts} client:only="svelte" />
 </MainGridLayout>

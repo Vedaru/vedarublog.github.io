@@ -49,8 +49,6 @@ declare global {
 		initLastModifiedPage?: () => void;
 		__twikooInitBootstrapped?: boolean;
 		initTwikooPage?: () => void;
-		__archiveFilterBootstrapped?: boolean;
-		initArchiveFilter?: () => void;
 		__pioInstance?: {
 			pauseRendering?: () => void;
 			resumeRendering?: () => void;
