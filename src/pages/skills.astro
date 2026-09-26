@@ -1,15 +1,12 @@
 ---
 import Icon from "../components/misc/Icon.astro";
 import IconifyLoader from "../components/misc/IconifyLoader.astro";
-import SkillsChart from "../components/skills/SkillsChart.astro";
+import SkillCard from "../components/skills/SkillCard.astro";
 import { siteConfig } from "../config";
 import {
 	categoryMeta,
 	getActiveCategories,
-	getAdvancedSkills,
 	getSkillStats,
-	getSkillsByCategory,
-	getTotalExperience,
 	skillsData,
 } from "../data/skills";
 import I18nKey from "../i18n/i18nKey";
@@ -22,68 +19,36 @@ if (!siteConfig.featurePages.skills) {
 	return Astro.redirect("/404/");
 }
 
-// 获取技能统计信息
 const stats = getSkillStats();
-const advancedSkills = getAdvancedSkills();
-const totalExperience = getTotalExperience();
 
 // 分类顺序由数据文件决定，只保留实际有技能的分类
 const categories = getActiveCategories();
 
-// 按分类获取技能
-const skillsByCategory = categories.reduce(
-	(acc, category) => {
-		acc[category] = getSkillsByCategory(category);
-		return acc;
+// 分类 -> 筛选标签图标
+const categoryIcons: Record<string, string> = {
+	languages: "material-symbols:code",
+	systems: "material-symbols:terminal",
+	web: "material-symbols:language",
+	infra: "material-symbols:cloud",
+	tools: "material-symbols:build",
+	other: "material-symbols:widgets",
+};
+
+// 筛选标签：全部 + 每个分类
+const filterTabs = [
+	{
+		value: "all",
+		label: i18n(I18nKey.friendsFilterAll),
+		icon: "material-symbols:apps",
+		count: skillsData.length,
 	},
-	{} as Record<string, typeof skillsData>,
-);
-
-// 技能等级颜色映射
-const getLevelColor = (level: string) => {
-	switch (level) {
-		case "expert":
-			return "bg-red-600/20 text-red-700 dark:bg-red-900/30 dark:text-red-400";
-		case "advanced":
-			return "bg-orange-600/20 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400";
-		case "intermediate":
-			return "bg-yellow-600/20 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400";
-		case "beginner":
-			return "bg-green-600/20 text-green-700 dark:bg-green-900/30 dark:text-green-400";
-		default:
-			return "bg-gray-600/20 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400";
-	}
-};
-
-// 技能等级进度条宽度
-const getLevelWidth = (level: string) => {
-	switch (level) {
-		case "expert":
-			return "100%";
-		case "advanced":
-			return "80%";
-		case "intermediate":
-			return "60%";
-		case "beginner":
-			return "40%";
-		default:
-			return "20%";
-	}
-};
-
-// 等级显示文本
-const getLevelText = (level: string) => {
-	switch (level) {
-		case "expert":
-			return i18n(I18nKey.skillLevelExpert);
-		case "advanced":
-			return i18n(I18nKey.skillLevelAdvanced);
-		case "intermediate":
-			return i18n(I18nKey.skillLevelIntermediate);
-		default:
-			return i18n(I18nKey.skillLevelBeginner);
-	}
-};
+	...categories.map((category) => ({
+		value: category,
+		label: i18n(categoryMeta[category].i18nKey),
+		icon: categoryIcons[category] ?? "material-symbols:widgets",
+		count: stats.byCategory[category],
+	})),
+];
 
 const title = i18n(I18nKey.skills);
 const subtitle = i18n(I18nKey.skillsSubtitle);
@@ -104,6 +69,7 @@ const allIcons = skillsData.map((skill) => skill.icon).filter(Boolean);
   </script>
   <!-- 图标加载器，预加载所有技能图标 -->
   <IconifyLoader preloadIcons={allIcons} />
+
   <div class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative min-h-32">
     <div class="card-base z-10 px-9 py-6 relative w-full">
       <!-- 页面标题 -->
@@ -118,159 +84,89 @@ const allIcons = skillsData.map((skill) => skill.icon).filter(Boolean);
         </p>
       </div>
 
-      <!-- 技能图表 -->
-      <SkillsChart stats={stats} totalExperience={totalExperience} />
+      <!-- 分类筛选标签 -->
+      <div class="flex flex-wrap justify-center gap-2 mb-8">
+        {filterTabs.map((tab) => (
+          <button
+            type="button"
+            class:list={[
+              "skill-filter-tab inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border border-black/10 dark:border-white/20 text-black/70 dark:text-white/70 hover:bg-black/5 dark:hover:bg-white/10 transition-colors duration-200",
+              tab.value === "all" && "is-active",
+            ]}
+            data-category={tab.value}
+            aria-pressed={tab.value === "all" ? "true" : "false"}
+          >
+            <Icon icon={tab.icon} class="text-base" fallback={tab.label.charAt(0)} />
+            <span>{tab.label}</span>
+            <span class="skill-filter-count">{tab.count}</span>
+          </button>
+        ))}
+      </div>
 
-      <!-- 专业技能 -->
-      {advancedSkills.length > 0 && (
-        <div class="mb-8">
-          <h2 class="text-2xl font-bold text-black/90 dark:text-white/90 mb-4 relative
-                    before:w-1 before:h-6 before:rounded-md before:bg-[var(--primary)]
-                    before:absolute before:top-1/2 before:-translate-y-1/2 before:-left-4">
-            {i18n(I18nKey.skillsAdvancedTitle)}
-          </h2>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {advancedSkills.map((skill) => (
-              <div class="bg-transparent rounded-lg border border-black/10 dark:border-white/10 p-6 hover:shadow-lg transition-shadow duration-300">
-                <div class="flex items-start gap-4">
-                  {skill.icon && (
-                    <div class="w-12 h-12 rounded-lg flex items-center justify-center shrink-0" style={`background-color: ${skill.color || 'rgb(99 102 241)'}20`}>
-                      <Icon
-                        icon={skill.icon}
-                        class="text-2xl"
-                        color={skill.color && skill.color !== '#000000' ? skill.color : 'rgb(99 102 241)'}
-                        fallback={skill.name.charAt(0)}
-                        loading="eager"
-                      />
-                    </div>
-                  )}
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center justify-between mb-2">
-                      <h3 class="text-xl font-semibold text-black/90 dark:text-white/90">
-                        {skill.name}
-                      </h3>
-                      <span class={`px-2 py-1 text-xs rounded-full shrink-0 ml-2 ${getLevelColor(skill.level)}`}>
-                        {getLevelText(skill.level)}
-                      </span>
-                    </div>
-                    <p class="text-black/60 dark:text-white/60 mb-3 text-sm">
-                      {skill.description}
-                    </p>
-                    <div class="mb-3">
-                      <div class="flex justify-between text-sm mb-1">
-                        <span class="text-black/60 dark:text-white/60">{i18n(I18nKey.skillExperience)}</span>
-                        <span class="text-black/80 dark:text-white/80">
-                          {skill.experience.years} {i18n(I18nKey.skillYears)}{skill.experience.months > 0 ? ` ${skill.experience.months} ${i18n(I18nKey.skillMonths)}` : ''}
-                        </span>
-                      </div>
-                      <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                        <div
-                            class="h-2 rounded-full transition-all duration-300"
-                            style={`width: ${getLevelWidth(skill.level)}; background-color: ${skill.color || 'rgb(99 102 241)'};`}
-                          ></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+      <!-- 技能网格 -->
+      <div class="skills-container" style="container-type: inline-size;">
+        <div id="skills-grid" class="grid gap-6 items-start">
+          {skillsData.map((skill) => (
+            <SkillCard skill={skill} />
+          ))}
         </div>
-      )}
-
-      <!-- 按分类展示技能 -->
-      <div class="space-y-8 skills-container" style="container-type: inline-size;">
-        {categories.map((category) => {
-          const categorySkills = skillsByCategory[category];
-          if (categorySkills.length === 0) return null;
-
-          return (
-            <div>
-              <h2 class="text-2xl font-bold text-black/90 dark:text-white/90 mb-4 relative
-                        before:w-1 before:h-6 before:rounded-md before:bg-[var(--primary)]
-                        before:absolute before:top-1/2 before:-translate-y-1/2 before:-left-4">
-                {i18n(categoryMeta[category].i18nKey)}
-                <span class="text-lg font-normal text-black/60 dark:text-white/60 ml-2">
-                  ({categorySkills.length})
-                </span>
-              </h2>
-              <div class="skills-grid-container grid grid-cols-1 gap-4">
-                {categorySkills.map((skill) => (
-                  <div class="bg-transparent rounded-lg border border-black/10 dark:border-white/10 p-4 hover:shadow-lg transition-shadow duration-300">
-                    <div class="flex items-start gap-3">
-                      {skill.icon && (
-                        <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={`background-color: ${skill.color || 'rgb(99 102 241)'}20`}>
-                          <Icon
-                            icon={skill.icon}
-                            class="text-lg"
-                            color={skill.color && skill.color !== '#000000' ? skill.color : 'rgb(99 102 241)'}
-                            fallback={skill.name.charAt(0)}
-                            loading="eager"
-                          />
-                        </div>
-                      )}
-                      <div class="flex-1 min-w-0">
-                        <div class="flex items-center justify-between mb-1">
-                          <h3 class="text-lg font-semibold text-black/90 dark:text-white/90 truncate">
-                            {skill.name}
-                          </h3>
-                          <span class={`px-2 py-1 text-xs rounded-full shrink-0 ml-2 ${getLevelColor(skill.level)}`}>
-                            {getLevelText(skill.level)}
-                          </span>
-                        </div>
-                        <p class="text-black/60 dark:text-white/60 mb-2 text-sm line-clamp-2">
-                          {skill.description}
-                        </p>
-                        <div class="text-xs text-black/60 dark:text-white/60">
-                          <span>
-                            {skill.experience.years} {i18n(I18nKey.skillYears)}{skill.experience.months > 0 ? ` ${skill.experience.months} ${i18n(I18nKey.skillMonths)}` : ''}
-                          </span>
-                        </div>
-                        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
-                          <div
-                              class="h-2 rounded-full transition-all duration-300"
-                              style={`width: ${getLevelWidth(skill.level)}; background-color: ${skill.color || 'rgb(99 102 241)'};`}
-                            ></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
       </div>
     </div>
   </div>
 
-
+  <!-- 分类筛选逻辑（全局脚本，Swup 导航后仍生效） -->
+  <script is:inline src="/js/skills-page-handler.js"></script>
 </MainGridLayout>
 
 <style>
-  /* 使用容器查询根据内容区域实际宽度决定列数 */
-  .skills-container {
-    /* 调试提示：显示容器宽度 */
-    position: relative;
-  }
-
   /* 移动端：单列 */
-  .skills-grid-container {
+  #skills-grid {
     grid-template-columns: 1fr;
     transition: grid-template-columns 0.3s ease;
   }
 
   /* 内容区域宽度 >= 640px：2列 */
   @container (min-width: 40rem) {
-    .skills-grid-container {
+    #skills-grid {
       grid-template-columns: repeat(2, 1fr);
     }
   }
 
-  /* 内容区域宽度 >= 900px：3列（进一步降低阈值）*/
+  /* 内容区域宽度 >= 900px：3列 */
   @container (min-width: 56.25rem) {
-    .skills-grid-container {
+    #skills-grid {
       grid-template-columns: repeat(3, 1fr);
     }
+  }
+
+  .skill-filter-tab.is-active {
+    background-color: var(--primary);
+    border-color: transparent;
+    color: var(--btn-content);
+  }
+
+  .skill-filter-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    padding: 0 0.3rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    line-height: 1;
+    background-color: rgb(0 0 0 / 0.08);
+  }
+
+  .skill-filter-tab.is-active .skill-filter-count {
+    background-color: rgb(255 255 255 / 0.25);
+  }
+
+  :global(.dark) .skill-filter-tab.is-active .skill-filter-count {
+    background-color: rgb(255 255 255 / 0.25);
+  }
+
+  :global(.dark) .skill-filter-count {
+    background-color: rgb(255 255 255 / 0.12);
   }
 </style>

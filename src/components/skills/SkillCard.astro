@@ -1,0 +1,133 @@
+---
+import type { Skill } from "../../data/skills";
+import I18nKey from "../../i18n/i18nKey";
+import { i18n } from "../../i18n/translation";
+import Icon from "../misc/Icon.astro";
+
+export interface Props {
+	skill: Skill;
+}
+
+const { skill } = Astro.props;
+const skillColor = skill.color || "#3B82F6";
+
+// 经验由 data/skills 的 since() 在构建时算出，这里只做本地化拼接
+const formatExperience = (exp: Skill["experience"]) => {
+	const parts: string[] = [];
+	if (exp.years > 0) parts.push(`${exp.years} ${i18n(I18nKey.skillYears)}`);
+	if (exp.months > 0)
+		parts.push(`${exp.months} ${i18n(I18nKey.skillMonths)}`);
+	return parts.join(" ");
+};
+---
+
+<div
+	class="skill-card group relative bg-transparent rounded-xl border border-black/10 dark:border-white/10 overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+	data-category={skill.category}
+>
+	<div class="p-5">
+		<div class="flex items-start gap-4 mb-3">
+			<div
+				class="w-12 h-12 shrink-0 rounded-lg flex items-center justify-center"
+				style={`background-color: ${skillColor}20`}
+			>
+				<Icon
+					icon={skill.icon}
+					class="text-xl"
+					color={skillColor}
+					fallback={skill.name.charAt(0)}
+					loading="eager"
+				/>
+			</div>
+
+			<div class="flex-1 min-w-0">
+				<h3
+					class="text-lg font-bold text-black/90 dark:text-white/90 truncate group-hover:text-[var(--primary)] transition-colors duration-200"
+				>
+					{skill.name}
+				</h3>
+				<p class="text-xs text-black/50 dark:text-white/50 mt-1">
+					{formatExperience(skill.experience)}
+				</p>
+			</div>
+		</div>
+
+		<p
+			class="text-sm text-black/60 dark:text-white/60 line-clamp-2 min-h-[2.5rem]"
+		>
+			{skill.description}
+		</p>
+	</div>
+
+	<div
+		class="absolute inset-0 bg-gradient-to-br from-[var(--primary)]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+	>
+	</div>
+</div>
+
+<style>
+	/* 用 backwards 而不是 forwards：动画结束后的 transform 交还给 CSS，
+	   这样 hover:-translate-y-1 的悬浮位移不会被固定在结束帧上。 */
+	.skill-card {
+		animation: fadeInUp 0.5s ease-out backwards;
+	}
+
+	.skill-card.filtered-out {
+		display: none;
+	}
+
+	@keyframes fadeInUp {
+		from {
+			opacity: 0;
+			transform: translateY(20px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	.skill-card:nth-child(1) {
+		animation-delay: 0.03s;
+	}
+	.skill-card:nth-child(2) {
+		animation-delay: 0.06s;
+	}
+	.skill-card:nth-child(3) {
+		animation-delay: 0.09s;
+	}
+	.skill-card:nth-child(4) {
+		animation-delay: 0.12s;
+	}
+	.skill-card:nth-child(5) {
+		animation-delay: 0.15s;
+	}
+	.skill-card:nth-child(6) {
+		animation-delay: 0.18s;
+	}
+	.skill-card:nth-child(7) {
+		animation-delay: 0.21s;
+	}
+	.skill-card:nth-child(8) {
+		animation-delay: 0.24s;
+	}
+	.skill-card:nth-child(9) {
+		animation-delay: 0.27s;
+	}
+	.skill-card:nth-child(10) {
+		animation-delay: 0.3s;
+	}
+	.skill-card:nth-child(11) {
+		animation-delay: 0.33s;
+	}
+	.skill-card:nth-child(12) {
+		animation-delay: 0.36s;
+	}
+
+	.line-clamp-2 {
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+	}
+</style>

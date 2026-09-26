@@ -1,6 +1,10 @@
 import { BANNER_HEIGHT, DARK_MODE, DEFAULT_THEME } from "@constants";
 import { pathsEqual, url } from "../utils/url-utils";
-import { isMainHomePage, pathFromUrl } from "../utils/route-utils";
+import {
+	isMainHomePage,
+	isSamePageNavigation,
+	pathFromUrl,
+} from "../utils/route-utils";
 import {
 	isTocOrInPageAnchorLink,
 	shouldInitTocForPath,
@@ -424,19 +428,10 @@ function setup() {
 			}
 
 			// 桌面端：当前已在目标页时跳过换页，避免同页替换闪动
-			if (window.__pathsEqual) {
-				var targetP = (function () {
-					try {
-						return new URL(visit.to.url, window.location.origin)
-							.pathname;
-					} catch (_) {
-						return visit.to.url;
-					}
-				})();
-				if (window.__pathsEqual(window.location.pathname, targetP)) {
-					if (visit.scroll) visit.scroll.reset = false;
-					return;
-				}
+			// （同样的 pathname 但查询参数不同属于不同视图，仍需正常换页）
+			if (isSamePageNavigation(window.location.href, visit.to.url)) {
+				if (visit.scroll) visit.scroll.reset = false;
+				return;
 			}
 
 			if (window.__homePreScrollWasUsed) {

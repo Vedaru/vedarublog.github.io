@@ -1,3 +1,4 @@
+import { isSamePageNavigation } from "../../../utils/route-utils";
 import { PRE_SCROLL_Y_THRESHOLD } from "./constants";
 import { getScrollY } from "./scroll";
 import type { HomePreScrollVisit } from "./types";
@@ -14,19 +15,11 @@ function isHomePagePath(pathname: string): boolean {
 	return window.__isHomePagePath?.(pathname) ?? false;
 }
 
-function isSamePageNavigation(fromPathname: string, toUrl: string): boolean {
-	const toPathname = pathFromVisitUrl(toUrl);
-	if (fromPathname === toPathname) {
-		return true;
-	}
-	return window.__pathsEqual?.(fromPathname, toUrl) ?? false;
-}
-
 /** 已在当前页时再次点击同页导航：应平滑回顶，而非 Swup 瞬移 */
 export function shouldSmoothScrollSamePage(visit: HomePreScrollVisit): boolean {
 	const targetUrl = visit?.to?.url || "";
 	if (!targetUrl) return false;
-	if (!isSamePageNavigation(window.location.pathname, targetUrl)) {
+	if (!isSamePageNavigation(window.location.href, targetUrl)) {
 		return false;
 	}
 
@@ -35,7 +28,7 @@ export function shouldSmoothScrollSamePage(visit: HomePreScrollVisit): boolean {
 
 export function shouldSmoothScrollSamePageHref(href: string): boolean {
 	if (!href || href.startsWith("#")) return false;
-	if (!isSamePageNavigation(window.location.pathname, href)) {
+	if (!isSamePageNavigation(window.location.href, href)) {
 		return false;
 	}
 
@@ -105,7 +98,7 @@ export function shouldHandleMobileEnteringHome(
 export function shouldPreScrollBeforeLeave(visit: HomePreScrollVisit): boolean {
 	const targetUrl = visit?.to?.url || "";
 	if (!targetUrl) return false;
-	if (isSamePageNavigation(window.location.pathname, targetUrl)) {
+	if (isSamePageNavigation(window.location.href, targetUrl)) {
 		return false;
 	}
 
