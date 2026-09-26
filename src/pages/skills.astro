@@ -3,8 +3,9 @@ import Icon from "../components/misc/Icon.astro";
 import IconifyLoader from "../components/misc/IconifyLoader.astro";
 import SkillsChart from "../components/skills/SkillsChart.astro";
 import { siteConfig } from "../config";
-import { UNCATEGORIZED } from "@constants";
 import {
+	categoryMeta,
+	getActiveCategories,
 	getAdvancedSkills,
 	getSkillStats,
 	getSkillsByCategory,
@@ -21,15 +22,13 @@ if (!siteConfig.featurePages.skills) {
 	return Astro.redirect("/404/");
 }
 
-// const { lang } = Astro.props;
-
 // 获取技能统计信息
 const stats = getSkillStats();
 const advancedSkills = getAdvancedSkills();
 const totalExperience = getTotalExperience();
 
-// 获取所有分类
-const categories = [...new Set(skillsData.map((skill) => skill.category))];
+// 分类顺序由数据文件决定，只保留实际有技能的分类
+const categories = getActiveCategories();
 
 // 按分类获取技能
 const skillsByCategory = categories.reduce(
@@ -72,23 +71,17 @@ const getLevelWidth = (level: string) => {
 	}
 };
 
-// 获取分类的显示文本
-const getCategoryText = (category: string) => {
-	switch (category) {
-		case "frontend":
-			return i18n(I18nKey.skillsFrontend);
-		case "backend":
-			return i18n(I18nKey.skillsBackend);
-		case "database":
-			return i18n(I18nKey.skillsDatabase);
-		case "tools":
-			return i18n(I18nKey.skillsTools);
-		case "other":
-			return i18n(I18nKey.skillsOther);
-		case UNCATEGORIZED:
-			return i18n(I18nKey.uncategorized);
+// 等级显示文本
+const getLevelText = (level: string) => {
+	switch (level) {
+		case "expert":
+			return i18n(I18nKey.skillLevelExpert);
+		case "advanced":
+			return i18n(I18nKey.skillLevelAdvanced);
+		case "intermediate":
+			return i18n(I18nKey.skillLevelIntermediate);
 		default:
-			return category;
+			return i18n(I18nKey.skillLevelBeginner);
 	}
 };
 
@@ -97,9 +90,6 @@ const subtitle = i18n(I18nKey.skillsSubtitle);
 
 // 收集所有技能图标用于预加载
 const allIcons = skillsData.map((skill) => skill.icon).filter(Boolean);
-
-// 进度条动画状态
-// let animated = false;
 ---
 
 <MainGridLayout title={title} description={subtitle}>
@@ -107,7 +97,7 @@ const allIcons = skillsData.map((skill) => skill.icon).filter(Boolean);
   <script is:inline>
     document.documentElement.setAttribute('data-page-type', 'skills');
   </script>
-  
+
   <!-- 引入右侧边栏布局管理器 -->
   <script>
     import('../scripts/right-sidebar-layout.js');
@@ -144,26 +134,23 @@ const allIcons = skillsData.map((skill) => skill.icon).filter(Boolean);
               <div class="bg-transparent rounded-lg border border-black/10 dark:border-white/10 p-6 hover:shadow-lg transition-shadow duration-300">
                 <div class="flex items-start gap-4">
                   {skill.icon && (
-                    <div class="w-12 h-12 rounded-lg flex items-center justify-center" style={`background-color: ${skill.color || 'rgb(99 102 241)'}20`}>
-                      <Icon 
-                        icon={skill.icon} 
-                        class="text-2xl" 
+                    <div class="w-12 h-12 rounded-lg flex items-center justify-center shrink-0" style={`background-color: ${skill.color || 'rgb(99 102 241)'}20`}>
+                      <Icon
+                        icon={skill.icon}
+                        class="text-2xl"
                         color={skill.color && skill.color !== '#000000' ? skill.color : 'rgb(99 102 241)'}
                         fallback={skill.name.charAt(0)}
                         loading="eager"
                       />
                     </div>
                   )}
-                  <div class="flex-1">
+                  <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between mb-2">
                       <h3 class="text-xl font-semibold text-black/90 dark:text-white/90">
                         {skill.name}
                       </h3>
-                      <span class={`px-2 py-1 text-xs rounded-full ${getLevelColor(skill.level)}`}>
-                        {skill.level === 'expert' ? i18n(I18nKey.skillLevelExpert) :
-                         skill.level === 'advanced' ? i18n(I18nKey.skillLevelAdvanced) :
-                         skill.level === 'intermediate' ? i18n(I18nKey.skillLevelIntermediate) :
-                         i18n(I18nKey.skillLevelBeginner)}
+                      <span class={`px-2 py-1 text-xs rounded-full shrink-0 ml-2 ${getLevelColor(skill.level)}`}>
+                        {getLevelText(skill.level)}
                       </span>
                     </div>
                     <p class="text-black/60 dark:text-white/60 mb-3 text-sm">
@@ -177,21 +164,12 @@ const allIcons = skillsData.map((skill) => skill.icon).filter(Boolean);
                         </span>
                       </div>
                       <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                        <div 
+                        <div
                             class="h-2 rounded-full transition-all duration-300"
                             style={`width: ${getLevelWidth(skill.level)}; background-color: ${skill.color || 'rgb(99 102 241)'};`}
                           ></div>
                       </div>
                     </div>
-                    {skill.certifications && skill.certifications.length > 0 && (
-                      <div class="flex flex-wrap gap-1">
-                        {skill.certifications.map((cert) => (
-                          <span class="px-2 py-1 text-xs bg-green-600/20 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded">
-                            {cert}
-                          </span>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -205,13 +183,13 @@ const allIcons = skillsData.map((skill) => skill.icon).filter(Boolean);
         {categories.map((category) => {
           const categorySkills = skillsByCategory[category];
           if (categorySkills.length === 0) return null;
-          
+
           return (
             <div>
               <h2 class="text-2xl font-bold text-black/90 dark:text-white/90 mb-4 relative
                         before:w-1 before:h-6 before:rounded-md before:bg-[var(--primary)]
                         before:absolute before:top-1/2 before:-translate-y-1/2 before:-left-4">
-                {getCategoryText(category)}
+                {i18n(categoryMeta[category].i18nKey)}
                 <span class="text-lg font-normal text-black/60 dark:text-white/60 ml-2">
                   ({categorySkills.length})
                 </span>
@@ -222,9 +200,9 @@ const allIcons = skillsData.map((skill) => skill.icon).filter(Boolean);
                     <div class="flex items-start gap-3">
                       {skill.icon && (
                         <div class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={`background-color: ${skill.color || 'rgb(99 102 241)'}20`}>
-                          <Icon 
-                            icon={skill.icon} 
-                            class="text-lg" 
+                          <Icon
+                            icon={skill.icon}
+                            class="text-lg"
                             color={skill.color && skill.color !== '#000000' ? skill.color : 'rgb(99 102 241)'}
                             fallback={skill.name.charAt(0)}
                             loading="eager"
@@ -237,10 +215,7 @@ const allIcons = skillsData.map((skill) => skill.icon).filter(Boolean);
                             {skill.name}
                           </h3>
                           <span class={`px-2 py-1 text-xs rounded-full shrink-0 ml-2 ${getLevelColor(skill.level)}`}>
-                            {skill.level === 'expert' ? i18n(I18nKey.skillLevelExpert) :
-                             skill.level === 'advanced' ? i18n(I18nKey.skillLevelAdvanced) :
-                             skill.level === 'intermediate' ? i18n(I18nKey.skillLevelIntermediate) :
-                             i18n(I18nKey.skillLevelBeginner)}
+                            {getLevelText(skill.level)}
                           </span>
                         </div>
                         <p class="text-black/60 dark:text-white/60 mb-2 text-sm line-clamp-2">
@@ -252,7 +227,7 @@ const allIcons = skillsData.map((skill) => skill.icon).filter(Boolean);
                           </span>
                         </div>
                         <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mt-2">
-                          <div 
+                          <div
                               class="h-2 rounded-full transition-all duration-300"
                               style={`width: ${getLevelWidth(skill.level)}; background-color: ${skill.color || 'rgb(99 102 241)'};`}
                             ></div>
@@ -268,7 +243,7 @@ const allIcons = skillsData.map((skill) => skill.icon).filter(Boolean);
       </div>
     </div>
   </div>
-  
+
 
 </MainGridLayout>
 
@@ -278,20 +253,20 @@ const allIcons = skillsData.map((skill) => skill.icon).filter(Boolean);
     /* 调试提示：显示容器宽度 */
     position: relative;
   }
-  
+
   /* 移动端：单列 */
   .skills-grid-container {
     grid-template-columns: 1fr;
     transition: grid-template-columns 0.3s ease;
   }
-  
+
   /* 内容区域宽度 >= 640px：2列 */
   @container (min-width: 40rem) {
     .skills-grid-container {
       grid-template-columns: repeat(2, 1fr);
     }
   }
-  
+
   /* 内容区域宽度 >= 900px：3列（进一步降低阈值）*/
   @container (min-width: 56.25rem) {
     .skills-grid-container {

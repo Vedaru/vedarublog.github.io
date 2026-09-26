@@ -6,6 +6,7 @@ import {
 	getFeaturedProjects,
 	getProjectStats,
 	getProjectsByCategory,
+	type ProjectLink,
 	projectsData,
 } from "../data/projects";
 import I18nKey from "../i18n/i18nKey";
@@ -47,6 +48,30 @@ const projectsByCategory = categories.reduce(
 
 const title = i18n(I18nKey.projects);
 const subtitle = i18n(I18nKey.projectsSubtitle);
+
+// 链接类型 → 按钮样式/图标/文案 的穷举映射。
+// Record<ProjectLink["kind"], ...> 保证新增 kind 时此处会产生编译错误，
+// 避免旧写法中 else 分支把未知类型静默渲染成 Forgejo 按钮。
+const linkPresets: Record<
+	ProjectLink["kind"],
+	{ className: string; icon: string; label: I18nKey }
+> = {
+	live: {
+		className: "btn-gradient-primary",
+		icon: "material-symbols:open-in-new",
+		label: I18nKey.projectsVisit,
+	},
+	github: {
+		className: "btn-github",
+		icon: "mdi:github",
+		label: I18nKey.projectsGitHub,
+	},
+	forgejo: {
+		className: "btn-forgejo",
+		icon: "simple-icons:forgejo",
+		label: I18nKey.projectsForgejo,
+	},
+};
 
 // 获取分类文本的国际化翻译
 const getCategoryText = (category: string) => {
@@ -165,28 +190,21 @@ const getCategoryText = (category: string) => {
                     )}
                   </div>
                   <div class="flex flex-wrap gap-2 text-sm">
-                    {project.visitUrl && (
-                      <a 
-                        href={project.visitUrl} 
-                        target="_blank" 
+                    {project.links.map((link) => (
+                      <a
+                        href={link.url}
+                        target="_blank"
                         rel="noopener noreferrer"
-                        class="btn-gradient btn-gradient-primary btn-gradient-md"
+                        class={`btn-gradient btn-gradient-md ${linkPresets[link.kind].className}`}
                       >
-                        <iconify-icon icon="material-symbols:open-in-new" width="18" height="18"></iconify-icon>
-                        {i18n(I18nKey.projectsVisit)}
+                        <iconify-icon
+                          icon={linkPresets[link.kind].icon}
+                          width="18"
+                          height="18"
+                        ></iconify-icon>
+                        {i18n(linkPresets[link.kind].label)}
                       </a>
-                    )}
-                    {project.sourceCode && (
-                      <a 
-                        href={project.sourceCode} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        class="btn-gradient btn-github btn-gradient-md"
-                      >
-                        <iconify-icon icon="mdi:github" width="18" height="18"></iconify-icon>
-                        {i18n(I18nKey.projectsGitHub)}
-                      </a>
-                    )}
+                    ))}
                   </div>
                 </div>
               </div>
@@ -256,28 +274,21 @@ const getCategoryText = (category: string) => {
                         )}
                       </div>
                       <div class="flex flex-wrap gap-2 text-sm">
-                        {project.visitUrl && (
-                          <a 
-                            href={project.visitUrl} 
-                            target="_blank" 
+                        {project.links.map((link) => (
+                          <a
+                            href={link.url}
+                            target="_blank"
                             rel="noopener noreferrer"
-                            class="btn-gradient btn-gradient-primary btn-gradient-md"
+                            class={`btn-gradient btn-gradient-md ${linkPresets[link.kind].className}`}
                           >
-                            <iconify-icon icon="material-symbols:open-in-new" width="18" height="18"></iconify-icon>
-                            {i18n(I18nKey.projectsVisit)}
+                            <iconify-icon
+                              icon={linkPresets[link.kind].icon}
+                              width="18"
+                              height="18"
+                            ></iconify-icon>
+                            {i18n(linkPresets[link.kind].label)}
                           </a>
-                        )}
-                        {project.sourceCode && (
-                          <a 
-                            href={project.sourceCode} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            class="btn-gradient btn-github btn-gradient-md"
-                          >
-                            <iconify-icon icon="mdi:github" width="18" height="18"></iconify-icon>
-                            {i18n(I18nKey.projectsGitHub)}
-                          </a>
-                        )}
+                        ))}
                       </div>
                     </div>
                   </div>

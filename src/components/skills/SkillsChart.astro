@@ -1,4 +1,5 @@
 ---
+import { categoryMeta, SKILL_CATEGORIES } from "../../data/skills";
 import I18nKey from "../../i18n/i18nKey";
 import { i18n } from "../../i18n/translation";
 
@@ -55,13 +56,8 @@ interface Props {
 			advanced: number;
 			expert: number;
 		};
-		byCategory: {
-			frontend: number;
-			backend: number;
-			database: number;
-			tools: number;
-			other: number;
-		};
+		// 分类是数据驱动的：键取自 src/data/skills.ts 的 SkillCategory
+		byCategory: Record<string, number>;
 	};
 	totalExperience: {
 		years: number;
@@ -79,66 +75,40 @@ const levelColors = {
 	beginner: "#22C55E", // green-500
 };
 
-const categoryColors = {
-	frontend: "#3B82F6", // blue-500
-	backend: "#8B5CF6", // violet-500
-	database: "#10B981", // emerald-500
-	tools: "#F59E0B", // amber-500
-	other: "#EC4899", // pink-500
-};
-
 // 计算扇形图数据（按技能等级）
 const levelData = [
 	{
 		name: i18n(I18nKey.skillLevelExpert),
 		value: stats.byLevel.expert,
 		color: levelColors.expert,
+		gradient: "expert-gradient",
 	},
 	{
 		name: i18n(I18nKey.skillLevelAdvanced),
 		value: stats.byLevel.advanced,
 		color: levelColors.advanced,
+		gradient: "advanced-gradient",
 	},
 	{
 		name: i18n(I18nKey.skillLevelIntermediate),
 		value: stats.byLevel.intermediate,
 		color: levelColors.intermediate,
+		gradient: "intermediate-gradient",
 	},
 	{
 		name: i18n(I18nKey.skillLevelBeginner),
 		value: stats.byLevel.beginner,
 		color: levelColors.beginner,
+		gradient: "beginner-gradient",
 	},
 ];
 
-// 计算矩形图数据（按技能分类）
-const categoryData = [
-	{
-		name: i18n(I18nKey.skillsFrontend),
-		value: stats.byCategory.frontend,
-		color: categoryColors.frontend,
-	},
-	{
-		name: i18n(I18nKey.skillsBackend),
-		value: stats.byCategory.backend,
-		color: categoryColors.backend,
-	},
-	{
-		name: i18n(I18nKey.skillsDatabase),
-		value: stats.byCategory.database,
-		color: categoryColors.database,
-	},
-	{
-		name: i18n(I18nKey.skillsTools),
-		value: stats.byCategory.tools,
-		color: categoryColors.tools,
-	},
-	{
-		name: i18n(I18nKey.skillsOther),
-		value: stats.byCategory.other,
-		color: categoryColors.other,
-	},
-];
+// 计算矩形图数据（按技能分类）—— 顺序与配色由 categoryMeta 决定
+const categoryData = SKILL_CATEGORIES.map((category) => ({
+	name: i18n(categoryMeta[category].i18nKey),
+	value: stats.byCategory[category] ?? 0,
+	color: categoryMeta[category].color,
+}));
 
 // 计算扇形图角度
 const totalLevel = levelData.reduce((sum, item) => sum + item.value, 0);
@@ -198,24 +168,11 @@ const calculatePercentage = (value: number, total: number) => {
               {levelSegments.map((segment, index) => {
                 const pathData = calculatePathData(segment);
                 if (!pathData) return null;
-                
-                // 根据技能等级选择对应的渐变
-                let gradientId = "";
-                if (segment.name === i18n(I18nKey.skillLevelExpert)) {
-                  gradientId = "expert-gradient";
-                } else if (segment.name === i18n(I18nKey.skillLevelAdvanced)) {
-                  gradientId = "advanced-gradient";
-                } else if (segment.name === i18n(I18nKey.skillLevelIntermediate)) {
-                  gradientId = "intermediate-gradient";
-                } else if (segment.name === i18n(I18nKey.skillLevelBeginner)) {
-                  gradientId = "beginner-gradient";
-                }
-                
                 return (
                   <path
                     data-key={index}
                     d={pathData}
-                    fill={`url(#${gradientId})`}
+                    fill={`url(#${segment.gradient})`}
                     class="transition-all duration-300 hover:opacity-90"
                   />
                 );
@@ -230,7 +187,7 @@ const calculatePercentage = (value: number, total: number) => {
           )
         }
       </div>
-      
+
       <!-- 图例 -->
       <div class="mt-6 grid grid-cols-2 gap-3 w-full max-w-xs">
         {levelData.map((item, index) => {
@@ -257,7 +214,7 @@ const calculatePercentage = (value: number, total: number) => {
       </div>
     </div>
   </div>
-  
+
   <!-- 矩形图和统计数据 -->
   <div class="bg-transparent rounded-xl border border-black/10 dark:border-white/10 p-6 shadow-sm hover:shadow-lg transition-shadow duration-300">
     <h3 class="text-xl font-bold text-black/90 dark:text-white/90 mb-6 flex items-center">
@@ -280,7 +237,7 @@ const calculatePercentage = (value: number, total: number) => {
               <span class="text-black/70 dark:text-white/70 font-medium">{actualPercentage}%</span>
             </div>
             <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
-              <div 
+              <div
                 class="h-3 rounded-full transition-all duration-300"
                 style={`width: ${percentage}%; background-color: ${item.color};`}
               ></div>
@@ -288,7 +245,7 @@ const calculatePercentage = (value: number, total: number) => {
           </div>
         );
       })}
-      
+
       <!-- 总经验统计 -->
       <div class="pt-5 mt-5 border-t border-black/10 dark:border-white/10">
         <div class="grid grid-cols-2 gap-4">
@@ -303,7 +260,7 @@ const calculatePercentage = (value: number, total: number) => {
               {i18n(I18nKey.skillYears)}
             </div>
           </div>
-          
+
           <div class="bg-green-500/10 dark:bg-green-900/30 rounded-lg p-4 border border-green-500/20 dark:border-green-900/30">
             <div class="text-sm text-black/60 dark:text-white/60 mb-1">
               {i18n(I18nKey.skillsTotal)}
@@ -320,5 +277,3 @@ const calculatePercentage = (value: number, total: number) => {
     </div>
   </div>
 </div>
-
-<!-- 添加CSS样式 -->

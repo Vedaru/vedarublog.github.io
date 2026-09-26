@@ -154,13 +154,15 @@ export const zh_CN: Translation = {
 	[Key.projectsSource]: "源代码",
 	[Key.projectsVisit]: "前往",
 	[Key.projectsGitHub]: "GitHub",
+	[Key.projectsForgejo]: "Forgejo",
 
 	// 技能展示页面
 	[Key.skills]: "技能展示",
 	[Key.skillsSubtitle]: "我的技术技能和专业知识",
-	[Key.skillsFrontend]: "前端开发",
-	[Key.skillsBackend]: "后端开发",
-	[Key.skillsDatabase]: "数据库",
+	[Key.skillsLanguages]: "编程语言",
+	[Key.skillsSystems]: "系统与桌面",
+	[Key.skillsWeb]: "Web 与前端",
+	[Key.skillsInfra]: "基础设施与自动化",
 	[Key.skillsTools]: "开发工具",
 	[Key.skillsOther]: "其他技能",
 	[Key.skillLevel]: "熟练度",

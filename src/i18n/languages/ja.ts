@@ -159,6 +159,7 @@ export const ja: Translation = {
 	[Key.projectsSource]: "ソースコード",
 	[Key.projectsVisit]: "プロジェクトを開く",
 	[Key.projectsGitHub]: "GitHub",
+	[Key.projectsForgejo]: "Forgejo",
 
 	// RSSページ
 	[Key.rss]: "RSSフィード",
@@ -214,9 +215,10 @@ export const ja: Translation = {
 	// スキルページ
 	[Key.skills]: "スキル",
 	[Key.skillsSubtitle]: "技術スキルと専門知識",
-	[Key.skillsFrontend]: "フロントエンド開発",
-	[Key.skillsBackend]: "バックエンド開発",
-	[Key.skillsDatabase]: "データベース",
+	[Key.skillsLanguages]: "プログラミング言語",
+	[Key.skillsSystems]: "システムとデスクトップ",
+	[Key.skillsWeb]: "Web とフロントエンド",
+	[Key.skillsInfra]: "インフラと自動化",
 	[Key.skillsTools]: "開発ツール",
 	[Key.skillsOther]: "その他のスキル",
 	[Key.skillLevel]: "熟練度",

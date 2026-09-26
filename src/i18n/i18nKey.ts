@@ -152,13 +152,15 @@ enum I18nKey {
 	projectsSource = "projectsSource",
 	projectsVisit = "projectsVisit",
 	projectsGitHub = "projectsGitHub",
+	projectsForgejo = "projectsForgejo",
 
 	// Skills page
 	skills = "skills",
 	skillsSubtitle = "skillsSubtitle",
-	skillsFrontend = "skillsFrontend",
-	skillsBackend = "skillsBackend",
-	skillsDatabase = "skillsDatabase",
+	skillsLanguages = "skillsLanguages",
+	skillsSystems = "skillsSystems",
+	skillsWeb = "skillsWeb",
+	skillsInfra = "skillsInfra",
 	skillsTools = "skillsTools",
 	skillsOther = "skillsOther",
 	skillLevel = "skillLevel",

@@ -1,686 +1,520 @@
-// Skill data configuration file
-// Used to manage data for the skill display page
+// Skill data for the skills page.
+//
+// Unlike the theme's placeholder data, every entry here is grounded in a real
+// source: the public repositories on github.com/Vedaru and git.vedaru.cn/Vedaru,
+// the self-hosted server behind git.vedaru.cn, and the machine itself as
+// described by the private chezmoi source of truth (dotfiles + Ansible).
+//
+// This page lists skills only — repository links belong on the projects page.
+//
+// `experience` is not hand-written — each skill records the month its first
+// public evidence appeared, and `since()` turns that into years/months. Update
+// the date, not the numbers.
+
+import I18nKey from "../i18n/i18nKey";
+
+export type SkillCategory =
+	| "languages"
+	| "systems"
+	| "web"
+	| "infra"
+	| "tools"
+	| "other";
+
+export type SkillLevel = "beginner" | "intermediate" | "advanced" | "expert";
 
 export interface Skill {
 	id: string;
 	name: string;
 	description: string;
 	icon: string; // Iconify icon name
-	category: "frontend" | "backend" | "database" | "tools" | "other";
-	level: "beginner" | "intermediate" | "advanced" | "expert";
+	category: SkillCategory;
+	level: SkillLevel;
 	experience: {
 		years: number;
 		months: number;
 	};
-	projects?: string[]; // Related project IDs
-	certifications?: string[];
 	color?: string; // Skill card theme color
 }
 
+// The first month with a public repository on the account. Used for the
+// overall "years of experience" figure displayed by the chart.
+export const CAREER_START = "2025-12";
+
+// Turns "YYYY-MM" into an experience object relative to today. Computed at
+// build time so the page never carries a stale hard-coded duration.
+const since = (ym: string): { years: number; months: number } => {
+	const [year, month] = ym.split("-").map(Number);
+	const now = new Date();
+	let months = (now.getFullYear() - year) * 12 + (now.getMonth() + 1 - month);
+	if (months < 0) months = 0;
+	return { years: Math.floor(months / 12), months: months % 12 };
+};
+
+// Display order of the category sections and chart bars.
+export const SKILL_CATEGORIES: SkillCategory[] = [
+	"languages",
+	"systems",
+	"web",
+	"infra",
+	"tools",
+	"other",
+];
+
+// Category -> i18n label key and chart color.
+export const categoryMeta: Record<
+	SkillCategory,
+	{ i18nKey: I18nKey; color: string }
+> = {
+	languages: { i18nKey: I18nKey.skillsLanguages, color: "#8B5CF6" },
+	systems: { i18nKey: I18nKey.skillsSystems, color: "#3B82F6" },
+	web: { i18nKey: I18nKey.skillsWeb, color: "#06B6D4" },
+	infra: { i18nKey: I18nKey.skillsInfra, color: "#F59E0B" },
+	tools: { i18nKey: I18nKey.skillsTools, color: "#10B981" },
+	other: { i18nKey: I18nKey.skillsOther, color: "#EC4899" },
+};
+
 export const skillsData: Skill[] = [
-	// Frontend Skills
+	// -------------------------------------------------------------------------
+	// Languages
+	// -------------------------------------------------------------------------
 	{
-		id: "javascript",
-		name: "JavaScript",
+		id: "cpp",
+		name: "C++",
 		description:
-			"Modern JavaScript development, including ES6+ syntax, asynchronous programming, and modular development.",
-		icon: "logos:javascript",
-		category: "frontend",
+			"Systems-level C++: patching the Hyprland compositor, fixing Waydroid/Krita host integration, and building native desktop tools.",
+		icon: "logos:c-plusplus",
+		category: "languages",
 		level: "advanced",
-		experience: { years: 3, months: 6 },
-		projects: [
-			"mizuki-blog",
-			"portfolio-website",
-			"data-visualization-tool",
-		],
-		color: "#F7DF1E",
+		experience: since("2026-06"),
+		color: "#00599C",
+	},
+	{
+		id: "rust",
+		name: "Rust",
+		description:
+			"CLI and desktop apps: a Tauri 2 + Svelte frontend, a Bilibili live TUI, a Wayland clipboard bridge, and a game installer/updater.",
+		icon: "logos:rust",
+		category: "languages",
+		level: "advanced",
+		experience: since("2026-08"),
+		color: "#CE422B",
+	},
+	{
+		id: "python",
+		name: "Python",
+		description:
+			"Applied AI and automation: a local voice/LLM virtual host, small-target detection training, and the GitHub Actions mirroring job.",
+		icon: "logos:python",
+		category: "languages",
+		level: "advanced",
+		experience: since("2025-12"),
+		color: "#3776AB",
 	},
 	{
 		id: "typescript",
 		name: "TypeScript",
 		description:
-			"A type-safe superset of JavaScript that enhances code quality and development efficiency.",
+			"Type-safe web work across Astro, Svelte and Vue codebases, from this blog to collaborative web clients and tooling.",
 		icon: "logos:typescript-icon",
-		category: "frontend",
+		category: "languages",
 		level: "advanced",
-		experience: { years: 2, months: 8 },
-		projects: ["mizuki-blog", "portfolio-website", "task-manager-app"],
+		experience: since("2025-12"),
 		color: "#3178C6",
 	},
 	{
-		id: "react",
-		name: "React",
+		id: "shell",
+		name: "Shell / Bash",
 		description:
-			"A JavaScript library for building user interfaces, including Hooks, Context, and state management.",
-		icon: "logos:react",
-		category: "frontend",
+			"The restore path for this whole machine: a bootstrap script that pins and sha256-verifies downloads, plus publish and mirroring scripts.",
+		icon: "simple-icons:gnubash",
+		category: "languages",
+		level: "expert",
+		experience: since("2026-01"),
+		color: "#4EAA25",
+	},
+	{
+		id: "lua",
+		name: "Lua",
+		description:
+			"Configuration as code: a Lua-configured Hyprland setup and a LazyVim-based Neovim config with its own plugin set.",
+		icon: "simple-icons:lua",
+		category: "languages",
 		level: "advanced",
-		experience: { years: 2, months: 10 },
-		projects: ["portfolio-website", "task-manager-app"],
-		color: "#61DAFB",
+		experience: since("2026-06"),
+		color: "#2C2D72",
 	},
 	{
-		id: "vue",
-		name: "Vue.js",
+		id: "kotlin",
+		name: "Kotlin",
 		description:
-			"A progressive JavaScript framework that is easy to learn and use, suitable for rapid development.",
-		icon: "logos:vue",
-		category: "frontend",
+			"Android / JVM experiments, including coursework tooling and contribution to a 100% Kotlin cross-platform anime app.",
+		icon: "logos:kotlin-icon",
+		category: "languages",
 		level: "intermediate",
-		experience: { years: 1, months: 8 },
-		projects: ["data-visualization-tool"],
-		color: "#4FC08D",
+		experience: since("2026-08"),
+		color: "#7F52FF",
 	},
 	{
-		id: "angular",
-		name: "Angular",
+		id: "c",
+		name: "C",
 		description:
-			"An enterprise-level frontend framework developed by Google, a complete single-page application solution.",
-		icon: "logos:angular-icon",
-		category: "frontend",
-		level: "beginner",
-		experience: { years: 0, months: 9 },
-		projects: ["enterprise-dashboard"],
-		color: "#DD0031",
-	},
-	{
-		id: "nextjs",
-		name: "Next.js",
-		description:
-			"A production-level React framework supporting SSR, SSG, and full-stack development.",
-		icon: "logos:nextjs-icon",
-		category: "frontend",
+			"Small, sharp C utilities and read-and-patch fixes in systems codebases.",
+		icon: "logos:c",
+		category: "languages",
 		level: "intermediate",
-		experience: { years: 1, months: 4 },
-		projects: ["e-commerce-frontend", "blog-platform"],
-		color: "#616161", // 更改为深灰色，避免纯黑色
+		experience: since("2026-09"),
+		color: "#A8B9CC",
 	},
 	{
-		id: "nuxtjs",
-		name: "Nuxt.js",
+		id: "javascript",
+		name: "JavaScript",
 		description:
-			"An intuitive Vue.js framework supporting server-side rendering and static site generation.",
-		icon: "logos:nuxt-icon",
-		category: "frontend",
-		level: "beginner",
-		experience: { years: 0, months: 6 },
-		projects: ["vue-ssr-app"],
-		color: "#00DC82",
+			"Browser and runtime JavaScript, including a GNOME Shell memory-leak fix and containerized API/comment services.",
+		icon: "logos:javascript",
+		category: "languages",
+		level: "intermediate",
+		experience: since("2025-12"),
+		color: "#F7DF1E",
 	},
+	{
+		id: "go",
+		name: "Go",
+		description:
+			"Reading and patching Go codebases; still the language I reach for least.",
+		icon: "logos:go",
+		category: "languages",
+		level: "beginner",
+		experience: since("2026-03"),
+		color: "#00ADD8",
+	},
+
+	// -------------------------------------------------------------------------
+	// Systems & Desktop
+	// -------------------------------------------------------------------------
+	{
+		id: "linux",
+		name: "Linux",
+		description:
+			"Daily driver and main platform: Ubuntu provisioning, apt/dpkg internals, service management, firewall and live debugging.",
+		icon: "logos:linux-tux",
+		category: "systems",
+		level: "expert",
+		experience: since("2025-12"),
+		color: "#FCC624",
+	},
+	{
+		id: "hyprland",
+		name: "Hyprland / Wayland",
+		description:
+			"A hand-built Wayland desktop — compositor, bar, launcher, lock/idle, notifications — with patches carried against Hyprland itself.",
+		icon: "simple-icons:hyprland",
+		category: "systems",
+		level: "expert",
+		experience: since("2026-06"),
+		color: "#58E1FF",
+	},
+	{
+		id: "neovim",
+		name: "Neovim",
+		description:
+			"Primary editor: a LazyVim-based config with a curated plugin set, vendored as a single pinned archive for offline restores.",
+		icon: "simple-icons:neovim",
+		category: "systems",
+		level: "expert",
+		experience: since("2026-06"),
+		color: "#57A143",
+	},
+	{
+		id: "systemd",
+		name: "systemd",
+		description:
+			"System and user units for the desktop stack, plus the ordering needed to replace a stock display manager with ly.",
+		icon: "mdi:cogs",
+		category: "systems",
+		level: "advanced",
+		experience: since("2026-09"),
+		color: "#30D475",
+	},
+	{
+		id: "pipewire",
+		name: "PipeWire / Audio",
+		description:
+			"Audio stack work: filter chains, WirePlumber, an ALSA device-reservation patch for Ardour, and a kernel audio patch recipe.",
+		icon: "mdi:music",
+		category: "systems",
+		level: "intermediate",
+		experience: since("2026-09"),
+		color: "#4A8FE7",
+	},
+	{
+		id: "kernel",
+		name: "Kernel / Low-level",
+		description:
+			"Custom kernel builds: audio patch plus a trimmed .config, packaged as a reproducible recipe because the artifacts are too large to mirror.",
+		icon: "mdi:chip",
+		category: "systems",
+		level: "intermediate",
+		experience: since("2026-09"),
+		color: "#8B5CF6",
+	},
+	{
+		id: "gpu",
+		name: "GPU / Graphics",
+		description:
+			"Hardware-accelerated capture and rendering: GPU screen recording, OBS pipelines, and GLSL/WGSL shader work.",
+		icon: "mdi:video",
+		category: "systems",
+		level: "intermediate",
+		experience: since("2026-09"),
+		color: "#E11D48",
+	},
+	{
+		id: "packaging",
+		name: "Linux Packaging",
+		description:
+			"Vendor .debs, hand-built packages, dpkg baselines and purge logic — plus a self-hosted registry serving pinned, checksum-verified tarballs.",
+		icon: "mdi:package-variant",
+		category: "systems",
+		level: "advanced",
+		experience: since("2026-09"),
+		color: "#E95420",
+	},
+
+	// -------------------------------------------------------------------------
+	// Web & Frontend
+	// -------------------------------------------------------------------------
 	{
 		id: "astro",
 		name: "Astro",
 		description:
-			"A modern static site generator supporting multi-framework integration and excellent performance.",
+			"This site: a content-heavy Astro build with islands, i18n, container queries and a search index.",
 		icon: "logos:astro-icon",
-		category: "frontend",
+		category: "web",
 		level: "advanced",
-		experience: { years: 1, months: 2 },
-		projects: ["mizuki-blog"],
+		experience: since("2025-12"),
 		color: "#FF5D01",
 	},
 	{
 		id: "tailwindcss",
 		name: "Tailwind CSS",
 		description:
-			"A utility-first CSS framework for rapidly building modern user interfaces.",
+			"Utility-first styling with dark mode, theming variables and custom container-query layouts.",
 		icon: "logos:tailwindcss-icon",
-		category: "frontend",
+		category: "web",
 		level: "advanced",
-		experience: { years: 2, months: 0 },
-		projects: ["mizuki-blog", "portfolio-website"],
+		experience: since("2025-12"),
 		color: "#06B6D4",
 	},
 	{
-		id: "sass",
-		name: "Sass/SCSS",
+		id: "svelte",
+		name: "Svelte",
 		description:
-			"A CSS preprocessor providing advanced features like variables, nesting, and mixins.",
-		icon: "logos:sass",
-		category: "frontend",
+			"Interactive frontends for desktop apps, including the Tauri 2 + Svelte UI of a self-hosted media client.",
+		icon: "logos:svelte-icon",
+		category: "web",
 		level: "intermediate",
-		experience: { years: 2, months: 3 },
-		projects: ["legacy-website", "component-library"],
-		color: "#CF649A",
+		experience: since("2026-09"),
+		color: "#FF3E00",
 	},
 	{
-		id: "webpack",
-		name: "Webpack",
+		id: "vue",
+		name: "Vue",
 		description:
-			"A static module bundler for modern JavaScript applications.",
-		icon: "logos:webpack",
-		category: "frontend",
+			"Contributing to and adapting Vue 3 web clients, including a cross-platform chat client.",
+		icon: "logos:vue",
+		category: "web",
 		level: "intermediate",
-		experience: { years: 1, months: 10 },
-		projects: ["custom-build-tool", "spa-application"],
-		color: "#8DD6F9",
-	},
-	{
-		id: "vite",
-		name: "Vite",
-		description:
-			"Next-generation frontend build tool with fast cold starts and hot updates.",
-		icon: "logos:vitejs",
-		category: "frontend",
-		level: "intermediate",
-		experience: { years: 1, months: 2 },
-		projects: ["vue-project", "react-project"],
-		color: "#646CFF",
+		experience: since("2026-03"),
+		color: "#4FC08D",
 	},
 
-	// Backend Skills
+	// -------------------------------------------------------------------------
+	// Infrastructure & Automation
+	// -------------------------------------------------------------------------
 	{
-		id: "nodejs",
-		name: "Node.js",
+		id: "ansible",
+		name: "Ansible",
 		description:
-			"A JavaScript runtime based on Chrome V8 engine, used for server-side development.",
-		icon: "logos:nodejs-icon",
-		category: "backend",
-		level: "intermediate",
-		experience: { years: 2, months: 3 },
-		projects: ["data-visualization-tool", "e-commerce-platform"],
-		color: "#339933",
-	},
-	{
-		id: "python",
-		name: "Python",
-		description:
-			"A general-purpose programming language suitable for web development, data analysis, machine learning, and more.",
-		icon: "logos:python",
-		category: "backend",
-		level: "intermediate",
-		experience: { years: 1, months: 10 },
-		color: "#3776AB",
-	},
-	{
-		id: "java",
-		name: "Java",
-		description:
-			"A mainstream programming language for enterprise application development, cross-platform and object-oriented.",
-		icon: "logos:java",
-		category: "backend",
-		level: "intermediate",
-		experience: { years: 2, months: 0 },
-		projects: ["enterprise-system", "microservices-api"],
-		color: "#ED8B00",
-	},
-	{
-		id: "csharp",
-		name: "C#",
-		description:
-			"A modern object-oriented programming language developed by Microsoft, suitable for the .NET ecosystem.",
-		icon: "devicon:csharp",
-		category: "backend",
-		level: "intermediate",
-		experience: { years: 1, months: 6 },
-		projects: ["desktop-application", "web-api"],
-		color: "#239120",
-	},
-	{
-		id: "go",
-		name: "Go",
-		description:
-			"An efficient programming language developed by Google, suitable for cloud-native and microservices development.",
-		icon: "logos:go",
-		category: "backend",
-		level: "beginner",
-		experience: { years: 0, months: 8 },
-		projects: ["microservice-demo"],
-		color: "#00ADD8",
-	},
-	{
-		id: "rust",
-		name: "Rust",
-		description:
-			"A systems programming language focusing on safety, speed, and concurrency, with no garbage collector.",
-		icon: "logos:rust",
-		category: "backend",
-		level: "beginner",
-		experience: { years: 0, months: 6 },
-		projects: ["system-tool", "performance-critical-app"],
-		color: "#CE422B",
-	},
-	{
-		id: "cpp",
-		name: "C++",
-		description:
-			"A high-performance systems programming language widely used in game development, system software, and embedded development.",
-		icon: "logos:c-plusplus",
-		category: "backend",
-		level: "intermediate",
-		experience: { years: 1, months: 4 },
-		projects: ["game-engine", "system-optimization"],
-		color: "#00599C",
-	},
-	{
-		id: "c",
-		name: "C",
-		description:
-			"A low-level systems programming language, the foundation for operating systems and embedded systems development.",
-		icon: "logos:c",
-		category: "backend",
-		level: "intermediate",
-		experience: { years: 1, months: 2 },
-		projects: ["embedded-system", "kernel-module"],
-		color: "#A8B9CC",
-	},
-	{
-		id: "kotlin",
-		name: "Kotlin",
-		description:
-			"A modern programming language developed by JetBrains, fully compatible with Java, the preferred choice for Android development.",
-		icon: "logos:kotlin-icon",
-		category: "backend",
-		level: "beginner",
-		experience: { years: 0, months: 8 },
-		projects: ["android-app", "kotlin-backend"],
-		color: "#7F52FF",
-	},
-	{
-		id: "swift",
-		name: "Swift",
-		description:
-			"A modern programming language developed by Apple for iOS, macOS, watchOS, and tvOS development.",
-		icon: "logos:swift",
-		category: "backend",
-		level: "beginner",
-		experience: { years: 0, months: 6 },
-		projects: ["ios-app", "macos-tool"],
-		color: "#FA7343",
-	},
-	{
-		id: "ruby",
-		name: "Ruby",
-		description:
-			"A dynamic, open-source programming language focusing on simplicity and productivity, the foundation of the Rails framework.",
-		icon: "logos:ruby",
-		category: "backend",
-		level: "beginner",
-		experience: { years: 0, months: 4 },
-		projects: ["web-prototype"],
-		color: "#CC342D",
-	},
-	{
-		id: "php",
-		name: "PHP",
-		description:
-			"A widely-used server-side scripting language, particularly suitable for web development.",
-		icon: "logos:php",
-		category: "backend",
-		level: "intermediate",
-		experience: { years: 1, months: 6 },
-		projects: ["cms-system", "e-commerce-backend"],
-		color: "#777BB4",
-	},
-	{
-		id: "express",
-		name: "Express.js",
-		description: "A fast, minimalist Node.js web application framework.",
-		icon: "simple-icons:express",
-		category: "backend",
-		level: "intermediate",
-		experience: { years: 1, months: 8 },
-		projects: ["data-visualization-tool"],
-		color: "#616161", // 更改为深灰色，避免纯黑色
-	},
-	{
-		id: "spring",
-		name: "Spring Boot",
-		description:
-			"The most popular enterprise application development framework in the Java ecosystem.",
-		icon: "logos:spring-icon",
-		category: "backend",
-		level: "intermediate",
-		experience: { years: 1, months: 4 },
-		projects: ["enterprise-system", "rest-api"],
-		color: "#6DB33F",
-	},
-	{
-		id: "django",
-		name: "Django",
-		description:
-			"A high-level Python web framework with rapid development and clean, pragmatic design.",
-		icon: "logos:django-icon",
-		category: "backend",
-		level: "beginner",
-		experience: { years: 0, months: 6 },
-		projects: ["blog-backend"],
-		color: "#092E20",
-	},
-
-	// Database Skills
-	{
-		id: "mysql",
-		name: "MySQL",
-		description:
-			"The world's most popular open-source relational database management system, widely used in web applications.",
-		icon: "logos:mysql-icon",
-		category: "database",
+			"The machine's system layer as code: apt sources, packages, files, flatpaks and services, replayed onto a fresh install.",
+		icon: "logos:ansible",
+		category: "infra",
 		level: "advanced",
-		experience: { years: 2, months: 6 },
-		projects: ["e-commerce-platform", "blog-system"],
-		color: "#4479A1",
+		experience: since("2026-09"),
+		color: "#EE0000",
 	},
 	{
-		id: "postgresql",
-		name: "PostgreSQL",
+		id: "chezmoi",
+		name: "chezmoi / Dotfiles",
 		description:
-			"A powerful open-source relational database management system.",
-		icon: "logos:postgresql",
-		category: "database",
-		level: "intermediate",
-		experience: { years: 1, months: 5 },
-		projects: ["e-commerce-platform"],
-		color: "#336791",
+			"Everything under $HOME managed as a single source of truth, with templates and age-encrypted secrets that travel with the repo.",
+		icon: "mdi:home-edit",
+		category: "infra",
+		level: "expert",
+		experience: since("2026-06"),
+		color: "#1A73E8",
 	},
 	{
-		id: "redis",
-		name: "Redis",
+		id: "home-server",
+		name: "Home Server",
 		description:
-			"A high-performance in-memory data structure store, used as a database, cache, and message broker.",
-		icon: "logos:redis",
-		category: "database",
-		level: "intermediate",
-		experience: { years: 1, months: 3 },
-		projects: ["e-commerce-platform", "real-time-chat"],
-		color: "#DC382D",
+			"An old laptop kept running as an always-on server — it hosts the forge and the package registry the rest of this setup depends on, published through a Cloudflare tunnel.",
+		icon: "mdi:server",
+		category: "infra",
+		level: "advanced",
+		experience: since("2026-09"),
+		color: "#64748B",
 	},
 	{
-		id: "mongodb",
-		name: "MongoDB",
+		id: "forgejo",
+		name: "Forgejo / Self-hosting",
 		description:
-			"A document-oriented NoSQL database with a flexible data model.",
-		icon: "logos:mongodb-icon",
-		category: "database",
-		level: "intermediate",
-		experience: { years: 1, months: 2 },
-		color: "#47A248",
+			"Running my own Forge on that server: repositories, API-driven automation, and a generic package registry that mirrors GFW-blocked artifacts.",
+		icon: "simple-icons:forgejo",
+		category: "infra",
+		level: "advanced",
+		experience: since("2026-09"),
+		color: "#FB923C",
 	},
 	{
-		id: "sqlite",
-		name: "SQLite",
+		id: "github-actions",
+		name: "GitHub Actions / CI",
 		description:
-			"A lightweight embedded relational database, suitable for mobile applications and small projects.",
-		icon: "simple-icons:sqlite",
-		category: "database",
-		level: "intermediate",
-		experience: { years: 1, months: 8 },
-		projects: ["mobile-app", "desktop-tool"],
-		color: "#003B57",
+			"A scheduled workflow running on an unrestricted runner to fetch and publish mirrored artifacts into the self-hosted registry.",
+		icon: "simple-icons:github",
+		category: "infra",
+		level: "advanced",
+		experience: since("2026-09"),
+		color: "#2088FF",
 	},
 	{
-		id: "firebase",
-		name: "Firebase",
+		id: "cloudflare",
+		name: "Cloudflare",
 		description:
-			"Google's mobile and web application development platform providing real-time database and authentication services.",
-		icon: "simple-icons:firebase",
-		category: "database",
+			"Tunnels and edge behavior in front of the self-hosted forge, including cache and upload-limit quirks worked around in code.",
+		icon: "simple-icons:cloudflare",
+		category: "infra",
 		level: "intermediate",
-		experience: { years: 0, months: 10 },
-		projects: ["task-manager-app"],
-		color: "#FFCA28",
+		experience: since("2026-09"),
+		color: "#F38020",
+	},
+	{
+		id: "networking",
+		name: "Networking & Proxies",
+		description:
+			"Reachability engineering behind the GFW: TUN-mode policy routing, IPv4 pinning, mirror selection and measured latency/status checks.",
+		icon: "mdi:lan",
+		category: "infra",
+		level: "advanced",
+		experience: since("2026-09"),
+		color: "#0EA5E9",
+	},
+	{
+		id: "age",
+		name: "Secrets / age",
+		description:
+			"Managing credentials as age-encrypted files whose identity is deliberately kept out of the repository.",
+		icon: "mdi:shield-lock",
+		category: "infra",
+		level: "intermediate",
+		experience: since("2026-09"),
+		color: "#6366F1",
+	},
+	{
+		id: "podman",
+		name: "Podman / Containers",
+		description:
+			"Rootless containers and registries configured through the desktop stack; services run containerized where it helps.",
+		icon: "simple-icons:podman",
+		category: "infra",
+		level: "intermediate",
+		experience: since("2026-08"),
+		color: "#892CA0",
 	},
 
-	// Tools
+	// -------------------------------------------------------------------------
+	// Development Tools
+	// -------------------------------------------------------------------------
 	{
 		id: "git",
 		name: "Git",
 		description:
-			"A distributed version control system, an essential tool for code management and team collaboration.",
+			"Distributed version control across two forges, with submodules, encrypted credentials and history kept as the source of truth.",
 		icon: "logos:git-icon",
 		category: "tools",
-		level: "advanced",
-		experience: { years: 3, months: 0 },
+		level: "expert",
+		experience: since("2025-12"),
 		color: "#F05032",
 	},
 	{
-		id: "vscode",
-		name: "VS Code",
+		id: "ffmpeg",
+		name: "FFmpeg",
 		description:
-			"A lightweight but powerful code editor with a rich plugin ecosystem.",
-		icon: "logos:visual-studio-code",
-		category: "tools",
-		level: "expert",
-		experience: { years: 3, months: 6 },
-		color: "#007ACC",
-	},
-	{
-		id: "webstorm",
-		name: "WebStorm",
-		description:
-			"A professional JavaScript and web development IDE developed by JetBrains with intelligent code assistance.",
-		icon: "logos:webstorm",
-		category: "tools",
-		level: "advanced",
-		experience: { years: 2, months: 0 },
-		projects: ["react-project", "vue-project"],
-		color: "#00CDD7",
-	},
-	{
-		id: "intellij",
-		name: "IntelliJ IDEA",
-		description:
-			"JetBrains flagship IDE, the preferred tool for Java development with powerful intelligent coding assistance.",
-		icon: "logos:intellij-idea",
+			"Capture and transcode pipelines for screen recording and media playback on the desktop.",
+		icon: "simple-icons:ffmpeg",
 		category: "tools",
 		level: "intermediate",
-		experience: { years: 1, months: 8 },
-		projects: ["java-enterprise", "spring-boot-app"],
-		color: "#616161", // 更改为深灰色，避免纯黑色
+		experience: since("2026-09"),
+		color: "#007808",
 	},
 	{
-		id: "pycharm",
-		name: "PyCharm",
+		id: "obsidian",
+		name: "Obsidian",
 		description:
-			"A professional Python IDE by JetBrains providing intelligent code analysis and debugging features.",
-		icon: "logos:pycharm",
+			"A version-controlled knowledge vault of notes and documentation, synced through the self-hosted forge.",
+		icon: "simple-icons:obsidian",
 		category: "tools",
 		level: "intermediate",
-		experience: { years: 1, months: 4 },
-		projects: ["python-web-app", "data-analysis"],
-		color: "#21D789",
-	},
-	{
-		id: "rider",
-		name: "Rider",
-		description:
-			"A cross-platform .NET IDE by JetBrains supporting development in C#, VB.NET, F#, and other languages.",
-		icon: "logos:rider",
-		category: "tools",
-		level: "beginner",
-		experience: { years: 0, months: 8 },
-		projects: ["dotnet-api", "desktop-app"],
-		color: "#616161", // 更改为深灰色，避免纯黑色
-	},
-	{
-		id: "goland",
-		name: "GoLand",
-		description:
-			"A professional Go language IDE by JetBrains providing intelligent coding assistance and debugging tools.",
-		icon: "logos:goland",
-		category: "tools",
-		level: "beginner",
-		experience: { years: 0, months: 6 },
-		projects: ["go-microservice"],
-		color: "#3D7BF7",
-	},
-	{
-		id: "docker",
-		name: "Docker",
-		description:
-			"A containerization platform that simplifies application deployment and environment management.",
-		icon: "logos:docker-icon",
-		category: "tools",
-		level: "intermediate",
-		experience: { years: 1, months: 0 },
-		color: "#2496ED",
-	},
-	{
-		id: "kubernetes",
-		name: "Kubernetes",
-		description:
-			"A container orchestration platform for automating deployment, scaling, and management of containerized applications.",
-		icon: "logos:kubernetes",
-		category: "tools",
-		level: "beginner",
-		experience: { years: 0, months: 4 },
-		projects: ["microservices-deployment"],
-		color: "#326CE5",
-	},
-	{
-		id: "nginx",
-		name: "Nginx",
-		description: "A high-performance web server and reverse proxy server.",
-		icon: "logos:nginx",
-		category: "tools",
-		level: "intermediate",
-		experience: { years: 1, months: 2 },
-		projects: ["web-server-config", "load-balancer"],
-		color: "#009639",
-	},
-	{
-		id: "apache",
-		name: "Apache HTTP Server",
-		description:
-			"The world's most popular web server software, a stable and reliable HTTP server.",
-		icon: "logos:apache",
-		category: "tools",
-		level: "intermediate",
-		experience: { years: 1, months: 6 },
-		projects: ["traditional-web-server", "php-hosting"],
-		color: "#D22128",
-	},
-	{
-		id: "openresty",
-		name: "OpenResty",
-		description:
-			"A high-performance web platform based on Nginx and LuaJIT, supporting dynamic web application development.",
-		icon: "simple-icons:nginx",
-		category: "tools",
-		level: "beginner",
-		experience: { years: 0, months: 8 },
-		projects: ["api-gateway", "dynamic-routing"],
-		color: "#00A693",
-	},
-	{
-		id: "tomcat",
-		name: "Apache Tomcat",
-		description:
-			"A Java Servlet container and web server, the standard deployment environment for Java web applications.",
-		icon: "logos:tomcat",
-		category: "tools",
-		level: "intermediate",
-		experience: { years: 1, months: 4 },
-		projects: ["java-web-app", "servlet-container"],
-		color: "#F8DC75",
-	},
-	{
-		id: "aws",
-		name: "AWS",
-		description:
-			"Amazon's cloud platform providing comprehensive cloud computing solutions.",
-		icon: "logos:aws",
-		category: "tools",
-		level: "intermediate",
-		experience: { years: 1, months: 0 },
-		projects: ["cloud-deployment", "serverless-app"],
-		color: "#FF9900",
-	},
-	{
-		id: "linux",
-		name: "Linux",
-		description:
-			"An open-source operating system, the preferred choice for server deployment and development environments.",
-		icon: "logos:linux-tux",
-		category: "tools",
-		level: "intermediate",
-		experience: { years: 2, months: 0 },
-		projects: ["server-management", "shell-scripting"],
-		color: "#FCC624",
-	},
-	{
-		id: "postman",
-		name: "Postman",
-		description:
-			"An API development and testing tool that simplifies API design, testing, and documentation.",
-		icon: "logos:postman-icon",
-		category: "tools",
-		level: "intermediate",
-		experience: { years: 1, months: 8 },
-		projects: ["api-testing", "api-documentation"],
-		color: "#FF6C37",
-	},
-	{
-		id: "figma",
-		name: "Figma",
-		description:
-			"A collaborative interface design tool for UI/UX design and prototyping.",
-		icon: "logos:figma",
-		category: "tools",
-		level: "intermediate",
-		experience: { years: 1, months: 6 },
-		color: "#F24E1E",
-	},
-	{
-		id: "photoshop",
-		name: "Photoshop",
-		description: "Professional image editing and design software.",
-		icon: "logos:adobe-photoshop",
-		category: "tools",
-		level: "intermediate",
-		experience: { years: 2, months: 6 },
-		projects: ["ui-design", "image-processing"],
-		color: "#31A8FF",
+		experience: since("2026-09"),
+		color: "#7C3AED",
 	},
 
-	// Other Skills
+	// -------------------------------------------------------------------------
+	// Other
+	// -------------------------------------------------------------------------
 	{
-		id: "graphql",
-		name: "GraphQL",
+		id: "ai",
+		name: "AI / LLM Integration",
 		description:
-			"An API query language and runtime providing a more efficient, powerful, and flexible way to fetch data.",
-		icon: "logos:graphql",
-		category: "other",
-		level: "beginner",
-		experience: { years: 0, months: 6 },
-		projects: ["modern-api"],
-		color: "#E10098",
-	},
-	{
-		id: "elasticsearch",
-		name: "Elasticsearch",
-		description:
-			"A distributed search and analytics engine used for full-text search and data analysis.",
-		icon: "logos:elasticsearch",
-		category: "other",
-		level: "beginner",
-		experience: { years: 0, months: 4 },
-		projects: ["search-system"],
-		color: "#005571",
-	},
-	{
-		id: "jest",
-		name: "Jest",
-		description:
-			"A JavaScript testing framework focused on simplicity and ease of use.",
-		icon: "logos:jest",
+			"Building with local models: speech recognition, an LLM with a memory layer, agent frameworks and MCP tooling.",
+		icon: "mdi:robot-outline",
 		category: "other",
 		level: "intermediate",
-		experience: { years: 1, months: 2 },
-		projects: ["unit-testing", "integration-testing"],
-		color: "#C21325",
+		experience: since("2026-01"),
+		color: "#10B981",
 	},
 	{
-		id: "cypress",
-		name: "Cypress",
+		id: "computer-vision",
+		name: "Computer Vision",
 		description:
-			"A modern end-to-end testing framework for web applications.",
-		icon: "logos:cypress-icon",
+			"Training and tuning small-target detection models for a counter-UAV platform.",
+		icon: "mdi:eye-outline",
 		category: "other",
-		level: "beginner",
-		experience: { years: 0, months: 8 },
-		projects: ["e2e-testing"],
-		color: "#17202C",
+		level: "intermediate",
+		experience: since("2025-12"),
+		color: "#F97316",
+	},
+	{
+		id: "technical-writing",
+		name: "Technical Writing",
+		description:
+			"Long-form READMEs and manifests that make a machine reproducible — including measured benchmarks and the reasoning behind each choice.",
+		icon: "simple-icons:markdown",
+		category: "other",
+		level: "advanced",
+		experience: since("2025-12"),
+		color: "#0EA5E9",
+	},
+	{
+		id: "cjk-input",
+		name: "CJK Input / i18n",
+		description:
+			"fcitx5 input setup and the desktop integration it needs, down to carrying a compositor patch for candidate-window behaviour.",
+		icon: "mdi:keyboard",
+		category: "other",
+		level: "intermediate",
+		experience: since("2026-09"),
+		color: "#EC4899",
 	},
 ];
 
@@ -689,25 +523,26 @@ export const getSkillStats = () => {
 	const total = skillsData.length;
 	const byLevel = {
 		beginner: skillsData.filter((s) => s.level === "beginner").length,
-		intermediate: skillsData.filter((s) => s.level === "intermediate")
-			.length,
+		intermediate: skillsData.filter((s) => s.level === "intermediate").length,
 		advanced: skillsData.filter((s) => s.level === "advanced").length,
 		expert: skillsData.filter((s) => s.level === "expert").length,
 	};
-	const byCategory = {
-		frontend: skillsData.filter((s) => s.category === "frontend").length,
-		backend: skillsData.filter((s) => s.category === "backend").length,
-		database: skillsData.filter((s) => s.category === "database").length,
-		tools: skillsData.filter((s) => s.category === "tools").length,
-		other: skillsData.filter((s) => s.category === "other").length,
-	};
+	const byCategory = SKILL_CATEGORIES.reduce(
+		(acc, category) => {
+			acc[category] = skillsData.filter(
+				(s) => s.category === category,
+			).length;
+			return acc;
+		},
+		{} as Record<SkillCategory, number>,
+	);
 
 	return { total, byLevel, byCategory };
 };
 
 // Get skills by category
-export const getSkillsByCategory = (category?: string) => {
-	if (!category || category === "all") {
+export const getSkillsByCategory = (category?: SkillCategory) => {
+	if (!category) {
 		return skillsData;
 	}
 	return skillsData.filter((s) => s.category === category);
@@ -720,13 +555,13 @@ export const getAdvancedSkills = () => {
 	);
 };
 
-// Calculate total years of experience
+// Calculate total years of experience from the first public repository.
 export const getTotalExperience = () => {
-	const totalMonths = skillsData.reduce((total, skill) => {
-		return total + skill.experience.years * 12 + skill.experience.months;
-	}, 0);
-	return {
-		years: Math.floor(totalMonths / 12),
-		months: totalMonths % 12,
-	};
+	return since(CAREER_START);
+};
+
+// Categories that actually hold at least one skill, in display order.
+export const getActiveCategories = () => {
+	const stats = getSkillStats();
+	return SKILL_CATEGORIES.filter((category) => stats.byCategory[category] > 0);
 };

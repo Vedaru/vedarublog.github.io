@@ -158,6 +158,7 @@ export const en: Translation = {
 	[Key.projectsSource]: "Source Code",
 	[Key.projectsVisit]: "Visit Project",
 	[Key.projectsGitHub]: "GitHub",
+	[Key.projectsForgejo]: "Forgejo",
 
 	// RSS Page
 	[Key.rss]: "RSS Feed",
@@ -212,9 +213,10 @@ export const en: Translation = {
 	// Skills Page
 	[Key.skills]: "Skills",
 	[Key.skillsSubtitle]: "My technical skills and expertise",
-	[Key.skillsFrontend]: "Frontend Development",
-	[Key.skillsBackend]: "Backend Development",
-	[Key.skillsDatabase]: "Database",
+	[Key.skillsLanguages]: "Languages",
+	[Key.skillsSystems]: "Systems & Desktop",
+	[Key.skillsWeb]: "Web & Frontend",
+	[Key.skillsInfra]: "Infrastructure & Automation",
 	[Key.skillsTools]: "Development Tools",
 	[Key.skillsOther]: "Other Skills",
 	[Key.skillLevel]: "Proficiency",

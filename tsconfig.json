@@ -8,6 +8,7 @@
     "strictNullChecks": true,
     "allowJs": false,
     "declaration": true,
+    "skipLibCheck": true,
     "plugins": [
       {
         "name": "@astrojs/ts-plugin"
