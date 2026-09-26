@@ -1,5 +1,4 @@
 ---
-import Icon from "../components/misc/Icon.astro";
 import IconifyLoader from "../components/misc/IconifyLoader.astro";
 import SkillCard from "../components/skills/SkillCard.astro";
 import { siteConfig } from "../config";
@@ -24,14 +23,24 @@ const stats = getSkillStats();
 // 分类顺序由数据文件决定，只保留实际有技能的分类
 const categories = getActiveCategories();
 
-// 分类 -> 筛选标签图标
-const categoryIcons: Record<string, string> = {
-	languages: "material-symbols:code",
-	systems: "material-symbols:terminal",
-	web: "material-symbols:language",
-	infra: "material-symbols:cloud",
-	tools: "material-symbols:build",
-	other: "material-symbols:widgets",
+// 分类 -> 筛选标签图标（Material Symbols 图标 body 的 path d，24×24）
+// 直接内联 SVG 而不走 <Icon>：筛选标签属于首屏元素，不能依赖 iconify-icon
+// 运行时（先渲染一个半透明回退字符、再从网络拉取 SVG 才淡入），
+// 否则标签文字与图标会有一段"看不见"的窗口期。
+// 命名跟随主题的 Material Symbols 用法（rounded 变体优先；无 rounded 变体时用基础名）。
+const TAB_ICON_PATHS: Record<string, string> = {
+	all: "M6 20q-.825 0-1.412-.587T4 18t.588-1.412T6 16t1.413.588T8 18t-.587 1.413T6 20m6 0q-.825 0-1.412-.587T10 18t.588-1.412T12 16t1.413.588T14 18t-.587 1.413T12 20m6 0q-.825 0-1.412-.587T16 18t.588-1.412T18 16t1.413.588T20 18t-.587 1.413T18 20M6 14q-.825 0-1.412-.587T4 12t.588-1.412T6 10t1.413.588T8 12t-.587 1.413T6 14m6 0q-.825 0-1.412-.587T10 12t.588-1.412T12 10t1.413.588T14 12t-.587 1.413T12 14m6 0q-.825 0-1.412-.587T16 12t.588-1.412T18 10t1.413.588T20 12t-.587 1.413T18 14M6 8q-.825 0-1.412-.587T4 6t.588-1.412T6 4t1.413.588T8 6t-.587 1.413T6 8m6 0q-.825 0-1.412-.587T10 6t.588-1.412T12 4t1.413.588T14 6t-.587 1.413T12 8m6 0q-.825 0-1.412-.587T16 6t.588-1.412T18 4t1.413.588T20 6t-.587 1.413T18 8",
+	languages:
+		"M4.825 12.025L8.7 15.9q.275.275.275.7t-.275.7t-.7.275t-.7-.275l-4.6-4.6q-.15-.15-.213-.325T2.426 12t.063-.375t.212-.325l4.6-4.6q.3-.3.713-.3t.712.3t.3.713t-.3.712zm14.35-.05L15.3 8.1q-.275-.275-.275-.7t.275-.7t.7-.275t.7.275l4.6 4.6q.15.15.213.325t.062.375t-.062.375t-.213.325l-4.6 4.6q-.3.3-.7.288t-.7-.313t-.3-.712t.3-.713z",
+	systems:
+		"M4 20q-.825 0-1.412-.587T2 18V6q0-.825.588-1.412T4 4h16q.825 0 1.413.588T22 6v12q0 .825-.587 1.413T20 20zm0-2h16V8H4zm4.675-5l-1.9-1.9q-.3-.3-.288-.7t.313-.7q.3-.275.7-.287t.7.287l2.6 2.6q.3.3.3.7t-.3.7l-2.6 2.6q-.275.275-.687.288T6.8 16.3q-.275-.275-.275-.7t.275-.7zM13 17q-.425 0-.712-.288T12 16t.288-.712T13 15h4q.425 0 .713.288T18 16t-.288.713T17 17z",
+	web: "M12 22q-2.075 0-3.9-.788t-3.175-2.137T2.788 15.9T2 12t.788-3.9t2.137-3.175T8.1 2.788T12 2t3.9.788t3.175 2.137T21.213 8.1T22 12t-.788 3.9t-2.137 3.175t-3.175 2.138T12 22m-1-2.05V18q-.825 0-1.412-.587T9 16v-1l-4.8-4.8q-.075.45-.137.9T4 12q0 3.025 1.988 5.3T11 19.95m6.9-2.55q1.025-1.125 1.563-2.512T20 12q0-2.45-1.362-4.475T15 4.6V5q0 .825-.587 1.413T13 7h-2v2q0 .425-.288.713T10 10H8v2h6q.425 0 .713.288T15 13v3h1q.65 0 1.175.388T17.9 17.4",
+	infra:
+		"M6.5 20q-2.275 0-3.887-1.575T1 14.575q0-1.95 1.175-3.475T5.25 9.15q.625-2.3 2.5-3.725T12 4q2.925 0 4.963 2.038T19 11q1.725.2 2.863 1.488T23 15.5q0 1.875-1.312 3.188T18.5 20z",
+	tools:
+		"M9 15q-2.5 0-4.25-1.75T3 9q0-.5.075-1t.275-.95q.125-.25.313-.375t.412-.175t.463.013t.437.262L7.6 9.4l1.8-1.8l-2.625-2.625q-.2-.2-.262-.437T6.5 4.075t.175-.413t.375-.312q.45-.2.95-.275T9 3q2.5 0 4.25 1.75T15 9q0 .575-.1 1.088t-.3 1.012l5.05 5q.725.725.725 1.775t-.725 1.775t-1.775.725t-1.775-.75l-5-5.025q-.5.2-1.012.3T9 15",
+	other:
+		"M15.95 12.3L11.7 8.05q-.15-.15-.212-.325t-.063-.375t.063-.375t.212-.325l4.25-4.25q.15-.15.325-.212t.375-.063t.375.063t.325.212l4.25 4.25q.15.15.213.325t.062.375t-.062.375t-.213.325l-4.25 4.25q-.15.15-.325.213t-.375.062t-.375-.062t-.325-.213M3 10V4q0-.425.288-.712T4 3h6q.425 0 .713.288T11 4v6q0 .425-.288.713T10 11H4q-.425 0-.712-.288T3 10m10 10v-6q0-.425.288-.712T14 13h6q.425 0 .713.288T21 14v6q0 .425-.288.713T20 21h-6q-.425 0-.712-.288T13 20M3 20v-6q0-.425.288-.712T4 13h6q.425 0 .713.288T11 14v6q0 .425-.288.713T10 21H4q-.425 0-.712-.288T3 20",
 };
 
 // 筛选标签：全部 + 每个分类
@@ -39,13 +48,13 @@ const filterTabs = [
 	{
 		value: "all",
 		label: i18n(I18nKey.friendsFilterAll),
-		icon: "material-symbols:apps",
+		path: TAB_ICON_PATHS.all,
 		count: skillsData.length,
 	},
 	...categories.map((category) => ({
 		value: category,
 		label: i18n(categoryMeta[category].i18nKey),
-		icon: categoryIcons[category] ?? "material-symbols:widgets",
+		path: TAB_ICON_PATHS[category] ?? TAB_ICON_PATHS.all,
 		count: stats.byCategory[category],
 	})),
 ];
@@ -90,13 +99,20 @@ const allIcons = skillsData.map((skill) => skill.icon).filter(Boolean);
           <button
             type="button"
             class:list={[
-              "skill-filter-tab inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border border-black/10 dark:border-white/20 text-black/70 dark:text-white/70 hover:bg-black/5 dark:hover:bg-white/10 transition-colors duration-200",
+              "skill-filter-tab inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border transition-colors duration-200",
               tab.value === "all" && "is-active",
             ]}
             data-category={tab.value}
             aria-pressed={tab.value === "all" ? "true" : "false"}
           >
-            <Icon icon={tab.icon} class="text-base" fallback={tab.label.charAt(0)} />
+            <svg
+              class="skill-filter-icon"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path fill="currentColor" d={tab.path} />
+            </svg>
             <span>{tab.label}</span>
             <span class="skill-filter-count">{tab.count}</span>
           </button>
@@ -139,10 +155,35 @@ const allIcons = skillsData.map((skill) => skill.icon).filter(Boolean);
     }
   }
 
+  /* 筛选标签配色对齐主题 .filter-tag（friends.astro / anime.css / devices.astro）：
+     未选中 --btn-regular-bg + --btn-content，选中 --primary + 可读前景色。
+     选中态前景色不能用 --btn-content —— 它与 --primary 同色相、亮度又接近，
+     实测默认 hue 下仅 1.81:1（浅色）/ 1.01:1（深色），
+     文字、图标（currentColor）和计数徽章会一起"消失"。
+     --deep-text 是主题既有的 primary 前景色（twikoo.css 也在用），
+     全色相区间实测 ≥5.63:1（浅色）/ ≥6.78:1（深色）。 */
+  .skill-filter-tab {
+    background-color: var(--btn-regular-bg);
+    border-color: var(--line-divider);
+    color: var(--btn-content);
+  }
+
+  .skill-filter-tab:hover:not(.is-active) {
+    background-color: var(--btn-regular-bg-hover);
+    border-color: var(--primary);
+  }
+
   .skill-filter-tab.is-active {
     background-color: var(--primary);
-    border-color: transparent;
-    color: var(--btn-content);
+    border-color: var(--primary);
+    color: var(--deep-text);
+  }
+
+  /* 内联 SVG 图标：1em 随字号缩放，currentColor 跟随标签前景色 */
+  .skill-filter-icon {
+    width: 1em;
+    height: 1em;
+    flex: none;
   }
 
   .skill-filter-count {
