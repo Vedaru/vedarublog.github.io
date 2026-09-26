@@ -343,7 +343,7 @@ function hostnameOf(url: string): string {
 	}
 
 	.filter-tag:hover:not(.active) {
-		background: var(--btn-hover-bg);
+		background: var(--btn-regular-bg-hover);
 		border-color: var(--primary);
 		transform: translateY(-1px);
 	}

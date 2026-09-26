@@ -2,6 +2,9 @@
   container-type: inline-size;
 }
 
+/* 网格列数由容器宽度决定（.anime-card-base 提供 container-type: inline-size）。
+   布局模式不再由 JS 切 class：列表模式靠 html[data-post-list-layout="list"]
+   覆盖（0,2,1 特异性高于这里的 0,1,0）。 */
 .anime-grid-container {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -9,49 +12,40 @@
   transition: gap 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* === Grid Mode === */
-.anime-grid-container.anime-grid-mode {
-  grid-template-columns: repeat(2, 1fr);
-}
-
 @container (min-width: 30rem) {
-  .anime-grid-container.anime-grid-mode {
+  .anime-grid-container {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
 @container (min-width: 48rem) {
-  .anime-grid-container.anime-grid-mode {
+  .anime-grid-container {
     grid-template-columns: repeat(4, 1fr);
   }
 }
 
 @container (min-width: 64rem) {
-  .anime-grid-container.anime-grid-mode {
+  .anime-grid-container {
     grid-template-columns: repeat(5, 1fr);
   }
 }
 
 /* === List Mode === */
-.anime-grid-container.anime-list-mode,
 html[data-post-list-layout="list"] .anime-grid-container {
   grid-template-columns: repeat(1, 1fr);
 }
 @media (min-width: 1024px) {
-  .anime-grid-container.anime-list-mode,
   html[data-post-list-layout="list"] .anime-grid-container {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-.anime-grid-container.anime-list-mode .group,
 html[data-post-list-layout="list"] .anime-grid-container .group {
   display: flex;
   flex-direction: row;
   min-height: 12rem;
 }
 
-.anime-grid-container.anime-list-mode .anime-cover-container,
 html[data-post-list-layout="list"] .anime-grid-container .anime-cover-container {
   width: 8.5rem;
   height: auto;
@@ -59,13 +53,11 @@ html[data-post-list-layout="list"] .anime-grid-container .anime-cover-container 
   flex-shrink: 0;
 }
 @media (min-width: 768px) {
-  .anime-grid-container.anime-list-mode .anime-cover-container,
   html[data-post-list-layout="list"] .anime-grid-container .anime-cover-container {
     width: 11rem;
   }
 }
 
-.anime-grid-container.anime-list-mode .p-3,
 html[data-post-list-layout="list"] .anime-grid-container .p-3 {
   flex-grow: 1;
   display: flex;
@@ -74,14 +66,12 @@ html[data-post-list-layout="list"] .anime-grid-container .p-3 {
   padding: 0.75rem 1rem;
 }
 
-.anime-grid-container.anime-list-mode h3,
 html[data-post-list-layout="list"] .anime-grid-container h3 {
   -webkit-line-clamp: unset;
   line-clamp: unset;
   white-space: normal;
 }
 
-.anime-grid-container.anime-list-mode .group p.text-xs,
 html[data-post-list-layout="list"] .anime-grid-container .group p.text-xs {
   -webkit-line-clamp: 4;
   line-clamp: 4;
@@ -106,7 +96,7 @@ html[data-post-list-layout="list"] .anime-grid-container .group p.text-xs {
   white-space: nowrap;
 }
 .anime-filter-tag:hover:not(.anime-active) {
-  background: var(--btn-hover-bg);
+  background: var(--btn-regular-bg-hover);
   border-color: var(--primary);
   transform: translateY(-1px);
 }
@@ -120,29 +110,11 @@ html[data-post-list-layout="list"] .anime-grid-container .group p.text-xs {
   display: none !important;
 }
 
+/* 长列表性能：屏幕外的卡片跳过渲染，同时给容器一个占位高度避免滚动条跳动。 */
 .anime-grid-container [data-anime-status] {
-  transition:
-    opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.15s ease-out;
+  transition: box-shadow 0.15s ease-out;
   content-visibility: auto;
   contain-intrinsic-size: 240px 350px;
-}
-
-.anime-grid-container [data-anime-status].anime-fade-out {
-  opacity: 0;
-  transform: scale(0.9);
-  pointer-events: none;
-}
-
-.anime-grid-container [data-anime-status].anime-fade-in {
-  opacity: 0;
-  transform: scale(0.9);
-}
-
-.anime-grid-container [data-anime-status].anime-fade-in-active {
-  opacity: 1;
-  transform: scale(1);
 }
 
 .anime-loading-spinner {
