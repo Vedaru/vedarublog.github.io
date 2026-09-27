@@ -152,6 +152,15 @@ a.card-github
     font-weight: 300
     line-height: 1.5rem
     color: var(--tw-prose-body)
+    // TOC active-indicator jitter fix: the deferred fetch swaps this text after
+    // load. Reserve a fixed 2-line box + clamp so the swap can never change the
+    // card's height. Otherwise, on pages where the card sits above the article,
+    // the taller card shifts every section below it and the TOC indicator jumps.
+    height: 3rem
+    overflow: hidden
+    display: -webkit-box
+    -webkit-line-clamp: 2
+    -webkit-box-orient: vertical
 
   .gc-infobar
     display: flex
