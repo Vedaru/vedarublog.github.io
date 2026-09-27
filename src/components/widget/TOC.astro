@@ -50,6 +50,18 @@ class TableOfContents extends HTMLElement {
     lastToggleTime = 0;
     lastIndicatorMin = -1;
     lastIndicatorMax = -1;
+    // 指示器几何由单条 rAF 缓动循环驱动（而非 CSS transition）：目标跨度在每次
+    // 标题边界处离散跳变，若交给 CSS transition，每次跳变都会中断在途过渡并重定向，
+    // 边界密集时看起来就是「抖」。单条缓动循环每帧只向最新目标插值一步，永不中断、
+    // 永不瞬移，因此连续平滑。
+    indicatorCurTop = 0;
+    indicatorCurHeight = 0;
+    indicatorCurOpacity = 0;
+    indicatorTargetTop = 0;
+    indicatorTargetHeight = 0;
+    indicatorTargetOpacity = 0;
+    indicatorAnimRaf = 0;
+    indicatorLastTs = 0;
     cachedTocClientHeight = 0;
     cachedTocScrollTop = 0;
     cachedTocScrollHeight = 0;
@@ -192,10 +204,11 @@ class TableOfContents extends HTMLElement {
         if (min === this.lastIndicatorMin && max === this.lastIndicatorMax) return;
 
         if (min < 0) {
-            // 与上游一致：没有命中标题时隐藏指示器
+            // 与上游一致：没有命中标题时隐藏指示器（只淡出，几何交由缓动循环保持）
             this.lastIndicatorMin = min;
             this.lastIndicatorMax = max;
-            this.activeIndicator?.setAttribute("style", "opacity: 0");
+            this.indicatorTargetOpacity = 0;
+            this.startIndicatorAnim();
             return;
         }
 
@@ -212,11 +225,60 @@ class TableOfContents extends HTMLElement {
         this.lastIndicatorMin = min;
         this.lastIndicatorMax = max;
 
-        // 阶段3：批量写入（所有布局读取完成后，不再读取布局属性）
-        this.activeIndicator?.setAttribute(
-            "style",
-            `top: ${top}px; height: ${height}px`,
-        );
+        // 更新缓动目标并确保循环在跑（几何写入在 animateIndicator 内批量完成）
+        this.indicatorTargetTop = top;
+        this.indicatorTargetHeight = height;
+        this.indicatorTargetOpacity = 1;
+        this.startIndicatorAnim();
+    };
+
+    startIndicatorAnim = () => {
+        if (this.indicatorAnimRaf) return;
+        this.indicatorLastTs = 0;
+        this.indicatorAnimRaf = requestAnimationFrame(this.animateIndicator);
+    };
+
+    // 每帧向目标插值一步（时间常数指数平滑，帧率无关），到位即停循环。
+    animateIndicator = (ts: number) => {
+        this.indicatorAnimRaf = 0;
+        const el = this.activeIndicator;
+        if (!el) return;
+
+        if (!this.indicatorLastTs) this.indicatorLastTs = ts;
+        const dt = Math.min(64, ts - this.indicatorLastTs);
+        this.indicatorLastTs = ts;
+
+        // 1 - exp(-dt/TAU)：dt=TAU 时走掉约 63% 余量，帧率无关
+        const k = dt <= 0 ? 0 : 1 - Math.exp(-dt / 55);
+
+        // 标题边界处目标会离散跳变（实测可达 ~190px）。纯指数平滑首帧走 k×间距，
+        // 大跳变时首帧 >100px，看起来是「猛冲/抖」。用 slew-rate cap 限制几何每帧
+        // 位移，任何跳变都渲染成连续滑动；小间距不受影响（自然指数收敛）。
+        const MAX_STEP = 26;
+        const stepTop = (this.indicatorTargetTop - this.indicatorCurTop) * k;
+        const stepHeight = (this.indicatorTargetHeight - this.indicatorCurHeight) * k;
+        this.indicatorCurTop += Math.max(-MAX_STEP, Math.min(MAX_STEP, stepTop));
+        this.indicatorCurHeight += Math.max(-MAX_STEP, Math.min(MAX_STEP, stepHeight));
+        this.indicatorCurOpacity += (this.indicatorTargetOpacity - this.indicatorCurOpacity) * k;
+
+        const settled =
+            Math.abs(this.indicatorTargetTop - this.indicatorCurTop) < 0.2 &&
+            Math.abs(this.indicatorTargetHeight - this.indicatorCurHeight) < 0.2 &&
+            Math.abs(this.indicatorTargetOpacity - this.indicatorCurOpacity) < 0.005;
+
+        if (settled) {
+            this.indicatorCurTop = this.indicatorTargetTop;
+            this.indicatorCurHeight = this.indicatorTargetHeight;
+            this.indicatorCurOpacity = this.indicatorTargetOpacity;
+        }
+
+        el.style.top = `${this.indicatorCurTop.toFixed(1)}px`;
+        el.style.height = `${this.indicatorCurHeight.toFixed(1)}px`;
+        el.style.opacity = this.indicatorCurOpacity.toFixed(3);
+
+        if (!settled) {
+            this.indicatorAnimRaf = requestAnimationFrame(this.animateIndicator);
+        }
     };
 
     scrollToActiveHeading = throttle(() => {
@@ -347,8 +409,13 @@ class TableOfContents extends HTMLElement {
     teardown() {
         if (this.updateRaf) cancelAnimationFrame(this.updateRaf);
         if (this.smoothScrollEndRaf) cancelAnimationFrame(this.smoothScrollEndRaf);
+        if (this.indicatorAnimRaf) cancelAnimationFrame(this.indicatorAnimRaf);
         this.updateRaf = 0;
         this.smoothScrollEndRaf = 0;
+        this.indicatorAnimRaf = 0;
+        this.indicatorLastTs = 0;
+        this.indicatorCurTop = this.indicatorCurHeight = this.indicatorCurOpacity = 0;
+        this.indicatorTargetTop = this.indicatorTargetHeight = this.indicatorTargetOpacity = 0;
 
         this.sections.forEach((section) => {
             if (section) this.observer.unobserve(section);
