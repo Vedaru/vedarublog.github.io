@@ -185,23 +185,31 @@ class TableOfContents extends HTMLElement {
 
         if (min > max) {
             // 无命中标题：整段 style 重写为只淡出（Fuwari 原样，几何随重置清零）
-            indicator.setAttribute("style", `opacity: 0`);
+            if (indicator.getAttribute("style") !== "opacity: 0") {
+                indicator.setAttribute("style", `opacity: 0`);
+            }
             return;
         }
 
         // Fuwari 几何：用实时 getBoundingClientRect 相对滚动容器换算，整段
-        // setAttribute 全量重写 style（top/height），transition-all 收敛成一次滑动。
+        // setAttribute 全量重写 style（top/height），过渡收敛成一次滑动。
+        // top 向下取整、height 向上取整：指示器始终覆盖全部标题（回归保护），
+        // 且几何串在滚动中保持稳定，只在跨度变化时重写 style、触发一次过渡。
         const parentOffset = this.tocEl?.getBoundingClientRect().top || 0;
         const scrollOffset = this.tocEl?.scrollTop || 0;
-        const top =
+        const top = Math.floor(
             this.tocEntries[min].getBoundingClientRect().top -
-            parentOffset +
-            scrollOffset;
+                parentOffset +
+                scrollOffset
+        );
         const bottom =
             this.tocEntries[max].getBoundingClientRect().bottom -
             parentOffset +
             scrollOffset;
-        indicator.setAttribute("style", `top: ${top}px; height: ${bottom - top}px`);
+        const style = `top: ${top}px; height: ${Math.ceil(bottom - top)}px`;
+        if (indicator.getAttribute("style") !== style) {
+            indicator.setAttribute("style", style);
+        }
     };
 
     scrollToActiveHeading = throttle(() => {

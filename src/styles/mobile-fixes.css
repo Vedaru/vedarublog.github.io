@@ -11,7 +11,9 @@
   background: var(--card-bg);
   border-radius: var(--radius-large);
   will-change: background, backdrop-filter, box-shadow;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition-property: background, color, border-color, box-shadow, backdrop-filter;
+  transition-duration: 0.3s;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* 桌面端 - 亮色 */
@@ -613,7 +615,7 @@ html.is-visit-layout-shifting #navbar-wrapper.navbar-hidden {
 /* 桌面端保持原有样式 */
 @media (min-width: 769px) {
   #post-list-container {
-    transition: all 0.3s ease-in-out;
+    transition: opacity 0.3s ease-in-out;
   }
 }
 

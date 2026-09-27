@@ -6,15 +6,6 @@
 @media (max-width: 768px) {
   /* 为所有动画元素添加硬件加速（不加 perspective 避免子像素抖动） */
 
-  /* 优化侧边栏动画 */
-  #dynamic-sidebar {
-    transition: all 0.2s ease-in-out;
-  }
-
-  .widget-container {
-    transition: all 0.2s ease-in-out;
-  }
-
   /* 网格布局切换由 layout-switching 类 + main-grid-float 动画处理；
      页面过渡由 transition.css 的 .transition-main 统一管理，
      #main-grid 自身不设置 transition，避免与页面过渡动画冲突 */
@@ -47,14 +38,6 @@
   /* 保留轻微位移（位移量由 _transition-vars.css 在 ≤480 收敛为 0.375rem），
      不再强制 transform: none，使淡入淡出更顺滑 */
 
-  #dynamic-sidebar {
-    transition: all 0.15s ease-in-out;
-  }
-
-  .widget-container {
-    transition: all 0.15s ease-in-out;
-  }
-
   /* 导航栏过渡保护 */
   html.is-changing #navbar-wrapper,
   html.is-animating #navbar-wrapper {
@@ -69,9 +52,7 @@
   .onload-animation,
   .transition-slide-in,
   .card-animation,
-  .nav-animation,
-  #dynamic-sidebar,
-  .widget-container {
+  .nav-animation {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

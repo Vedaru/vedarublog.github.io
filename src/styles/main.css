@@ -479,7 +479,7 @@ body::-webkit-scrollbar {
     @apply flex items-center gap-2 py-2 px-2 rounded-lg text-sm leading-relaxed;
     @apply text-black/70 dark:text-white/70;
     @apply hover:bg-[var(--btn-plain-bg-hover)] hover:text-[var(--primary)];
-    @apply transition-all duration-150;
+    @apply transition-colors duration-150;
     text-decoration: none;
   }
 

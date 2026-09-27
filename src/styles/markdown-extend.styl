@@ -249,7 +249,7 @@ a.card-github.fetch-error
     opacity: 0.15
 
 .card-github, .gc-description, .gc-titlebar, .gc-stars, .gc-forks, .gc-license, .gc-avatar, .github-logo
-  transition-property: all
+  transition-property: color, background-color, border-color, box-shadow
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1)
   transition-duration: 0.15s
 
@@ -259,7 +259,7 @@ a.card-github.fetch-error
   border-radius: 0.75rem
   overflow: hidden
   background: var(--card-bg)
-  transition: all 0.3s ease
+  transition: box-shadow 0.3s ease
 
   &:hover
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1)
@@ -322,7 +322,7 @@ a.card-github.fetch-error
     margin: 0 0 0.5rem 0
     
   button
-    transition: all 0.2s ease
+    transition: background-color 0.2s ease, transform 0.2s ease
     
     &:hover
       background: var(--primary-hover) !important

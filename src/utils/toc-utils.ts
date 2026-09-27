@@ -270,7 +270,7 @@ export function buildSidebarTocMarkup(
 
 	return (
 		tocHTML +
-		'<div id="active-indicator" style="opacity: 0" class="-z-10 absolute left-0 right-0 rounded-xl pointer-events-none transition-all bg-[var(--toc-btn-hover)] border-2 border-[var(--toc-btn-hover)] group-hover:bg-transparent group-hover:border-[var(--toc-btn-active)] border-dashed"></div>'
+		'<div id="active-indicator" style="opacity: 0" class="-z-10 absolute left-0 right-0 rounded-xl pointer-events-none transition-[top,height,opacity,background-color,border-color] bg-[var(--toc-btn-hover)] border-2 border-[var(--toc-btn-hover)] group-hover:bg-transparent group-hover:border-[var(--toc-btn-active)] border-dashed"></div>'
 	);
 }
 
