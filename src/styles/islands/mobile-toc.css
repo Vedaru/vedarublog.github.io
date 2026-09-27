@@ -31,7 +31,11 @@
   text-align: left;
   padding: 8px 12px;
   border-radius: 8px;
-  transition: all 0.2s ease;
+  /* 仅过渡绘制类属性；padding/border/font-weight 等布局属性
+     参与过渡会强制逐帧重排，滚动监听切换 .active 时造成明显卡顿 */
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
   border: none;
   background: transparent;
   cursor: pointer;
@@ -55,6 +59,14 @@
   font-weight: 600;
   border-left: 3px solid var(--primary);
   padding-left: 9px;
+}
+
+/* 面板关闭时禁用条目过渡：滚动监听会持续切换 .active，
+   对不可见的面板做过渡纯属浪费，曾是滚动卡顿的主要来源 */
+#mobile-toc-panel.float-panel-closed .toc-item,
+#mobile-toc-panel.float-panel-closed .toc-item *,
+#mobile-toc-panel.float-panel-closed .post-item {
+  transition: none;
 }
 
 .toc-item.level-1 {
@@ -167,7 +179,11 @@
   text-align: left;
   padding: 12px;
   border-radius: 8px;
-  transition: all 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
   border: none;
   background: transparent;
   cursor: pointer;
