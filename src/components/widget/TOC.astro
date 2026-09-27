@@ -48,8 +48,7 @@ class TableOfContents extends HTMLElement {
     activeIndicator: HTMLElement | null = null;
     updateRaf = 0;
     lastToggleTime = 0;
-    lastIndicatorMin = -1;
-    lastIndicatorMax = -1;
+    lastIndicatorAnchor = -1;
     cachedTocClientHeight = 0;
     cachedTocScrollTop = 0;
     cachedTocScrollHeight = 0;
@@ -63,12 +62,34 @@ class TableOfContents extends HTMLElement {
             return heading;
         }
 
+        // 与 Fuwari / Mizuki 一致：section 即 heading.parentElement
+        // （rehype-sectionize 会把每个标题与其正文包进 <section>）。
         const parent = heading.parentElement;
         if (!parent) return heading;
-        if (parent.childElementCount > 1) {
+
+        // 本土偏差：本站正文容器内也渲染了 h1（页面标题），sectionize 会把
+        // 整篇正文包进这个 h1 所属的 <section>。若直接采用它，h1 将在整个滚动
+        // 过程中持续命中，指示器被钉死在首个条目上。故跳过「正文容器的直接子
+        // section」——h1 退化为标题元素本身，其覆盖范围即「到下一个标题为止」。
+        const container = parent.parentElement;
+        if (!container) return heading;
+        if (
+            container.matches(".prose, .custom-md, .markdown-content") ||
+            container.id === "post-container"
+        ) {
             return heading;
         }
-        return parent;
+
+        // 该 section 必须直接拥有这一个标题；子 section 里的更深标题不算数。
+        // 原先的 `parent.childElementCount > 1` 会把所有正常 section
+        // （[heading, content] 恰好 2 个子节点）误判成容器而退化为标题元素，
+        // 于是视口内同时命中 6+ 个 27px 标题，长 section 处还出现无命中空档。
+        const directHeadings = Array.from(parent.children).filter((child) =>
+            /^H[1-6]$/.test(child.tagName),
+        );
+        return directHeadings.length === 1 && directHeadings[0] === heading
+            ? parent
+            : heading;
     };
 
     constructor() {
@@ -142,52 +163,57 @@ class TableOfContents extends HTMLElement {
     };
 
     toggleActiveHeading = () => {
-        let min = this.active.length;
-        let max = -1;
-
-        for (let i = this.active.length - 1; i >= 0; i--) {
+        // 锚点 = 列表中最靠前的可见条目（即当前阅读位置所在的标题）。
+        // 不能按可见条目的 min..max 跨度绘制指示器：sectionize 产出的 section
+        // 相互嵌套（h2 的 section 包含其下所有 h3 的 section），视口内会同时命中
+        // 父标题与其子标题；它们进入 / 离开视口发生在不同滚动位置，跨度便在 N 行与
+        // N±1 行之间往复，指示器高度呈现锯齿（视觉上框体呼吸 / 抖动）。
+        // 锚定单个条目后高度只随锚点单调变化，锯齿消失。
+        let anchor = -1;
+        for (let i = 0; i < this.active.length; i++) {
             if (this.active[i]) {
-                min = Math.min(min, i);
-                max = Math.max(max, i);
+                anchor = i;
+                break;
             }
         }
 
         // 阶段1：批量写入 classList（无效化样式，但不触发 layout）
         this.tocEntries.forEach((entry, i) => {
-            if (this.active[i]) {
+            if (i === anchor) {
                 entry.classList.add(this.visibleClass);
             } else {
                 entry.classList.remove(this.visibleClass);
             }
         });
 
-        if (min > max) {
+        if (anchor < 0) {
             // 无可⻅标题时保持指示器在上次位置，不隐藏
             return;
         }
 
-	const minOffset = this.tocEntryOffsets[min];
-	const maxOffset = this.tocEntryOffsets[max];
-	if (!minOffset || !maxOffset || !this.tocEl) return;
+        const anchorOffset = this.tocEntryOffsets[anchor];
+        if (!anchorOffset || !this.tocEl) return;
 
-	// 只在活动标题范围变化时写入 top/height。
-	// #active-indicator 带 Tailwind `transition-all`（与 Fuwari/Mizuki 一致），
-	// 若逐帧改写 top/height，过渡永远追不上移动中的目标，表现为指示器拖影/抖动；
-	// 离散写入让过渡能收敛成一次平滑滑动。
-	if (min === this.lastIndicatorMin && max === this.lastIndicatorMax) return;
+        // 只在锚点变化时写入 top/height。
+        // #active-indicator 带 Tailwind `transition-all`（与 Fuwari/Mizuki 一致），
+        // 若逐帧改写 top/height，过渡永远追不上移动中的目标，表现为指示器拖影/抖动；
+        // 离散写入让过渡能收敛成一次平滑滑动。
+        if (anchor === this.lastIndicatorAnchor) return;
 
-	// 全部使用缓存值计算：offsetTop/offsetHeight 缓存于 init()，clientHeight/scrollHeight/scrollTop 缓存 + 被动跟踪
-	const { top, height } = calculateActiveIndicatorPosition(minOffset, maxOffset);
+        // 单个条目的矩形：锚点条目既是边界也是终点（top = offsetTop，height = offsetHeight）
+        const { top, height } = calculateActiveIndicatorPosition(
+            anchorOffset,
+            anchorOffset,
+        );
 
-	// 校验通过后才记录，避免 offsets 尚未缓存时把范围标记为“已写入”而永久跳过
-	this.lastIndicatorMin = min;
-	this.lastIndicatorMax = max;
+        // 校验通过后才记录，避免 offsets 尚未缓存时把锚点标记为“已写入”而永久跳过
+        this.lastIndicatorAnchor = anchor;
 
-	// 阶段3：批量写入（所有布局读取完成后，不再读取布局属性）
-	this.activeIndicator?.setAttribute(
-		"style",
-		`top: ${top}px; height: ${height}px`,
-	);
+        // 阶段3：批量写入（所有布局读取完成后，不再读取布局属性）
+        this.activeIndicator?.setAttribute(
+            "style",
+            `top: ${top}px; height: ${height}px`,
+        );
     };
 
     scrollToActiveHeading = throttle(() => {
@@ -337,8 +363,7 @@ if (this.tocScrollHandler && this.scrollContainer) {
 		this.tocScrollHandler = null;
 	}
         this.active = [];
-        this.lastIndicatorMin = -1;
-        this.lastIndicatorMax = -1;
+        this.lastIndicatorAnchor = -1;
         this.headingIdxMap.clear();
         this.anchorNavTarget = null;
         this.tocEl = null;
