@@ -48,7 +48,8 @@ class TableOfContents extends HTMLElement {
     activeIndicator: HTMLElement | null = null;
     updateRaf = 0;
     lastToggleTime = 0;
-    lastIndicatorAnchor = -1;
+    lastIndicatorMin = -1;
+    lastIndicatorMax = -1;
     cachedTocClientHeight = 0;
     cachedTocScrollTop = 0;
     cachedTocScrollHeight = 0;
@@ -163,51 +164,53 @@ class TableOfContents extends HTMLElement {
     };
 
     toggleActiveHeading = () => {
-        // 锚点 = 列表中最靠前的可见条目（即当前阅读位置所在的标题）。
-        // 不能按可见条目的 min..max 跨度绘制指示器：sectionize 产出的 section
-        // 相互嵌套（h2 的 section 包含其下所有 h3 的 section），视口内会同时命中
-        // 父标题与其子标题；它们进入 / 离开视口发生在不同滚动位置，跨度便在 N 行与
-        // N±1 行之间往复，指示器高度呈现锯齿（视觉上框体呼吸 / 抖动）。
-        // 锚定单个条目后高度只随锚点单调变化，锯齿消失。
-        let anchor = -1;
-        for (let i = 0; i < this.active.length; i++) {
-            if (this.active[i]) {
-                anchor = i;
-                break;
-            }
-        }
+        // 指示器框住「当前命中的标题」这一连续跨度，并把跨度内的每个条目都标为
+        // visible —— 视口里同时出现父标题与其子标题时它们要一起高亮，指示器覆盖
+        // 屏幕上出现的所有标题。与 Fuwari（min..max 连续区间）/ Mizuki
+        // （calculateActiveHeadingRange）一致；不能只锚定单个条目，那会让目录
+        // 只剩一个标题被选中。
+        let min = -1;
+        let max = -1;
 
         // 阶段1：批量写入 classList（无效化样式，但不触发 layout）
         this.tocEntries.forEach((entry, i) => {
-            if (i === anchor) {
+            if (this.active[i]) {
                 entry.classList.add(this.visibleClass);
+                if (min < 0) min = i;
+                max = i;
             } else {
                 entry.classList.remove(this.visibleClass);
             }
         });
 
-        if (anchor < 0) {
-            // 无可⻅标题时保持指示器在上次位置，不隐藏
-            return;
-        }
+        if (!this.tocEl) return;
 
-        const anchorOffset = this.tocEntryOffsets[anchor];
-        if (!anchorOffset || !this.tocEl) return;
-
-        // 只在锚点变化时写入 top/height。
+        // 只在跨度变化时写入 top/height。
         // #active-indicator 带 Tailwind `transition-all`（与 Fuwari/Mizuki 一致），
         // 若逐帧改写 top/height，过渡永远追不上移动中的目标，表现为指示器拖影/抖动；
         // 离散写入让过渡能收敛成一次平滑滑动。
-        if (anchor === this.lastIndicatorAnchor) return;
+        if (min === this.lastIndicatorMin && max === this.lastIndicatorMax) return;
 
-        // 单个条目的矩形：锚点条目既是边界也是终点（top = offsetTop，height = offsetHeight）
+        if (min < 0) {
+            // 与上游一致：没有命中标题时隐藏指示器
+            this.lastIndicatorMin = min;
+            this.lastIndicatorMax = max;
+            this.activeIndicator?.setAttribute("style", "opacity: 0");
+            return;
+        }
+
+        const minOffset = this.tocEntryOffsets[min];
+        const maxOffset = this.tocEntryOffsets[max];
+        // offsets 尚未缓存时不记录跨度，避免把它标记为“已写入”而永久跳过
+        if (!minOffset || !maxOffset) return;
+
         const { top, height } = calculateActiveIndicatorPosition(
-            anchorOffset,
-            anchorOffset,
+            minOffset,
+            maxOffset,
         );
 
-        // 校验通过后才记录，避免 offsets 尚未缓存时把锚点标记为“已写入”而永久跳过
-        this.lastIndicatorAnchor = anchor;
+        this.lastIndicatorMin = min;
+        this.lastIndicatorMax = max;
 
         // 阶段3：批量写入（所有布局读取完成后，不再读取布局属性）
         this.activeIndicator?.setAttribute(
@@ -363,7 +366,8 @@ if (this.tocScrollHandler && this.scrollContainer) {
 		this.tocScrollHandler = null;
 	}
         this.active = [];
-        this.lastIndicatorAnchor = -1;
+        this.lastIndicatorMin = -1;
+        this.lastIndicatorMax = -1;
         this.headingIdxMap.clear();
         this.anchorNavTarget = null;
         this.tocEl = null;
