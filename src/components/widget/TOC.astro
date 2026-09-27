@@ -48,6 +48,8 @@ class TableOfContents extends HTMLElement {
     activeIndicator: HTMLElement | null = null;
     updateRaf = 0;
     lastToggleTime = 0;
+    lastIndicatorMin = -1;
+    lastIndicatorMax = -1;
     cachedTocClientHeight = 0;
     cachedTocScrollTop = 0;
     cachedTocScrollHeight = 0;
@@ -168,36 +170,24 @@ class TableOfContents extends HTMLElement {
 	const maxOffset = this.tocEntryOffsets[max];
 	if (!minOffset || !maxOffset || !this.tocEl) return;
 
+	// 只在活动标题范围变化时写入 top/height。
+	// #active-indicator 带 Tailwind `transition-all`（与 Fuwari/Mizuki 一致），
+	// 若逐帧改写 top/height，过渡永远追不上移动中的目标，表现为指示器拖影/抖动；
+	// 离散写入让过渡能收敛成一次平滑滑动。
+	if (min === this.lastIndicatorMin && max === this.lastIndicatorMax) return;
+
 	// 全部使用缓存值计算：offsetTop/offsetHeight 缓存于 init()，clientHeight/scrollHeight/scrollTop 缓存 + 被动跟踪
 	const { top, height } = calculateActiveIndicatorPosition(minOffset, maxOffset);
-	const tocHeight = this.cachedTocClientHeight;
-	const tocScrollTop = this.cachedTocScrollTop;
-	const tocScrollHeight = this.cachedTocScrollHeight;
-	const indicatorBottom = top + height;
-	const visibleBottom = tocScrollTop + tocHeight;
+
+	// 校验通过后才记录，避免 offsets 尚未缓存时把范围标记为“已写入”而永久跳过
+	this.lastIndicatorMin = min;
+	this.lastIndicatorMax = max;
 
 	// 阶段3：批量写入（所有布局读取完成后，不再读取布局属性）
 	this.activeIndicator?.setAttribute(
 		"style",
 		`top: ${top}px; height: ${height}px`,
 	);
-
-	// 纯算术计算目标位置（使用缓存值，零 live 布局查询）
-	let targetScroll = tocScrollTop;
-	if (indicatorBottom > visibleBottom - 4) {
-		targetScroll = indicatorBottom - tocHeight + 40;
-	} else if (top < tocScrollTop + 4) {
-		targetScroll = top - 40;
-	}
-
-	targetScroll = Math.max(
-		0,
-		Math.min(targetScroll, tocScrollHeight - tocHeight),
-	);
-
-	if (Math.abs(targetScroll - tocScrollTop) > 8) {
-			this.tocEl.scrollTo({ top: targetScroll, behavior: "smooth" });
-	}
     };
 
     scrollToActiveHeading = throttle(() => {
@@ -248,6 +238,10 @@ class TableOfContents extends HTMLElement {
         this.updateRaf = requestAnimationFrame(() => {
             this.updateRaf = 0;
             this.toggleActiveHeading();
+            // 与 Mizuki SidebarTOC.update() 一致：指示器更新后由「节流版」负责内部滚动，
+            // 保证 scrollTo 只有一个调用方（原先 toggleActiveHeading 里未节流的 scrollTo
+            // 会在每帧用 smooth 重启动画，导致 TOC 内部滚动条反复起停、看起来在抖）
+            this.scrollToActiveHeading();
         });
     };
 
@@ -343,6 +337,8 @@ if (this.tocScrollHandler && this.scrollContainer) {
 		this.tocScrollHandler = null;
 	}
         this.active = [];
+        this.lastIndicatorMin = -1;
+        this.lastIndicatorMax = -1;
         this.headingIdxMap.clear();
         this.anchorNavTarget = null;
         this.tocEl = null;
@@ -458,13 +454,10 @@ if (!customElements.get("table-of-contents")) {
       contain: layout style;
   }
 
-  table-of-contents#toc #active-indicator {
-      position: absolute;
-      left: 0;
-      right: 0;
-      pointer-events: none;
-      transition: opacity 0.2s ease;
-  }
+  /* #active-indicator 由 JS（buildSidebarTocMarkup）在运行时注入，
+     不会带上 Astro 的 data-astro-cid-* 属性，因此这里任何针对它的
+     作用域规则都无法命中（含原本写在这里的 transition: opacity）。
+     其定位与过渡完全由 toc-utils 注入的 Tailwind 类负责。 */
 
   table-of-contents#toc a.visible > div:last-child {
       @apply text-black/90 dark:text-white/90;
