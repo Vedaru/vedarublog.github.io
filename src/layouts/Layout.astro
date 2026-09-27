@@ -32,6 +32,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { mapPlaylistEntry, type Song } from "@/lib/audio/useAudioPlayer";
 import playlistJson from "../../public/assets/music/playlist.json";
+// 主题变量（--primary / --card-bg / --scrollbar-bg 等）的唯一来源。
+// 曾仅因 ImageWrapper/[...slug].astro 里 import.meta.glob("../../**") 的
+// 副作用被编译进包；该 glob 收窄为图片扩展名后须显式引入。
+import "../styles/variables.styl";
 import "../styles/main.css";
 import "../styles/wallpaper-navbar-transparent.css";
 import "../styles/panel-animations.css";
