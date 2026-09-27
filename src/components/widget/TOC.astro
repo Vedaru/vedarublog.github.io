@@ -22,8 +22,6 @@ const className = Astro.props.class;
 <script>
 import {
 	buildSidebarTocMarkup,
-	calculateActiveIndicatorPosition,
-	cacheTocEntryOffsets,
 	collectHeadingsFromDocument,
 	isInRange,
 	isPostPagePath,
@@ -43,16 +41,9 @@ class TableOfContents extends HTMLElement {
     headings: HTMLElement[] = [];
     sections: HTMLElement[] = [];
     tocEntries: HTMLAnchorElement[] = [];
-    tocEntryOffsets: (Array<{ offsetTop: number; offsetHeight: number } | null>) = [];
     active: boolean[] = [];
     activeIndicator: HTMLElement | null = null;
     updateRaf = 0;
-    lastToggleTime = 0;
-    lastIndicatorMin = -1;
-    lastIndicatorMax = -1;
-    // 指示器几何由 CSS `transition: top .18s ease, height .18s ease, opacity .14s ease`
-    // 平滑（与 Mizuki 一致）：跨度在标题边界处离散跳变时，直接写入新目标，
-    // 交给过渡收敛成一次平滑滑动，无需 JS 逐帧缓动循环。
     cachedTocClientHeight = 0;
     cachedTocScrollTop = 0;
     cachedTocScrollHeight = 0;
@@ -167,58 +158,50 @@ class TableOfContents extends HTMLElement {
     };
 
     toggleActiveHeading = () => {
-        // 指示器框住「当前命中的标题」这一连续跨度，并把跨度内的每个条目都标为
-        // visible —— 视口里同时出现父标题与其子标题时它们要一起高亮，指示器覆盖
-        // 屏幕上出现的所有标题。与 Fuwari（min..max 连续区间）/ Mizuki
-        // （calculateActiveHeadingRange）一致；不能只锚定单个条目，那会让目录
-        // 只剩一个标题被选中。
-        let min = -1;
+        // Fuwari 动画系统：向后扫描找出「最后一段连续命中」的跨度，把跨度内每个
+        // 条目标为 visible，指示器框住整个跨度 —— 视口里同时出现的多个标题要一起
+        // 高亮（回归保护：指示器必须覆盖屏幕上所有标题，不能只锚定单个条目）。
+        // 竖向堆叠的 section 使命中集合恒连续，故「最后一段连续」== 全局 min..max。
+        let i = this.active.length - 1;
+        let min = this.active.length - 1;
         let max = -1;
-
-        // 阶段1：批量写入 classList（无效化样式，但不触发 layout）
-        this.tocEntries.forEach((entry, i) => {
-            if (this.active[i]) {
-                entry.classList.add(this.visibleClass);
-                if (min < 0) min = i;
-                max = i;
-            } else {
-                entry.classList.remove(this.visibleClass);
-            }
-        });
+        while (i >= 0 && !this.active[i]) {
+            this.tocEntries[i]?.classList.remove(this.visibleClass);
+            i--;
+        }
+        while (i >= 0 && this.active[i]) {
+            this.tocEntries[i]?.classList.add(this.visibleClass);
+            min = Math.min(min, i);
+            max = Math.max(max, i);
+            i--;
+        }
+        while (i >= 0) {
+            this.tocEntries[i]?.classList.remove(this.visibleClass);
+            i--;
+        }
 
         const indicator = this.activeIndicator;
         if (!indicator) return;
 
-        // 只在跨度变化时写入 top/height。
-        // #active-indicator 由 CSS `transition: top .18s ease, height .18s ease,
-        // opacity .14s ease`（与 Mizuki 一致）平滑：跨度离散跳变时直接写入新目标，
-        // 过渡会收敛成一次平滑滑动。仅在跨度变化时写入，避免逐帧重启过渡。
-        if (min === this.lastIndicatorMin && max === this.lastIndicatorMax) return;
-
-        if (min < 0) {
-            // 与上游一致：没有命中标题时只淡出，几何保持不变
-            this.lastIndicatorMin = min;
-            this.lastIndicatorMax = max;
-            indicator.style.opacity = "0";
+        if (min > max) {
+            // 无命中标题：整段 style 重写为只淡出（Fuwari 原样，几何随重置清零）
+            indicator.setAttribute("style", `opacity: 0`);
             return;
         }
 
-        const minOffset = this.tocEntryOffsets[min];
-        const maxOffset = this.tocEntryOffsets[max];
-        // offsets 尚未缓存时不记录跨度，避免把它标记为“已写入”而永久跳过
-        if (!minOffset || !maxOffset) return;
-
-        const { top, height } = calculateActiveIndicatorPosition(
-            minOffset,
-            maxOffset,
-        );
-
-        this.lastIndicatorMin = min;
-        this.lastIndicatorMax = max;
-
-        indicator.style.top = `${top}px`;
-        indicator.style.height = `${height}px`;
-        indicator.style.opacity = "1";
+        // Fuwari 几何：用实时 getBoundingClientRect 相对滚动容器换算，整段
+        // setAttribute 全量重写 style（top/height），transition-all 收敛成一次滑动。
+        const parentOffset = this.tocEl?.getBoundingClientRect().top || 0;
+        const scrollOffset = this.tocEl?.scrollTop || 0;
+        const top =
+            this.tocEntries[min].getBoundingClientRect().top -
+            parentOffset +
+            scrollOffset;
+        const bottom =
+            this.tocEntries[max].getBoundingClientRect().bottom -
+            parentOffset +
+            scrollOffset;
+        indicator.setAttribute("style", `top: ${top}px; height: ${bottom - top}px`);
     };
 
     scrollToActiveHeading = throttle(() => {
@@ -362,14 +345,12 @@ class TableOfContents extends HTMLElement {
 
         this.sections = [];
         this.headings = [];
-        this.tocEntries = []; this.tocEntryOffsets = [];
-if (this.tocScrollHandler && this.scrollContainer) {
-		this.scrollContainer.removeEventListener("scroll", this.tocScrollHandler);
-		this.tocScrollHandler = null;
-	}
+        this.tocEntries = [];
+        if (this.tocScrollHandler && this.scrollContainer) {
+            this.scrollContainer.removeEventListener("scroll", this.tocScrollHandler);
+            this.tocScrollHandler = null;
+        }
         this.active = [];
-        this.lastIndicatorMin = -1;
-        this.lastIndicatorMax = -1;
         this.headingIdxMap.clear();
         this.anchorNavTarget = null;
         this.tocEl = null;
@@ -420,8 +401,6 @@ if (this.tocScrollHandler && this.scrollContainer) {
 	// 将布局读取推迟到 rAF，避免初始化期间 sticky 重算导致 41ms 强制重排
 	requestAnimationFrame(() => {
 		if (!this.isConnected || this.tocEntries.length === 0) return;
-
-		this.tocEntryOffsets = cacheTocEntryOffsets(this.tocEntries as any as HTMLElement[]);
 
 		const container = this.scrollContainer || this.tocEl;
 		if (container) {
