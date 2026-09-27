@@ -5,6 +5,19 @@ interface CalendarPost {
 	date: string;
 	title?: string;
 	updated?: string;
+	/** 服务端解析好的文章地址（getPostUrl），与页面路由一致 */
+	url?: string;
+}
+
+/**
+ * 从 post.id 推导 /posts/<slug>/ 地址。
+ * Astro v5 的 id 带扩展名（simple-design-over-code.md），
+ * 直接拼接会得到 /posts/x.md/ 并 404，这里必须去掉扩展名兜底。
+ */
+function getPostHref(post: CalendarPost): string {
+	if (post.url) return post.url;
+	const slug = post.id.replace(/\.(md|mdx|markdown)$/i, "");
+	return `/posts/${slug}/`;
 }
 
 export function initCalendar(config: {
@@ -54,7 +67,8 @@ export function initCalendar(config: {
 				a.id !== b.id ||
 				a.date !== b.date ||
 				a.title !== b.title ||
-				a.updated !== b.updated
+				a.updated !== b.updated ||
+				a.url !== b.url
 			) {
 				return false;
 			}
@@ -130,7 +144,10 @@ export function initCalendar(config: {
 			: decodedPath;
 
 		const matchedPost = allPostsData.find((post) => {
-			return normalizedPath.endsWith(`/${post.id}`);
+			// 用解析后的地址匹配，而不是带 .md 扩展名的 id
+			const href = getPostHref(post);
+			const normalizedHref = href.endsWith("/") ? href.slice(0, -1) : href;
+			return normalizedPath.endsWith(normalizedHref);
 		});
 		return matchedPost ? matchedPost.id : null;
 	}
@@ -396,7 +413,7 @@ export function initCalendar(config: {
 				}
 
 				return `
-            <a href="/posts/${post.id}/" class="${containerClass}">
+            <a href="${getPostHref(post)}" class="${containerClass}">
                 <span class="${titleClass}">${post.title}</span>
                 <span class="${dateClass}">${dateStr}</span>
             </a>
