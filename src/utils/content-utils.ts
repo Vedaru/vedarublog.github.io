@@ -4,36 +4,54 @@ import { i18n } from "@i18n/translation";
 import { getCategoryUrl, getPostUrl } from "@utils/url-utils";
 import { initPostIdMap } from "@utils/permalink-utils";
 
-// // Retrieve posts and sort them by publication date
-async function getRawSortedPosts() {
-	const allBlogPosts = await getCollection("posts", ({ data }) => {
-		return import.meta.env.PROD ? data.draft !== true : true;
-	});
+type PostsEntry = CollectionEntry<"posts">;
 
-	const sorted = allBlogPosts.sort((a, b) => {
-		// 首先按置顶状态排序，置顶文章在前
-		if (a.data.pinned && !b.data.pinned) return -1;
-		if (!a.data.pinned && b.data.pinned) return 1;
+// 每个 Astro 渲染进程内只查询一次内容集合，避免同一页面的多个组件
+// （SiteStats / TagList / CategoryList / 归档等）重复触发 getCollection。
+let publishedPostsPromise: Promise<PostsEntry[]> | undefined;
 
-		// 如果置顶状态相同，优先按 Priority 排序（数值越小越靠前）
-		if (a.data.pinned && b.data.pinned) {
-			const priorityA = a.data.priority;
-			const priorityB = b.data.priority;
-			if (priorityA !== undefined && priorityB !== undefined) {
-				if (priorityA !== priorityB) return priorityA - priorityB;
-			} else if (priorityA !== undefined) {
-				return -1;
-			} else if (priorityB !== undefined) {
-				return 1;
-			}
-		}
+function getPublishedPosts(): Promise<PostsEntry[]> {
+	if (!publishedPostsPromise) {
+		publishedPostsPromise = getCollection("posts", ({ data }) => {
+			return import.meta.env.PROD ? data.draft !== true : true;
+		});
+	}
+	return publishedPostsPromise;
+}
 
-		// 否则按发布日期排序
-		const dateA = new Date(a.data.published);
-		const dateB = new Date(b.data.published);
-		return dateA > dateB ? -1 : 1;
-	});
-	return sorted;
+let rawSortedPostsPromise: Promise<PostsEntry[]> | undefined;
+
+// Retrieve posts and sort them by publication date
+async function getRawSortedPosts(): Promise<PostsEntry[]> {
+	if (!rawSortedPostsPromise) {
+		rawSortedPostsPromise = getPublishedPosts().then((allBlogPosts) =>
+			// 复制后再排序，避免改动 getPublishedPosts 共享的原始数组
+			[...allBlogPosts].sort((a, b) => {
+				// 首先按置顶状态排序，置顶文章在前
+				if (a.data.pinned && !b.data.pinned) return -1;
+				if (!a.data.pinned && b.data.pinned) return 1;
+
+				// 如果置顶状态相同，优先按 Priority 排序（数值越小越靠前）
+				if (a.data.pinned && b.data.pinned) {
+					const priorityA = a.data.priority;
+					const priorityB = b.data.priority;
+					if (priorityA !== undefined && priorityB !== undefined) {
+						if (priorityA !== priorityB) return priorityA - priorityB;
+					} else if (priorityA !== undefined) {
+						return -1;
+					} else if (priorityB !== undefined) {
+						return 1;
+					}
+				}
+
+				// 否则按发布日期排序
+				const dateA = new Date(a.data.published);
+				const dateB = new Date(b.data.published);
+				return dateA > dateB ? -1 : 1;
+			}),
+		);
+	}
+	return rawSortedPostsPromise;
 }
 
 export async function getSortedPosts() {
@@ -76,9 +94,7 @@ export type Tag = {
 };
 
 export async function getTagList(): Promise<Tag[]> {
-	const allBlogPosts = await getCollection<"posts">("posts", ({ data }) => {
-		return import.meta.env.PROD ? data.draft !== true : true;
-	});
+	const allBlogPosts = await getPublishedPosts();
 
 	const countMap: { [key: string]: number } = {};
 	allBlogPosts.forEach((post: { data: { tags: string[] } }) => {
@@ -103,9 +119,7 @@ export type Category = {
 };
 
 export async function getCategoryList(): Promise<Category[]> {
-	const allBlogPosts = await getCollection<"posts">("posts", ({ data }) => {
-		return import.meta.env.PROD ? data.draft !== true : true;
-	});
+	const allBlogPosts = await getPublishedPosts();
 	const count: { [key: string]: number } = {};
 	allBlogPosts.forEach((post: { data: { category: string | null } }) => {
 		if (!post.data.category) {
@@ -135,4 +149,40 @@ export async function getCategoryList(): Promise<Category[]> {
 		});
 	}
 	return ret;
+}
+
+// 统计全站字数。结果只依赖文章正文，与排序/置顶无关，
+// 因此按原始（未排序）集合计算一次并缓存，避免每个页面的 SiteStats 组件重复扫描全部正文。
+let totalWordCountPromise: Promise<number> | undefined;
+
+const CJK_PATTERN =
+	/[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af\u3000-\u303f\uff00-\uffef]/g;
+
+export function getTotalWordCount(): Promise<number> {
+	if (!totalWordCountPromise) {
+		totalWordCountPromise = getPublishedPosts().then((posts) => {
+			let total = 0;
+			for (const post of posts) {
+				const body = post.body;
+				if (!body) continue;
+
+				// 移除代码块与行内代码
+				const text = body
+					.replace(/```[\s\S]*?```/g, "")
+					.replace(/`[^`]+`/g, "");
+
+				// 使用与 remark-content.mjs 完全一致的 CJK 正则
+				const cjkMatches = text.match(CJK_PATTERN);
+				if (cjkMatches) total += cjkMatches.length;
+
+				// 计算非 CJK 单词数
+				const nonCjkText = text.replace(CJK_PATTERN, " ");
+				total += nonCjkText
+					.split(/\s+/)
+					.filter((word) => word.trim().length > 0).length;
+			}
+			return total;
+		});
+	}
+	return totalWordCountPromise;
 }

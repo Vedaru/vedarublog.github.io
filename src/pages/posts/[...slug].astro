@@ -47,48 +47,25 @@ export async function getStaticPaths() {
 		// 将 id 转换为 slug（移除扩展名）以匹配路由参数
 		const defaultSlug = removeFileExtension(entry.id);
 
-		// 如果文章有自定义 permalink，不在 /posts/ 下创建路径
-		// 而是通过根目录的 [permalink].astro 处理
-		if (hasCustomPermalink(entry)) {
-			// 仍然需要在 /posts/ 下创建默认路径以便兼容旧链接
-			paths.push({
-				params: { slug: defaultSlug },
-				props: { entry },
-			});
-			continue;
-		}
+		// 始终保留默认 slug 路径（兼容旧链接）。
+		// 自定义 permalink / 全局 permalink 的额外路径由根目录的
+		// [permalink].astro 处理，这里无需重复。
+		paths.push({
+			params: { slug: defaultSlug },
+			props: { entry },
+		});
 
-		// 如果全局 permalink 功能启用，不在 /posts/ 下创建路径
-		// 而是通过根目录的 [permalink].astro 处理
-		if (permalinkConfig.enable) {
-			// 仍然保留默认 slug 路径以便兼容旧链接
-			paths.push({
-				params: { slug: defaultSlug },
-				props: { entry },
-			});
-		} else {
-			// 全局 permalink 功能未启用
-			// 为每篇文章创建默认的 slug 路径
-			paths.push({
-				params: { slug: defaultSlug },
-				props: { entry },
-			});
-
-			// 如果文章有 alias，也创建对应的路径
-			if (entry.data.alias) {
-				// 移除开头的斜杠和结尾的斜杠
-				// 同时移除可能的 "posts/" 前缀，避免重复
-				let alias = entry.data.alias
-					.replace(/^\/+/, "")
-					.replace(/\/+$/, "");
-				if (alias.startsWith("posts/")) {
-					alias = alias.replace(/^posts\//, "");
-				}
-				paths.push({
-					params: { slug: alias },
-					props: { entry },
-				});
+		// 仅在未启用 permalink（自定义或全局）时，才为 alias 创建路径。
+		if (!hasCustomPermalink(entry) && !permalinkConfig.enable && entry.data.alias) {
+			// 移除开头/结尾的斜杠，以及可能的 "posts/" 前缀，避免重复
+			let alias = entry.data.alias.replace(/^\/+/, "").replace(/\/+$/, "");
+			if (alias.startsWith("posts/")) {
+				alias = alias.replace(/^posts\//, "");
 			}
+			paths.push({
+				params: { slug: alias },
+				props: { entry },
+			});
 		}
 	}
 
@@ -96,8 +73,7 @@ export async function getStaticPaths() {
 }
 
 const { entry } = Astro.props;
-const { Content, headings } = await render(entry);
-const { remarkPluginFrontmatter } = await render(entry);
+const { Content, headings, remarkPluginFrontmatter } = await render(entry);
 
 // Process cover image for SharePoster
 let posterCoverUrl = entry.data.image;
@@ -110,9 +86,12 @@ if (entry.data.image) {
 	);
 	if (isLocal) {
 		const basePath = getFileDirFromPath(entry.filePath || "");
-		const files = import.meta.glob<ImageMetadata>("../../**", {
-			import: "default",
-		});
+		const files = import.meta.glob<ImageMetadata>(
+			"../../**/*.{png,jpg,jpeg,webp,gif,avif,svg,bmp,ico}",
+			{
+				import: "default",
+			},
+		);
 		let normalizedPath = path
 			.normalize(path.join("../../", basePath, entry.data.image))
 			.replace(/\\/g, "/");
@@ -134,9 +113,12 @@ if (profileConfig.avatar) {
 		profileConfig.avatar.startsWith("data:")
 	);
 	if (isLocal) {
-		const files = import.meta.glob<ImageMetadata>("../../**", {
-			import: "default",
-		});
+		const files = import.meta.glob<ImageMetadata>(
+			"../../**/*.{png,jpg,jpeg,webp,gif,avif,svg,bmp,ico}",
+			{
+				import: "default",
+			},
+		);
 		let normalizedPath = path
 			.normalize(path.join("../../", profileConfig.avatar))
 			.replace(/\\/g, "/");

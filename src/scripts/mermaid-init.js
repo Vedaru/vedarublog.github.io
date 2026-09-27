@@ -8,6 +8,32 @@ let renderGeneration = 0; // 每次 content:replace 时递增，使旧渲染任�
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 
+// 所有缩放图表的 resize 回调集中到一个全局监听器，
+// 避免每渲染一次图表（含主题切换 / Swup 换页重渲染）就新增一个 window resize 监听器。
+const zoomResizeEntries = new Set();
+let zoomResizeListenerAttached = false;
+
+function registerZoomResize(element, applyTransform) {
+	zoomResizeEntries.add({ element, applyTransform });
+	if (zoomResizeListenerAttached) return;
+	zoomResizeListenerAttached = true;
+
+	let timer = null;
+	window.addEventListener("resize", () => {
+		clearTimeout(timer);
+		timer = setTimeout(() => {
+			for (const entry of zoomResizeEntries) {
+				if (entry.element.isConnected) {
+					entry.applyTransform();
+				} else {
+					// 元素已被换页/重渲染移除，顺手清理，避免集合无限增长
+					zoomResizeEntries.delete(entry);
+				}
+			}
+		}, 200);
+	});
+}
+
 // 检查主题是否真的发生了变化
 function hasThemeChanged() {
 	const isDark = document.documentElement.classList.contains("dark");
@@ -209,13 +235,7 @@ function attachZoomControls(element, svgElement) {
 		applyTransform();
 	});
 	applyTransform();
-	let resizeTimer = null;
-	window.addEventListener("resize", () => {
-		clearTimeout(resizeTimer);
-		resizeTimer = setTimeout(() => {
-			applyTransform();
-		}, 200);
-	});
+	registerZoomResize(element, applyTransform);
 }
 
 function setupEventListeners() {
