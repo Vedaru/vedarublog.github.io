@@ -193,7 +193,6 @@ services:
 传统做法是配 Nginx 反代 + 申请 SSL 证书 + DDNS。Cloudflare Tunnel 更简单：在服务器上跑一个 `cloudflared` 进程，所有流量通过 Cloudflare 边缘节点转发到本地端口。
 
 ```yaml
-# /etc/cloudflared/config.yml
 tunnel: b8e0b001-75d3-481e-b880-5847053cd8d4
 credentials-file: /etc/cloudflared/b8e0b001-75d3-481e-b880-5847053cd8d4.json
 ingress:
