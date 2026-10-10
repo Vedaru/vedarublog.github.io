@@ -125,6 +125,14 @@ export const friendsData: FriendItem[] = [
     siteurl: "https://doc.rust-lang.org/book/title-page.html",
     tags: ["Website", "Learning"],
   },
+  {
+    id: 15,
+    title: "estel space",
+    imgurl: "https://estel-space.pages.dev/icon.svg?icon.2fig5dl2zpmd0.svg",
+    desc: "海一",
+    siteurl: "estel-space.pages.dev",
+    tags: ["Blog", "Developer"],
+  }
 ];
 
 // 获取所有友情链接数据
