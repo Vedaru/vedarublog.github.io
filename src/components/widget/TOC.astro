@@ -52,10 +52,11 @@ class TableOfContents extends HTMLElement {
     navbarHeight = 80;
 
     resolveTocSection = (heading: HTMLElement): HTMLElement => {
-        const path = window.location.pathname;
-        if (path.includes("/diary")) {
-            return heading;
-        }
+        // 日记页的每个「年/月」标题都被包在独立的 <section>（diary-year-group /
+        // diary-month-group）里，因此与文章页一样返回 heading.parentElement，
+        // 让该月条目在整段滚动期间持续命中。此前对 /diary 直接返回 heading 本身，
+        // 月份条目多时视口内长时间没有任何标题，active 全为 false，滚动指示器
+        // （active-indicator）会整段消失。
 
         // 与 Fuwari / Mizuki 一致：section 即 heading.parentElement
         // （rehype-sectionize 会把每个标题与其正文包进 <section>）。
