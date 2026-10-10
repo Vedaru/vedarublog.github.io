@@ -41,6 +41,13 @@ This website is built with the **Astro** framework using the [Mizuki](https://gi
 - **每周日** - 固定更新
 - **不定期** - 更新日记和追番内容
 
+## 🛠️ 自建 Git 服务
+除了 [GitHub](https://github.com/Vedaru)，我还在自己的服务器上跑了一套 [Forgejo](https://git.vedaru.cn)（[git.vedaru.cn](https://git.vedaru.cn)）。这是我自行构建的定制版本，相比官方版本额外支持：
+- **Git Annex** - 可以用 git-annex 管理音频、素材等大文件
+- **Project API** - 开放了项目相关的 API，方便脚本与自动化调用
+
+有时候我会先在这里开发、折腾，等差不多稳定了再推送到 GitHub。所以有些项目可能会先在自建服务上出现，GitHub 上看到的是同步过来的版本～
+
 ## 📬 与我联系
 欢迎通过以下方式交流：
 - 在文章下方留言评论
