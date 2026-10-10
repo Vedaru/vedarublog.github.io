@@ -3,6 +3,12 @@
  *
  * Desktop (hover): badge visible, hides on hover to reveal copy/collapse buttons.
  * Mobile  (touch): badge visible, hides on touch to reveal copy/collapse buttons.
+ *
+ * Note: deliberately does NOT exclude `.has-title` frames. Expressive Code
+ * auto-extracts a filename from a leading comment (e.g. `# config.yml`) and
+ * turns it into a title tab; without this the language badge would silently
+ * disappear for those blocks (typically yaml/config snippets) while every
+ * other language kept its badge.
  */
 import { definePlugin } from "@expressive-code/core";
 
@@ -18,7 +24,7 @@ export function pluginLanguageBadge() {
 			},
 		},
 		baseStyles: () => `
-      .frame[data-language]:not(.has-title):not(.is-terminal) {
+      .frame[data-language]:not(.is-terminal) {
         position: relative;
 
         &::after {
