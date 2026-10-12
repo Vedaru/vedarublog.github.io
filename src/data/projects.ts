@@ -276,19 +276,6 @@ export const getProjectStats = () => {
 	};
 };
 
-// Get projects by category
-export const getProjectsByCategory = (category?: string) => {
-	if (!category || category === "all") {
-		return projectsData;
-	}
-	return projectsData.filter((p) => p.category === category);
-};
-
-// Get featured projects
-export const getFeaturedProjects = () => {
-	return projectsData.filter((p) => p.featured);
-};
-
 // Get all tech stacks
 export const getAllTechStack = () => {
 	const techSet = new Set<string>();

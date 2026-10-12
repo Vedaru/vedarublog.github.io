@@ -46,13 +46,6 @@ export function getPostNumericId(postId: string): number {
 }
 
 /**
- * 清除文章 ID 映射缓存（用于测试或重新初始化）
- */
-export function clearPostIdMap(): void {
-	postIdMap = null;
-}
-
-/**
  * 生成 permalink slug
  * 根据配置的格式模板和文章数据生成 URL slug
  * @param post 文章数据
@@ -122,16 +115,4 @@ export function hasCustomPermalink(
 	post: CollectionEntry<"posts"> | { data: { permalink?: string } },
 ): boolean {
 	return !!post.data.permalink;
-}
-
-/**
- * 获取文章的完整 URL 路径
- * @param post 文章数据
- * @returns URL 路径（如 /my-post/ 或 /custom-path/）
- */
-export function getPermalinkPath(post: CollectionEntry<"posts">): string {
-	const slug = generatePermalinkSlug(post);
-
-	// 所有 permalink 生成的链接都在根目录下
-	return `/${slug}/`;
 }

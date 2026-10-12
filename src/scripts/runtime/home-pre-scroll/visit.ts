@@ -35,13 +35,6 @@ export function shouldSmoothScrollSamePageHref(href: string): boolean {
 	return getScrollY() > PRE_SCROLL_Y_THRESHOLD;
 }
 
-/** @deprecated 使用 shouldSmoothScrollSamePage */
-export const shouldSmoothScrollSamePageMainHome = shouldSmoothScrollSamePage;
-
-/** @deprecated 使用 shouldSmoothScrollSamePageHref */
-export const shouldSmoothScrollSamePageMainHomeHref =
-	shouldSmoothScrollSamePageHref;
-
 export function isTargetMainHomePage(visit: HomePreScrollVisit): boolean {
 	const targetUrl = visit?.to?.url || "";
 	if (!targetUrl) return false;
@@ -80,19 +73,8 @@ export function isEnteringHomePage(visit: HomePreScrollVisit): boolean {
 	return false;
 }
 
-export function isMobileLayoutShiftViewport(): boolean {
-	return window.matchMedia("(max-width: 1279px)").matches;
-}
-
 export function shouldHandleEnteringHome(visit: HomePreScrollVisit): boolean {
 	return isEnteringHomePage(visit);
-}
-
-/** @deprecated 使用 shouldHandleEnteringHome */
-export function shouldHandleMobileEnteringHome(
-	visit: HomePreScrollVisit,
-): boolean {
-	return shouldHandleEnteringHome(visit);
 }
 
 export function shouldPreScrollBeforeLeave(visit: HomePreScrollVisit): boolean {

@@ -132,18 +132,6 @@ export function revealDecryptedContent(contentDiv: HTMLElement): void {
 	contentDiv.style.display = "block";
 }
 
-export function getSavedPassword(pathname: string): string | null {
-	return sessionStorage.getItem("page-password-" + pathname);
-}
-
-export function savePassword(pathname: string, password: string): void {
-	sessionStorage.setItem("page-password-" + pathname, password);
-}
-
-export function clearSavedPassword(pathname: string): void {
-	sessionStorage.removeItem("page-password-" + pathname);
-}
-
 export interface InitPasswordProtectionOptions {
 	encryptedContent: string;
 	messages: PasswordProtectionMessages;

@@ -5,10 +5,6 @@ import type { HomePreScrollVisit } from "./types";
 let activePreScrollVisit: HomePreScrollVisit | null = null;
 let activeVisitGeneration = 0;
 
-export function getActivePreScrollVisit(): HomePreScrollVisit | null {
-	return activePreScrollVisit;
-}
-
 export function bumpPreScrollGeneration(): number {
 	activeVisitGeneration += 1;
 	return activeVisitGeneration;

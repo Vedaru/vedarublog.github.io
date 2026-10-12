@@ -259,5 +259,3 @@ export const iconLoader = IconLoader.getInstance();
 export const loadIconify = (options?: IconifyLoadOptions) =>
 	iconLoader.loadIconify(options);
 export const preloadIcons = (icons: string[]) => iconLoader.preloadIcons(icons);
-export const onIconsReady = (callback: () => void) =>
-	iconLoader.onLoad(callback);

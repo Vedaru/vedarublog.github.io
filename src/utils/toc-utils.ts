@@ -408,18 +408,6 @@ export function shouldSkipTocLayoutWork(): boolean {
 	return tocWrapper?.classList.contains("toc-not-ready") ?? false;
 }
 
-/** 在 Swup 空闲或过渡就绪后执行回调 */
-export function scheduleTocIdleWork(fn: () => void): void {
-	if (typeof window.__scheduleSwupIdleWork === "function") {
-		window.__scheduleSwupIdleWork(fn);
-		return;
-	}
-	const schedule =
-		window.requestIdleCallback ||
-		((cb: () => void) => window.setTimeout(cb, 100));
-	schedule(fn, { timeout: 500 } as IdleRequestOptions);
-}
-
 /** 创建「过渡结束后更新」调度器 */
 export function createTransitionDeferredUpdater(runUpdate: () => void) {
 	let pending = false;
@@ -491,21 +479,6 @@ export function throttle<T extends (...args: unknown[]) => unknown>(
 	};
 }
 
-/** 缓存章节区块的文档坐标 */
-export function cacheSectionOffsets(
-	sections: HTMLElement[],
-): Array<{ top: number; bottom: number } | null> {
-	const scrollY = window.scrollY;
-	return sections.map((section) => {
-		if (!section) return null;
-		const rect = section.getBoundingClientRect();
-		return {
-			top: rect.top + scrollY,
-			bottom: rect.bottom + scrollY,
-		};
-	});
-}
-
 /** 查找与视口相交的所有章节索引 */
 export function findVisibleSectionIndices(
 	offsets: Array<{ top: number; bottom: number } | null>,
@@ -563,27 +536,6 @@ export function findActiveHeadingByScrollCached(
 	const threshold = scrollY + offsetTop;
 	for (let i = 0; i < offsets.length; i++) {
 		if (offsets[i] < threshold) {
-			activeIndex = i;
-		} else {
-			break;
-		}
-	}
-	return activeIndex;
-}
-
-/** 根据滚动位置查找当前激活标题索引（浮动 TOC，兼容旧调用） */
-export function findActiveHeadingByScroll(
-	headings: HTMLElement[],
-	scrollY = window.scrollY,
-	offsetTop = 150,
-): number {
-	let activeIndex = -1;
-	for (let i = 0; i < headings.length; i++) {
-		const heading = headings[i];
-		if (
-			heading.getBoundingClientRect().top + scrollY <
-			scrollY + offsetTop
-		) {
 			activeIndex = i;
 		} else {
 			break;

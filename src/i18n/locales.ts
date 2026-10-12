@@ -30,12 +30,6 @@ export const localeHtmlLang: Record<Locale, string> = {
 	en: "en",
 };
 
-/** hreflang 值（用于 <link rel="alternate" hreflang>） */
-export const localeHreflang: Record<Locale, string> = {
-	zh: "zh-CN",
-	en: "en",
-};
-
 export function isLocale(value: string): value is Locale {
 	return (locales as readonly string[]).includes(value);
 }

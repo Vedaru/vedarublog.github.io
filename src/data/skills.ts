@@ -40,10 +40,6 @@ export interface Skill {
 	color?: string; // Skill card theme color
 }
 
-// The first month with a public repository on the account. Used for the
-// overall "years of experience" figure displayed by the chart.
-export const CAREER_START = "2025-12";
-
 // Turns "YYYY-MM" into an experience object relative to today. Computed at
 // build time so the page never carries a stale hard-coded duration.
 const since = (ym: string): { years: number; months: number } => {
@@ -617,26 +613,6 @@ export const getSkillStats = () => {
 	);
 
 	return { total, byLevel, byCategory };
-};
-
-// Get skills by category
-export const getSkillsByCategory = (category?: SkillCategory) => {
-	if (!category) {
-		return skillsData;
-	}
-	return skillsData.filter((s) => s.category === category);
-};
-
-// Get advanced skills
-export const getAdvancedSkills = () => {
-	return skillsData.filter(
-		(s) => s.level === "advanced" || s.level === "expert",
-	);
-};
-
-// Calculate total years of experience from the first public repository.
-export const getTotalExperience = () => {
-	return since(CAREER_START);
 };
 
 // Categories that actually hold at least one skill, in display order.

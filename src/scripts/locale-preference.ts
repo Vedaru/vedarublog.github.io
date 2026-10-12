@@ -21,12 +21,3 @@ export function rememberLocale(locale: string): void {
 	if (typeof document === "undefined") return;
 	document.cookie = `${LOCALE_COOKIE}=${encodeURIComponent(locale)}; path=/; max-age=${ONE_YEAR}; samesite=lax`;
 }
-
-/** 读取记住的语言；没选过或 cookie 不可用时返回 null。 */
-export function readRememberedLocale(): string | null {
-	if (typeof document === "undefined") return null;
-	const match = document.cookie.match(
-		new RegExp(`(?:^|;\\s*)${LOCALE_COOKIE}=([^;]+)`),
-	);
-	return match ? decodeURIComponent(match[1]) : null;
-}

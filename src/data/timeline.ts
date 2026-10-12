@@ -275,17 +275,6 @@ export const getTimelineByType = (type?: string) => {
 		);
 };
 
-// Get featured timeline items
-export const getFeaturedTimeline = () => {
-	return timelineData
-		.filter((item) => item.featured)
-		.sort(
-			(a, b) =>
-				new Date(b.startDate).getTime() -
-				new Date(a.startDate).getTime(),
-		);
-};
-
 // Get current ongoing items
 export const getCurrentItems = () => {
 	return timelineData.filter((item) => !item.endDate);

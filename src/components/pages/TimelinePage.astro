@@ -4,7 +4,6 @@ import IconifyLoader from "@/components/misc/IconifyLoader.astro";
 import { siteConfig } from "@/config";
 import {
 	getCurrentItems,
-	// getFeaturedTimeline,
 	getTimelineByType,
 	getTimelineStats,
 	getTotalWorkExperience,
@@ -47,7 +46,6 @@ const localizeItem = (item: TimelineItem): TimelineItem => ({
 			: item.achievements,
 });
 
-// const featuredItems = getFeaturedTimeline();
 const currentItems = getCurrentItems().map(localizeItem);
 const workExperience = getTotalWorkExperience();
 
