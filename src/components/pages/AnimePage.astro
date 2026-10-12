@@ -13,7 +13,6 @@ import {
 } from "@/data/anime-list";
 import I18nKey from "@/i18n/i18nKey";
 import { i18n, localizedText, normalizeLocale } from "@/i18n/translation";
-import { localizeBangumiTag } from "@/i18n/bangumi-tags";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
 import { url } from "@/utils/url-utils";
 import "@/styles/anime.css";
@@ -88,26 +87,15 @@ const resolveCover = (src: string) => (src.startsWith("/") ? url(src) : src);
 // 标题在此按语言解析（英文页优先 Bangumi 英文名，缺失则回退中文名），
 // 与 statusMeta 的处理方式一致，客户端无需再判断语言。
 const locale = normalizeLocale(Astro.currentLocale);
-const isEn = locale === "en";
 
 /**
- * 番剧数据全部来自 Bangumi（构建期由 scripts/update-bangumi.mjs 拉取）：
- * - 标题：中文名 + infobox 别名里的英文名（没有别名时从原名里捞英文段）
- * - 简介：Bangumi 只提供中文 summary，没有英文版，英文页不显示（不放中文充数）
- * - 标签 / 制作：Bangumi 标签是用户产出的中文，英文靠 src/i18n/bangumi-tags.ts
- *   的词汇表对照；本身就是拉丁文的（MADHOUSE、TV）原样显示；两者都不是的
- *   （有的用户拿作品名当标签）在英文页过滤掉。
+ * 番剧数据来自 Bangumi（构建期由 scripts/update-bangumi.mjs 拉取）。
+ * 英文名只有 Bangumi 的别名里才有，其它字段（简介、标签） Bangumi 只提供
+ * 中文，按站长要求原样显示，不再做额外的英文映射。
  */
 const resolvedAnimeList = animeList.map((anime) => ({
 	...anime,
-	title: isEn ? anime.titleEn || anime.title : anime.title,
-	description: isEn ? "" : anime.description,
-	genre: isEn
-		? anime.genre
-				.map((tag) => localizeBangumiTag(tag, locale))
-				.filter(Boolean)
-		: anime.genre,
-	studio: isEn ? localizeBangumiTag(anime.studio, locale) : anime.studio,
+	title: localizedText(locale, anime.title, anime.titleEn),
 	cover: resolveCover(anime.cover),
 }));
 

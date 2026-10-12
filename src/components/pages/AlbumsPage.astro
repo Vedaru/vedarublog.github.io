@@ -1,5 +1,6 @@
 ---
 import { localizeInternalHref } from "@utils/url-utils";
+import { localizedText, normalizeLocale } from "@/i18n/translation";
 import { siteConfig } from "@/config";
 import I18nKey from "@/i18n/i18nKey";
 import { i18n } from "@/i18n/translation";
@@ -14,6 +15,16 @@ if (!siteConfig.featurePages.albums) {
 
 // 获取所有相册
 const albumsData = await scanAlbums();
+
+// 相册文案中英双份（info.json 里的 titleEn / descriptionEn / tagsEn），
+// 按当前语言挑一份，缺英文就回退中文。
+const locale = normalizeLocale(Astro.currentLocale);
+const albums = albumsData.map((album) => ({
+	...album,
+	title: localizedText(locale, album.title, album.titleEn),
+	description: localizedText(locale, album.description || "", album.descriptionEn),
+	tags: locale === "en" && album.tagsEn?.length ? album.tagsEn : album.tags || [],
+}));
 ---
 
 <MainGridLayout title={i18n(I18nKey.albums, Astro.currentLocale)} description={i18n(I18nKey.albumsSubtitle, Astro.currentLocale)} dualLocale>
@@ -38,7 +49,7 @@ const albumsData = await scanAlbums();
 
       <!-- 相册网格 -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {albumsData.map(album => (
+        {albums.map(album => (
           <article 
             class="album-card group bg-white dark:bg-neutral-900 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 border border-neutral-200 dark:border-neutral-800"
           >
@@ -103,7 +114,7 @@ const albumsData = await scanAlbums();
       </div>
       
       <!-- 空状态 -->
-      {albumsData.length === 0 && (
+      {albums.length === 0 && (
         <div class="text-center py-12">
           <div class="text-neutral-400 dark:text-neutral-600 mb-4">
             <svg class="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
