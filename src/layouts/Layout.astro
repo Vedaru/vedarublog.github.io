@@ -1,4 +1,5 @@
 ---
+import { getLocaleFromPath, localeHtmlLang, locales, localizePath, stripLocalePrefix } from "@i18n/locales";
 import ConfigCarrier from "@components/ConfigCarrier.astro";
 import FullscreenWallpaper from "@components/misc/FullscreenWallpaper.astro";
 import MusicPlayer from "@components/widget/MusicPlayer.svelte";
@@ -64,9 +65,15 @@ interface Props {
 	lang?: string;
 	setOGTypeArticle?: boolean;
 	postSlug?: string;
+	/**
+	 * 该页面在两种语言下都存在时设为 true，会输出 hreflang alternate 链接，
+	 * 帮助搜索引擎把中英文页面识别为同一内容的两个语言版本。
+	 * 只有单语版本（例如仅中文的旧文章）保持默认 false，避免指向 404。
+	 */
+	dualLocale?: boolean;
 }
 
-let { title, banner, description, lang, setOGTypeArticle, postSlug } =
+let { title, banner, description, lang, setOGTypeArticle, postSlug, dualLocale } =
 	Astro.props;
 
 // apply a class to the body element to decide the height of the banner, only used for initial page load
@@ -118,10 +125,21 @@ const favicons: Favicon[] =
 	siteConfig.favicon.length > 0 ? siteConfig.favicon : defaultFavicons;
 
 // const siteLang = siteConfig.lang.replace('_', '-')
+// 语言默认取自 URL（/en/ 前缀即英文），而不是固定的 siteConfig.lang。
+const urlLocale = getLocaleFromPath(Astro.url.pathname);
 if (!lang) {
-	lang = `${siteConfig.lang}`;
+	lang = localeHtmlLang[urlLocale];
 }
 const siteLang = lang.replace("_", "-");
+
+// 同一页在两种语言下的绝对地址（用于 hreflang）。
+const canonicalPath = stripLocalePrefix(Astro.url.pathname);
+const alternateLinks = dualLocale
+	? locales.map((l) => ({
+			hreflang: localeHtmlLang[l],
+			href: new URL(localizePath(canonicalPath, l), siteConfig.siteURL).href,
+		}))
+	: [];
 
 const bannerOffsetByPosition = {
 	top: `${BANNER_HEIGHT_EXTEND}vh`,
@@ -197,6 +215,23 @@ if (siteConfig.font) {
 		}
 		<meta name="author" content={profileConfig.name} />
 		<link rel="canonical" href={canonicalURL} />
+		{
+			alternateLinks.map((alt) => (
+				<link rel="alternate" hreflang={alt.hreflang} href={alt.href} />
+			))
+		}
+		{
+			dualLocale && (
+				<link
+					rel="alternate"
+					hreflang="x-default"
+					href={
+						new URL(localizePath(canonicalPath, "zh_CN"), siteConfig.siteURL)
+							.href
+					}
+				/>
+			)
+		}
 		<meta property="og:site_name" content={siteConfig.title} />
 		<meta property="og:url" content={Astro.url} />
 		<meta property="og:title" content={pageTitle} />

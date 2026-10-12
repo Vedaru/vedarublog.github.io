@@ -4,6 +4,7 @@ import { en } from "./languages/en";
 import { ja } from "./languages/ja";
 import { zh_CN } from "./languages/zh_CN";
 import { zh_TW } from "./languages/zh_TW";
+import { defaultLocale, type Locale } from "./locales";
 
 export type Translation = {
 	[K in I18nKey]: string;
@@ -23,10 +24,33 @@ const map: { [key: string]: Translation } = {
 };
 
 export function getTranslation(lang: string): Translation {
-	return map[lang.toLowerCase()] || defaultTranslation;
+	// 兼容 Astro i18n 的 BCP-47 写法（zh-CN / en）与站点内部写法（zh_CN）。
+	const key = lang.toLowerCase().replace(/-/g, "_");
+	return map[key] || map[lang.toLowerCase()] || defaultTranslation;
 }
 
-export function i18n(key: I18nKey): string {
-	const lang = siteConfig.lang || "en";
+/**
+ * 把任意语言标识归一化为站点支持的 Locale。
+ * 支持 "en" / "en-US" / "zh-CN" / "zh_CN" 等。
+ */
+export function normalizeLocale(lang?: string | null): Locale {
+	if (!lang) return defaultLocale;
+	const key = lang.toLowerCase().replace(/-/g, "_");
+	if (key.startsWith("zh")) {
+		return key.includes("tw") || key.includes("hk") ? defaultLocale : "zh_CN";
+	}
+	if (key.startsWith("en")) return "en";
+	return defaultLocale;
+}
+
+/**
+ * 取翻译文案。
+ *
+ * @param key    文案键
+ * @param locale 目标语言。省略时回退到 siteConfig.lang（保持旧行为），
+ *               双语页面应显式传入（如 `Astro.currentLocale`）。
+ */
+export function i18n(key: I18nKey, locale?: string | null): string {
+	const lang = locale || siteConfig.lang || defaultLocale;
 	return getTranslation(lang)[key];
 }

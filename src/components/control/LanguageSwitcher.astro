@@ -1,0 +1,41 @@
+---
+/**
+ * 语言切换器 / Language switcher.
+ *
+ * 纯静态链接：根据当前路径推出另一种语言的同页地址。
+ * - 中文（默认语言）在根路径，英文在 /en/ 下。
+ * - 当前语言高亮，另一种语言可点击。
+ *
+ * 传 `href` 可覆盖跳转目标（例如文章只存在一种语言时，回退到该语言的
+ * 首页或列表页，由调用方决定）。
+ */
+import { alternatePathFor, getLocaleFromPath, localeLabels } from "@i18n/locales";
+import { Icon } from "astro-icon/components";
+
+interface Props {
+	/** 覆盖目标地址（默认自动按路径推导） */
+	href?: string;
+	/** 覆盖目标语言（默认自动取另一种语言） */
+	targetLabel?: string;
+}
+
+const { href, targetLabel } = Astro.props;
+
+const current = getLocaleFromPath(Astro.url.pathname);
+const target = current === "zh_CN" ? "en" : "zh_CN";
+
+const linkHref = href ?? alternatePathFor(Astro.url.pathname, target);
+const label = targetLabel ?? localeLabels[target];
+---
+
+<a
+	href={linkHref}
+	aria-label={`Switch language to ${label}`}
+	title={label}
+	class="btn-plain scale-animation rounded-lg h-11 px-2.5 active:scale-90 flex items-center gap-1.5 shrink-0"
+	data-language-switcher
+	data-current-locale={current}
+>
+	<Icon name="material-symbols:translate" class="text-[1.25rem]"></Icon>
+	<span class="text-sm font-bold hidden md:inline">{label}</span>
+</a>
