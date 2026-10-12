@@ -1,5 +1,5 @@
 ---
-import { getEntry, render } from "astro:content";
+import { getCollection, render } from "astro:content";
 import FriendsPanel from "@components/features/friends/FriendsPanel.svelte";
 import Markdown from "@components/misc/Markdown.astro";
 import { siteConfig } from "@/config";
@@ -13,9 +13,12 @@ if (!siteConfig.featurePages.friends) {
 	return Astro.redirect("/404/");
 }
 
+// 同 AboutPage：spec 的 id 含扩展名，按 id 查找并回退到中文版。
+const specEntries = await getCollection("spec");
+const byId = (id: string) => specEntries.find((entry) => entry.id === id);
 const friendsPost =
-	(Astro.currentLocale === "en" ? await getEntry("spec", "friends.en") : undefined) ??
-	(await getEntry("spec", "friends"));
+	(Astro.currentLocale === "en" ? byId("friends.en.md") : undefined) ??
+	byId("friends.md");
 
 if (!friendsPost) {
 	throw new Error("friends page content not found");
