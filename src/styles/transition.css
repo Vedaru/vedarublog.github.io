@@ -1,232 +1,144 @@
 @import "./_transition-vars.css";
 
 /* ============================================================
-   页面过渡动画 — 灵感来自 Mizuki 主题的纯垂直淡入淡出
-   使用 CSS 变量统一控制，消除 navbar 切换页面时的抽动
+   页面过渡动画 / Page transitions (Swup)
+   ------------------------------------------------------------
+   Swup 在 <html> 上切换三个类：
+     .is-changing  一次过渡正在进行
+     .is-animating 新内容正在进入
+     .is-leaving   旧内容正在离开
+
+   这里是与上游 Fuwari / Mizuki 对齐的唯一动效来源：
+   - 所有时长/位移/缓动都走 _transition-vars.css 的 CSS 变量，
+     响应式只改变量值，不再用重复的 @media 覆盖规则（旧实现里
+     三个文件各写一份移动端规则，互相打架，是抖动的根源之一）。
    ============================================================ */
 
-/* 主要内容区域的过渡动画 - 纯垂直效果 */
-/* 注意：will-change 不在基础规则里常驻——整页内容永久占用 GPU 纹理会在
-   60Hz/dpr3 环境下超出纹理预算，导致换页动画期间逐片重光栅化（实测抖动根源）。
-   图层提升只发生在过渡窗口内（见文件末尾的 is-changing/is-animating 规则）。 */
+/* 主内容（进入） */
 .transition-main {
-  transition:
-    opacity var(--transition-duration) var(--transition-easing),
-    transform var(--transition-duration) var(--transition-easing);
+	transition:
+		opacity var(--transition-duration) var(--transition-easing),
+		transform var(--transition-duration) var(--transition-easing);
 }
 
-/* 离开动画 */
+/* 内层容器（离开） */
 .transition-leaving {
-  transition:
-    transform var(--transition-duration) var(--transition-easing-out),
-    opacity var(--transition-duration) var(--transition-easing-out);
+	transition:
+		opacity var(--transition-duration) var(--transition-easing-out),
+		transform var(--transition-duration) var(--transition-easing-out);
 }
 
-html.is-changing .transition-main {
-  transition:
-    opacity var(--transition-duration) var(--transition-easing),
-    transform var(--transition-duration) var(--transition-easing);
-}
-
-html.is-leaving .transition-main {
-  transition:
-    opacity var(--transition-duration) var(--transition-easing-out),
-    transform var(--transition-duration) var(--transition-easing-out);
-}
-
-/* 进入动画 - 从下方轻微滑入 */
+/* 进入：从下方轻微滑入并淡入 */
 html.is-animating .transition-main {
-  opacity: 0;
-  transform: translateY(var(--transition-translate));
+	opacity: 0;
+	transform: translateY(var(--transition-translate));
 }
 
-/* 离开动画 - 向上滑出 */
+/* 离开：向上滑出并淡出 */
 html.is-animating.is-leaving .transition-leaving {
-  transform: translateY(calc(var(--transition-translate) * -1));
-  opacity: 0;
+	opacity: 0;
+	transform: translateY(calc(var(--transition-translate) * -1));
 }
 
-/* Swup fade 动画 — 用于 TOC 等需要跟随内容淡入的元素 */
-html.is-changing .transition-swup-fade {
-  transition:
-    opacity var(--transition-duration) ease-out,
-    transform var(--transition-duration) ease-out;
+/* 跟随页面淡入淡出的元素（浮动 TOC 等） */
+.transition-swup-fade {
+	transition:
+		opacity var(--transition-duration) var(--transition-easing),
+		transform var(--transition-duration) var(--transition-easing);
 }
 
 html.is-animating .transition-swup-fade {
-  opacity: 0;
-  transform: translateY(var(--transition-translate));
+	opacity: 0;
+	transform: translateY(var(--transition-translate));
 }
 
 /* ============================================================
-   关键帧动画
+   首屏入场动画 / On-load reveal
    ============================================================ */
 
 @keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(var(--transition-translate));
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fade-out-down {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(calc(var(--transition-translate) * -1));
-  }
+	from {
+		opacity: 0;
+		transform: translateY(var(--transition-translate));
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 
 @keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
 }
 
-/* 页面加载动画 — 仅 opacity，避免 translateY 计入 CLS */
 .onload-animation {
-  opacity: 0;
-  animation: fade-in-up var(--transition-duration) ease-out forwards;
+	opacity: 0;
+	animation: fade-in-up var(--transition-duration) var(--transition-easing)
+		forwards;
 }
 
 .onload-animation-fade-in {
-  opacity: 0;
-  animation: fade-in var(--transition-duration) ease-in forwards;
+	opacity: 0;
+	animation: fade-in var(--transition-duration) var(--transition-easing)
+		forwards;
 }
 
-/* 渐进式动画延迟 */
+/* 同级元素依次错开（侧栏组件、文章分块等） */
 .onload-animation:nth-child(1) {
-  animation-delay: calc(var(--transition-stagger) * 0);
+	animation-delay: calc(var(--transition-stagger) * 0);
 }
 .onload-animation:nth-child(2) {
-  animation-delay: calc(var(--transition-stagger) * 1);
+	animation-delay: calc(var(--transition-stagger) * 1);
 }
 .onload-animation:nth-child(3) {
-  animation-delay: calc(var(--transition-stagger) * 2);
+	animation-delay: calc(var(--transition-stagger) * 2);
 }
 .onload-animation:nth-child(4) {
-  animation-delay: calc(var(--transition-stagger) * 3);
+	animation-delay: calc(var(--transition-stagger) * 3);
 }
 .onload-animation:nth-child(5) {
-  animation-delay: calc(var(--transition-stagger) * 4);
-}
-
-/* 特殊元素的动画 */
-.transition-slide-in {
-  opacity: 0;
-  transform: translateY(calc(var(--transition-translate) * 1.2));
-  transition:
-    opacity calc(var(--transition-duration) * 1.5) var(--transition-easing),
-    transform calc(var(--transition-duration) * 1.5) var(--transition-easing);
-}
-
-.transition-slide-in.active {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* 卡片动画 */
-.card-animation {
-  opacity: 0;
-  transform: translateY(calc(var(--transition-translate) * 1.5)) scale(0.98);
-  transition:
-    opacity calc(var(--transition-duration) * 1.2) var(--transition-easing),
-    transform calc(var(--transition-duration) * 1.2) var(--transition-easing);
-}
-
-.card-animation.visible {
-  opacity: 1;
-  transform: translateY(0) scale(1);
-}
-
-/* 导航动画 */
-.nav-animation {
-  opacity: 0;
-  transform: translateX(-20px);
-  transition:
-    opacity 250ms var(--transition-easing),
-    transform 250ms var(--transition-easing);
-}
-
-.nav-animation.loaded {
-  opacity: 1;
-  transform: translateX(0);
+	animation-delay: calc(var(--transition-stagger) * 4);
 }
 
 /* ============================================================
-   移动端优化 — 零位移纯透明度过渡，避免 jitter
+   图层提升 — 仅在过渡窗口内生效
+   ------------------------------------------------------------
+   常驻 will-change 会让整页内容永久占用 GPU 纹理；在 60Hz + 高 dpr
+   的机器上会超出纹理预算，浏览器只能在动画中途逐片重光栅化，表现为
+   换页时的抖动。所以只在 Swup 过渡窗口内提升图层，窗口结束后由浏览
+   器自动回收。
    ============================================================ */
-@media (max-width: 768px) {
-  /* 页面级内容保留轻微上滑位移（仅合成层 transform，不影响布局），
-     配合 _transition-vars.css 的 --transition-translate 让换页更顺滑 */
-
-  .transition-slide-in {
-    transform: translateY(calc(var(--transition-translate) * 1.2));
-  }
-
-  .card-animation {
-    transform: translateY(var(--transition-translate)) scale(0.99);
-  }
-}
-
-/* ============================================================
-   图层提升 — 仅过渡窗口内生效
-   ============================================================
-   常驻 will-change 会让整页内容（transition-main/transition-leaving
-   及全部 onload-animation 组件）永久占用 GPU 纹理。在 60Hz + 高 dpr
-   的机器上这会超出纹理预算，浏览器只能在动画中途逐片重光栅化，
-   表现为换页滑动时的抖动。因此只在 is-changing/is-animating/is-leaving
-   窗口内提升图层，窗口结束由浏览器自动回收。 */
 html.is-changing .transition-main,
 html.is-animating .transition-main,
 html.is-leaving .transition-main,
 html.is-changing .transition-leaving,
 html.is-animating .transition-leaving,
-html.is-leaving .transition-leaving,
 html.is-changing .transition-swup-fade,
 html.is-animating .transition-swup-fade,
-html.is-changing .onload-animation,
-html.is-changing .onload-animation-fade-in,
-html.is-changing .transition-slide-in,
-html.is-changing .card-animation,
-html.is-changing .nav-animation {
-  will-change: transform, opacity;
-}
-
-html.is-changing .transition-main,
-html.is-leaving .transition-main,
-html.is-changing .transition-leaving,
-html.is-leaving .transition-leaving,
-html.is-changing .transition-slide-in,
-html.is-changing .card-animation,
-html.is-changing .nav-animation {
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
+html.is-changing .onload-animation {
+	will-change: transform, opacity;
+	backface-visibility: hidden;
+	-webkit-backface-visibility: hidden;
 }
 
 /* ============================================================
-   减少动画的用户偏好设置
+   减少动画偏好 / Reduced motion — 唯一权威规则
+   （旧实现里 5 个文件各写一份，这里合并为一处）
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
-  .transition-main,
-  .transition-leaving,
-  .onload-animation,
-  .transition-slide-in,
-  .card-animation,
-  .nav-animation {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    will-change: auto !important;
-  }
+	.transition-main,
+	.transition-leaving,
+	.transition-swup-fade,
+	.onload-animation,
+	.onload-animation-fade-in {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		will-change: auto !important;
+	}
 }

@@ -454,23 +454,6 @@ html.is-visit-layout-shifting #navbar-wrapper.navbar-hidden {
     overflow-x: clip;
   }
 
-  /* 移动端去掉横向位移动画，避免撑出视口 */
-  .card-animation {
-    transform: scale(0.99);
-  }
-
-  .card-animation.visible {
-    transform: scale(1);
-  }
-
-  .transition-slide-in {
-    transform: none;
-  }
-
-  .transition-slide-in.active {
-    transform: none;
-  }
-
   /* Pio 看板娘：切换页面时保持 fixed 定位，不受主内容 transform 影响 */
   .pio-container {
     position: fixed !important;
@@ -519,33 +502,6 @@ html.is-visit-layout-shifting #navbar-wrapper.navbar-hidden {
   #search-panel,
   #wallpaper-mode-panel {
     max-width: calc(100vw - 1rem);
-  }
-
-  .transition-main,
-  .transition-leaving,
-  .onload-animation,
-  .transition-slide-in,
-  .card-animation,
-  .nav-animation,
-  #dynamic-sidebar,
-  .widget-container {
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .transition-main,
-  .transition-leaving,
-  .onload-animation,
-  .transition-slide-in,
-  .card-animation,
-  .nav-animation,
-  #dynamic-sidebar,
-  .widget-container {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
   }
 }
 
