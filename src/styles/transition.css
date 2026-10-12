@@ -129,16 +129,27 @@ html.is-changing .onload-animation {
 /* ============================================================
    减少动画偏好 / Reduced motion — 唯一权威规则
    （旧实现里 5 个文件各写一份，这里合并为一处）
+
+   用通配选择器而不是逐个列元素：组件级 scoped 样式（如
+   #post-list-container > *）优先级高于类选择器，逐个枚举会漏掉它们，
+   导致部分卡片在“减少动态效果”下仍然动画。通配 + !important 是
+   Fuwari/Mizuki 及大多数主题采用的稳妥做法。
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+
 	.transition-main,
 	.transition-leaving,
 	.transition-swup-fade,
 	.onload-animation,
 	.onload-animation-fade-in {
-		animation-duration: 0.01ms !important;
-		animation-iteration-count: 1 !important;
-		transition-duration: 0.01ms !important;
 		will-change: auto !important;
 	}
 }
