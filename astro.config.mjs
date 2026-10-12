@@ -39,6 +39,17 @@ export default defineConfig({
 	base: "/",
 	trailingSlash: "always",
 
+	// 双语站点：中文（默认）在根路径，英文在 /en/ 下。
+	// 配置 i18n 后 Astro.currentLocale 会根据 URL 自动返回 zh_CN / en，
+	// 组件无需逐层透传语言。路由仍由我们自己的页面文件控制。
+	i18n: {
+		locales: ["zh_CN", "en"],
+		defaultLocale: "zh_CN",
+		routing: {
+			prefixDefaultLocale: false,
+		},
+	},
+
 	output: "static",
 
 	build: {
