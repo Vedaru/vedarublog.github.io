@@ -126,9 +126,6 @@ export const en: Translation = {
 	[Key.albumsBackToList]: "Back to Albums",
 
 	// Devices Page
-	[Key.devices]: "My Devices",
-	[Key.devicesSubtitle]: "Here are the devices I use in my daily life",
-	[Key.devicesViewDetails]: "View Details",
 	[Key.albumsPhotoCount]: "photo",
 	[Key.albumsPhotosCount]: "photos",
 
@@ -340,4 +337,7 @@ export const en: Translation = {
 	[Key.profileStatsPageViews]: "Page views",
 	[Key.profileStatsVisits]: "Visits",
 	[Key.profileStatsUnavailable]: "Stats unavailable",
+	[Key.diaryDescription]: "Short notes, posted as they happen",
+	[Key.commentLoading]: "Loading comments…",
+	[Key.viewsLoading]: "Loading stats…",
 };

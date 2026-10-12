@@ -1,4 +1,6 @@
 ---
+import I18nKey from "../../i18n/i18nKey";
+import { i18n } from "../../i18n/translation";
 import "../../styles/twikoo.css";
 import { commentConfig } from "@/config";
 
@@ -16,5 +18,5 @@ const twikooOptions = commentConfig.twikoo;
 	data-twikoo-lang={twikooOptions?.lang ?? "zh-CN"}
 	data-twikoo-path={Astro.props.path}
 >
-	<div class="twikoo-loading" aria-busy="true">加载评论中…</div>
+	<div class="twikoo-loading" aria-busy="true">{i18n(I18nKey.commentLoading, Astro.currentLocale)}</div>
 </div>

@@ -10,7 +10,7 @@ import {
 	skillsData,
 } from "@/data/skills";
 import I18nKey from "@/i18n/i18nKey";
-import { i18n } from "@/i18n/translation";
+import { i18n, localizedText, normalizeLocale } from "@/i18n/translation";
 
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
 
@@ -20,6 +20,14 @@ if (!siteConfig.featurePages.skills) {
 }
 
 const stats = getSkillStats();
+
+// 技能说明是中英双份（description / descriptionEn），先按当前语言挑一份，
+// 统计数量、筛选标签与卡片都基于同一份数据。
+const locale = normalizeLocale(Astro.currentLocale);
+const localizedSkills = skillsData.map((skill) => ({
+	...skill,
+	description: localizedText(locale, skill.description, skill.descriptionEn),
+}));
 
 // 分类顺序由数据文件决定，只保留实际有技能的分类
 const categories = getActiveCategories();
@@ -100,7 +108,7 @@ const allIcons = skillsData.map((skill) => skill.icon).filter(Boolean);
       <!-- 技能网格 -->
       <div class="skills-container" style="container-type: inline-size;">
         <div id="skills-grid" class="grid gap-6 items-start">
-          {skillsData.map((skill) => (
+          {localizedSkills.map((skill) => (
             <SkillCard skill={skill} />
           ))}
         </div>

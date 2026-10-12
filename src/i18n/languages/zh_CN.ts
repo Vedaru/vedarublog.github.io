@@ -124,9 +124,6 @@ export const zh_CN: Translation = {
 	[Key.albumsPhotosCount]: "张照片",
 
 	// 设备页面
-	[Key.devices]: "我的设备",
-	[Key.devicesSubtitle]: "这里展示了我日常使用的各类设备",
-	[Key.devicesViewDetails]: "查看详情",
 
 	// 项目展示页面
 	[Key.projects]: "项目展示",
@@ -328,4 +325,7 @@ export const zh_CN: Translation = {
 	[Key.profileStatsPageViews]: "浏览量",
 	[Key.profileStatsVisits]: "访问次数",
 	[Key.profileStatsUnavailable]: "统计不可用",
+	[Key.diaryDescription]: "即刻短文",
+	[Key.commentLoading]: "加载评论中…",
+	[Key.viewsLoading]: "统计加载中…",
 };

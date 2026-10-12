@@ -3,14 +3,12 @@ import { siteConfig } from "@/config";
 import { UNCATEGORIZED } from "@constants";
 import {
 	getAllTechStack,
-	getFeaturedProjects,
 	getProjectStats,
-	getProjectsByCategory,
 	type ProjectLink,
 	projectsData,
 } from "@/data/projects";
 import I18nKey from "@/i18n/i18nKey";
-import { i18n } from "@/i18n/translation";
+import { i18n, localizedText, normalizeLocale } from "@/i18n/translation";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
 
 // import { loadIconify } from "@/utils/icon-loader";
@@ -29,18 +27,30 @@ if (!siteConfig.featurePages.projects) {
 
 // 获取项目统计信息
 const stats = getProjectStats();
-const featuredProjects = getFeaturedProjects();
 const allTechStack = getAllTechStack();
+
+// 简介是中英双份（description / descriptionEn），先按当前语言挑一份，
+// 后面的分类与卡片都基于这份本地化后的数据。
+const locale = normalizeLocale(Astro.currentLocale);
+const localizedProjects = projectsData.map((project) => ({
+	...project,
+	description: localizedText(locale, project.description, project.descriptionEn),
+}));
+
+// 特色项目同样取自本地化后的数据（否则英文页会漏出中文简介）
+const featuredProjects = localizedProjects.filter((project) => project.featured);
 
 // 获取所有分类
 const categories = [
-	...new Set(projectsData.map((project) => project.category)),
+	...new Set(localizedProjects.map((project) => project.category)),
 ];
 
 // 按分类获取项目
 const projectsByCategory = categories.reduce(
 	(acc, category) => {
-		acc[category] = getProjectsByCategory(category);
+		acc[category] = localizedProjects.filter(
+			(project) => project.category === category,
+		);
 		return acc;
 	},
 	{} as Record<string, typeof projectsData>,

@@ -4,6 +4,7 @@ import FriendsPanel from "@components/features/friends/FriendsPanel.svelte";
 import Markdown from "@components/misc/Markdown.astro";
 import { siteConfig } from "@/config";
 import { getShuffledFriendsList } from "@/data/friends";
+import { localizedText, normalizeLocale } from "@/i18n/translation";
 import I18nKey from "@/i18n/i18nKey";
 import { i18n } from "@/i18n/translation";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
@@ -25,7 +26,13 @@ if (!friendsPost) {
 }
 
 const { Content } = await render(friendsPost);
-const friendsList = getShuffledFriendsList();
+// 简介是中英双份（desc / descEn），在这里挑好语言再交给岛屿，
+// 这样岛屿内的搜索也只搜当前语言的内容。
+const locale = normalizeLocale(Astro.currentLocale);
+const friendsList = getShuffledFriendsList().map((item) => ({
+	...item,
+	desc: localizedText(locale, item.desc, item.descEn),
+}));
 ---
 
 <MainGridLayout title={i18n(I18nKey.friends, Astro.currentLocale)} description={i18n(I18nKey.friends, Astro.currentLocale)} dualLocale>

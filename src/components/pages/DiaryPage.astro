@@ -54,7 +54,7 @@ for (const y of yearKeys) {
 // 时间格式化函数
 ---
 
-<MainGridLayout title={i18n(I18nKey.diary, Astro.currentLocale)} description="即刻短文" dualLocale>
+<MainGridLayout title={i18n(I18nKey.diary, Astro.currentLocale)} description={i18n(I18nKey.diaryDescription, Astro.currentLocale)} dualLocale>
 	<!-- 引入右侧边栏布局管理器 -->
   <script>
     import('@/scripts/right-sidebar-layout.js');

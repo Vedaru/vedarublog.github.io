@@ -61,9 +61,6 @@ export const zh_TW: Translation = {
 	[Key.diary]: "日記",
 
 	// 設備頁面
-	[Key.devices]: "我的設備",
-	[Key.devicesSubtitle]: "這裡展示了我日常使用的各類設備",
-	[Key.devicesViewDetails]: "查看詳情",
 
 	// 番劇頁面
 	[Key.animeTitle]: "我的追番記錄",
@@ -330,4 +327,7 @@ export const zh_TW: Translation = {
 	[Key.profileStatsPageViews]: "瀏覽次數",
 	[Key.profileStatsVisits]: "造訪次數",
 	[Key.profileStatsUnavailable]: "統計不可用",
+	[Key.diaryDescription]: "即刻短文",
+	[Key.commentLoading]: "載入評論中…",
+	[Key.viewsLoading]: "統計載入中…",
 };

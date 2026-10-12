@@ -122,9 +122,6 @@ enum I18nKey {
 	albumsPhotosCount = "albumsPhotosCount",
 
 	// 设备页面
-	devices = "devices",
-	devicesSubtitle = "devicesSubtitle",
-	devicesViewDetails = "devicesViewDetails",
 
 	// 项目展示页面
 	projects = "projects",
@@ -320,6 +317,9 @@ enum I18nKey {
 	profileStatsPageViews = "profileStatsPageViews",
 	profileStatsVisits = "profileStatsVisits",
 	profileStatsUnavailable = "profileStatsUnavailable",
+	diaryDescription = "diaryDescription",
+	commentLoading = "commentLoading",
+	viewsLoading = "viewsLoading",
 }
 
 export default I18nKey;

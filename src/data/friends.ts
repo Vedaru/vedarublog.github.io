@@ -5,7 +5,10 @@ export interface FriendItem {
 	id: number;
 	title: string;
 	imgurl: string;
+	/** 简介，中文（站点默认语言） */
 	desc: string;
+	/** 英文简介（缺失时回退 desc） */
+	descEn?: string;
 	siteurl: string;
 	tags: string[];
 }
@@ -82,6 +85,7 @@ export const friendsData: FriendItem[] = [
 		title: "MARDIO1",
 		imgurl: "https://avatars.githubusercontent.com/u/98638994?v=4&s=640",
 		desc: "大佬无需多言",
+		descEn: "A big name; nothing more needs saying",
 		siteurl: "https://github.com/MARDIO1",
 		tags: ["Developer"],
 	},
@@ -90,6 +94,7 @@ export const friendsData: FriendItem[] = [
 		title: "mratgnothing",
 		imgurl: "https://avatars.githubusercontent.com/u/251090025?v=4",
 		desc: "cpy鸽鸽",
+		descEn: "cpy, an old hand",
 		siteurl: "https://mra-t-g-blog.cn/",
 		tags: ["Developer"],
 	},
@@ -98,6 +103,7 @@ export const friendsData: FriendItem[] = [
 		title: "sakimidare",
 		imgurl: "https://avatars.githubusercontent.com/u/69438785?v=4",
 		desc: "大佬，高贵的linux用户",
+		descEn: "A big name, and a noble Linux user",
 		siteurl: "https://sakimidare.top",
 		tags: ["Blog", "Developer"],
 	},
@@ -106,6 +112,7 @@ export const friendsData: FriendItem[] = [
 		title: "CrystalDiskInfo",
 		imgurl: "https://avatars.githubusercontent.com/u/3816714?v=4",
 		desc: "一款情绪价值很高的硬盘健康检测软件",
+		descEn: "A disk-health tool with surprisingly high emotional value",
 		siteurl: "https://sourceforge.net/projects/crystaldiskinfo/",
 		tags: ["Software"],
 	},
@@ -114,6 +121,7 @@ export const friendsData: FriendItem[] = [
 		title: "Linux C 编程一站式学习",
 		imgurl: "https://avatars.githubusercontent.com/u/69438785?v=4",
 		desc: "sakimidare佬总结的Linux C 编程一站式学习指南",
+		descEn: "sakimidare's one-stop guide to Linux C programming",
 		siteurl: "https://c.sakimidare.top/pr01.html",
 		tags: ["Website", "Learning"],
 	},
@@ -121,7 +129,8 @@ export const friendsData: FriendItem[] = [
     id: 14,
     title: "The Rust Programming Language",
     imgurl: "https://doc.rust-lang.org/book/favicon-8114d1fc.png",
-    desc: "The Book",
+    desc: "Rust 官方书（The Book）",
+    descEn: "The Book",
     siteurl: "https://doc.rust-lang.org/book/title-page.html",
     tags: ["Website", "Learning"],
   },
@@ -130,6 +139,7 @@ export const friendsData: FriendItem[] = [
     title: "estel space",
     imgurl: "https://estel-space.pages.dev/icon.svg?icon.2fig5dl2zpmd0.svg",
     desc: "海一",
+    descEn: "Haiyi",
     siteurl: "https://estel-space.pages.dev",
     tags: ["Blog", "Developer"],
   }

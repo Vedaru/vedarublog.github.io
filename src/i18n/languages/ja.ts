@@ -127,9 +127,6 @@ export const ja: Translation = {
 	[Key.albumsBackToList]: "アルバムに戻る",
 
 	// デバイスページ
-	[Key.devices]: "デバイス",
-	[Key.devicesSubtitle]: "日常的に使用しているデバイスを紹介",
-	[Key.devicesViewDetails]: "詳細を表示",
 	[Key.albumsPhotoCount]: "件の写真",
 	[Key.albumsPhotosCount]: "件の写真",
 
@@ -343,4 +340,7 @@ export const ja: Translation = {
 	[Key.profileStatsPageViews]: "ページの閲覧",
 	[Key.profileStatsVisits]: "訪問",
 	[Key.profileStatsUnavailable]: "統計は利用できません",
+	[Key.diaryDescription]: "その時々の短い記録",
+	[Key.commentLoading]: "コメントを読み込み中…",
+	[Key.viewsLoading]: "統計を読み込み中…",
 };
