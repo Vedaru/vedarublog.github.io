@@ -9,6 +9,7 @@
  * 传 `href` 可覆盖跳转目标（例如文章只存在一种语言时，回退到该语言的
  * 首页或列表页，由调用方决定）。
  */
+import { i18nConfig } from "../../config";
 import { alternatePathFor, getLocaleFromPath, localeLabels } from "@i18n/locales";
 import { Icon } from "astro-icon/components";
 
@@ -26,16 +27,23 @@ const target = current === "zh_CN" ? "en" : "zh_CN";
 
 const linkHref = href ?? alternatePathFor(Astro.url.pathname, target);
 const label = targetLabel ?? localeLabels[target];
+
+// 目标语言未启用（英文路由未就绪）时不渲染，避免指向 404。
+const show = i18nConfig.enabledLocales.includes(target);
 ---
 
-<a
-	href={linkHref}
-	aria-label={`Switch language to ${label}`}
-	title={label}
-	class="btn-plain scale-animation rounded-lg h-11 px-2.5 active:scale-90 flex items-center gap-1.5 shrink-0"
-	data-language-switcher
-	data-current-locale={current}
->
-	<Icon name="material-symbols:translate" class="text-[1.25rem]"></Icon>
-	<span class="text-sm font-bold hidden md:inline">{label}</span>
-</a>
+{
+	show && (
+		<a
+			href={linkHref}
+			aria-label={`Switch language to ${label}`}
+			title={label}
+			class="btn-plain scale-animation rounded-lg h-11 px-2.5 active:scale-90 flex items-center gap-1.5 shrink-0"
+			data-language-switcher
+			data-current-locale={current}
+		>
+			<Icon name="material-symbols:translate" class="text-[1.25rem]" />
+			<span class="text-sm font-bold hidden md:inline">{label}</span>
+		</a>
+	)
+}

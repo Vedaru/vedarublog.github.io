@@ -327,6 +327,17 @@ export const profileConfig: ProfileConfig = {
 	],
 };
 
+/**
+ * 双语站点开关。
+ *
+ * enabledLocales 里列出的语言才会出现在语言切换器里。英文页面（/en/）
+ * 尚未全部就绪前先只启用中文，避免切换器指向 404；等英文路由补齐后
+ * 改成 ["zh_CN", "en"] 即可启用。
+ */
+export const i18nConfig = {
+	enabledLocales: ["zh_CN"],
+};
+
 export const licenseConfig: LicenseConfig = {
 	enable: true,
 	name: "CC BY-NC-SA 4.0",
