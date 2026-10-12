@@ -107,12 +107,14 @@ const progressPercent = $derived(
 		<h3 class="text-sm font-bold text-black/90 dark:text-white/90 mb-1 leading-tight">
 			{anime.title}
 		</h3>
-		<p
-			class="text-black/60 dark:text-white/60 text-xs mb-2 line-clamp-2"
-			title={anime.description}
-		>
-			{anime.description}
-		</p>
+		{#if anime.description}
+			<p
+				class="text-black/60 dark:text-white/60 text-xs mb-2 line-clamp-2"
+				title={anime.description}
+			>
+				{anime.description}
+			</p>
+		{/if}
 
 		<div class="space-y-1 text-xs">
 			<div class="flex justify-between items-center">

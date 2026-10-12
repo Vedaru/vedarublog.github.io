@@ -3,19 +3,24 @@ import I18nKey from "../../i18n/i18nKey";
 import { i18n } from "../../i18n/translation";
 import "../../styles/twikoo.css";
 import { commentConfig } from "@/config";
+import { defaultLocale, getLocaleFromPath, localeHtmlLang } from "@/i18n/locales";
 
 interface Props {
 	path: string;
 }
 
 const twikooOptions = commentConfig.twikoo;
+const locale = getLocaleFromPath(Astro.url.pathname);
+// 配置里的 lang 只用于默认语言；其它语言用页面语言，否则英文页会弹出中文评论区
+const twikooLang =
+	locale === defaultLocale ? twikooOptions?.lang ?? "zh-CN" : localeHtmlLang[locale];
 ---
 
 <div
 	id="tcomment"
 	class="twikoo-root"
 	data-twikoo-env={twikooOptions?.envId}
-	data-twikoo-lang={twikooOptions?.lang ?? "zh-CN"}
+	data-twikoo-lang={twikooLang}
 	data-twikoo-path={Astro.props.path}
 >
 	<div class="twikoo-loading" aria-busy="true">{i18n(I18nKey.commentLoading, Astro.currentLocale)}</div>

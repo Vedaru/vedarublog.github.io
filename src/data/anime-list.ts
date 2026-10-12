@@ -52,18 +52,18 @@ export function loadAnimeList(): AnimeEntry[] {
 		if (fs.existsSync(dataPath)) {
 			const rawData = JSON.parse(fs.readFileSync(dataPath, "utf-8"));
 			cachedList = (rawData as any[]).map((item) => ({
-				title: item.title || "Unknown",
-				titleEn: item.titleEn || "",
-				cover: item.cover || "",
-				link: item.link || "",
-				status: item.status || "planned",
-				rating: Number(item.rating) || 0,
-				progress: Number(item.progress) || 0,
-				totalEpisodes: Number(item.totalEpisodes) || 12,
-				description: item.description || "",
-				year: item.year || "",
-				studio: item.studio || "",
-				genre: Array.isArray(item.genre) ? item.genre : [],
+					title: item.title || "Unknown",
+					titleEn: item.titleEn || "",
+					cover: item.cover || "",
+					link: item.link || "",
+					status: item.status || "planned",
+					rating: Number(item.rating) || 0,
+					progress: Number(item.progress) || 0,
+					totalEpisodes: Number(item.totalEpisodes) || 12,
+					description: item.description || "",
+					year: item.year || "",
+					studio: item.studio || "",
+					genre: Array.isArray(item.genre) ? item.genre : [],
 			}));
 			return cachedList;
 		}

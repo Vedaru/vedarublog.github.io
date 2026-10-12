@@ -9,7 +9,7 @@ import SharePoster from "@components/misc/SharePoster.svelte";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 import MainGridLayout from "@layouts/MainGridLayout.astro";
-import { localePrefix } from "@i18n/locales";
+import { localeHtmlLang, localePrefix } from "@i18n/locales";
 import { normalizeLocale } from "@i18n/translation";
 import "@/styles/expressive-code.css";
 import "@/styles/fancybox-custom.css";
@@ -107,9 +107,8 @@ const jsonLd = {
 		url: Astro.site,
 	},
 	datePublished: formatDateToYYYYMMDD(entry.data.published),
-	inLanguage: entry.data.lang
-		? entry.data.lang.replace("_", "-")
-		: siteConfig.lang.replace("_", "-"),
+	inLanguage:
+		entry.data.lang?.replace("_", "-") ?? localeHtmlLang[currentLocale],
 	// TODO include cover image here
 };
 ---

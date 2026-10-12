@@ -149,24 +149,36 @@ async function fetchSubjectDetail(subjectId) {
 	}
 }
 
+/**
+ * 制作公司。
+ *
+ * 优先「动画制作」（真正的制作公司），其次「制作」；只有「製作」时那通常是
+ * 制作委员会，值里还跟着一长串出品方名单，卡片上放不下 —— 只取委员会名字
+ * 本身（到第一个括号为止）。
+ */
 function getStudioFromInfobox(infobox) {
 	if (!Array.isArray(infobox)) return "Unknown";
 
-	const targetKeys = ["动画制作", "制作", "製作", "开发"];
-
-	for (const key of targetKeys) {
+	const readValue = (key) => {
 		const item = infobox.find((i) => i.key === key);
-		if (item) {
-			if (typeof item.value === "string") {
-				return item.value;
-			}
-			if (Array.isArray(item.value)) {
-				const validItem = item.value.find((v) => v.v);
-				if (validItem) return validItem.v;
-			}
+		if (!item) return "";
+		if (typeof item.value === "string") return item.value;
+		if (Array.isArray(item.value)) {
+			return item.value.find((v) => v.v)?.v || "";
 		}
+		return "";
+	};
+
+	for (const key of ["动画制作", "制作", "アニメーション制作"]) {
+		const value = readValue(key).trim();
+		if (value) return value;
 	}
-	return "Unknown";
+
+	const committee = readValue("製作").trim();
+	if (!committee) return "Unknown";
+	// 「葬送のフリーレン」製作委員会【東宝（…）…】 -> 「葬送のフリーレン」製作委員会
+	const head = committee.split(/[【（(／/]/)[0].trim();
+	return head || committee;
 }
 
 /** infobox 中可能存放别名的键名（不同条目用词不一致）。 */
@@ -180,6 +192,19 @@ const ALIAS_INFOBOX_KEYS = [
 ];
 
 const ASCII_ONLY = /^[\x20-\x7E]+$/;
+// 别名里的英文名可能带印刷标点（· ’ ‐ 等），只要求含拉丁字母且不含中日文
+const NO_CJK = /^[^\u3000-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uff00-\uffef]+$/;
+const HAS_LATIN = /[A-Za-z]/;
+
+/** 从日文原名里捞出英文段，例如 "狼と香辛料 MERCHANT MEETS THE WISE WOLF 第2期"。 */
+function extractLatinRun(name) {
+	const runs = (name || "").match(/[A-Za-z][A-Za-z0-9'’:,!.\- ]{3,}/g) || [];
+	const longest = runs
+		.map((r) => r.trim())
+		.filter((r) => r.split(/\s+/).length >= 2)
+		.sort((a, b) => b.length - a.length)[0];
+	return longest || "";
+}
 
 /**
  * 从别名候选里挑一个最像"官方英文名"的。
@@ -190,7 +215,7 @@ const ASCII_ONLY = /^[\x20-\x7E]+$/;
  */
 function pickEnglishTitle(candidates) {
 	const ascii = candidates.filter(
-		(v) => ASCII_ONLY.test(v) && /[A-Za-z]/.test(v),
+		(v) => (ASCII_ONLY.test(v) || NO_CJK.test(v)) && HAS_LATIN.test(v),
 	);
 	if (ascii.length === 0) return "";
 
@@ -234,15 +259,30 @@ function resolveTitles(item, subjectDetail) {
 	const original = item.subject?.name || "";
 	const zh = item.subject?.name_cn || original || "Unknown Title";
 
+	// 英文名来源（全部来自 Bangumi 自身）：
+	// 1. infobox 的别名（多数条目有官方英文名）
+	// 2. 原名里夹带的英文段（"狼と香辛料 MERCHANT MEETS THE WISE WOLF 第2期"）
+	// 3. 原名本身就是英文时直接用
+	// 都没有就留空，前端回退。
 	const infoboxEn = getEnglishTitleFromInfobox(subjectDetail?.infobox);
-	const originalIsAscii =
-		original && ASCII_ONLY.test(original) && /[A-Za-z]/.test(original);
+	const originalIsAscii = original && ASCII_ONLY.test(original) && HAS_LATIN.test(original);
+	const titleEn =
+		infoboxEn ||
+		(originalIsAscii ? original : extractLatinRun(original));
 
 	return {
 		title: zh,
 		titleOriginal: original,
-		titleEn: infoboxEn || (originalIsAscii ? original : ""),
+		titleEn,
 	};
+}
+
+/**
+ * Bangumi 的 summary 末尾常附一段日文原版简介 [简介原文]，卡片上不需要，
+ * 所以在写数据时就切掉，而不是留给前端每次渲染去处理。
+ */
+function stripBangumiArtifact(text) {
+	return (text || "").split("[简介原文]")[0].trim();
 }
 
 async function fetchCollection(userId, type) {
@@ -372,21 +412,25 @@ async function processData(items, status) {
 		const progress = item.ep_status || 0;
 		const totalEpisodes = item.subject?.eps || progress;
 
-		const studio = subjectDetail
+		const infoboxStudio = subjectDetail
 			? getStudioFromInfobox(subjectDetail.infobox)
 			: "Unknown";
 
-		const description = (
-			subjectDetail?.summary ||
-			item.subject?.short_summary ||
-			item.subject?.name_cn ||
-			""
-		).trimStart();
+		const description = stripBangumiArtifact(
+			(
+				subjectDetail?.summary ||
+				item.subject?.short_summary ||
+				item.subject?.name_cn ||
+				""
+			).trimStart(),
+		);
 
 		const remoteCover = item.subject?.images?.medium || "";
 		const cover = await downloadCover(item.subject_id, remoteCover);
 
 		const titles = resolveTitles(item, subjectDetail);
+
+		const studio = infoboxStudio;
 
 		results.push({
 			title: titles.title,

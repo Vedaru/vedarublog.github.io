@@ -1,7 +1,7 @@
 ---
 import { siteConfig } from "../../config";
 import I18nKey from "../../i18n/i18nKey";
-import { i18n } from "../../i18n/translation";
+import { i18n, normalizeLocale } from "../../i18n/translation";
 import WidgetLayout from "./WidgetLayout.astro";
 import { Icon } from "astro-icon/components";
 
@@ -37,7 +37,8 @@ const weekDays = [
 	i18n(I18nKey.calendarSunday, Astro.currentLocale),
 ];
 
-const isChinese = siteConfig.lang.startsWith("zh");
+// 跟随页面语言，而不是构建期的 siteConfig.lang（否则英文页也显示"年"）
+const isChinese = normalizeLocale(Astro.currentLocale) !== "en";
 const yearSuffix = isChinese ? "年" : " ";
 ---
 
