@@ -58,23 +58,6 @@ This website is built with the **Astro** framework using the [Mizuki](https://gi
 | **Portainer** | Docker 容器可视化管理 |
 | **Beszel** | 轻量服务器监控（Hub + Agent） |
 
-### 🌐 服务地图
-| 域名 | 服务 |
-| --- | --- |
-| `git.vedaru.cn` | Forgejo Git 托管 |
-| `portainer.vedaru.cn` | Docker 管理面板 |
-| `monitor.vedaru.cn` | Beszel 系统监控 |
-
-### 🧪 在折腾的项目
-- **kuro** - Kuro Games 的 Linux 原生安装/更新器（Rust）
-- **bili-tui** - 终端里的 B 站直播工具（Rust）
-- **aniko** - Tauri 2 + Svelte、Linux 优先的动漫客户端
-- **Hyprland / Ardour / Forgejo** - 给上游打的补丁与定制 fork
-
-### 🚧 接下来想做的
-- **Minecraft 服务端**（PaperMC，已预留内存）
-- **NapCat QQ 机器人**
-
 ## 📬 与我联系
 欢迎通过以下方式交流：
 - 在文章下方留言评论

@@ -58,23 +58,6 @@ Maintenance works by forking upstream and rebasing on each release, rather than 
 | **Portainer** | Visual Docker container management |
 | **Beszel** | Lightweight server monitoring (Hub + Agent) |
 
-### 🌐 Service map
-| Domain | Service |
-| --- | --- |
-| `git.vedaru.cn` | Forgejo Git hosting |
-| `portainer.vedaru.cn` | Docker management panel |
-| `monitor.vedaru.cn` | Beszel system monitoring |
-
-### 🧪 Things I am tinkering with
-- **kuro** — a native Linux installer/updater for Kuro Games titles (Rust)
-- **bili-tui** — a Bilibili live-stream client for the terminal (Rust)
-- **aniko** — a Tauri 2 + Svelte, Linux-first anime client
-- **Hyprland / Ardour / Forgejo** — upstream patches and custom forks
-
-### 🚧 Planned
-- **Minecraft server** (PaperMC, memory already reserved)
-- **NapCat QQ bot**
-
 ## 📬 Get in touch
 Always happy to talk:
 - Leave a comment under any post
