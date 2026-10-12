@@ -1,12 +1,12 @@
 ---
 import I18nKey from "../../i18n/i18nKey";
-import { i18n } from "../../i18n/translation";
+import { i18n, normalizeLocale } from "../../i18n/translation";
 import { getCategoryList } from "../../utils/content-utils";
 import { widgetManager } from "../../utils/widget-manager";
 import ButtonLink from "../control/ButtonLink.astro";
 import WidgetLayout from "./WidgetLayout.astro";
 
-const categories = await getCategoryList();
+const categories = await getCategoryList(normalizeLocale(Astro.currentLocale));
 
 const COLLAPSED_HEIGHT = "7.5rem";
 

@@ -178,14 +178,17 @@ export async function getCategoryList(
 
 // 统计全站字数。结果只依赖文章正文，与排序/置顶无关，
 // 因此按原始（未排序）集合计算一次并缓存，避免每个页面的 SiteStats 组件重复扫描全部正文。
-let totalWordCountPromise: Promise<number> | undefined;
+const totalWordCountPromises = new Map<Locale, Promise<number>>();
 
 const CJK_PATTERN =
 	/[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af\u3000-\u303f\uff00-\uffef]/g;
 
-export function getTotalWordCount(): Promise<number> {
-	if (!totalWordCountPromise) {
-		totalWordCountPromise = getPublishedPosts(defaultLocale).then((posts) => {
+export function getTotalWordCount(
+	locale: Locale = defaultLocale,
+): Promise<number> {
+	let cached = totalWordCountPromises.get(locale);
+	if (!cached) {
+		cached = getPublishedPosts(locale).then((posts) => {
 			let total = 0;
 			for (const post of posts) {
 				const body = post.body;
@@ -208,6 +211,7 @@ export function getTotalWordCount(): Promise<number> {
 			}
 			return total;
 		});
+		totalWordCountPromises.set(locale, cached);
 	}
-	return totalWordCountPromise;
+	return cached;
 }

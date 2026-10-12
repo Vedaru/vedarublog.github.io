@@ -1,14 +1,14 @@
 ---
 
 import I18nKey from "../../i18n/i18nKey";
-import { i18n } from "../../i18n/translation";
+import { i18n, normalizeLocale } from "../../i18n/translation";
 import { getTagList } from "../../utils/content-utils";
 import { getTagUrl } from "../../utils/url-utils";
 import { widgetManager } from "../../utils/widget-manager";
 import ButtonTag from "../control/ButtonTag.astro";
 import WidgetLayout from "./WidgetLayout.astro";
 
-const tags = await getTagList();
+const tags = await getTagList(normalizeLocale(Astro.currentLocale));
 
 const COLLAPSED_HEIGHT = "7.5rem";
 

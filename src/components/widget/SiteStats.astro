@@ -2,7 +2,7 @@
 import { Icon } from "astro-icon/components";
 import { siteConfig } from "../../config";
 import I18nKey from "../../i18n/i18nKey";
-import { i18n } from "../../i18n/translation";
+import { i18n, normalizeLocale } from "../../i18n/translation";
 import {
 	getCategoryList,
 	getSortedPosts,
@@ -21,13 +21,14 @@ const { class: className, style } = Astro.props;
 // 从配置中获取站点开始日期
 const siteStartDate = siteConfig.siteStartDate || "2025-01-01";
 
-// 获取所有文章
-const posts = await getSortedPosts();
-const categories = await getCategoryList();
-const tags = await getTagList();
+// 获取所有文章（当前语言）
+const locale = normalizeLocale(Astro.currentLocale);
+const posts = await getSortedPosts(locale);
+const categories = await getCategoryList(locale);
+const tags = await getTagList(locale);
 
 // 计算总字数（结果在 content-utils 中按渲染进程缓存，避免重复扫描正文）
-const totalWords = await getTotalWordCount();
+const totalWords = await getTotalWordCount(locale);
 
 // 格式化数字（添加千位分隔符）
 function formatNumber(num: number): string {

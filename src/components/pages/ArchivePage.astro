@@ -1,11 +1,13 @@
 ---
 import ArchivePanel from "@components/features/archive/ArchivePanel.svelte";
 import I18nKey from "@i18n/i18nKey";
-import { i18n } from "@i18n/translation";
+import { i18n, normalizeLocale } from "@i18n/translation";
 import MainGridLayout from "@layouts/MainGridLayout.astro";
 import { getSortedPostsList } from "@utils/content-utils";
 
-const sortedPostsList = await getSortedPostsList();
+const sortedPostsList = await getSortedPostsList(
+	normalizeLocale(Astro.currentLocale),
+);
 
 // 1. 修复类型兼容性：将 category 的 null 转换为 undefined
 const posts = sortedPostsList.map((post) => ({
