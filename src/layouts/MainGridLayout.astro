@@ -447,27 +447,14 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
     }
 }
 
-/* 移动端图片优化 */
-@media (max-width: 1279px) {
-    /* object-position 由 head 内 is:inline 按 config.mobilePosition 注入 */
-    
-    /* 移动端banner加载动画优化 */
-    .onload-animation-fade-in {
-        animation: mobile-fade-in 0.8s ease-out forwards !important;
-    }
-}
+/* 移动端图片优化
+   object-position 由 head 内 is:inline 按 config.mobilePosition 注入。
 
-/* 移动端专用淡入动画 - 与电脑端保持一致 */
-@keyframes mobile-fade-in {
-    0% {
-        opacity: 0;
-        transform: scale(1.1);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1); /* 与电脑端当前图片缩放保持一致 */
-    }
-}
+   注：移动端曾在此用一个 0.8s 的 scale(1.1)→scale(1) 动画、带 !important
+   覆盖 .onload-animation-fade-in（文章列表卡片）。结果手机端卡片入场比
+   桌面端慢 4 倍、且从 1.1 倍缩放“弹”进来，与其它元素纯淡入不一致，是
+   移动端动效看起来“别扭”的主要来源之一。已移除该覆盖与 mobile-fade-in
+   关键帧，统一走 transition.css 的变量化淡入。 */
 
 /* #banner-wrapper 定位规则见 layout-stable.css（BannerWrapper 组件化后须用全局样式） */
 
