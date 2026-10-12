@@ -112,6 +112,22 @@ const options = i18nConfig.enabledLocales.filter(isLocale).map((code) => ({
 		// 于是面板上的"当前语言"标记和 href 都会过期 —— 用户按面板提示点
 		// "另一种语言"，实际点到的可能是自己当前语言，看起来就是"点了没反应，
 		// 再点一次才行"。所以每次打开面板都按真实地址校正一次。
+		// 服务端渲染这份 HTML 时用的语言（<html data-locale>）；客户端换页不会改它，
+		// 所以它就是"当前文档是哪国语言"的凭据。
+		const renderedLocale = document.documentElement.dataset.locale || "";
+
+		/**
+		 * swup 只替换 <main>，侧栏组件、页脚这些不在容器里的部分会保持旧语言。
+		 * 一旦客户端换页把 URL 换成了另一种语言，就整页重载一次，保证整页一致。
+		 */
+		function reloadIfRenderedLanguageIsStale() {
+			if (renderedLocale && currentLocaleFromPath() !== renderedLocale) {
+				location.reload();
+				return true;
+			}
+			return false;
+		}
+
 		function currentLocaleFromPath() {
 			const pathname = location.pathname;
 			for (const [code, prefix] of Object.entries(coverage.prefixes)) {
@@ -169,7 +185,9 @@ const options = i18nConfig.enabledLocales.filter(isLocale).map((code) => ({
 
 		// swup 客户端换页后同样校正（换页不重建导航栏）
 		const swup = (window as { swup?: { hooks?: { on: (n: string, f: () => void) => void } } }).swup;
-		swup?.hooks?.on("page:view", syncAll);
+		swup?.hooks?.on("page:view", () => {
+			if (!reloadIfRenderedLanguageIsStale()) syncAll();
+		});
 
 		for (const link of document.querySelectorAll<HTMLAnchorElement>("a[data-target-locale]")) {
 			link.addEventListener("click", () => {

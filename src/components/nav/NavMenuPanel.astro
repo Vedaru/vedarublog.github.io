@@ -150,6 +150,7 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
                     href={option.href}
                     hreflang={option.code}
                     lang={option.code}
+                    data-no-swup
                     data-target-locale={option.code}
                     data-active={option.active}
                     aria-current={option.active ? "true" : undefined}
