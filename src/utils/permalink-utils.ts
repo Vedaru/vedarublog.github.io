@@ -36,7 +36,7 @@ export function initPostIdMap(
  * @param postId 文章的 content collection id
  * @returns 文章序号，如果未初始化则返回 0
  */
-export function getPostNumericId(postId: string): number {
+function getPostNumericId(postId: string): number {
 	if (!postIdMap) {
 		// 在客户端或未初始化时返回 0，使用默认 slug
 		console.warn("Post ID map not initialized. Returning 0 for post_id.");

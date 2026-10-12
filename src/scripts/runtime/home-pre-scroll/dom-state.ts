@@ -20,7 +20,7 @@ export function setActivePreScrollVisit(
 	activePreScrollVisit = visit;
 }
 
-export function removePreScrollClasses(): void {
+function removePreScrollClasses(): void {
 	clearBlendedLayoutInlineStyles();
 	document.documentElement.classList.remove(
 		"is-home-pre-scrolling",

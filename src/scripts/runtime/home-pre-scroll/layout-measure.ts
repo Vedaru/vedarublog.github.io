@@ -1,6 +1,6 @@
 import { MIN_ANIMATED_SCROLL_AFTER_COMP } from "./constants";
 
-export function parseCssLengthToPx(value: string): number {
+function parseCssLengthToPx(value: string): number {
 	const raw = (value || "").trim();
 	if (!raw) return 0;
 	if (raw.endsWith("dvh")) {

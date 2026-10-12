@@ -24,7 +24,7 @@ const map: { [key: string]: Translation } = {
 	ja_jp: ja,
 };
 
-export function getTranslation(lang: string): Translation {
+function getTranslation(lang: string): Translation {
 	// 兼容 Astro i18n 的 BCP-47 写法（zh-CN / en）与站点内部写法（zh / zh_TW）。
 	const key = lang.toLowerCase().replace(/-/g, "_");
 	return map[key] || map[lang.toLowerCase()] || defaultTranslation;

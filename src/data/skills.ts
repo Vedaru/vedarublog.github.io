@@ -40,6 +40,10 @@ export interface Skill {
 	color?: string; // Skill card theme color
 }
 
+// The first month with a public repository on the account. Used for the
+// overall "years of experience" figure displayed by the chart.
+const CAREER_START = "2025-12";
+
 // Turns "YYYY-MM" into an experience object relative to today. Computed at
 // build time so the page never carries a stale hard-coded duration.
 const since = (ym: string): { years: number; months: number } => {
@@ -51,7 +55,7 @@ const since = (ym: string): { years: number; months: number } => {
 };
 
 // Display order of the category sections and chart bars.
-export const SKILL_CATEGORIES: SkillCategory[] = [
+const SKILL_CATEGORIES: SkillCategory[] = [
 	"languages",
 	"systems",
 	"web",

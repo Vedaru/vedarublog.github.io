@@ -43,7 +43,7 @@ function getNavbarSyncOptions(sourceIsMainHome: boolean) {
 	return { forceHomeBanner: true };
 }
 
-export function syncSemifullNavbarDuringPreScroll(
+function syncSemifullNavbarDuringPreScroll(
 	visit: HomePreScrollVisit,
 	scrollY: number,
 	sourceIsMainHome: boolean,

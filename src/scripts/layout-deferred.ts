@@ -18,3 +18,6 @@ if ("requestIdleCallback" in window) {
 } else {
 	setTimeout(runDeferred, 1);
 }
+
+// 只是一个注册钩子的模块：没有任何导出，显式标记为模块
+export {};

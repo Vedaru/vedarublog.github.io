@@ -1,6 +1,6 @@
 /** 可取消 rAF tween：新动画自动打断旧帧，取消时 reject 避免 stale .then */
 
-export class AnimationCancelledError extends Error {
+class AnimationCancelledError extends Error {
 	readonly progress: number;
 	readonly reason: string;
 

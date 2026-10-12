@@ -30,7 +30,7 @@ export function getPostUrlBySlug(slug: string, prefix = ""): string {
 	return url(`${prefix}/posts/${slugWithoutExt}/`);
 }
 
-export function getPostUrlByAlias(alias: string, prefix = ""): string {
+function getPostUrlByAlias(alias: string, prefix = ""): string {
 	// 移除开头的斜杠并确保固定链接在 /posts/ 路径下
 	const cleanAlias = alias.replace(/^\/+/, "");
 	return url(`${prefix}/posts/${cleanAlias}/`);

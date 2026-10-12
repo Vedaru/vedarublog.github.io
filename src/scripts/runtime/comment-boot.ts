@@ -1,6 +1,6 @@
 /** Twikoo 评论链：scroll-protection + twikoo-init */
 
-export function bootCommentScripts(): void {
+function bootCommentScripts(): void {
 	if (!document.getElementById("tcomment")) return;
 	loadCommentScript("/js/scroll-protection.js");
 	loadCommentScript("/js/twikoo-init.js");
@@ -32,3 +32,6 @@ if (document.readyState === "loading") {
 	bootCommentScripts();
 	registerCommentSwupHooks();
 }
+
+// 只是一个注册钩子的模块：没有任何导出，显式标记为模块
+export {};

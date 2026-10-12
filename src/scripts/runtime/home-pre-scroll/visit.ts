@@ -57,7 +57,7 @@ export function isLeavingHomePage(visit: HomePreScrollVisit): boolean {
 	return false;
 }
 
-export function isEnteringHomePage(visit: HomePreScrollVisit): boolean {
+function isEnteringHomePage(visit: HomePreScrollVisit): boolean {
 	const fromPath = window.location.pathname;
 	const targetPath = pathFromVisitUrl(visit?.to?.url || "");
 	if (!targetPath) return false;

@@ -53,6 +53,11 @@ export function pathFromUrl(url: string): string {
 	return parseUrl(url)?.pathname ?? (url || "");
 }
 
+/** 从 URL 字符串提取 search（含前导 "?"，无查询参数返回 ""） */
+function searchFromUrl(url: string): string {
+	return parseUrl(url)?.search ?? "";
+}
+
 /** 比较两条路径是否指向同一页面（含分页首页；不同语言的同页不算同一页） */
 export function pathsEqual(path1: string, path2: string): boolean {
 	if (getLocaleFromPath(path1) !== getLocaleFromPath(path2)) {

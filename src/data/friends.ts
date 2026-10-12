@@ -14,7 +14,7 @@ export interface FriendItem {
 }
 
 // 友情链接数据
-export const friendsData: FriendItem[] = [
+const friendsData: FriendItem[] = [
 	// {
 	// 	id: 1,
 	// 	title: "Astro",
