@@ -348,6 +348,11 @@ export type MusicPlayerConfig = {
 	mutex?: boolean;
 	storageName?: string;
 	gainBoost?: number;
+	/**
+	 * collapseOnMobile: 手机端首屏是否把播放器收成一个圆球（点击圆球展开）。
+	 * 桌面端不受影响；用户自己展开/收起过的选择优先于这个默认值。
+	 */
+	collapseOnMobile?: boolean;
 };
 
 export type FooterConfig = {

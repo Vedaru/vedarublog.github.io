@@ -57,15 +57,13 @@ const interactionEvents = ["click", "keydown", "touchstart"];
 let unsubscribeHidden: (() => void) | undefined;
 
 onMount(() => {
-	// 手机端默认把播放器收成一个圆球，别占住小屏；桌面端维持原来的迷你条。
-	// 用户自己的收/展选择记在本地，下次进来沿用（不再被默认值覆盖）。
-	const MOBILE_QUERY = "(max-width: 767.98px)";
-	const storedHidden = localStorage.getItem("musicPlayerHidden");
-	const startHidden =
-		storedHidden === null
-			? window.matchMedia(MOBILE_QUERY).matches
-			: storedHidden === "true";
-	if (startHidden) isHidden.set(true);
+	// 首屏收/展状态：手机端默认收成圆球（config 的 collapseOnMobile），
+	// 桌面端维持迷你条；用户自己选过的沿用本地记录。
+	const startCollapsed =
+		musicPlayerConfig.collapseOnMobile !== false &&
+		window.matchMedia("(max-width: 767.98px)").matches;
+	const stored = localStorage.getItem("musicPlayerHidden");
+	if (stored === null ? startCollapsed : stored === "true") isHidden.set(true);
 
 	unsubscribeHidden = isHidden.subscribe((hidden) => {
 		localStorage.setItem("musicPlayerHidden", String(hidden));

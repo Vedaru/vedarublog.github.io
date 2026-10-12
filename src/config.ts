@@ -430,6 +430,7 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 	order: "list", // 播放顺序：list=列表顺序, random=随机播放
 	mutex: true, // 互斥模式，阻止多个播放器同时播放
 	storageName: "music-player-cache", // localStorage 缓存键名，用于缓存播放列表数据减少重复请求
+	collapseOnMobile: true, // 手机端首屏把播放器收成圆球（桌面端不变；用户自己的选择优先）
 
 	// 可选：当浏览器支持 WebAudio 时，增益倍数用于放大输出（例如 2.0 表示最多放大 2 倍）
 	// 若音源受 CORS 限制而回退为非 WebAudio 模式，则此配置无效。
