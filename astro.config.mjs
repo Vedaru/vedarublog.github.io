@@ -47,6 +47,10 @@ export default defineConfig({
 		defaultLocale: "zh",
 		routing: {
 			prefixDefaultLocale: true,
+			// 不要 Astro 自带的"Redirecting from / to /zh/"中转页：
+			// 根路径由 functions/index.ts（边缘 302）和 src/pages/index.astro
+			// （静态兜底，无可见内容）自己处理。
+			redirectToDefaultLocale: false,
 		},
 	},
 
