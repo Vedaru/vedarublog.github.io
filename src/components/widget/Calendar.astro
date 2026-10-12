@@ -129,7 +129,7 @@ const yearSuffix = isChinese ? "年" : " ";
 	</div>
 </WidgetLayout>
 
-<script type="application/json" id="calendar-config" set:html={JSON.stringify({ monthNames, yearSuffix })} />
+<script type="application/json" id="calendar-config" set:html={JSON.stringify({ monthNames, yearSuffix, locale: normalizeLocale(Astro.currentLocale) })} />
 <script>
 	import { initCalendar } from "../../scripts/widgets/calendar-widget";
 	const el = document.getElementById("calendar-config");

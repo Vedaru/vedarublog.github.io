@@ -1,5 +1,6 @@
 ---
 import MainGridLayout from "@layouts/MainGridLayout.astro";
+import { defaultLocale } from "@i18n/locales";
 import { getSortedPosts } from "@utils/content-utils";
 import { formatDateToYYYYMMDD } from "@utils/date-utils";
 import { getPostUrl } from "@utils/url-utils";
@@ -7,7 +8,7 @@ import { Icon } from "astro-icon/components";
 import I18nKey from "../../i18n/i18nKey";
 import { i18n } from "../../i18n/translation";
 
-const posts = (await getSortedPosts()).filter((post) => !post.data.encrypted);
+const posts = (await getSortedPosts(defaultLocale)).filter((post) => !post.data.encrypted);
 const recentPosts = posts.slice(0, 6);
 ---
 

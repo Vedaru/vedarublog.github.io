@@ -14,3 +14,10 @@ interface ImportMetaEnv {
 interface ImportMeta {
 	readonly env: ImportMetaEnv;
 }
+
+declare namespace App {
+	interface Locals {
+		/** 当前页面语言，由 src/middleware.ts 从 URL 前缀解析 */
+		locale: import("./i18n/locales").Locale;
+	}
+}

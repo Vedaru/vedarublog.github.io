@@ -23,9 +23,12 @@ function getPostHref(post: CalendarPost): string {
 export function initCalendar(config: {
 	monthNames: string[];
 	yearSuffix: string;
+	/** 页面语言，决定取哪一份文章数据（/api/<locale>/calendar-data.json） */
+	locale?: string;
 }) {
 	const monthNames = config.monthNames;
 	const yearSuffix = config.yearSuffix;
+	const locale = config.locale || "zh";
 
 	const CALENDAR_DATA_CACHE_KEY = "__calendarWidgetPostsData";
 
@@ -78,7 +81,7 @@ export function initCalendar(config: {
 
 	async function fetchCalendarData(): Promise<CalendarPost[] | null> {
 		try {
-			const res = await fetch("/api/calendar-data.json");
+			const res = await fetch(`/api/${locale}/calendar-data.json`);
 			const data = await res.json();
 			return Array.isArray(data) ? (data as CalendarPost[]) : [];
 		} catch (error) {

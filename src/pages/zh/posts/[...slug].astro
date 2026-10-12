@@ -3,13 +3,14 @@
  * 中文文章页路由（/zh/posts/<slug>/）。正文见 components/pages/PostDetailPage.astro。
  */
 import type { CollectionEntry } from "astro:content";
+import { defaultLocale } from "@i18n/locales";
 import PostDetailPage from "@components/pages/PostDetailPage.astro";
 import { getSortedPosts, postSlug } from "@utils/content-utils";
 import { hasCustomPermalink, initPostIdMap } from "@utils/permalink-utils";
 import { permalinkConfig } from "../../../config";
 
 export async function getStaticPaths() {
-	const blogEntries = await getSortedPosts();
+	const blogEntries = await getSortedPosts(defaultLocale);
 
 	// 初始化文章 ID 映射（用于 %post_id% 占位符）
 	initPostIdMap(blogEntries);

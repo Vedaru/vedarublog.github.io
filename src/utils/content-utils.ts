@@ -91,7 +91,7 @@ async function getRawSortedPosts(
 	return cached;
 }
 
-export async function getSortedPosts(locale: Locale = defaultLocale) {
+export async function getSortedPosts(locale: Locale) {
 	const sorted = await getRawSortedPosts(locale);
 
 	for (let i = 1; i < sorted.length; i++) {
@@ -113,7 +113,7 @@ export type PostForList = {
 	url?: string; // 预计算的文章 URL
 };
 export async function getSortedPostsList(
-	locale: Locale = defaultLocale,
+	locale: Locale,
 ): Promise<PostForList[]> {
 	const sortedFullPosts = await getRawSortedPosts(locale);
 
@@ -135,7 +135,7 @@ export type Tag = {
 };
 
 export async function getTagList(
-	locale: Locale = defaultLocale,
+	locale: Locale,
 ): Promise<Tag[]> {
 	const allBlogPosts = await getPublishedPosts(locale);
 
@@ -162,7 +162,7 @@ export type Category = {
 };
 
 export async function getCategoryList(
-	locale: Locale = defaultLocale,
+	locale: Locale,
 ): Promise<Category[]> {
 	const allBlogPosts = await getPublishedPosts(locale);
 	const count: { [key: string]: number } = {};
@@ -207,7 +207,7 @@ const CJK_PATTERN =
 	/[\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff\uac00-\ud7af\u3000-\u303f\uff00-\uffef]/g;
 
 export function getTotalWordCount(
-	locale: Locale = defaultLocale,
+	locale: Locale,
 ): Promise<number> {
 	let cached = totalWordCountPromises.get(locale);
 	if (!cached) {

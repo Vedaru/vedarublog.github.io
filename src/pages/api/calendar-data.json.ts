@@ -1,8 +1,11 @@
+import { defaultLocale } from "@i18n/locales";
 import { getSortedPosts } from "../../utils/content-utils";
 import { getPostUrl } from "../../utils/url-utils";
 
+// 兼容旧地址：与 /api/<默认语言>/calendar-data.json 相同，
+// 只是别让缓存过的旧页面拿不到数据。
 export async function GET() {
-	const posts = await getSortedPosts();
+	const posts = await getSortedPosts(defaultLocale);
 
 	const allPostsData = posts.map((post) => {
 		const date = new Date(post.data.published);

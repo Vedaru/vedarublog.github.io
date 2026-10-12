@@ -12,6 +12,9 @@ import type { SearchResult } from "@/global";
 // 语言由 .astro 父组件传入（Astro.currentLocale），保证 SSR 与 hydration 一致
 let { locale = "" } = $props();
 
+// 语言可能是 "en" 或 "zh" / "zh-CN" 等写法，统一成两种之一
+const isLocale = locale.toLowerCase().startsWith("en") ? "en" : "zh";
+
 let keywordDesktop = $state("");
 let keywordMobile = $state("");
 let result: SearchResult[] = $state([]);
@@ -153,6 +156,13 @@ const search = async (keyword: string, isDesktop: boolean): Promise<void> => {
 			const response = await window.pagefind.search(keyword);
 			searchResults = await Promise.all(
 				response.results.map((item) => item.data()),
+			);
+			// 索引里两种语言是在一起的，按当前页面语言过滤，
+			// 否则英文页面的搜索结果会混进中文文章。
+			searchResults = searchResults.filter((item) =>
+				isLocale === "en"
+					? item.url.startsWith("/en/")
+					: !item.url.startsWith("/en/"),
 			);
 		} else if (import.meta.env.DEV) {
 			searchResults = fakeResult;
