@@ -9,6 +9,9 @@ import { url } from "@utils/url-utils";
 import { onMount, onDestroy } from "svelte";
 import type { SearchResult } from "@/global";
 
+// 语言由 .astro 父组件传入（Astro.currentLocale），保证 SSR 与 hydration 一致
+let { locale = "" } = $props();
+
 let keywordDesktop = $state("");
 let keywordMobile = $state("");
 let result: SearchResult[] = $state([]);
@@ -264,7 +267,7 @@ onDestroy(() => {
     }}
 >
     <Icon icon="material-symbols:search" class="absolute text-[1.25rem] pointer-events-none {isDesktopSearchExpanded ? 'left-3' : 'left-1/2 -translate-x-1/2'} transition top-1/2 -translate-y-1/2 {isDesktopSearchExpanded ? 'text-black/30 dark:text-white/30' : ''}"></Icon>
-    <input id="search-input-desktop" placeholder={i18n(I18nKey.search)} bind:value={keywordDesktop}
+    <input id="search-input-desktop" placeholder={i18n(I18nKey.search, locale)} bind:value={keywordDesktop}
         tabindex={isDesktopSearchExpanded ? 0 : -1}
         aria-hidden={!isDesktopSearchExpanded}
         class:pointer-events-none={!isDesktopSearchExpanded}
@@ -290,7 +293,7 @@ onDestroy(() => {
     <!-- search bar inside panel for phone/tablet -->
     <div id="search-bar-inside" class="flex relative lg:hidden transition-all items-center h-11 rounded-xl bg-black/[0.04] hover:bg-black/[0.06] focus-within:bg-black/[0.06] dark:bg-white/5 dark:hover:bg-white/10 dark:focus-within:bg-white/10">
         <Icon icon="material-symbols:search" class="absolute text-[1.25rem] pointer-events-none ml-3 transition my-auto text-black/30 dark:text-white/30"></Icon>
-        <input placeholder={i18n(I18nKey.search)} bind:value={keywordMobile}
+        <input placeholder={i18n(I18nKey.search, locale)} bind:value={keywordMobile}
                onfocus={handleSearchInteraction}
                class="pl-10 absolute inset-0 text-sm bg-transparent outline-0 focus:w-60 text-black/50 dark:text-white/50"
         >

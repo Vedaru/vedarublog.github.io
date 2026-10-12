@@ -510,7 +510,7 @@ if (siteConfig.font) {
 
 		<!-- Music Player - 仅在启用时加载 -->
 		{musicPlayerConfig.enable && (
-			<MusicPlayer client:visible initialSong={musicInitialSong} />
+			<MusicPlayer client:visible initialSong={musicInitialSong} locale={Astro.currentLocale} />
 		)}
 
 		<!-- Pio 看板娘组件 - 仅在启用时加载 -->

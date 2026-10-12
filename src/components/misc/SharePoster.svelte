@@ -14,6 +14,8 @@ export let coverImage: string | null = null;
 export let url: string;
 export let siteTitle: string;
 export let avatar: string | null = null;
+// 语言由 .astro 父组件传入（Astro.currentLocale）
+export let locale = "";
 
 // Constants
 const SCALE = 2;
@@ -350,7 +352,7 @@ async function generatePoster() {
 
 		ctx.fillStyle = "#9ca3af";
 		ctx.font = `${12 * SCALE}px ${FONT_FAMILY}`;
-		ctx.fillText(i18n(I18nKey.author), textX, footerY + 4 * SCALE);
+		ctx.fillText(i18n(I18nKey.author, locale), textX, footerY + 4 * SCALE);
 
 		ctx.fillStyle = "#1f2937";
 		ctx.font = `700 ${20 * SCALE}px ${FONT_FAMILY}`;
@@ -359,7 +361,7 @@ async function generatePoster() {
 		// Site title
 		ctx.fillStyle = "#9ca3af";
 		ctx.font = `${12 * SCALE}px ${FONT_FAMILY}`;
-		ctx.fillText(i18n(I18nKey.scanToRead), textX, footerY + 44 * SCALE);
+		ctx.fillText(i18n(I18nKey.scanToRead, locale), textX, footerY + 44 * SCALE);
 
 		ctx.fillStyle = "#1f2937";
 		ctx.font = `700 ${20 * SCALE}px ${FONT_FAMILY}`;
@@ -430,7 +432,7 @@ function portal(node: HTMLElement) {
   on:click={generatePoster}
   aria-label="Generate Share Poster"
 >
-  <span>{i18n(I18nKey.shareArticle)}</span>
+  <span>{i18n(I18nKey.shareArticle, locale)}</span>
 </button>
 
 {#if showModal}
@@ -443,7 +445,7 @@ function portal(node: HTMLElement) {
         {:else}
            <div class="flex flex-col items-center gap-3">
              <div class="w-8 h-8 border-2 border-gray-200 rounded-full animate-spin" style="border-top-color: {themeColor}"></div>
-             <span class="text-sm text-gray-500">{i18n(I18nKey.generatingPoster)}</span>
+             <span class="text-sm text-gray-500">{i18n(I18nKey.generatingPoster, locale)}</span>
            </div>
         {/if}
       </div>
@@ -455,10 +457,10 @@ function portal(node: HTMLElement) {
         >
           {#if copied}
             <Icon icon="material-symbols:check" width="20" height="20" />
-            <span>{i18n(I18nKey.copied)}</span>
+            <span>{i18n(I18nKey.copied, locale)}</span>
           {:else}
             <Icon icon="material-symbols:link" width="20" height="20" />
-            <span>{i18n(I18nKey.copyLink)}</span>
+            <span>{i18n(I18nKey.copyLink, locale)}</span>
           {/if}
         </button>
         <button 
@@ -468,7 +470,7 @@ function portal(node: HTMLElement) {
           disabled={!posterImage}
         >
           <Icon icon="material-symbols:download" width="20" height="20" />
-          {i18n(I18nKey.savePoster)}
+          {i18n(I18nKey.savePoster, locale)}
         </button>
       </div>
     </div>

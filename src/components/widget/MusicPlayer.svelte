@@ -10,8 +10,10 @@ import Controls from "./music/Controls.svelte";
 import Playlist from "./music/Playlist.svelte";
 
 export let initialSong: Song | undefined = undefined;
+// 语言由 .astro 父组件传入（Astro.currentLocale）
+export let locale = "";
 
-const player = createAudioPlayer({ initialSong });
+const player = createAudioPlayer({ initialSong, locale });
 const { stores, actions } = player;
 const {
 	isPlaying,
@@ -128,7 +130,7 @@ function handleRoleButtonKeydown(
 				<button
 					on:click={hideError}
 					class="text-white/80 hover:text-white transition-colors"
-					aria-label={i18n(Key.announcementClose)}
+					aria-label={i18n(Key.announcementClose, locale)}
 				>
 					<Icon icon="material-symbols:close" class="text-lg" />
 				</button>
@@ -150,7 +152,7 @@ function handleRoleButtonKeydown(
 			on:keydown={(e) => handleRoleButtonKeydown(e, () => void handlePlayerInteraction(toggleHidden))}
 			role="button"
 			tabindex="0"
-			aria-label={i18n(Key.musicPlayerShow)}
+			aria-label={i18n(Key.musicPlayerShow, locale)}
 		>
 			{#if $isLoading}
 				<Icon icon="material-symbols:progress-activity" class="text-white text-lg" />
@@ -184,7 +186,7 @@ function handleRoleButtonKeydown(
 					on:keydown={(e) => handleRoleButtonKeydown(e, () => void handlePlayerInteraction(togglePlay))}
 					role="button"
 					tabindex="0"
-					aria-label={$isPlaying ? i18n(Key.musicPlayerPause) : i18n(Key.musicPlayerPlay)}
+					aria-label={$isPlaying ? i18n(Key.musicPlayerPause, locale) : i18n(Key.musicPlayerPlay, locale)}
 				>
 					<img
 						src={getAssetPath($currentSong.cover)}
@@ -214,7 +216,7 @@ function handleRoleButtonKeydown(
 					on:keydown={(e) => handleRoleButtonKeydown(e, () => void handlePlayerInteraction(toggleExpanded))}
 					role="button"
 					tabindex="0"
-					aria-label={i18n(Key.musicPlayerExpand)}
+					aria-label={i18n(Key.musicPlayerExpand, locale)}
 				>
 					<div class="text-sm font-medium text-90 truncate">
 						{$currentSong.title}
@@ -225,14 +227,14 @@ function handleRoleButtonKeydown(
 					<button
 						class="btn-plain w-8 h-8 rounded-lg flex items-center justify-center"
 						on:click|stopPropagation={toggleHidden}
-						aria-label={i18n(Key.musicPlayerHide)}
+						aria-label={i18n(Key.musicPlayerHide, locale)}
 					>
 						<Icon icon="material-symbols:visibility-off" class="text-lg" />
 					</button>
 					<button
 						class="btn-plain w-8 h-8 rounded-lg flex items-center justify-center"
 						on:click|stopPropagation={toggleExpanded}
-						aria-label={i18n(Key.musicPlayerExpand)}
+						aria-label={i18n(Key.musicPlayerExpand, locale)}
 					>
 						<Icon icon="material-symbols:expand-less" class="text-lg" />
 					</button>
@@ -273,7 +275,7 @@ function handleRoleButtonKeydown(
 					<button
 						class="btn-plain w-8 h-8 rounded-lg flex items-center justify-center"
 						on:click={toggleHidden}
-						aria-label={i18n(Key.musicPlayerHide)}
+						aria-label={i18n(Key.musicPlayerHide, locale)}
 					>
 						<Icon icon="material-symbols:visibility-off" class="text-lg" />
 					</button>
@@ -281,18 +283,18 @@ function handleRoleButtonKeydown(
 						class="btn-plain w-8 h-8 rounded-lg flex items-center justify-center"
 						class:text-[var(--primary)]={$showPlaylist}
 						on:click={() => void handlePlayerInteraction(togglePlaylist)}
-						aria-label={i18n(Key.musicPlayerPlaylist)}
+						aria-label={i18n(Key.musicPlayerPlaylist, locale)}
 					>
 						<Icon icon="material-symbols:queue-music" class="text-lg" />
 					</button>
 				</div>
 			</div>
 
-			<Controls {player} />
+			<Controls {player} {locale} />
 		</div>
 
 		{#if $showPlaylist}
-			<Playlist {player} />
+			<Playlist {player} {locale} />
 		{/if}
 	</div>
 {/if}

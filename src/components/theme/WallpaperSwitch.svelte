@@ -17,6 +17,9 @@
     import { panelManager } from "../../utils/panel-manager.js";
     import { onMount } from "svelte";
 
+    // 语言由 .astro 父组件传入（Astro.currentLocale）
+    let { locale = "" } = $props();
+
     const wallpaperOptions: { mode: WALLPAPER_MODE; icon: string; label: I18nKey }[] = [
         { mode: WALLPAPER_BANNER, icon: "material-symbols:image-outline", label: I18nKey.wallpaperBanner },
         { mode: WALLPAPER_FULLSCREEN, icon: "material-symbols:wallpaper", label: I18nKey.wallpaperFullscreen },
@@ -71,7 +74,7 @@
                     onclick={() => switchWallpaperMode(option.mode)}
                 >
                     <Icon icon={option.icon} class="text-[1.25rem] mr-3"></Icon>
-                    {i18n(option.label)}
+                    {i18n(option.label, locale)}
                 </button>
             {/each}
         </div>

@@ -7,6 +7,8 @@ import { i18n } from "@/i18n/translation";
 import type { AudioPlayer } from "@/lib/audio/useAudioPlayer";
 
 export let player: AudioPlayer;
+// 语言由 .astro 父组件传入（Astro.currentLocale）
+export let locale = "";
 
 const { stores, actions } = player;
 const { playlist, currentIndex, isPlaying } = stores;
@@ -30,8 +32,8 @@ function handleRoleButtonKeydown(
 	<div
 		class="playlist-header flex items-center justify-between p-4 border-b border-[var(--line-divider)]"
 	>
-		<h3 class="text-lg font-semibold text-90">{i18n(Key.musicPlayerPlaylist)}</h3>
-		<button class="btn-plain w-8 h-8 rounded-lg" on:click={togglePlaylist} aria-label={i18n(Key.announcementClose)}>
+		<h3 class="text-lg font-semibold text-90">{i18n(Key.musicPlayerPlaylist, locale)}</h3>
+		<button class="btn-plain w-8 h-8 rounded-lg" on:click={togglePlaylist} aria-label={i18n(Key.announcementClose, locale)}>
 			<Icon icon="material-symbols:close" class="text-lg" />
 		</button>
 	</div>

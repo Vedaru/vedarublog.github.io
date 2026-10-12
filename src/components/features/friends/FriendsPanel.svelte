@@ -4,7 +4,7 @@ import { i18n } from "@i18n/translation";
 import { onDestroy } from "svelte";
 import type { FriendItem, FriendsPanelProps } from "./types";
 
-let { friendsList = [] }: FriendsPanelProps = $props();
+let { friendsList = [], locale = "" }: FriendsPanelProps = $props();
 
 const allTags = Array.from(new Set(friendsList.flatMap((item) => item.tags)));
 
@@ -57,7 +57,7 @@ function hostnameOf(url: string): string {
 				type="text"
 				id="friend-search"
 				bind:value={searchTerm}
-				placeholder={i18n(I18nKey.friendsSearchPlaceholder)}
+				placeholder={i18n(I18nKey.friendsSearchPlaceholder, locale)}
 				class="w-full px-4 py-2 pl-10 rounded-lg bg-[var(--btn-regular-bg)]
 						text-black/90 dark:text-white/90
 						border border-black/10 dark:border-white/10
@@ -88,7 +88,7 @@ function hostnameOf(url: string): string {
 			class:active={currentTag === "all"}
 			onclick={() => (currentTag = "all")}
 		>
-			{i18n(I18nKey.friendsFilterAll)}
+			{i18n(I18nKey.friendsFilterAll, locale)}
 		</button>
 		{#each allTags as tag (tag)}
 			<button
@@ -200,7 +200,7 @@ function hostnameOf(url: string): string {
 								d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
 							></path>
 						</svg>
-						{i18n(I18nKey.friendsVisit)}
+						{i18n(I18nKey.friendsVisit, locale)}
 					</a>
 					<button
 						type="button"
@@ -209,7 +209,7 @@ function hostnameOf(url: string): string {
 							 hover:bg-[var(--btn-regular-bg-hover)]
 							 active:scale-95 transition-all duration-200
 							 text-black/70 dark:text-white/70"
-						title={i18n(I18nKey.friendsCopyLink)}
+						title={i18n(I18nKey.friendsCopyLink, locale)}
 						onclick={() => copyLink(item)}
 					>
 						{#if copiedId === item.id}
@@ -228,7 +228,7 @@ function hostnameOf(url: string): string {
 									></path>
 								</svg>
 								<span class="text-xs"
-									>{i18n(I18nKey.friendsCopySuccess)}</span
+									>{i18n(I18nKey.friendsCopySuccess, locale)}</span
 								>
 							</div>
 						{:else}
@@ -276,7 +276,7 @@ function hostnameOf(url: string): string {
 		></path>
 	</svg>
 	<p class="text-black/50 dark:text-white/50 text-lg">
-		{i18n(I18nKey.friendsNoResults)}
+		{i18n(I18nKey.friendsNoResults, locale)}
 	</p>
 </div>
 

@@ -7,6 +7,8 @@ import { i18n } from "@/i18n/translation";
 import type { AudioPlayer } from "@/lib/audio/useAudioPlayer";
 
 export let player: AudioPlayer;
+// 语言由 .astro 父组件传入（Astro.currentLocale）
+export let locale = "";
 
 const { stores, actions } = player;
 const {
@@ -65,7 +67,7 @@ const {
 		on:pointermove={handleProgressHover}
 		role="slider"
 		tabindex="0"
-		aria-label={i18n(Key.musicPlayerProgress)}
+		aria-label={i18n(Key.musicPlayerProgress, locale)}
 		aria-valuemin={0}
 		aria-valuemax={100}
 		aria-valuenow={$duration > 0 ? ($currentTime / $duration) * 100 : 0}
@@ -95,7 +97,7 @@ const {
 		class:btn-plain={!$isShuffled}
 		on:click={toggleShuffle}
 		disabled={$playlist.length <= 1}
-		aria-label={i18n(Key.musicPlayerShuffle)}
+		aria-label={i18n(Key.musicPlayerShuffle, locale)}
 	>
 		<Icon icon="material-symbols:shuffle" class="text-lg" />
 	</button>
@@ -103,7 +105,7 @@ const {
 		class="btn-plain w-10 h-10 rounded-lg"
 		on:click={previousSong}
 		disabled={$playlist.length <= 1}
-		aria-label={i18n(Key.musicPlayerPrevious)}
+		aria-label={i18n(Key.musicPlayerPrevious, locale)}
 	>
 		<Icon icon="material-symbols:skip-previous" class="text-xl" />
 	</button>
@@ -112,7 +114,7 @@ const {
 		class:opacity-50={$isLoading}
 		disabled={$isLoading}
 		on:click={togglePlay}
-		aria-label={$isPlaying ? i18n(Key.musicPlayerPause) : i18n(Key.musicPlayerPlay)}
+		aria-label={$isPlaying ? i18n(Key.musicPlayerPause, locale) : i18n(Key.musicPlayerPlay, locale)}
 	>
 		{#if $isLoading}
 			<Icon icon="material-symbols:progress-activity" class="text-xl" />
@@ -126,7 +128,7 @@ const {
 		class="btn-plain w-10 h-10 rounded-lg"
 		on:click={() => nextSong()}
 		disabled={$playlist.length <= 1}
-		aria-label={i18n(Key.musicPlayerNext)}
+		aria-label={i18n(Key.musicPlayerNext, locale)}
 	>
 		<Icon icon="material-symbols:skip-next" class="text-xl" />
 	</button>
@@ -137,8 +139,8 @@ const {
 		class:btn-plain={$isRepeating === 0 && !musicPlayerConfig.autoplayContinuous}
 		on:click={toggleRepeat}
 		aria-label={$isRepeating === 1
-			? i18n(Key.musicPlayerRepeatOne)
-			: i18n(Key.musicPlayerRepeat)}
+			? i18n(Key.musicPlayerRepeatOne, locale)
+			: i18n(Key.musicPlayerRepeat, locale)}
 	>
 		{#if $isRepeating === 1}
 			<Icon icon="material-symbols:repeat-one" class="text-lg" />
@@ -153,7 +155,7 @@ const {
 </div>
 
 <div class="bottom-controls flex items-center gap-2">
-	<button class="btn-plain w-8 h-8 rounded-lg" on:click={toggleMute} aria-label={i18n(Key.musicPlayerVolume)}>
+	<button class="btn-plain w-8 h-8 rounded-lg" on:click={toggleMute} aria-label={i18n(Key.musicPlayerVolume, locale)}>
 		{#if $isMuted || $volume === 0}
 			<Icon icon="material-symbols:volume-off" class="text-lg" />
 		{:else if $volume < 0.5}
@@ -177,7 +179,7 @@ const {
 		on:pointermove={handleVolumeHover}
 		role="slider"
 		tabindex="0"
-		aria-label={i18n(Key.musicPlayerVolume)}
+		aria-label={i18n(Key.musicPlayerVolume, locale)}
 		aria-valuemin={0}
 		aria-valuemax={100}
 		aria-valuenow={$volume * 100}
@@ -205,7 +207,7 @@ const {
 	<button
 		class="btn-plain w-8 h-8 rounded-lg flex items-center justify-center"
 		on:click={toggleExpanded}
-		aria-label={i18n(Key.musicPlayerCollapse)}
+		aria-label={i18n(Key.musicPlayerCollapse, locale)}
 	>
 		<Icon icon="material-symbols:expand-more" class="text-lg" />
 	</button>

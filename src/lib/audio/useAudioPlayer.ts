@@ -48,9 +48,12 @@ export function mapPlaylistEntry(
 
 export type CreateAudioPlayerOptions = {
 	initialSong?: Song;
+	/** 界面语言（来自 .astro 父组件）。省略时回退到站点默认语言。 */
+	locale?: string;
 };
 
 export function createAudioPlayer(options?: CreateAudioPlayerOptions) {
+	const locale = options?.locale;
 	let audio: HTMLAudioElement | undefined;
 	let progressBar: HTMLElement | undefined;
 	let volumeBar: HTMLElement | undefined;
@@ -192,8 +195,8 @@ export function createAudioPlayer(options?: CreateAudioPlayerOptions) {
 			const list: Record<string, unknown>[] = await res.json();
 			const songs = list.map((song, index) =>
 				mapPlaylistEntry(song, index, {
-					unknownSong: i18n(Key.unknownSong),
-					unknownArtist: i18n(Key.unknownArtist),
+					unknownSong: i18n(Key.unknownSong, locale),
+					unknownArtist: i18n(Key.unknownArtist, locale),
 				}),
 			);
 			playlist.set(songs);
@@ -206,7 +209,7 @@ export function createAudioPlayer(options?: CreateAudioPlayerOptions) {
 				}
 				isLoading.set(false);
 		} catch {
-			showErrorMessage(i18n(Key.musicPlayerErrorPlaylist));
+			showErrorMessage(i18n(Key.musicPlayerErrorPlaylist, locale));
 			isLoading.set(false);
 			// 允许下次交互重试：不缓存失败的拉取，否则一次瞬时失败会永久空列表
 			playlistFetchPromise = null;
@@ -342,13 +345,13 @@ export function createAudioPlayer(options?: CreateAudioPlayerOptions) {
 		const song = get(currentSong);
 		if (!song.url) return;
 		isLoading.set(false);
-		showErrorMessage(i18n(Key.musicPlayerErrorSong));
+		showErrorMessage(i18n(Key.musicPlayerErrorSong, locale));
 
 		const shouldContinue = get(isPlaying) || willAutoPlay;
 		if (get(playlist).length > 1) {
 			setTimeout(() => nextSong(shouldContinue), 1000);
 		} else {
-			showErrorMessage(i18n(Key.musicPlayerErrorEmpty));
+			showErrorMessage(i18n(Key.musicPlayerErrorEmpty, locale));
 		}
 	}
 

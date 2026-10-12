@@ -28,5 +28,5 @@ const posts = sortedPostsList.map((post) => ({
 
 	<!-- 列表在服务端渲染（client:load 而非 client:only），首屏即有内容：
 	     既避免 hydration 后才插入列表造成的下移/跳动，也利于 SEO。 -->
-	<ArchivePanel sortedPosts={posts} client:load />
+	<ArchivePanel sortedPosts={posts} locale={Astro.currentLocale} client:load />
 </MainGridLayout>

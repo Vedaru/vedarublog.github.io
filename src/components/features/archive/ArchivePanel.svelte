@@ -6,7 +6,7 @@ import { comparePublishedDatesDescending } from "@utils/post-date-utils";
 import { onMount } from "svelte";
 import type { ArchivePanelProps, Group, Post } from "./types";
 
-let { sortedPosts = [] }: ArchivePanelProps = $props();
+let { sortedPosts = [], locale = "" }: ArchivePanelProps = $props();
 
 // 筛选条件来自 URL（侧边栏的分类/标签链接）。URL 只有浏览器才有，所以
 // 不能在组件初始化时读取：那会让组件无法 SSR，只能用 client:only，
@@ -119,6 +119,7 @@ onMount(() => {
 						group.posts.length === 1
 							? I18nKey.postCount
 							: I18nKey.postsCount,
+						locale,
 					)}
 				</div>
 			</div>

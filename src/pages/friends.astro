@@ -42,7 +42,7 @@ const friendsList = getShuffledFriendsList();
 			</div>
 
 			<!-- 搜索、标签筛选与友链卡片，均在客户端组件内完成过滤 -->
-			<FriendsPanel friendsList={friendsList} client:load />
+			<FriendsPanel friendsList={friendsList} locale={Astro.currentLocale} client:load />
 
 			<!-- 说明文档 -->
 			<Markdown class="mt-8 prose dark:prose-invert max-w-none">
