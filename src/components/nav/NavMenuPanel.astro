@@ -5,12 +5,25 @@ import I18nKey from "../../i18n/i18nKey";
 import { i18n } from "../../i18n/translation";
 import { LinkPreset, type NavBarLink } from "../../types/config";
 import { localizeInternalHref, url } from "../../utils/url-utils";
+import { i18nConfig } from "../../config";
+import { getLocaleCoverage } from "@i18n/coverage";
+import { resolveAlternatePath } from "@i18n/locale-paths";
+import { getLocaleFromPath, isLocale, localeLabels } from "@i18n/locales";
 
 interface Props {
 	links: NavBarLink[];
 }
 
 // 国际化标题映射
+const coverage = await getLocaleCoverage();
+const currentLocale = getLocaleFromPath(Astro.url.pathname);
+const languageOptions = i18nConfig.enabledLocales.filter(isLocale).map((code) => ({
+	code,
+	label: localeLabels[code],
+	active: code === currentLocale,
+	href: resolveAlternatePath(Astro.url.pathname, code, coverage),
+}));
+
 const navTitleMap: Record<string, string> = {
 	Links: I18nKey.navLinks,
 	My: I18nKey.navMy,
@@ -112,6 +125,32 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
             )}
         </div>
     ))}
+
+    <!-- 语言选择：手机端放在菜单里，导航栏那一行放不下（360px 已满） -->
+    <div class="mobile-menu-item" data-language-options>
+        <div class="mobile-item-label flex items-center gap-2 transition-colors duration-150 text-black/75 dark:text-white/75 font-bold">
+            <Icon name="material-symbols:translate" class="mobile-item-icon text-[1.1rem]" />
+            {localeLabels[currentLocale]}
+        </div>
+        <div class="flex gap-2 mt-1 pl-1">
+            {languageOptions.map((option) => (
+                <a
+                    href={option.href}
+                    hreflang={option.code}
+                    lang={option.code}
+                    data-target-locale={option.code}
+                    data-active={option.active}
+                    aria-current={option.active ? "true" : undefined}
+                    class:list={[
+                        "btn-regular rounded-lg px-3 py-1 text-sm font-medium active:scale-95 transition-transform",
+                        { "text-[var(--primary)]": option.active },
+                    ]}
+                >
+                    {option.label}
+                </a>
+            ))}
+        </div>
+    </div>
 </div>
 
 <style>
