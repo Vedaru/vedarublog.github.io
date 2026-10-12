@@ -9,6 +9,8 @@ import localAnimeList from "./anime";
  */
 export interface AnimeEntry {
 	title: string;
+	/** Bangumi 英文名（来自 infobox 别名），可能缺失。 */
+	titleEn?: string;
 	cover: string;
 	link: string;
 	status: string;
@@ -51,6 +53,7 @@ export function loadAnimeList(): AnimeEntry[] {
 			const rawData = JSON.parse(fs.readFileSync(dataPath, "utf-8"));
 			cachedList = (rawData as any[]).map((item) => ({
 				title: item.title || "Unknown",
+				titleEn: item.titleEn || "",
 				cover: item.cover || "",
 				link: item.link || "",
 				status: item.status || "planned",

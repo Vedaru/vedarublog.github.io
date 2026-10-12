@@ -84,8 +84,12 @@ const resolveCover = (src: string) => (src.startsWith("/") ? url(src) : src);
 
 // 全量解析后一次交给岛屿：首屏只渲染前 INITIAL_DISPLAY_COUNT 条，
 // 其余条目随 props 一起下发，滚动到哨兵时同步揭示，无需再发请求。
+// 标题在此按语言解析（英文页优先 Bangumi 英文名，缺失则回退中文名），
+// 与 statusMeta 的处理方式一致，客户端无需再判断语言。
 const resolvedAnimeList = animeList.map((anime) => ({
 	...anime,
+	title:
+		Astro.currentLocale === "en" ? anime.titleEn || anime.title : anime.title,
 	cover: resolveCover(anime.cover),
 }));
 ---
