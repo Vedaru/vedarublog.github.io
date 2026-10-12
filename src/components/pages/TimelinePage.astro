@@ -11,8 +11,10 @@ import {
 	timelineData,
 } from "@/data/timeline";
 import I18nKey from "@/i18n/i18nKey";
-import { i18n } from "@/i18n/translation";
+import { i18n, localizedText, normalizeLocale } from "@/i18n/translation";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
+import type { TimelineItem } from "@/data/timeline";
+import { localeHtmlLang } from "@/i18n/locales";
 
 // 检查时间线页面是否启用
 if (!siteConfig.featurePages.timeline) {
@@ -28,12 +30,29 @@ const allIcons = timelineData
 
 // 获取时间线统计信息
 const stats = getTimelineStats();
+
+const locale = normalizeLocale(Astro.currentLocale);
+
+/**
+ * 时间线数据是中英双份（title/titleEn 等），这里按当前语言拍平成一份，
+ * 下面的模板就不用逐处判断语言了。
+ */
+const localizeItem = (item: TimelineItem): TimelineItem => ({
+	...item,
+	title: localizedText(locale, item.title, item.titleEn),
+	description: localizedText(locale, item.description, item.descriptionEn),
+	achievements:
+		locale === "en" && item.achievementsEn
+			? item.achievementsEn
+			: item.achievements,
+});
+
 // const featuredItems = getFeaturedTimeline();
-const currentItems = getCurrentItems();
+const currentItems = getCurrentItems().map(localizeItem);
 const workExperience = getTotalWorkExperience();
 
 // 获取所有时间线项目（按时间倒序）
-const allTimelineItems = getTimelineByType();
+const allTimelineItems = getTimelineByType().map(localizeItem);
 
 // 类型图标映射
 const getTypeIcon = (type: string) => {
@@ -67,10 +86,13 @@ const getTypeIcon = (type: string) => {
 // 	}
 // };
 
-// 格式化日期
+// 格式化日期（跟随页面语言，英文页面不能再用中文的年月）
 const formatDate = (dateString: string) => {
 	const date = new Date(dateString);
-	return date.toLocaleDateString("zh-CN", { year: "numeric", month: "long" });
+	return date.toLocaleDateString(localeHtmlLang[locale], {
+		year: "numeric",
+		month: "long",
+	});
 };
 
 // 计算持续时间

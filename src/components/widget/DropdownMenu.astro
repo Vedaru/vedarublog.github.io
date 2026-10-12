@@ -4,7 +4,7 @@ import { getLinkPresets } from "@constants";
 import I18nKey from "../../i18n/i18nKey";
 import { i18n } from "../../i18n/translation";
 import type { NavBarLink } from "../../types/config";
-import { url } from "../../utils/url-utils";
+import { localizeInternalHref, url } from "../../utils/url-utils";
 
 interface Props {
 	link: NavBarLink;
@@ -70,7 +70,7 @@ const hasChildren = children.length > 0;
 						{children.map((child) => (
 							<a
 								href={
-									child.external ? child.url : url(child.url)
+									child.external ? child.url : localizeInternalHref(child.url, Astro.currentLocale)
 								}
 								target={child.external ? "_blank" : null}
 								rel={
@@ -104,7 +104,7 @@ const hasChildren = children.length > 0;
 		) : (
 			<a
 				aria-label={link.name}
-				href={link.external ? link.url : url(link.url)}
+				href={link.external ? link.url : localizeInternalHref(link.url, Astro.currentLocale)}
 				target={link.external ? "_blank" : null}
 				rel={link.external ? "noopener noreferrer" : null}
 				class="btn-plain scale-animation rounded-lg h-11 font-bold px-5 active:scale-95 flex items-center"

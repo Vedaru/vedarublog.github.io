@@ -1,6 +1,7 @@
 import type { CollectionEntry } from "astro:content";
 import I18nKey from "@i18n/i18nKey";
-import { i18n } from "@i18n/translation";
+import { localePrefix, localePrefixTable, localizePath } from "@i18n/locales";
+import { i18n, normalizeLocale } from "@i18n/translation";
 import { permalinkConfig } from "../config";
 import { generatePermalinkSlug } from "./permalink-utils";
 
@@ -41,11 +42,10 @@ export function getPostUrl(post: {
 	data: { alias?: string; permalink?: string };
 }): string;
 export function getPostUrl(post: any): string {
-	// 英文文章挂在 /en/ 下；中文（默认语言）保持根路径不变。
-	// 语言以文件名的 .en 后缀为准，与 content-utils 的 postLocale 保持一致
-	// （早期版本改成了后缀判定，这里没跟上，导致英文页链接指向中文 URL）。
+	// 语言以文件名的 .en 后缀为准，与 content-utils 的 postLocale 保持一致。
+	// 两种语言各占一个前缀：/zh 与 /en。
 	const isEnglish = /\.en$/.test(removeFileExtension(String(post.id ?? "")));
-	const prefix = isEnglish ? "/en" : "";
+	const prefix = localePrefix(isEnglish ? "en" : "zh");
 
 	// 如果文章有自定义 permalink，优先使用（在根目录下）
 	if (post.data.permalink) {
@@ -69,9 +69,25 @@ export function getPostUrl(post: any): string {
 	// 否则使用默认的 slug 路径
 	// 英文版与中文版同目录，文件名多一个 .en 后缀，拼 URL 前去掉
 	return getPostUrlBySlug(
-		removeFileExtension(String(post.id)).replace(/\.en$/, ""),
+		removeFileExtension(String(post.id)).replace(/\.(en|zh)$/, ""),
 		prefix,
 	);
+}
+
+/**
+ * 站内链接按当前语言加前缀。
+ *
+ * 配置里的链接（导航、公告等）写的是与语言无关的路径（"/about/"），
+ * 渲染时才能决定去哪个语言：/zh/about/ 还是 /en/about/。
+ * 外部链接、已带语言前缀的地址、非根路径（资源等）原样返回。
+ */
+export function localizeInternalHref(href: string, locale?: string): string {
+	if (!href || !href.startsWith("/")) return href;
+	const prefixes = Object.values(localePrefixTable());
+	if (prefixes.some((p) => href === p || href.startsWith(`${p}/`))) {
+		return url(href);
+	}
+	return url(localizePath(href, normalizeLocale(locale)));
 }
 
 export function getTagUrl(tag: string, prefix = ""): string {

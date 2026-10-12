@@ -42,7 +42,7 @@ export type SiteConfig = {
 
 	lang:
 		| "en"
-		| "zh_CN"
+		| "zh"
 		| "zh_TW"
 		| "ja"
 		| "ko"
@@ -222,6 +222,8 @@ export type ProfileConfig = {
 	avatar?: string;
 	name: string;
 	bio?: string;
+	/** 英文简介（英文站点使用） */
+	bioEn?: string;
 	links: {
 		name: string;
 		url: string;
@@ -309,13 +311,16 @@ export type ExpressiveCodeConfig = {
 export type AnnouncementConfig = {
 	// enable属性已移除，现在通过sidebarLayoutConfig统一控制
 	title?: string; // 公告栏标题
+	titleEn?: string; // 英文标题（英文站点使用）
 	content: string; // 公告栏内容
+	contentEn?: string; // 英文内容
 	icon?: string; // 公告栏图标
 	type?: "info" | "warning" | "success" | "error"; // 公告类型
 	closable?: boolean; // 是否可关闭
 	link?: {
 		enable: boolean; // 是否启用链接
 		text: string; // 链接文字
+		textEn?: string; // 英文链接文字
 		url: string; // 链接地址
 		external?: boolean; // 是否外部链接
 	};

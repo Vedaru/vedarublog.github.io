@@ -8,7 +8,7 @@
  */
 
 export interface LocaleCoverage {
-	/** 各语言的路径前缀：{ zh_CN: "", en: "/en" } */
+	/** 各语言的路径前缀：{ zh: "/zh", en: "/en" } */
 	prefixes: Record<string, string>;
 	/** 只存在于一种语言的路径（canonical，已去前缀）→ 拥有它的语言 */
 	oneSided: Record<string, string>;
@@ -50,6 +50,8 @@ export function resolveAlternatePath(
 ): string {
 	const prefix = coverage.prefixes[target] ?? "";
 	const canonical = stripLocalePath(pathname, coverage.prefixes);
+	// 404 是站点级页面（/404.html），不存在「另一种语言的 404」，回首页
+	if (canonical.startsWith("/404")) return joinLocalePath("/", prefix);
 	const owner = coverage.oneSided[canonical];
 	if (owner && owner !== target) return joinLocalePath("/", prefix);
 	return joinLocalePath(canonical, prefix);

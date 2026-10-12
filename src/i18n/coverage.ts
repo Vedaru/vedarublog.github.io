@@ -32,8 +32,9 @@ function staticPaths(): Map<Locale, Set<string>> {
 		if (segments[segments.length - 1] === "index") segments.pop();
 
 		const path = segments.length ? `/${segments.join("/")}/` : "/";
-		// 404 是站点级页面，不分语言
-		if (path === "/404/") continue;
+		// 404 是站点级页面；根路径只是语言入口（src/pages/index.astro），
+		// 两种语言都有真正的首页（/zh/ 与 /en/），由 pathSets 统一补上
+		if (path === "/404/" || path === "/") continue;
 
 		const owner =
 			locales.find((locale) => localePrefixTable()[locale] === `/${segments[0]}`) ??
@@ -55,6 +56,9 @@ async function pathSets(): Promise<Map<Locale, Set<string>>> {
 		locales.map(async (locale) => {
 			const set = byLocale.get(locale);
 			if (!set) return;
+
+			// 语言首页（/zh/ 与 /en/）：由动态路由 [...page].astro 生成，上面扫不到
+			set.add("/");
 
 			const posts = await getSortedPosts(locale);
 			for (const post of posts) {

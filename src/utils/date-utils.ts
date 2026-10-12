@@ -18,7 +18,7 @@ export function formatDateI18n(dateString: string): string {
 
 	// 语言代码映射
 	const localeMap: Record<string, string> = {
-		zh_CN: "zh-CN",
+		zh: "zh-CN",
 		zh_TW: "zh-TW",
 		en: "en-US",
 		ja: "ja-JP",

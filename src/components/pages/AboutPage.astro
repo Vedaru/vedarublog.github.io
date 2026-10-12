@@ -6,13 +6,13 @@ import I18nKey from "@/i18n/i18nKey";
 import { i18n } from "@/i18n/translation";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
 
-// spec 集合的 id 含扩展名（about.md / about.en.md），因此直接按 id 查找；
+// spec 集合的 id 含扩展名（about.zh.md / about.en.md），因此直接按 id 查找；
 // 英文版缺失时回退到中文版，避免页面直接报错。
 const specEntries = await getCollection("spec");
 const byId = (id: string) => specEntries.find((entry) => entry.id === id);
 const aboutPost =
 	(Astro.currentLocale === "en" ? byId("about.en.md") : undefined) ??
-	byId("about.md");
+	byId("about.zh.md");
 
 if (!aboutPost) {
 	throw new Error("About page content not found");

@@ -1,0 +1,79 @@
+---
+/**
+ * 根路径：把访客送到对应语言的站点。
+ *
+ * 语言本身在 URL 里（/zh/、/en/），这里只决定第一次来的人去哪一边：
+ * 记住过选择就沿用，否则看浏览器语言，都判断不了就默认中文。
+ *
+ * 纯静态托管下没有服务端可依赖，所以用一小段跳转脚本；无 JS 时页面上的
+ * 链接仍然可用，搜索引擎也只会看到指向两种语言入口的链接。
+ */
+import { siteConfig } from "../config";
+import { localeLabels, locales, localizePath } from "@i18n/locales";
+import { LOCALE_COOKIE } from "../scripts/locale-preference";
+
+const title = siteConfig.title;
+const entries = locales.map((locale) => ({
+	locale,
+	label: localeLabels[locale],
+	href: localizePath("/", locale),
+}));
+---
+
+<!doctype html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>{title}</title>
+		<meta name="robots" content="noindex" />
+		{
+			entries.map((entry) => (
+				<link rel="alternate" hreflang={entry.locale} href={entry.href} />
+			))
+		}
+		<script is:inline define:vars={{ LOCALE_COOKIE, entries }}>
+			(function () {
+				var available = {};
+				for (var i = 0; i < entries.length; i++) {
+					available[entries[i].locale] = entries[i].href;
+				}
+
+				var saved = null;
+				var match = document.cookie.match(
+					new RegExp("(?:^|;\\s*)" + LOCALE_COOKIE + "=([^;]+)"),
+				);
+				if (match) saved = decodeURIComponent(match[1]);
+
+				var target = available[saved] ? saved : null;
+
+				if (!target) {
+					var preferred = navigator.languages || [navigator.language || ""];
+					for (var j = 0; j < preferred.length && !target; j++) {
+						var code = String(preferred[j]).toLowerCase();
+						if (code.indexOf("zh") === 0) target = "zh";
+						else if (code.indexOf("en") === 0) target = "en";
+					}
+				}
+
+				location.replace(available[target] || available.zh);
+			})();
+		</script>
+	</head>
+	<body
+		style="font-family:system-ui,-apple-system,'Segoe UI',sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;margin:0"
+	>
+		<main style="text-align:center">
+			<p>{title}</p>
+			<p>
+				{
+					entries.map((entry) => (
+						<a href={entry.href} style="margin:0 .5rem">
+							{entry.label}
+						</a>
+					))
+				}
+			</p>
+		</main>
+	</body>
+</html>

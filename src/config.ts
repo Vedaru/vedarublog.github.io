@@ -18,7 +18,7 @@ import { LinkPreset } from "./types/config";
 // 移除i18n导入以避免循环依赖
 
 // 定义站点语言
-const SITE_LANG = "zh_CN"; // 语言代码，例如：'en', 'zh_CN', 'ja' 等。
+const SITE_LANG = "zh"; // 语言代码，例如：'en', 'zh', 'ja' 等。
 const SITE_TIMEZONE = 8; //设置你的网站时区 from -12 to 12 default in UTC+8
 export const siteConfig: SiteConfig = {
 	title: "Vedaruの心之海",
@@ -299,6 +299,8 @@ export const profileConfig: ProfileConfig = {
 	avatar: "assets/images/avatar-384.webp", // 相对于 /src 目录。如果以 '/' 开头，则相对于 /public 目录
 	name: "Vedaru",
 	bio: `天亮 那路在呼唤 我的行囊和我的吉他`,
+	// 英文站点的同一句简介（数据文案不走 i18n key，直接写两份）
+	bioEn: `Daybreak, the road is calling, my pack and my guitar`,
 	typewriter: {
 		enable: true, // 启用个人简介打字机效果
 		speed: 80, // 打字速度（毫秒）
@@ -335,7 +337,7 @@ export const profileConfig: ProfileConfig = {
  * 的 href 覆盖，或临时把这里改回只留中文。
  */
 export const i18nConfig = {
-	enabledLocales: ["zh_CN", "en"],
+	enabledLocales: ["zh", "en"],
 };
 
 export const licenseConfig: LicenseConfig = {
@@ -394,11 +396,14 @@ export const shareConfig: ShareConfig = {
 
 export const announcementConfig: AnnouncementConfig = {
 	title: "公告", // 公告标题
+	titleEn: "Notice",
 	content: "正常更新中……", // 公告内容
+	contentEn: "Updates are running normally…",
 	closable: false, // 允许用户关闭公告
 	link: {
 		enable: true, // 启用链接
 		text: "关于本站", // 链接文本
+		textEn: "About this site",
 		url: "/about/", // 链接 URL
 		external: false, // 内部链接
 	},

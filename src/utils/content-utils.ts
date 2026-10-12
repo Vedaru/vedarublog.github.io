@@ -14,23 +14,23 @@ type PostsEntry = CollectionEntry<"posts">;
 /**
  * 文章所属语言。
  *
- * 以文件名为准：英文版与中文版放在同一目录，文件名多一个 .en 后缀
- * （如 thoughts.md / thoughts.en.md），方便对照与维护。
+ * 以文件名为准：中英两版放在同一目录，中文文件带 .zh 后缀，英文带 .en 后缀
+ * （如 thoughts.zh.md / thoughts.en.md），这样一对文件就在一起，好对照好维护。
  */
 export function postLocale(post: PostsEntry): Locale {
 	return isEnglishId(post.id) ? "en" : defaultLocale;
 }
 
-/** 去掉扩展名与 .en 后缀后的 slug，用于 URL 与路由参数。 */
+/** 去掉扩展名与语言后缀后的 slug，用于 URL 与路由参数。 */
 export function postSlug(post: { id: string }): string {
-	return removeFileExtension(post.id).replace(EN_SUFFIX, "");
+	return removeFileExtension(post.id).replace(LOCALE_SUFFIX, "");
 }
 
-/** 英文文件名的 .en 后缀（已去掉扩展名后判断）。 */
-const EN_SUFFIX = /\.en$/;
+/** 文件名里的语言后缀（已去掉扩展名后判断）。 */
+const LOCALE_SUFFIX = /\.(en|zh)$/;
 
 function isEnglishId(id: string): boolean {
-	return EN_SUFFIX.test(removeFileExtension(id));
+	return /\.en$/.test(removeFileExtension(id));
 }
 
 // 每个 Astro 渲染进程内只查询一次内容集合，避免同一页面的多个组件

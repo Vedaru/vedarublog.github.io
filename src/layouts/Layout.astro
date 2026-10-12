@@ -230,7 +230,7 @@ if (siteConfig.font) {
 					rel="alternate"
 					hreflang="x-default"
 					href={
-						new URL(localizePath(canonicalPath, "zh_CN"), siteConfig.siteURL)
+						new URL(localizePath(canonicalPath, "zh"), siteConfig.siteURL)
 							.href
 					}
 				/>
@@ -532,7 +532,6 @@ if (siteConfig.font) {
 	import { initThemeBootstrap } from "../scripts/theme-bootstrap";
 	import { initSwupLifecycle } from "../scripts/swup-lifecycle";
 	import { initNavbarScroll } from "../scripts/navbar-scroll";
-	import "../scripts/language-mode";
 
 	initThemeBootstrap();
 	initSwupLifecycle();

@@ -24,11 +24,11 @@ import { Icon } from "astro-icon/components";
 import CryptoJS from "crypto-js";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
-import { licenseConfig } from "../config";
-import ImageWrapper from "../components/misc/ImageWrapper.astro";
+import { licenseConfig } from "../../config";
+import ImageWrapper from "../../components/misc/ImageWrapper.astro";
 import PostMetadata from "@components/post/PostMeta.astro";
-import { profileConfig, siteConfig } from "../config";
-import { formatDateToYYYYMMDD } from "../utils/date-utils";
+import { profileConfig, siteConfig } from "../../config";
+import { formatDateToYYYYMMDD } from "../../utils/date-utils";
 
 export async function getStaticPaths() {
 	const blogEntries = await getSortedPosts();
@@ -121,7 +121,7 @@ const jsonLd = {
 >
     <script is:inline slot="head" type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
     <script>
-    import('../scripts/right-sidebar-layout.js');
+    import('../../scripts/right-sidebar-layout.js');
     </script>
     <div
         class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative mb-4"

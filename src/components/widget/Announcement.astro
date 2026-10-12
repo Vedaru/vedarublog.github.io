@@ -2,10 +2,12 @@
 import { Icon } from "astro-icon/components";
 import { announcementConfig } from "../../config";
 import I18nKey from "../../i18n/i18nKey";
-import { i18n } from "../../i18n/translation";
+import { i18n, localizedText, normalizeLocale } from "../../i18n/translation";
+import { localizeInternalHref } from "../../utils/url-utils";
 import WidgetLayout from "./WidgetLayout.astro";
 
 const config = announcementConfig;
+const locale = normalizeLocale(Astro.currentLocale);
 
 interface Props {
 	class?: string;
@@ -17,7 +19,7 @@ const style = Astro.props.style;
 
 <!-- 组件显示现在由sidebarLayoutConfig统一控制，无需检查config.enable -->
 <WidgetLayout 
-    name={config.title || i18n(I18nKey.announcement, Astro.currentLocale)} 
+    name={localizedText(locale, config.title || "", config.titleEn) || i18n(I18nKey.announcement, Astro.currentLocale)} 
     id="announcement"
     class={className} 
     style={style}
@@ -25,7 +27,7 @@ const style = Astro.props.style;
     <div>
         <!-- 公告栏内容 -->
         <div class="text-neutral-600 dark:text-neutral-300 leading-relaxed mb-3">
-            {config.content}
+            {localizedText(locale, config.content, config.contentEn)}
         </div>
         
         <!-- 可选链接和关闭按钮 -->
@@ -33,12 +35,12 @@ const style = Astro.props.style;
             <div>
                 {config.link && config.link.enable !== false && (
                     <a 
-                        href={config.link.url} 
+                        href={config.link.external ? config.link.url : localizeInternalHref(config.link.url, Astro.currentLocale)} 
                         target={config.link.external ? "_blank" : "_self"}
                         rel={config.link.external ? "noopener noreferrer" : undefined}
                         class="btn-regular rounded-lg px-3 py-1.5 text-sm font-medium active:scale-95 transition-transform"
                     >
-                        {config.link.text}
+                        {localizedText(locale, config.link.text, config.link.textEn)}
 
                     </a>
                 )}

@@ -4,8 +4,8 @@ import { getSortedPosts } from "@utils/content-utils";
 import { formatDateToYYYYMMDD } from "@utils/date-utils";
 import { getPostUrl } from "@utils/url-utils";
 import { Icon } from "astro-icon/components";
-import I18nKey from "../i18n/i18nKey";
-import { i18n } from "../i18n/translation";
+import I18nKey from "../../i18n/i18nKey";
+import { i18n } from "../../i18n/translation";
 
 const posts = (await getSortedPosts()).filter((post) => !post.data.encrypted);
 const recentPosts = posts.slice(0, 6);
@@ -14,7 +14,7 @@ const recentPosts = posts.slice(0, 6);
 <MainGridLayout title={i18n(I18nKey.rss, Astro.currentLocale)}>
 	<!-- 引入右侧边栏布局管理器 -->
   <script>
-    import('../scripts/right-sidebar-layout.js');
+    import('../../scripts/right-sidebar-layout.js');
   </script>
     <div class="onload-animation">
         <!-- RSS 标题和介绍 -->

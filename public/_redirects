@@ -1,0 +1,40 @@
+# 旧中文 URL -> 新前缀。
+#
+# 中文原本在根路径（/posts/x/），现在与英文对称地挂在 /zh/ 下。这些跳转
+# 保住已收录的地址和外部链接，不能删。
+#
+# 英文路径（/en/...）没有变化，无需规则。根路径不跳转：它是语言入口页。
+
+/posts/*        /zh/posts/:splat        301
+/about/         /zh/about/              301
+/about/*        /zh/about/:splat        301
+/albums/        /zh/albums/             301
+/albums/*       /zh/albums/:splat       301
+/anime/         /zh/anime/              301
+/anime/*        /zh/anime/:splat        301
+/archive/       /zh/archive/            301
+/archive/*      /zh/archive/:splat      301
+/atom/          /zh/atom/               301
+/atom/*         /zh/atom/:splat         301
+/devices/       /zh/devices/            301
+/devices/*      /zh/devices/:splat      301
+/diary/         /zh/diary/              301
+/diary/*        /zh/diary/:splat        301
+/friends/       /zh/friends/            301
+/friends/*      /zh/friends/:splat      301
+/projects/      /zh/projects/           301
+/projects/*     /zh/projects/:splat     301
+/rss/           /zh/rss/                301
+/rss/*          /zh/rss/:splat          301
+/skills/        /zh/skills/             301
+/skills/*       /zh/skills/:splat       301
+/timeline/      /zh/timeline/           301
+/timeline/*     /zh/timeline/:splat     301
+
+# 首页分页（/2/、/3/ ...）
+/2/             /zh/2/                  301
+/3/             /zh/3/                  301
+
+# feed
+/rss.xml        /zh/rss.xml             301
+/atom.xml       /zh/atom.xml            301

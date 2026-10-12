@@ -18,7 +18,7 @@ const specEntries = await getCollection("spec");
 const byId = (id: string) => specEntries.find((entry) => entry.id === id);
 const friendsPost =
 	(Astro.currentLocale === "en" ? byId("friends.en.md") : undefined) ??
-	byId("friends.md");
+	byId("friends.zh.md");
 
 if (!friendsPost) {
 	throw new Error("friends page content not found");

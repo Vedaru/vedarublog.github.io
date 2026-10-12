@@ -4,7 +4,11 @@
 export interface TimelineItem {
 	id: string;
 	title: string;
+	/** 英文标题（缺失时回退 title） */
+	titleEn?: string;
 	description: string;
+	/** 英文描述（缺失时回退 description） */
+	descriptionEn?: string;
 	type: "education" | "work" | "project" | "achievement";
 	startDate: string;
 	endDate?: string; // If empty, it means current
@@ -13,6 +17,8 @@ export interface TimelineItem {
 	position?: string;
 	skills?: string[];
 	achievements?: string[];
+	/** 英文成就列表（缺失时回退 achievements） */
+	achievementsEn?: string[];
 	links?: {
 		name: string;
 		url: string;
@@ -27,8 +33,11 @@ export const timelineData: TimelineItem[] = [
 	{
 		id: "current-study",
 		title: "计算机学习",
+		titleEn: "Computer Science Studies",
 		description:
 			"课余时间学习计算机技术，专注于网页开发、软件工程和人工智能算法。",
+		descriptionEn:
+			"Studying computing in my own time, focused on web development, software engineering and machine-learning algorithms.",
 		type: "education",
 		startDate: "2025-09-01",
 		skills: [
@@ -41,6 +50,10 @@ export const timelineData: TimelineItem[] = [
 		achievements: [
 			"学习了python和前端开发的基础知识",
 			"完成了数据结构与算法的学习",
+		],
+		achievementsEn: [
+			"Learned the fundamentals of Python and front-end development",
+			"Worked through data structures and algorithms",
 		],
 		icon: "material-symbols:school",
 		color: "#059669",
@@ -178,34 +191,51 @@ export const timelineData: TimelineItem[] = [
 	{
 		id: "college",
 		title: "大学学习",
+		titleEn: "University",
 		description: "成为大人了呢。培养了一堆爱好，比如看番，刷题，敲代码。",
+		descriptionEn:
+			"So this is what being a grown-up feels like. Picked up a pile of hobbies instead: anime, problem sets, writing code.",
 		type: "education",
 		startDate: "2025-09-01",
 		achievements: ["小镇做题家，没什么成就可写"],
+		achievementsEn: [
+			"A small-town exam grinder; nothing here worth calling an achievement",
+		],
 		icon: "material-symbols:school",
 		color: "#2563EB",
 	},
 	{
 		id: "high-school-graduation",
 		title: "高中学习",
+		titleEn: "High School",
 		description:
 			"高中计算机课上学习了python的基础知识，激发了对编程的兴趣。",
+		descriptionEn:
+			"Learned the basics of Python in a high-school computer class, which is where programming first got interesting.",
 		type: "education",
 		startDate: "2022-09-01",
 		endDate: "2025-06-30",
 		achievements: ["小镇做题家，没什么成就可写"],
+		achievementsEn: [
+			"A small-town exam grinder; nothing here worth calling an achievement",
+		],
 		icon: "material-symbols:school",
 		color: "#2563EB",
 	},
 	{
 		id: "yolo-project",
 		title: "YOLO目标检测项目",
+		titleEn: "YOLO Object Detection Project",
 		description: "使用YOLOv5模型进行无人机目标检测的项目。",
+		descriptionEn: "A drone object-detection project built on the YOLOv5 model.",
 		type: "project",
 		startDate: "2025-12-13",
 		skills: ["Pytorch", "YOLOv5", "Computer Vision"],
 		achievements: [
 			"深入学习了Pytorch和目标检测算法，并掌握了小参数体量模型在边缘设备上的部署方法。",
+		],
+		achievementsEn: [
+			"Went deep on PyTorch and detection algorithms, and learned how to deploy small-parameter models on edge devices",
 		],
 		icon: "material-symbols:code",
 		color: "#7C3AED",

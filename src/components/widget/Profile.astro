@@ -1,7 +1,8 @@
 ---
 import { Icon } from "astro-icon/components";
 import { profileConfig, umamiConfig } from "../../config";
-import { url } from "../../utils/url-utils";
+import { localizeInternalHref } from "../../utils/url-utils";
+import { localizedText, normalizeLocale } from "../../i18n/translation";
 import ImageWrapper from "../misc/ImageWrapper.astro";
 import TypewriterText from "../TypewriterText.astro";
 import I18nKey from "../../i18n/i18nKey";
@@ -15,7 +16,7 @@ const umamiBaseUrl = umamiConfig.baseUrl || "";
 ---
 
 <div class="card-base p-3">
-    <a aria-label="Go to About Page" href={url('/about/')}
+    <a aria-label="Go to About Page" href={localizeInternalHref('/about/', Astro.currentLocale)}
        class="group block relative mx-auto mt-1 lg:mx-0 lg:mt-0 mb-3
        max-w-[12rem] lg:max-w-none aspect-square overflow-hidden rounded-xl active:opacity-90">
         <div class="absolute transition-colors pointer-events-none group-hover:bg-black/30 group-active:bg-black/50
@@ -40,11 +41,15 @@ const umamiBaseUrl = umamiConfig.baseUrl || "";
         <div class="text-center text-neutral-400 mb-2.5 transition min-h-[1.5em]">
             {profileConfig.typewriter?.enable ? (
                 <TypewriterText 
-                    text={profileConfig.bio || ""}
+                    text={localizedText(normalizeLocale(Astro.currentLocale), profileConfig.bio || "", profileConfig.bioEn)}
                     speed={profileConfig.typewriter.speed}
                 />
             ) : (
-                profileConfig.bio
+                localizedText(
+                    normalizeLocale(Astro.currentLocale),
+                    profileConfig.bio || "",
+                    profileConfig.bioEn,
+                )
             )}
         </div>
         

@@ -40,13 +40,13 @@ export default defineConfig({
 	trailingSlash: "always",
 
 	// 双语站点：中文（默认）在根路径，英文在 /en/ 下。
-	// 配置 i18n 后 Astro.currentLocale 会根据 URL 自动返回 zh_CN / en，
-	// 组件无需逐层透传语言。路由仍由我们自己的页面文件控制。
+	// 配置 i18n 后 Astro.currentLocale 会根据 URL 自动返回 zh / en，组件无需逐层透传语言。
+	// 两种语言都带前缀（/zh/ 与 /en/），根路径由 src/pages/index.astro 选择语言。
 	i18n: {
-		locales: ["zh_CN", "en"],
-		defaultLocale: "zh_CN",
+		locales: ["zh", "en"],
+		defaultLocale: "zh",
 		routing: {
-			prefixDefaultLocale: false,
+			prefixDefaultLocale: true,
 		},
 	},
 
@@ -139,14 +139,12 @@ export default defineConfig({
 			preprocess: vitePreprocess(),
 		}),
 		sitemap({
-			// robots.txt 只放行首页与 /posts/（含 /en/ 版本），sitemap 保持一致。
+			// 与 robots.txt 保持一致：收录两种语言的实际内容。
+			// 根路径只是语言入口（noindex），不进 sitemap。
 			filter: (page) => {
 				const pathname = new URL(page).pathname;
 				return (
-					pathname === "/" ||
-					pathname.startsWith("/posts/") ||
-					pathname === "/en/" ||
-					pathname.startsWith("/en/")
+					pathname.startsWith("/zh/") || pathname.startsWith("/en/")
 				);
 			},
 		}),
