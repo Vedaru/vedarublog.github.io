@@ -8,12 +8,13 @@ import type { ArchivePanelProps, Group, Post } from "./types";
 
 let { sortedPosts = [] }: ArchivePanelProps = $props();
 
-// 筛选条件全部来自 URL（侧边栏的分类/标签链接），换页时组件重建即为重新读取
-const params = new URLSearchParams(window.location.search);
-const tags = params.getAll("tag");
-const categories = params.getAll("category");
-const uncategorized = params.has("uncategorized");
-
+// 筛选条件来自 URL（侧边栏的分类/标签链接）。URL 只有浏览器才有，所以
+// 不能在组件初始化时读取：那会让组件无法 SSR，只能用 client:only，
+// 列表要等 JS 加载后才被插入 DOM —— 这正是归档页在入场动画结束后整体
+// 下移/跳动的原因。
+//
+// 改为：SSR 先用全量数据渲染出列表（首屏即有内容、利于 SEO），挂载后
+// 再按 URL 参数收敛到筛选结果。
 let groups = $state<Group[]>([]);
 
 // 纯日期只保留 UTC 年月日：不读浏览器本地时区，静态构建与客户端渲染才一致
@@ -29,11 +30,35 @@ function formatTag(tagList: string[]) {
 	return tagList.map((t) => `#${t}`).join(" ");
 }
 
-onMount(() => {
-	let filteredPosts: Post[] = sortedPosts;
+/** 把文章按发布年份分组，年份倒序。 */
+function buildGroups(posts: Post[]): Group[] {
+	const grouped = posts.reduce(
+		(acc, post) => {
+			const year = postYear(post.data.published);
+			(acc[year] ||= []).push(post);
+			return acc;
+		},
+		{} as Record<number, Post[]>,
+	);
+
+	return Object.keys(grouped)
+		.map((yearStr) => ({
+			year: Number.parseInt(yearStr, 10),
+			posts: grouped[Number.parseInt(yearStr, 10)],
+		}))
+		.sort((a, b) => b.year - a.year);
+}
+
+/** 按 URL 查询参数筛出文章（无参数时即全量）。 */
+function filterByParams(posts: Post[], params: URLSearchParams): Post[] {
+	const tags = params.getAll("tag");
+	const categories = params.getAll("category");
+	const uncategorized = params.has("uncategorized");
+
+	let filtered = posts;
 
 	if (tags.length > 0) {
-		filteredPosts = filteredPosts.filter(
+		filtered = filtered.filter(
 			(post) =>
 				Array.isArray(post.data.tags) &&
 				post.data.tags.some((tag) => tags.includes(tag)),
@@ -41,17 +66,17 @@ onMount(() => {
 	}
 
 	if (categories.length > 0) {
-		filteredPosts = filteredPosts.filter(
+		filtered = filtered.filter(
 			(post) => post.data.category && categories.includes(post.data.category),
 		);
 	}
 
 	if (uncategorized) {
-		filteredPosts = filteredPosts.filter((post) => !post.data.category);
+		filtered = filtered.filter((post) => !post.data.category);
 	}
 
 	// 按发布时间倒序排序，确保不受置顶影响
-	filteredPosts = filteredPosts
+	return filtered
 		.slice()
 		.sort((a, b) =>
 			comparePublishedDatesDescending(
@@ -61,25 +86,16 @@ onMount(() => {
 				b.id,
 			),
 		);
+}
 
-	const grouped = filteredPosts.reduce(
-		(acc, post) => {
-			const year = postYear(post.data.published);
-			if (!acc[year]) {
-				acc[year] = [];
-			}
-			acc[year].push(post);
-			return acc;
-		},
-		{} as Record<number, Post[]>,
+// 服务端先渲染全量列表，保证首屏就有内容。
+groups = buildGroups(sortedPosts);
+
+onMount(() => {
+	// 挂载后按 URL 参数收敛；普通访问（无参数）结果不变，因此不会位移。
+	groups = buildGroups(
+		filterByParams(sortedPosts, new URLSearchParams(window.location.search)),
 	);
-
-	groups = Object.keys(grouped)
-		.map((yearStr) => ({
-			year: Number.parseInt(yearStr, 10),
-			posts: grouped[Number.parseInt(yearStr, 10)],
-		}))
-		.sort((a, b) => b.year - a.year);
 });
 </script>
 

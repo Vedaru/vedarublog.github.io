@@ -26,6 +26,7 @@ const posts = sortedPostsList.map((post) => ({
 		import("../scripts/right-sidebar-layout.js");
 	</script>
 
-	<!-- 筛选在客户端按 URL 参数重建列表（见 ArchivePanel.svelte） -->
-	<ArchivePanel sortedPosts={posts} client:only="svelte" />
+	<!-- 列表在服务端渲染（client:load 而非 client:only），首屏即有内容：
+	     既避免 hydration 后才插入列表造成的下移/跳动，也利于 SEO。 -->
+	<ArchivePanel sortedPosts={posts} client:load />
 </MainGridLayout>
