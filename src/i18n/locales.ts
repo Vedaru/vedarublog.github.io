@@ -73,7 +73,11 @@ export function stripLocalePrefix(pathname: string): string {
 		const prefix = LOCALE_PREFIX[locale];
 		if (!prefix) continue;
 		if (pathname === `/${prefix}`) return "/";
-		if (pathname.startsWith(`/${prefix}/`)) return pathname.slice(prefix.length + 1);
+		if (pathname.startsWith(`/${prefix}/`)) {
+			// 保证结果始终以 "/" 开头：/en/2/ -> /2/（而不是 2/）
+			const rest = pathname.slice(prefix.length + 1);
+			return rest.startsWith("/") ? rest : `/${rest}`;
+		}
 	}
 	return pathname;
 }

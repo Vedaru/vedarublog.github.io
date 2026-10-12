@@ -2,6 +2,7 @@
 	import "@/lib/iconify-offline";
 	import Icon from "@iconify/svelte";
 	import { panelManager } from "../../utils/panel-manager.js";
+	import { rememberLocale } from "../../scripts/locale-preference";
 	import { onMount } from "svelte";
 
 	/**
@@ -50,6 +51,13 @@
 		await panelManager.closePanel("language-panel");
 		isPanelOpen = false;
 	}
+
+	// 记住用户主动选的语言，下次落到语言首页时由 Layout 里的内联脚本
+	// 直接送到对应语言（cookie 只用于这一步，爬虫没有 cookie）。
+	function selectLocale(code: string) {
+		rememberLocale(code);
+		void closePanel();
+	}
 </script>
 
 <div class="relative z-50">
@@ -86,7 +94,7 @@
 					]}
 					data-active={option.active}
 					aria-current={option.active ? "true" : undefined}
-					onclick={closePanel}
+					onclick={() => selectLocale(option.code)}
 				>
 					<Icon
 						icon={option.active
