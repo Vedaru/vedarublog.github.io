@@ -28,27 +28,27 @@ const animeList = loadAnimeList();
 // 之后作为 props 传给岛屿，客户端无需再重复这套映射。
 const statusMeta: Record<string, AnimeStatusMeta> = {
 	watching: {
-		text: i18n(I18nKey.animeStatusWatching),
+		text: i18n(I18nKey.animeStatusWatching, Astro.currentLocale),
 		class: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
 		icon: "▶",
 	},
 	completed: {
-		text: i18n(I18nKey.animeStatusCompleted),
+		text: i18n(I18nKey.animeStatusCompleted, Astro.currentLocale),
 		class: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
 		icon: "✓",
 	},
 	planned: {
-		text: i18n(I18nKey.animeStatusPlanned),
+		text: i18n(I18nKey.animeStatusPlanned, Astro.currentLocale),
 		class: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
 		icon: "❤",
 	},
 	onhold: {
-		text: i18n(I18nKey.animeStatusOnHold),
+		text: i18n(I18nKey.animeStatusOnHold, Astro.currentLocale),
 		class: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
 		icon: "⏸",
 	},
 	dropped: {
-		text: i18n(I18nKey.animeStatusDropped),
+		text: i18n(I18nKey.animeStatusDropped, Astro.currentLocale),
 		class: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
 		icon: "✗",
 	},
@@ -61,22 +61,22 @@ const statusMeta: Record<string, AnimeStatusMeta> = {
 };
 
 const filterTabs: AnimeFilterTab[] = [
-	{ value: "all", label: i18n(I18nKey.animeFilterAll) },
-	{ value: "watching", label: i18n(I18nKey.animeStatusWatching) },
-	{ value: "planned", label: i18n(I18nKey.animeStatusPlanned) },
-	{ value: "completed", label: i18n(I18nKey.animeStatusCompleted) },
+	{ value: "all", label: i18n(I18nKey.animeFilterAll, Astro.currentLocale) },
+	{ value: "watching", label: i18n(I18nKey.animeStatusWatching, Astro.currentLocale) },
+	{ value: "planned", label: i18n(I18nKey.animeStatusPlanned, Astro.currentLocale) },
+	{ value: "completed", label: i18n(I18nKey.animeStatusCompleted, Astro.currentLocale) },
 ];
 
 if (ANIME_MODE === "bangumi") {
 	filterTabs.push(
-		{ value: "onhold", label: i18n(I18nKey.animeStatusOnHold) },
-		{ value: "dropped", label: i18n(I18nKey.animeStatusDropped) },
+		{ value: "onhold", label: i18n(I18nKey.animeStatusOnHold, Astro.currentLocale) },
+		{ value: "dropped", label: i18n(I18nKey.animeStatusDropped, Astro.currentLocale) },
 	);
 }
 
 const animeLabels = {
-	year: i18n(I18nKey.animeYear),
-	studio: i18n(I18nKey.animeStudio),
+	year: i18n(I18nKey.animeYear, Astro.currentLocale),
+	studio: i18n(I18nKey.animeStudio, Astro.currentLocale),
 };
 
 // 封面为 public 下的根路径，需要补上部署基路径；远程 URL 原样保留。
@@ -91,8 +91,8 @@ const resolvedAnimeList = animeList.map((anime) => ({
 ---
 
 <MainGridLayout
-	title={i18n(I18nKey.anime)}
-	description={i18n(I18nKey.animeSubtitle)}
+	title={i18n(I18nKey.anime, Astro.currentLocale)}
+	description={i18n(I18nKey.animeSubtitle, Astro.currentLocale)}
 >
 	<!-- 让列表/网格布局切换时右侧边栏同步隐藏（原 anime-page.js 里的手工处理） -->
 	<script>
@@ -108,10 +108,10 @@ const resolvedAnimeList = animeList.map((anime) => ({
                     before:w-1 before:h-8 before:rounded-md before:bg-[var(--primary)]
                     before:absolute before:top-1/2 before:-translate-y-1/2 before:-left-4"
 				>
-					{i18n(I18nKey.animeTitle)}
+					{i18n(I18nKey.animeTitle, Astro.currentLocale)}
 				</h1>
 				<p class="text-black/75 dark:text-white/75">
-					{i18n(I18nKey.animeSubtitle)}
+					{i18n(I18nKey.animeSubtitle, Astro.currentLocale)}
 				</p>
 			</div>
 
@@ -120,7 +120,7 @@ const resolvedAnimeList = animeList.map((anime) => ({
 					<div class="text-center py-12">
 						<div class="text-5xl mb-4">😢</div>
 						<h3 class="text-xl font-medium text-black/80 dark:text-white/80 mb-2">
-							{i18n(I18nKey.animeEmpty)}
+							{i18n(I18nKey.animeEmpty, Astro.currentLocale)}
 						</h3>
 						<p class="text-black/60 dark:text-white/60">
 							Please set your Bangumi userId in the src/config.ts
@@ -140,12 +140,12 @@ const resolvedAnimeList = animeList.map((anime) => ({
 					<div class="text-center py-12">
 						<div class="text-5xl mb-4">😢</div>
 						<h3 class="text-xl font-medium text-black/80 dark:text-white/80 mb-2">
-							{i18n(I18nKey.animeEmpty)}
+							{i18n(I18nKey.animeEmpty, Astro.currentLocale)}
 						</h3>
 						<p class="text-black/60 dark:text-white/60">
 							{ANIME_MODE === "local"
-								? i18n(I18nKey.animeEmptyLocal)
-								: i18n(I18nKey.animeEmptyBangumi)}
+								? i18n(I18nKey.animeEmptyLocal, Astro.currentLocale)
+								: i18n(I18nKey.animeEmptyBangumi, Astro.currentLocale)}
 						</p>
 					</div>
 				)

@@ -15,7 +15,7 @@ if (!siteConfig.featurePages.albums) {
 const albumsData = await scanAlbums();
 ---
 
-<MainGridLayout title={i18n(I18nKey.albums)} description={i18n(I18nKey.albumsSubtitle)}>
+<MainGridLayout title={i18n(I18nKey.albums, Astro.currentLocale)} description={i18n(I18nKey.albumsSubtitle, Astro.currentLocale)}>
     <!-- 引入右侧边栏布局管理器 -->
   <script>
     import('../scripts/right-sidebar-layout.js');
@@ -28,10 +28,10 @@ const albumsData = await scanAlbums();
         <h1 class="text-3xl font-bold text-neutral-900 dark:text-neutral-100 mb-3 relative
                   before:w-1 before:h-8 before:rounded-md before:bg-[var(--primary)]
                   before:absolute before:top-1/2 before:-translate-y-1/2 before:-left-4">
-          {i18n(I18nKey.albums)}
+          {i18n(I18nKey.albums, Astro.currentLocale)}
         </h1>
         <p class="text-neutral-600 dark:text-neutral-400">
-          {i18n(I18nKey.albumsSubtitle)}
+          {i18n(I18nKey.albumsSubtitle, Astro.currentLocale)}
         </p>
       </header>
 
@@ -67,7 +67,7 @@ const albumsData = await scanAlbums();
                 <!-- 元数据 -->
                 <div class="flex items-center justify-between text-xs text-neutral-500 dark:text-neutral-500">
                   <div class="flex items-center gap-4">
-                    <span>{album.photos.length} {album.photos.length > 1 ? i18n(I18nKey.albumsPhotosCount) : i18n(I18nKey.albumsPhotoCount)}</span>
+                    <span>{album.photos.length} {album.photos.length > 1 ? i18n(I18nKey.albumsPhotosCount, Astro.currentLocale) : i18n(I18nKey.albumsPhotoCount, Astro.currentLocale)}</span>
                     {album.location && (
                       <span class="flex items-center gap-1">
                         <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
@@ -110,10 +110,10 @@ const albumsData = await scanAlbums();
             </svg>
           </div>
           <h3 class="text-lg font-medium text-neutral-900 dark:text-neutral-100 mb-2">
-            {i18n(I18nKey.albumsEmpty)}
+            {i18n(I18nKey.albumsEmpty, Astro.currentLocale)}
           </h3>
           <p class="text-neutral-600 dark:text-neutral-400">
-            {i18n(I18nKey.albumsEmptyDesc)}
+            {i18n(I18nKey.albumsEmptyDesc, Astro.currentLocale)}
           </p>
         </div>
       )}

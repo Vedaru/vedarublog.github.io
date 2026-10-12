@@ -68,7 +68,7 @@ const umamiBaseUrl = umamiConfig.baseUrl || "";
             <hr class="my-2 border-t border-dashed border-gray-300 dark:border-gray-700" />
             <div class="text-sm text-gray-500 mt-2 text-center min-h-[1.25rem]">
                 <Icon name="fa6-solid:eye" class="inline-block mr-1 text-gray-400 text-sm align-middle" />
-                <span id="site-stats-display">{i18n(I18nKey.profileStatsLoading)}</span>
+                <span id="site-stats-display">{i18n(I18nKey.profileStatsLoading, Astro.currentLocale)}</span>
             </div>
         )}
     </div>
@@ -80,9 +80,9 @@ const umamiBaseUrl = umamiConfig.baseUrl || "";
         umamiApiKey, 
         umamiWebsiteId, 
         umamiConfig,
-        profileStatsPageViews: i18n(I18nKey.profileStatsPageViews),
-        profileStatsVisits: i18n(I18nKey.profileStatsVisits),
-        profileStatsUnavailable: i18n(I18nKey.profileStatsUnavailable)
+        profileStatsPageViews: i18n(I18nKey.profileStatsPageViews, Astro.currentLocale),
+        profileStatsVisits: i18n(I18nKey.profileStatsVisits, Astro.currentLocale),
+        profileStatsUnavailable: i18n(I18nKey.profileStatsUnavailable, Astro.currentLocale)
     }}>
         // 客户端统计文案生成函数
         function generateStatsText(pageViews, visits) {

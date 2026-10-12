@@ -18,7 +18,7 @@ const devices = devicesData;
 const brands = Object.keys(devices);
 ---
 
-<MainGridLayout title={i18n(I18nKey.devices)}>
+<MainGridLayout title={i18n(I18nKey.devices, Astro.currentLocale)}>
   <!-- 引入右侧边栏布局管理器 -->
   <script>
     import('../scripts/right-sidebar-layout.js');
@@ -30,10 +30,10 @@ const brands = Object.keys(devices);
         <h1 class="text-4xl font-bold text-black/90 dark:text-white/90 mb-2 relative
                   before:w-1 before:h-8 before:rounded-md before:bg-[var(--primary)]
                   before:absolute before:top-1/2 before:-translate-y-1/2 before:-left-4">
-          {i18n(I18nKey.devices)}
+          {i18n(I18nKey.devices, Astro.currentLocale)}
         </h1>
         <p class="text-lg text-black/60 dark:text-white/60">
-          {i18n(I18nKey.devicesSubtitle)}
+          {i18n(I18nKey.devicesSubtitle, Astro.currentLocale)}
         </p>
       </div>
 

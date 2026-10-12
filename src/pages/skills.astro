@@ -48,20 +48,20 @@ const TAB_ICON_PATHS: Record<string, string> = {
 const filterTabs = [
 	{
 		value: "all",
-		label: i18n(I18nKey.friendsFilterAll),
+		label: i18n(I18nKey.friendsFilterAll, Astro.currentLocale),
 		path: TAB_ICON_PATHS.all,
 		count: skillsData.length,
 	},
 	...categories.map((category) => ({
 		value: category,
-		label: i18n(categoryMeta[category].i18nKey),
+		label: i18n(categoryMeta[category].i18nKey, Astro.currentLocale),
 		path: TAB_ICON_PATHS[category] ?? TAB_ICON_PATHS.all,
 		count: stats.byCategory[category],
 	})),
 ];
 
-const title = i18n(I18nKey.skills);
-const subtitle = i18n(I18nKey.skillsSubtitle);
+const title = i18n(I18nKey.skills, Astro.currentLocale);
+const subtitle = i18n(I18nKey.skillsSubtitle, Astro.currentLocale);
 
 // 收集所有技能图标用于预加载
 const allIcons = skillsData.map((skill) => skill.icon).filter(Boolean);
@@ -87,10 +87,10 @@ const allIcons = skillsData.map((skill) => skill.icon).filter(Boolean);
         <h1 class="text-4xl font-bold text-black/90 dark:text-white/90 mb-2 relative
                   before:w-1 before:h-8 before:rounded-md before:bg-[var(--primary)]
                   before:absolute before:top-1/2 before:-translate-y-1/2 before:-left-4">
-          {i18n(I18nKey.skills)}
+          {i18n(I18nKey.skills, Astro.currentLocale)}
         </h1>
         <p class="text-lg text-black/60 dark:text-white/60">
-          {i18n(I18nKey.skillsSubtitle)}
+          {i18n(I18nKey.skillsSubtitle, Astro.currentLocale)}
         </p>
       </div>
 

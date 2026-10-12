@@ -14,9 +14,9 @@ const skillColor = skill.color || "#3B82F6";
 // 经验由 data/skills 的 since() 在构建时算出，这里只做本地化拼接
 const formatExperience = (exp: Skill["experience"]) => {
 	const parts: string[] = [];
-	if (exp.years > 0) parts.push(`${exp.years} ${i18n(I18nKey.skillYears)}`);
+	if (exp.years > 0) parts.push(`${exp.years} ${i18n(I18nKey.skillYears, Astro.currentLocale)}`);
 	if (exp.months > 0)
-		parts.push(`${exp.months} ${i18n(I18nKey.skillMonths)}`);
+		parts.push(`${exp.months} ${i18n(I18nKey.skillMonths, Astro.currentLocale)}`);
 	return parts.join(" ");
 };
 ---

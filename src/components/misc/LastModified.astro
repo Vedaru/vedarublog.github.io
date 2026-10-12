@@ -12,13 +12,13 @@ interface Props {
 const { lastModifiedIso } = Astro.props;
 
 const labels = {
-	prefix: i18n(I18nKey.lastModifiedPrefix),
-	year: i18n(I18nKey.year),
-	month: i18n(I18nKey.month),
-	day: i18n(I18nKey.day),
-	hour: i18n(I18nKey.hour),
-	minute: i18n(I18nKey.minute),
-	second: i18n(I18nKey.second),
+	prefix: i18n(I18nKey.lastModifiedPrefix, Astro.currentLocale),
+	year: i18n(I18nKey.year, Astro.currentLocale),
+	month: i18n(I18nKey.month, Astro.currentLocale),
+	day: i18n(I18nKey.day, Astro.currentLocale),
+	hour: i18n(I18nKey.hour, Astro.currentLocale),
+	minute: i18n(I18nKey.minute, Astro.currentLocale),
+	second: i18n(I18nKey.second, Astro.currentLocale),
 };
 
 const initialElapsed = formatLastModifiedElapsed(lastModifiedIso, labels);
@@ -56,7 +56,7 @@ const initialElapsed = formatLastModifiedElapsed(lastModifiedIso, labels);
 							{initialElapsed}
 						</div>
 						<p class="text-[0.8rem] leading-tight text-black/75 dark:text-white/75">
-							{i18n(I18nKey.lastModifiedOutdated)}
+							{i18n(I18nKey.lastModifiedOutdated, Astro.currentLocale)}
 						</p>
 					</div>
 				</div>

@@ -23,7 +23,7 @@ const { Content } = await render(friendsPost);
 const friendsList = getShuffledFriendsList();
 ---
 
-<MainGridLayout title={i18n(I18nKey.friends)} description={i18n(I18nKey.friends)}>
+<MainGridLayout title={i18n(I18nKey.friends, Astro.currentLocale)} description={i18n(I18nKey.friends, Astro.currentLocale)}>
   <script>
     import('../scripts/right-sidebar-layout.js');
   </script>
@@ -34,10 +34,10 @@ const friendsList = getShuffledFriendsList();
         <h1 class="text-4xl font-bold text-black/90 dark:text-white/90 mb-2 relative
                   before:w-1 before:h-8 before:rounded-md before:bg-[var(--primary)]
                   before:absolute before:top-1/2 before:-translate-y-1/2 before:-left-4">
-          {i18n(I18nKey.friends)}
+          {i18n(I18nKey.friends, Astro.currentLocale)}
         </h1>
         <p class="text-lg text-black/60 dark:text-white/60">
-          {i18n(I18nKey.friendsSubtitle)}
+          {i18n(I18nKey.friendsSubtitle, Astro.currentLocale)}
         </p>
 			</div>
 

@@ -13,7 +13,7 @@ if (!aboutPost) {
 }
 
 const { Content } = await render(aboutPost);
-const title = i18n(I18nKey.about);
+const title = i18n(I18nKey.about, Astro.currentLocale);
 ---
 <MainGridLayout title={title}>
 	<!-- 引入右侧边栏布局管理器 -->

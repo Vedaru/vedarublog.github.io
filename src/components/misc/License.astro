@@ -32,15 +32,15 @@ const postUrl = sourceLink || decodeURIComponent(Astro.url.toString());
     </a>
     <div class="flex gap-6 mt-2">
         <div>
-            <div class="transition text-black/30 dark:text-white/30 text-sm">{i18n(I18nKey.author)}</div>
+            <div class="transition text-black/30 dark:text-white/30 text-sm">{i18n(I18nKey.author, Astro.currentLocale)}</div>
             <div class="transition text-black/75 dark:text-white/75 line-clamp-2">{author || profileConf.name}</div>
         </div>
         <div>
-            <div class="transition text-black/30 dark:text-white/30 text-sm">{i18n(I18nKey.publishedAt)}</div>
+            <div class="transition text-black/30 dark:text-white/30 text-sm">{i18n(I18nKey.publishedAt, Astro.currentLocale)}</div>
             <div class="transition text-black/75 dark:text-white/75 line-clamp-2">{formatDateToYYYYMMDD(pubDate)}</div>
         </div>
         <div>
-            <div class="transition text-black/30 dark:text-white/30 text-sm">{i18n(I18nKey.license)}</div>
+            <div class="transition text-black/30 dark:text-white/30 text-sm">{i18n(I18nKey.license, Astro.currentLocale)}</div>
             <a href={licenseName ? (licenseUrl || undefined) : licenseConf.url} target="_blank" class="link text-[var(--primary)] line-clamp-2">{licenseName || licenseConf.name}</a>
         </div>
     </div>

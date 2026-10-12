@@ -13,28 +13,28 @@ interface Props {
 const { class: className, style } = Astro.props;
 
 const monthNames = [
-	i18n(I18nKey.calendarJanuary),
-	i18n(I18nKey.calendarFebruary),
-	i18n(I18nKey.calendarMarch),
-	i18n(I18nKey.calendarApril),
-	i18n(I18nKey.calendarMay),
-	i18n(I18nKey.calendarJune),
-	i18n(I18nKey.calendarJuly),
-	i18n(I18nKey.calendarAugust),
-	i18n(I18nKey.calendarSeptember),
-	i18n(I18nKey.calendarOctober),
-	i18n(I18nKey.calendarNovember),
-	i18n(I18nKey.calendarDecember),
+	i18n(I18nKey.calendarJanuary, Astro.currentLocale),
+	i18n(I18nKey.calendarFebruary, Astro.currentLocale),
+	i18n(I18nKey.calendarMarch, Astro.currentLocale),
+	i18n(I18nKey.calendarApril, Astro.currentLocale),
+	i18n(I18nKey.calendarMay, Astro.currentLocale),
+	i18n(I18nKey.calendarJune, Astro.currentLocale),
+	i18n(I18nKey.calendarJuly, Astro.currentLocale),
+	i18n(I18nKey.calendarAugust, Astro.currentLocale),
+	i18n(I18nKey.calendarSeptember, Astro.currentLocale),
+	i18n(I18nKey.calendarOctober, Astro.currentLocale),
+	i18n(I18nKey.calendarNovember, Astro.currentLocale),
+	i18n(I18nKey.calendarDecember, Astro.currentLocale),
 ];
 
 const weekDays = [
-	i18n(I18nKey.calendarMonday),
-	i18n(I18nKey.calendarTuesday),
-	i18n(I18nKey.calendarWednesday),
-	i18n(I18nKey.calendarThursday),
-	i18n(I18nKey.calendarFriday),
-	i18n(I18nKey.calendarSaturday),
-	i18n(I18nKey.calendarSunday),
+	i18n(I18nKey.calendarMonday, Astro.currentLocale),
+	i18n(I18nKey.calendarTuesday, Astro.currentLocale),
+	i18n(I18nKey.calendarWednesday, Astro.currentLocale),
+	i18n(I18nKey.calendarThursday, Astro.currentLocale),
+	i18n(I18nKey.calendarFriday, Astro.currentLocale),
+	i18n(I18nKey.calendarSaturday, Astro.currentLocale),
+	i18n(I18nKey.calendarSunday, Astro.currentLocale),
 ];
 
 const isChinese = siteConfig.lang.startsWith("zh");

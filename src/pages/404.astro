@@ -5,7 +5,7 @@ import { i18n } from "../i18n/translation";
 import MainGridLayout from "../layouts/MainGridLayout.astro";
 ---
 
-<MainGridLayout title={i18n(I18nKey.notFound)} description={i18n(I18nKey.notFoundDescription)}>
+<MainGridLayout title={i18n(I18nKey.notFound, Astro.currentLocale)} description={i18n(I18nKey.notFoundDescription, Astro.currentLocale)}>
     <!-- 引入右侧边栏布局管理器 -->
   <script>
     import('../scripts/right-sidebar-layout.js');
@@ -14,7 +14,7 @@ import MainGridLayout from "../layouts/MainGridLayout.astro";
         <div class="card-base z-10 px-9 py-12 relative w-full flex flex-col items-center justify-center text-center">
             <!-- 404 大号数字 -->
             <div class="text-8xl md:text-9xl font-bold text-[var(--primary)] opacity-20 mb-4">
-                {i18n(I18nKey.notFound)}
+                {i18n(I18nKey.notFound, Astro.currentLocale)}
             </div>
             
             <!-- 404 图标 -->
@@ -24,12 +24,12 @@ import MainGridLayout from "../layouts/MainGridLayout.astro";
             
             <!-- 标题 -->
             <h1 class="text-3xl md:text-4xl font-bold mb-4 text-90">
-                {i18n(I18nKey.notFoundTitle)}
+                {i18n(I18nKey.notFoundTitle, Astro.currentLocale)}
             </h1>
             
             <!-- 描述 -->
             <p class="text-lg text-75 mb-8 max-w-md">
-                {i18n(I18nKey.notFoundDescription)}
+                {i18n(I18nKey.notFoundDescription, Astro.currentLocale)}
             </p>
             
             <!-- 返回首页按钮 -->
@@ -38,7 +38,7 @@ import MainGridLayout from "../layouts/MainGridLayout.astro";
                 class="inline-flex items-center gap-2 px-6 py-3 bg-[var(--primary)] text-white rounded-[var(--radius-large)] hover:opacity-95 transition-colors transition-transform duration-200 font-medium"
             >
                 <Icon name="material-symbols:home" class="text-xl" />
-                {i18n(I18nKey.backToHome)}
+                {i18n(I18nKey.backToHome, Astro.currentLocale)}
             </a>
             
             <!-- 装饰性元素 -->

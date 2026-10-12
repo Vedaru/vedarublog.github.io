@@ -53,7 +53,7 @@ for (const y of yearKeys) {
 // 时间格式化函数
 ---
 
-<MainGridLayout title={i18n(I18nKey.diary)} description="即刻短文">
+<MainGridLayout title={i18n(I18nKey.diary, Astro.currentLocale)} description="即刻短文">
 	<!-- 引入右侧边栏布局管理器 -->
   <script>
     import('../scripts/right-sidebar-layout.js');
@@ -65,13 +65,13 @@ for (const y of yearKeys) {
 				<div class="moments-header mb-6">
 					<div class="header-content">
 						<div class="header-info">
-							<h1 class="moments-title text-xl md:text-2xl lg:text-3xl font-bold text-90 mb-1">{i18n(I18nKey.diary)}</h1>
-							<p class="moments-subtitle text-sm md:text-base lg:text-lg text-75">{i18n(I18nKey.diarySubtitle)}</p>
+							<h1 class="moments-title text-xl md:text-2xl lg:text-3xl font-bold text-90 mb-1">{i18n(I18nKey.diary, Astro.currentLocale)}</h1>
+							<p class="moments-subtitle text-sm md:text-base lg:text-lg text-75">{i18n(I18nKey.diarySubtitle, Astro.currentLocale)}</p>
 						</div>
 						<div class="header-stats">
 							<div class="stat-item text-center">
 								<span class="stat-number text-lg md:text-xl lg:text-2xl font-bold text-[var(--primary)]">{diaryStats.total}</span>
-								<span class="stat-label text-xs md:text-sm lg:text-base text-75">{i18n(I18nKey.diaryCount)}</span>
+								<span class="stat-label text-xs md:text-sm lg:text-base text-75">{i18n(I18nKey.diaryCount, Astro.currentLocale)}</span>
 							</div>
 						</div>
 					</div>
@@ -133,7 +133,7 @@ for (const y of yearKeys) {
 
 				<!-- 底部提示 -->
 				<div class="moments-tips text-center mt-6 md:mt-8 lg:mt-10 text-75 text-xs md:text-sm lg:text-base italic">
-					{i18n(I18nKey.diaryTips)}
+					{i18n(I18nKey.diaryTips, Astro.currentLocale)}
 				</div>
 			</div>
 		</div>

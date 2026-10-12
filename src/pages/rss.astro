@@ -11,7 +11,7 @@ const posts = (await getSortedPosts()).filter((post) => !post.data.encrypted);
 const recentPosts = posts.slice(0, 6);
 ---
 
-<MainGridLayout title={i18n(I18nKey.rss)}>
+<MainGridLayout title={i18n(I18nKey.rss, Astro.currentLocale)}>
 	<!-- 引入右侧边栏布局管理器 -->
   <script>
     import('../scripts/right-sidebar-layout.js');
@@ -23,9 +23,9 @@ const recentPosts = posts.slice(0, 6);
                 <div class="inline-flex items-center justify-center w-16 h-16 bg-[var(--primary)] rounded-2xl mb-4">
                     <Icon name="material-symbols:rss-feed" class="text-white text-3xl" />
                 </div>
-                <h1 class="text-3xl font-bold text-[var(--primary)] mb-3">{i18n(I18nKey.rss)}</h1>
+                <h1 class="text-3xl font-bold text-[var(--primary)] mb-3">{i18n(I18nKey.rss, Astro.currentLocale)}</h1>
                 <p class="text-75 max-w-2xl mx-auto">
-                    {i18n(I18nKey.rssSubtitle)}
+                    {i18n(I18nKey.rssSubtitle, Astro.currentLocale)}
                 </p>
             </div>
         </div>
@@ -38,8 +38,8 @@ const recentPosts = posts.slice(0, 6);
                         <Icon name="material-symbols:link" class="text-white text-xl" />
                     </div>
                     <div>
-                        <h3 class="font-semibold text-90 mb-1">{i18n(I18nKey.rssLink)}</h3>
-                        <p class="text-sm text-75">{i18n(I18nKey.rssCopyToReader)}</p>
+                        <h3 class="font-semibold text-90 mb-1">{i18n(I18nKey.rssLink, Astro.currentLocale)}</h3>
+                        <p class="text-sm text-75">{i18n(I18nKey.rssCopyToReader, Astro.currentLocale)}</p>
                     </div>
                 </div>
                 <div class="flex flex-col sm:flex-row gap-3">
@@ -51,7 +51,7 @@ const recentPosts = posts.slice(0, 6);
                         class="px-4 py-2 bg-[var(--primary)] text-white rounded-lg hover:opacity-80 transition-all duration-200 font-medium text-sm whitespace-nowrap"
                         data-url={`${Astro.site}rss.xml`}
                     >
-                        {i18n(I18nKey.rssCopyLink)}
+                        {i18n(I18nKey.rssCopyLink, Astro.currentLocale)}
                     </button>
                 </div>
             </div>
@@ -61,7 +61,7 @@ const recentPosts = posts.slice(0, 6);
         <div class="card-base rounded-[var(--radius-large)] p-6 mb-6">
             <h2 class="text-xl font-bold text-90 mb-4 flex items-center">
                 <Icon name="material-symbols:article" class="mr-2 text-[var(--primary)]" />
-                {i18n(I18nKey.rssLatestPosts)}
+                {i18n(I18nKey.rssLatestPosts, Astro.currentLocale)}
             </h2>
             <div class="space-y-4">
                 {recentPosts.map((post) => (
@@ -90,20 +90,20 @@ const recentPosts = posts.slice(0, 6);
         <div class="card-base rounded-[var(--radius-large)] p-6">
             <h2 class="text-xl font-bold text-90 mb-4 flex items-center">
                 <Icon name="material-symbols:help-outline" class="mr-2 text-[var(--primary)]" />
-                {i18n(I18nKey.rssWhatIsRSS)}
+                {i18n(I18nKey.rssWhatIsRSS, Astro.currentLocale)}
             </h2>
             <div class="text-75 space-y-3">
                 <p>
-                    {i18n(I18nKey.rssWhatIsRSSDescription)}
+                    {i18n(I18nKey.rssWhatIsRSSDescription, Astro.currentLocale)}
                 </p>
                 <ul class="list-disc list-inside space-y-1 ml-4">
-                    <li>{i18n(I18nKey.rssBenefit1)}</li>
-                    <li>{i18n(I18nKey.rssBenefit2)}</li>
-                    <li>{i18n(I18nKey.rssBenefit3)}</li>
-                    <li>{i18n(I18nKey.rssBenefit4)}</li>
+                    <li>{i18n(I18nKey.rssBenefit1, Astro.currentLocale)}</li>
+                    <li>{i18n(I18nKey.rssBenefit2, Astro.currentLocale)}</li>
+                    <li>{i18n(I18nKey.rssBenefit3, Astro.currentLocale)}</li>
+                    <li>{i18n(I18nKey.rssBenefit4, Astro.currentLocale)}</li>
                 </ul>
                 <p class="text-sm">
-                    {i18n(I18nKey.rssHowToUse)}
+                    {i18n(I18nKey.rssHowToUse, Astro.currentLocale)}
                 </p>
             </div>
         </div>

@@ -74,7 +74,7 @@ const {
             <a href={getCategoryUrl(category || '')} aria-label={`View all posts in the ${category} category`}
                class="link-lg transition text-50 text-sm font-medium
                             hover:text-[var(--primary)] dark:hover:text-[var(--primary)] whitespace-nowrap">
-                {category || i18n(I18nKey.uncategorized)}
+                {category || i18n(I18nKey.uncategorized, Astro.currentLocale)}
             </a>
         </div>
     </div>
@@ -86,7 +86,7 @@ const {
                 <Icon name="material-symbols:article-outline-rounded" class="text-xl"></Icon>
             </div>
             <span class="text-50 text-sm font-medium">
-                {words} {words > 1 ? i18n(I18nKey.wordsCount) : i18n(I18nKey.wordCount)}
+                {words} {words > 1 ? i18n(I18nKey.wordsCount, Astro.currentLocale) : i18n(I18nKey.wordCount, Astro.currentLocale)}
             </span>
         </div>
     )}
@@ -108,7 +108,7 @@ const {
                         </a>
                     </>
                 ))}
-                {!(tags && tags.length > 0) && <div class="transition text-50 text-sm font-medium">{i18n(I18nKey.noTags)}</div>}
+                {!(tags && tags.length > 0) && <div class="transition text-50 text-sm font-medium">{i18n(I18nKey.noTags, Astro.currentLocale)}</div>}
             </div>
         </div>
     )}
