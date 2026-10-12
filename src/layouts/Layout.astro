@@ -105,6 +105,10 @@ if (title) {
 		: siteConfig.title;
 }
 
+// Canonical URL: drop query/hash and normalize to the configured site origin so
+// search engines always see one URL per page (www vs non-www, ?ref=..., etc.).
+const canonicalURL = new URL(Astro.url.pathname, siteConfig.siteURL).href;
+
 let ogImageUrl: string | undefined;
 if (siteConfig.generateOgImages && postSlug) {
 	ogImageUrl = new URL(`/og/${postSlug}.png`, Astro.site).toString();
@@ -192,6 +196,7 @@ if (siteConfig.font) {
 			)
 		}
 		<meta name="author" content={profileConfig.name} />
+		<link rel="canonical" href={canonicalURL} />
 		<meta property="og:site_name" content={siteConfig.title} />
 		<meta property="og:url" content={Astro.url} />
 		<meta property="og:title" content={pageTitle} />

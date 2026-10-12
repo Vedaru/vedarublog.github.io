@@ -127,7 +127,16 @@ export default defineConfig({
 		svelte({
 			preprocess: vitePreprocess(),
 		}),
-		sitemap(),
+		sitemap({
+			// robots.txt currently allows only the homepage and /posts/*.
+			// Advertising URLs that robots.txt then blocks makes Search Console
+			// report "Blocked by robots.txt" for half the sitemap, so keep the
+			// two in sync. Update both together if the robots policy changes.
+			filter: (page) => {
+				const pathname = new URL(page).pathname;
+				return pathname === "/" || pathname.startsWith("/posts/");
+			},
+		}),
 		compress({
 			Image: false,
 			SVG: false,
