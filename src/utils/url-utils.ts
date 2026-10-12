@@ -70,6 +70,8 @@ export function getTagUrl(tag: string): string {
 }
 
 export function getCategoryUrl(category: string | null): string {
+	// 比较对象是文章数据里的分类名（中文），因此这里故意固定用默认语言，
+	// 不跟随页面语言，否则英文页面的“未分类”链接会失效。
 	if (
 		!category ||
 		category.trim() === "" ||

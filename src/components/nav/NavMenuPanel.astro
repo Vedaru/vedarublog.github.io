@@ -1,6 +1,6 @@
 ---
 import { Icon } from "astro-icon/components";
-import { LinkPresets } from "@constants";
+import { getLinkPresets } from "@constants";
 import I18nKey from "../../i18n/i18nKey";
 import { i18n } from "../../i18n/translation";
 import { LinkPreset, type NavBarLink } from "../../types/config";
@@ -30,7 +30,7 @@ const navTitleMap: Record<string, string> = {
 const getLocalizedName = (name: string): string => {
 	const keyValue = navTitleMap[name];
 	if (keyValue) {
-		return i18n(keyValue as I18nKey);
+		return i18n(keyValue as I18nKey, Astro.currentLocale);
 	}
 	return name;
 };
@@ -46,7 +46,7 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
 		children: link.children?.map(
 			(child: NavBarLink | LinkPreset): ProcessedNavBarLink => {
 				if (typeof child === "number") {
-					return LinkPresets[child] as ProcessedNavBarLink;
+					return getLinkPresets(Astro.currentLocale)[child] as ProcessedNavBarLink;
 				}
 				return child as ProcessedNavBarLink;
 			},

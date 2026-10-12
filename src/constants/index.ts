@@ -16,4 +16,4 @@ export {
 
 export { defaultFavicons } from "./icon";
 
-export { LinkPresets } from "./link-presets";
+export { getLinkPresets } from "./link-presets";

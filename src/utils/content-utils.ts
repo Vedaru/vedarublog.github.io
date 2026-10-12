@@ -123,6 +123,9 @@ export async function getCategoryList(): Promise<Category[]> {
 	const count: { [key: string]: number } = {};
 	allBlogPosts.forEach((post: { data: { category: string | null } }) => {
 		if (!post.data.category) {
+			// 故意不传页面语言：这是数据层的“未分类”桶名，用作聚合 key。
+			// 若跟随页面语言，同一篇文章在两种语言下会被归到不同的桶里。
+			// 展示层需要本地化时再单独翻译这个 label。
 			const ucKey = i18n(I18nKey.uncategorized);
 			count[ucKey] = count[ucKey] ? count[ucKey] + 1 : 1;
 			return;
