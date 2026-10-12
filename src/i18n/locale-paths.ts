@@ -12,6 +12,8 @@ export interface LocaleCoverage {
 	prefixes: Record<string, string>;
 	/** 只存在于一种语言的路径（canonical，已去前缀）→ 拥有它的语言 */
 	oneSided: Record<string, string>;
+	/** 语言 → <html lang> 的值（客户端换页后要同步） */
+	htmlLang?: Record<string, string>;
 }
 
 /** 拼前缀：joinLocalePath("/posts/a/", "/en") -> "/en/posts/a/" */

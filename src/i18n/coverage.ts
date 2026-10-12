@@ -11,7 +11,13 @@ import { PAGE_SIZE } from "@constants";
 import { getSortedPosts } from "@utils/content-utils";
 import { getPostUrl } from "@utils/url-utils";
 import { stripLocalePath, type LocaleCoverage } from "./locale-paths";
-import { defaultLocale, localePrefixTable, locales, type Locale } from "./locales";
+import {
+	defaultLocale,
+	localeHtmlLang,
+	localePrefixTable,
+	locales,
+	type Locale,
+} from "./locales";
 
 const pageModules = import.meta.glob("/src/pages/**/*.astro");
 
@@ -93,7 +99,11 @@ export function getLocaleCoverage(): Promise<LocaleCoverage> {
 				const owners = locales.filter((locale) => sets.get(locale)?.has(path));
 				if (owners.length === 1) oneSided[path] = owners[0];
 			}
-			return { prefixes: localePrefixTable(), oneSided };
+			return {
+				prefixes: localePrefixTable(),
+				htmlLang: localeHtmlLang,
+				oneSided,
+			};
 		})();
 	}
 	return cached;
