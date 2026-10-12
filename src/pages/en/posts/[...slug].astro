@@ -6,9 +6,8 @@
  * canonical/前后篇前缀，这里只负责提供英文文章集合与路由参数。
  */
 import PostPage from "../../posts/[...slug].astro";
-import { getSortedPosts } from "@utils/content-utils";
+import { getSortedPosts, postSlug } from "@utils/content-utils";
 import { initPostIdMap } from "@utils/permalink-utils";
-import { removeFileExtension } from "@utils/url-utils";
 
 export async function getStaticPaths() {
 	const posts = await getSortedPosts("en");
@@ -16,7 +15,7 @@ export async function getStaticPaths() {
 	initPostIdMap(posts);
 
 	return posts.map((entry) => ({
-		params: { slug: removeFileExtension(entry.id) },
+		params: { slug: postSlug(entry) },
 		props: { entry },
 	}));
 }

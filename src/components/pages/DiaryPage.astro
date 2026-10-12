@@ -1,8 +1,8 @@
 ---
 import { siteConfig } from "@/config";
+import { i18n, normalizeLocale } from "@i18n/translation";
 import { getDiaryList, getDiaryStats } from "@/data/diary";
 import I18nKey from "@/i18n/i18nKey";
-import { i18n } from "@/i18n/translation";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
 import "@/styles/fancybox-custom.css";
 
@@ -12,8 +12,9 @@ if (!siteConfig.featurePages.diary) {
 }
 
 // 获取日记数据（异步）
-const moments = await getDiaryList();
-const diaryStats = await getDiaryStats();
+const locale = normalizeLocale(Astro.currentLocale);
+const moments = await getDiaryList(undefined, locale);
+const diaryStats = await getDiaryStats(locale);
 
 // Build grouped year->month structure for TOC and anchor mapping
 const groupedMoments = {} as Record<string, Record<string, typeof moments>>;

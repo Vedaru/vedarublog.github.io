@@ -64,7 +64,11 @@ export function getPostUrl(post: any): string {
 	}
 
 	// 否则使用默认的 slug 路径
-	return getPostUrlBySlug(post.id, prefix);
+	// 英文版与中文版同目录，文件名多一个 .en 后缀，拼 URL 前去掉
+	return getPostUrlBySlug(
+		removeFileExtension(String(post.id)).replace(/\.en$/, ""),
+		prefix,
+	);
 }
 
 export function getTagUrl(tag: string): string {

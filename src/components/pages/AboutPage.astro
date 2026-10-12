@@ -6,7 +6,9 @@ import I18nKey from "@/i18n/i18nKey";
 import { i18n } from "@/i18n/translation";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
 
-const aboutPost = await getEntry("spec", "about");
+const aboutPost =
+	(Astro.currentLocale === "en" ? await getEntry("spec", "about.en") : undefined) ??
+	(await getEntry("spec", "about"));
 
 if (!aboutPost) {
 	throw new Error("About page content not found");

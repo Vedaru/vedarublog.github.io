@@ -13,7 +13,9 @@ if (!siteConfig.featurePages.friends) {
 	return Astro.redirect("/404/");
 }
 
-const friendsPost = await getEntry("spec", "friends");
+const friendsPost =
+	(Astro.currentLocale === "en" ? await getEntry("spec", "friends.en") : undefined) ??
+	(await getEntry("spec", "friends"));
 
 if (!friendsPost) {
 	throw new Error("friends page content not found");
