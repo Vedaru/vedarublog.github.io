@@ -1,4 +1,12 @@
 // @ts-nocheck ? legacy side-effect IIFE migrated from public/js
+import {
+	isHomePagePath,
+	isMainHomePage,
+	normalizePath,
+	pathFromUrl,
+	pathsEqual,
+	resolveHomePageIndex,
+} from "../../utils/route-utils";
 
 (function () {
 	if (window.__scrollUtilsBootstrapped) return;
@@ -27,54 +35,15 @@
 		requestAnimationFrame(step);
 	};
 })();
-/** ???????? ????src/utils/route-utils.ts ?????*/
-
+/** 路由工具挂到 window，供不经过打包的脚本复用（单一实现见 utils/route-utils.ts）*/
 (function () {
 	if (window.__routeUtilsBootstrapped) return;
 	window.__routeUtilsBootstrapped = true;
 
-	function normalizePath(path) {
-		return (path || "").replace(/^\/|\/$/g, "").toLowerCase();
-	}
-
-	function isHomePagePath(pathname) {
-		return (
-			pathname === "/" || pathname === "" || /^\/?\d+\/?$/.test(pathname)
-		);
-	}
-
-	function resolveHomePageIndex(path) {
-		const normalized = normalizePath(path);
-		if (normalized === "") return 1;
-		if (/^\d+$/.test(normalized)) {
-			return Number.parseInt(normalized, 10);
-		}
-		return null;
-	}
-
-	function pathFromUrl(url) {
-		try {
-			return new URL(url, window.location.origin).pathname;
-		} catch {
-			return url || "";
-		}
-	}
-
-	function pathsEqual(path1, path2) {
-		const page1 = resolveHomePageIndex(path1);
-		const page2 = resolveHomePageIndex(path2);
-		if (page1 !== null && page2 !== null) {
-			return page1 === page2;
-		}
-		return normalizePath(path1) === normalizePath(path2);
-	}
-
 	window.__normalizePath = normalizePath;
 	window.__isHomePagePath = isHomePagePath;
 	window.__resolveHomePageIndex = resolveHomePageIndex;
-	window.__isMainHomePage = function isMainHomePage(pathname) {
-		return resolveHomePageIndex(pathname) === 1;
-	};
+	window.__isMainHomePage = isMainHomePage;
 	window.__pathFromUrl = pathFromUrl;
 	window.__pathsEqual = pathsEqual;
 })();

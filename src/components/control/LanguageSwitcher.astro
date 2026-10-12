@@ -2,30 +2,122 @@
 /**
  * 语言选择器 / Language selector.
  *
- * 与导航栏其它控件（壁纸、明暗、布局）保持一致的交互：一个图标按钮 +
+ * 与导航栏其它控件（壁纸、明暗、布局）同样的形态：一个图标按钮 +
  * float-panel 下拉面板，列出所有已启用语言，当前语言打勾。
  *
- * 选项在这里算好（需要 Astro.url 才能推出各语言的同页地址），
- * 面板本身由 LanguageSwitch.svelte 渲染。
+ * 两处刻意的设计：
+ *
+ * 1. 不用 Svelte 岛。切换器没有任何响应式状态，面板开合由共用的
+ *    panelManager 负责，URL 也是纯字符串运算，所以用普通按钮 + 一段
+ *    内联脚本即可，省掉一个岛和它的加载。
+ *
+ * 2. 目标地址在**点击时**才解析。导航栏在 swup 容器之外，换页时不会
+ *    重建，构建期写死的 href 会在客户端换页后过期（读了文章再切语言
+ *    会跳回旧页面对应的地址）。href 仍然按换前缀渲染，保证无 JS 时也
+ *    能用；有 JS 时由脚本按 location.pathname 重新算一次。
+ *
+ * 选项链接带 data-no-swup：swup 只替换 <main>，走客户端换页的话导航栏、
+ * 侧栏和 <html lang> 都还停在旧语言，看起来就像“语言根本没切”。
  */
+import { Icon } from "astro-icon/components";
 import { i18nConfig } from "../../config";
-import { getLocaleFromPath, localeLabels, isLocale } from "@i18n/locales";
-import { rememberLocale } from "../../scripts/locale-preference";
-import LanguageSwitch from "@components/control/LanguageSwitch.svelte";
-import { resolveAlternatePath } from "@utils/i18n-routes";
+import { getLocaleCoverage } from "@i18n/coverage";
+import { resolveAlternatePath } from "@i18n/locale-paths";
+import { getLocaleFromPath, isLocale, localeLabels } from "@i18n/locales";
 
+const coverage = await getLocaleCoverage();
 const current = getLocaleFromPath(Astro.url.pathname);
-const currentPath = Astro.url.pathname;
 
-// 目标地址在构建期核对过，不存在就退回目标语言首页（例如中文独占的文章）。
-const options = await Promise.all(
-	i18nConfig.enabledLocales.filter(isLocale).map(async (code) => ({
-		code,
-		label: localeLabels[code],
-		active: code === current,
-		href: await resolveAlternatePath(currentPath, code),
-	})),
-);
+const options = i18nConfig.enabledLocales.filter(isLocale).map((code) => ({
+	code,
+	label: localeLabels[code],
+	active: code === current,
+	href: resolveAlternatePath(Astro.url.pathname, code, coverage),
+}));
 ---
 
-<LanguageSwitch client:visible locale={current} options={options} />
+<div class="relative z-50">
+	<button
+		aria-label="Language"
+		aria-haspopup="menu"
+		aria-expanded="false"
+		aria-controls="language-panel"
+		class="relative btn-plain scale-animation rounded-lg h-11 w-11 active:scale-90 theme-switch-btn"
+		id="language-switch"
+		data-current-locale={current}
+	>
+		<Icon name="material-symbols:translate" class="text-[1.25rem]" />
+	</button>
+
+	<div
+		id="language-panel"
+		role="menu"
+		class="absolute transition float-panel-closed top-11 -right-2 pt-5"
+	>
+		<div class="card-base float-panel p-2">
+			{
+				options.map((option) => (
+					<a
+						role="menuitem"
+						href={option.href}
+						hreflang={option.code}
+						lang={option.code}
+						data-no-swup
+						data-locale={option.code}
+						data-active={option.active}
+						aria-current={option.active ? "true" : undefined}
+						class:list={[
+							"flex transition whitespace-nowrap items-center !justify-start w-full btn-plain rounded-lg h-9 px-3 font-medium active:scale-95 theme-switch-btn mb-0.5 last:mb-0",
+							{ "scale-animation": !option.active },
+						]}
+					>
+						<Icon
+							name={
+								option.active
+									? "material-symbols:check"
+									: "material-symbols:translate"
+							}
+							class="text-[1.25rem] mr-3"
+						/>
+						{option.label}
+					</a>
+				))
+			}
+		</div>
+	</div>
+</div>
+
+<script type="application/json" id="locale-coverage" set:html={JSON.stringify(coverage)} />
+
+<script>
+	import { rememberLocale } from "../../scripts/locale-preference";
+	import { panelManager } from "../../utils/panel-manager.js";
+
+	const button = document.getElementById("language-switch");
+	const panel = document.getElementById("language-panel");
+	const data = document.getElementById("locale-coverage");
+
+	if (button && panel && data) {
+		const coverage = JSON.parse(data.textContent || "{}");
+
+		button.addEventListener("click", async () => {
+			const opened = await panelManager.togglePanel("language-panel");
+			button.setAttribute("aria-expanded", String(opened));
+		});
+
+		// 点击时按当前地址重算目标：导航栏不随 swup 换页重建，href 会过期。
+		for (const link of panel.querySelectorAll<HTMLAnchorElement>("a[data-locale]")) {
+			link.addEventListener("click", (event) => {
+				const locale = link.dataset.locale;
+				if (!locale) return;
+
+				// 同 URL 模式：只记下语言并重载，地址栏不变。服务端（Cloudflare
+				// Pages Function）按 cookie 返回对应语言；纯静态托管下由
+				// scripts/language-mode.ts 兼回到 /en 前缀地址。
+				event.preventDefault();
+				rememberLocale(locale);
+				location.reload();
+			});
+		}
+	}
+</script>

@@ -1,6 +1,5 @@
 ---
 import { getLocaleFromPath, localeHtmlLang, locales, localizePath, stripLocalePrefix } from "@i18n/locales";
-import { LOCALE_COOKIE } from "../scripts/locale-preference";
 import ConfigCarrier from "@components/ConfigCarrier.astro";
 import FullscreenWallpaper from "@components/misc/FullscreenWallpaper.astro";
 import MusicPlayer from "@components/widget/MusicPlayer.svelte";
@@ -142,17 +141,9 @@ const alternateLinks = dualLocale
 		}))
 	: [];
 
-// 语言首页（"/" 与 "/en/"）上，若读者之前主动选过另一种语言，直接送过去。
-// 只在首页生效，也不会把从搜索结果落到文章页的读者拽走；爬虫没有 cookie，
-// 所以对收录没有影响。脚本内联在 <head> 里，避免先渲染错语言再跳。
-const localeHomes = Object.fromEntries(
-	locales.map((l) => [l, localizePath("/", l)]),
-);
-const currentHome = localizePath("/", urlLocale);
-const localeRedirectScript =
-	canonicalPath === "/" && Astro.url.pathname === currentHome
-		? `(function(){var m=document.cookie.match(/(?:^|;\\s*)${LOCALE_COOKIE}=([^;]+)/);if(!m)return;var homes=${JSON.stringify(localeHomes)};var target=homes[decodeURIComponent(m[1])];if(target&&target!==${JSON.stringify(currentHome)})location.replace(target);})();`
-		: null;
+// 语言以 cookie 里的「模式」为准（同一个 URL）：服务端按 cookie 返回对应
+// 语言，客户端只在纯静态托管下兼回带前缀的地址。兜底逻辑见
+// src/scripts/language-mode.ts。
 
 const bannerOffsetByPosition = {
 	top: `${BANNER_HEIGHT_EXTEND}vh`,
@@ -213,11 +204,6 @@ if (siteConfig.font) {
 	<head>
 		<title>{pageTitle}</title>
 		<meta charset="UTF-8" />
-		{
-			localeRedirectScript && (
-				<script is:inline set:html={localeRedirectScript} />
-			)
-		}
 		<meta
 			name="site-build-id"
 			content={import.meta.env.PUBLIC_SITE_BUILD_ID}
@@ -546,6 +532,7 @@ if (siteConfig.font) {
 	import { initThemeBootstrap } from "../scripts/theme-bootstrap";
 	import { initSwupLifecycle } from "../scripts/swup-lifecycle";
 	import { initNavbarScroll } from "../scripts/navbar-scroll";
+	import "../scripts/language-mode";
 
 	initThemeBootstrap();
 	initSwupLifecycle();

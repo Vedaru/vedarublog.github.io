@@ -4,6 +4,7 @@
  */
 
 type PanelId =
+	| "language-panel"
 	| "mobile-toc-panel"
 	| "display-setting"
 	| "nav-menu-panel"

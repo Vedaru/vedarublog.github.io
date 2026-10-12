@@ -4,8 +4,11 @@
  * URL 策略：中文（默认语言）保持在根路径，英文挂在 `/en/` 前缀下。
  * 这样既保住了现有中文 URL（不丢已有索引与链接），又让英文拥有独立
  * URL，可以被搜索引擎单独收录。切换语言时只替换前缀。
+ *
+ * 前缀的字符串处理在 ./locale-paths.ts（纯函数，浏览器端也用同一份）。
  */
 export const locales = ["zh_CN", "en"] as const;
+import { joinLocalePath, stripLocalePath } from "./locale-paths";
 
 export type Locale = (typeof locales)[number];
 
@@ -43,6 +46,13 @@ export function localePrefix(locale: Locale): string {
 	return prefix ? `/${prefix}` : "";
 }
 
+/** 全部语言的路径前缀表，供纯路径计算与客户端脚本使用。 */
+export function localePrefixTable(): Record<string, string> {
+	const table: Record<string, string> = {};
+	for (const locale of locales) table[locale] = localePrefix(locale);
+	return table;
+}
+
 /** 由 URL 路径推断语言。 */
 export function getLocaleFromPath(pathname: string): Locale {
 	for (const locale of locales) {
@@ -60,29 +70,10 @@ export function getLocaleFromPath(pathname: string): Locale {
  * localizePath("/posts/a/", "zh_CN") -> "/posts/a/"
  */
 export function localizePath(path: string, locale: Locale): string {
-	const clean = path.startsWith("/") ? path : `/${path}`;
-	const prefix = LOCALE_PREFIX[locale];
-	if (!prefix) return clean;
-	if (clean === "/") return `/${prefix}/`;
-	return `/${prefix}${clean}`;
+	return joinLocalePath(path, localePrefix(locale));
 }
 
 /** 去掉语言前缀，得到默认语言下的路径。 */
 export function stripLocalePrefix(pathname: string): string {
-	for (const locale of locales) {
-		const prefix = LOCALE_PREFIX[locale];
-		if (!prefix) continue;
-		if (pathname === `/${prefix}`) return "/";
-		if (pathname.startsWith(`/${prefix}/`)) {
-			// 保证结果始终以 "/" 开头：/en/2/ -> /2/（而不是 2/）
-			const rest = pathname.slice(prefix.length + 1);
-			return rest.startsWith("/") ? rest : `/${rest}`;
-		}
-	}
-	return pathname;
-}
-
-/** 当前页在另一种语言下的地址（语言切换器用）。 */
-export function alternatePathFor(pathname: string, target: Locale): string {
-	return localizePath(stripLocalePrefix(pathname), target);
+	return stripLocalePath(pathname, localePrefixTable());
 }
