@@ -14,6 +14,7 @@ import { stripLocalePath, type LocaleCoverage } from "./locale-paths";
 import {
 	defaultLocale,
 	localeHtmlLang,
+	localeLabels,
 	localePrefixTable,
 	locales,
 	type Locale,
@@ -102,6 +103,7 @@ export function getLocaleCoverage(): Promise<LocaleCoverage> {
 			return {
 				prefixes: localePrefixTable(),
 				htmlLang: localeHtmlLang,
+				labels: localeLabels,
 				oneSided,
 			};
 		})();

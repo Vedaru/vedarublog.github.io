@@ -2,7 +2,7 @@
 import type { CollectionEntry } from "astro:content";
 import { commentConfig } from "@/config";
 import { getPostUrl } from "@/utils/url-utils";
-import { defaultLocale, stripLocalePrefix } from "@/i18n/locales";
+import { stripLocalePrefix } from "@/i18n/locales";
 import Twikoo from "./Twikoo.astro";
 
 interface Props {
@@ -11,15 +11,10 @@ interface Props {
 
 const { id, data: _data } = Astro.props.post;
 
-// 评论按 path 存储，所以这个键必须稳定：文章 URL 从 /posts/x/ 变成
-// /zh/posts/x/ 之后，键一变所有历史评论就"消失"了。默认语言用去掉前缀的
-// 路径（等于迁移前的键），其它语言用带前缀的路径。
-const localizedPath = getPostUrl({ id, data: _data });
-const path = (
-	Astro.currentLocale === defaultLocale
-		? stripLocalePrefix(localizedPath)
-		: localizedPath
-).replace(/\/$/, "");
+// 评论按 path 存储。这里用"去掉语言前缀"的地址作为键：
+// - 中文的键仍是迁移前的 /posts/x（历史评论不会丢）
+// - 中英两版共用同一条评论线（在英文页留言，中文页也看得到，反之亦然）
+const path = stripLocalePrefix(getPostUrl({ id, data: _data })).replace(/\/$/, "");
 // const url = `${Astro.site?.href}${path}`;
 
 let commentService = "";

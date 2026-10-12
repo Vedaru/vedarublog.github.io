@@ -126,13 +126,25 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
         </div>
     ))}
 
-    <!-- 语言选择：手机端放在菜单里，导航栏那一行放不下（360px 已满） -->
-    <div class="mobile-menu-item" data-language-options>
-        <div class="mobile-item-label flex items-center gap-2 transition-colors duration-150 text-black/75 dark:text-white/75 font-bold">
-            <Icon name="material-symbols:translate" class="mobile-item-icon text-[1.1rem]" />
-            {localeLabels[currentLocale]}
-        </div>
-        <div class="flex gap-2 mt-1 pl-1">
+    <!-- 语言选择：手机端放在菜单里（导航栏那一行在 360px 已经放不下），
+         形态与其它可展开项一致：一行触发条 + 展开后的选项列表 -->
+    <div class="mobile-dropdown" data-mobile-dropdown data-language-options>
+        <button
+            type="button"
+            class="group flex justify-between items-center py-2 pl-3 pr-1 rounded-lg gap-8 w-full text-left
+                hover:bg-[var(--btn-plain-bg-hover)] active:bg-[var(--btn-plain-bg-active)] transition-colors duration-150"
+            data-mobile-dropdown-trigger
+            aria-expanded="false"
+        >
+            <div class="mobile-item-label flex items-center gap-2 transition-colors duration-150 text-black/75 dark:text-white/75 font-bold group-hover:text-[var(--primary)] group-active:text-[var(--primary)]">
+                <Icon name="material-symbols:translate" class="mobile-item-icon text-[1.1rem]" />
+                <span data-language-current>{localeLabels[currentLocale]}</span>
+            </div>
+            <Icon name="material-symbols:keyboard-arrow-down-rounded"
+                  class="text-[1.25rem] text-[var(--primary)] mobile-dropdown-arrow"
+            />
+        </button>
+        <div class="mobile-submenu" data-mobile-submenu>
             {languageOptions.map((option) => (
                 <a
                     href={option.href}
@@ -141,12 +153,15 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
                     data-target-locale={option.code}
                     data-active={option.active}
                     aria-current={option.active ? "true" : undefined}
-                    class:list={[
-                        "btn-regular rounded-lg px-3 py-1 text-sm font-medium active:scale-95 transition-transform",
-                        { "text-[var(--primary)]": option.active },
-                    ]}
+                    class="group flex justify-between items-center py-2 pl-6 pr-1 rounded-lg gap-8
+                        hover:bg-[var(--btn-plain-bg-hover)] active:bg-[var(--btn-plain-bg-active)] transition-colors duration-150"
                 >
-                    {option.label}
+                    <div class="mobile-item-label flex items-center gap-2 transition-colors duration-150 text-black/60 dark:text-white/60 font-medium group-hover:text-[var(--primary)] group-active:text-[var(--primary)]">
+                        {option.label}
+                    </div>
+                    {option.active && (
+                        <Icon name="material-symbols:check-rounded" class="text-[1.1rem] text-[var(--primary)]" />
+                    )}
                 </a>
             ))}
         </div>

@@ -8,6 +8,9 @@ if (window.__twikooInitBootstrapped) {
 	let debounceTimer = null;
 	let initRunning = false;
 	let lastInitPath = "";
+	// 中英两版共用同一条评论线（同一个 path），所以光比 path 不够：
+	// 跨语言换页时界面语言也要跟着换，否则评论区会停在上一种语言。
+	let lastInitLang = "";
 	let initGeneration = 0;
 	let swupListenersRegistered = false;
 
@@ -153,6 +156,7 @@ if (window.__twikooInitBootstrapped) {
 
 		if (
 			path === lastInitPath &&
+			config.lang === lastInitLang &&
 			commentEl.classList.contains("twikoo-ready") &&
 			isTwikooRendered(commentEl)
 		) {
@@ -166,6 +170,7 @@ if (window.__twikooInitBootstrapped) {
 
 		initRunning = true;
 		lastInitPath = path;
+		lastInitLang = config.lang;
 
 		try {
 			prepareTwikooContainer(commentEl);
@@ -202,6 +207,7 @@ if (window.__twikooInitBootstrapped) {
 			if (!isTwikooRendered(commentEl)) {
 				if (retryCount < 1) {
 					lastInitPath = "";
+					lastInitLang = "";
 					initRunning = false;
 					setTimeout(() => runTwikooInit(retryCount + 1), 200);
 					return;
@@ -217,6 +223,7 @@ if (window.__twikooInitBootstrapped) {
 			console.error("[Twikoo] 初始化失败:", error);
 			if (retryCount < 1) {
 				lastInitPath = "";
+				lastInitLang = "";
 				initRunning = false;
 				setTimeout(() => runTwikooInit(retryCount + 1), 200);
 				return;

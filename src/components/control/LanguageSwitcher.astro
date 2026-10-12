@@ -145,6 +145,10 @@ const options = i18nConfig.enabledLocales.filter(isLocale).map((code) => ({
 		function syncAll() {
 			syncPanel();
 			for (const block of document.querySelectorAll<HTMLElement>("[data-language-options]")) {
+				const label = block.querySelector<HTMLElement>("[data-language-current]");
+				if (label && coverage.labels?.[currentLocaleFromPath()]) {
+					label.textContent = coverage.labels[currentLocaleFromPath()];
+				}
 				for (const link of block.querySelectorAll<HTMLAnchorElement>("a[data-target-locale]")) {
 					const code = link.dataset.targetLocale;
 					if (!code) continue;

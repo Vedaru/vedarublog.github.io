@@ -54,7 +54,23 @@ const {
 
 const interactionEvents = ["click", "keydown", "touchstart"];
 
+let unsubscribeHidden: (() => void) | undefined;
+
 onMount(() => {
+	// 手机端默认把播放器收成一个圆球，别占住小屏；桌面端维持原来的迷你条。
+	// 用户自己的收/展选择记在本地，下次进来沿用（不再被默认值覆盖）。
+	const MOBILE_QUERY = "(max-width: 767.98px)";
+	const storedHidden = localStorage.getItem("musicPlayerHidden");
+	const startHidden =
+		storedHidden === null
+			? window.matchMedia(MOBILE_QUERY).matches
+			: storedHidden === "true";
+	if (startHidden) isHidden.set(true);
+
+	unsubscribeHidden = isHidden.subscribe((hidden) => {
+		localStorage.setItem("musicPlayerHidden", String(hidden));
+	});
+
 	interactionEvents.forEach((event) => {
 		document.addEventListener(event, handleUserInteraction, { capture: true });
 	});
@@ -75,6 +91,7 @@ async function handlePlayerInteraction(action: () => void) {
 }
 
 onDestroy(() => {
+	unsubscribeHidden?.();
 	if (typeof document !== "undefined") {
 		interactionEvents.forEach((event) => {
 			document.removeEventListener(event, handleUserInteraction, {

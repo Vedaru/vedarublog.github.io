@@ -3,7 +3,7 @@ import I18nKey from "../../i18n/i18nKey";
 import { i18n } from "../../i18n/translation";
 import "../../styles/twikoo.css";
 import { commentConfig } from "@/config";
-import { defaultLocale, getLocaleFromPath, localeHtmlLang } from "@/i18n/locales";
+import { getLocaleFromPath } from "@/i18n/locales";
 
 interface Props {
 	path: string;
@@ -11,9 +11,14 @@ interface Props {
 
 const twikooOptions = commentConfig.twikoo;
 const locale = getLocaleFromPath(Astro.url.pathname);
-// 配置里的 lang 只用于默认语言；其它语言用页面语言，否则英文页会弹出中文评论区
-const twikooLang =
-	locale === defaultLocale ? twikooOptions?.lang ?? "zh-CN" : localeHtmlLang[locale];
+
+/**
+ * Twikoo 只认 zh-CN 与 en-US（脚本里的 LANGS = { ZH: "zh-CN", EN: "en-US" }），
+ * 传 "en" 会被忽略并退回中文 —— 之前英文页的评论区就是这么变成中文的。
+ * 页面语言优先，配置里的 lang 只在遇到未知语言时兜底。
+ */
+const TWIKOO_LANG: Record<string, string> = { zh: "zh-CN", en: "en-US" };
+const twikooLang = TWIKOO_LANG[locale] ?? twikooOptions?.lang ?? "zh-CN";
 ---
 
 <div

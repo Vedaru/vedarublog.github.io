@@ -14,6 +14,8 @@ export interface LocaleCoverage {
 	oneSided: Record<string, string>;
 	/** 语言 → <html lang> 的值（客户端换页后要同步） */
 	htmlLang?: Record<string, string>;
+	/** 语言 → 显示名（手机菜单里的触发条要跟着换） */
+	labels?: Record<string, string>;
 }
 
 /** 拼前缀：joinLocalePath("/posts/a/", "/en") -> "/en/posts/a/" */

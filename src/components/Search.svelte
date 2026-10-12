@@ -44,6 +44,39 @@ const fakeResult: SearchResult[] = [
 	},
 ];
 
+/**
+ * 结果标题的高亮。
+ *
+ * Pagefind 只对摘要做高亮（`excerpt` 里带 <mark>），标题是以 meta 原样返回的，
+ * 所以标题命中了也看不出来 —— 看起来像"搜不到标题"。这里按关键词自己标一遍。
+ * 中文不分词，直接按整词做子串匹配；英文忽略大小写。
+ */
+function highlightTitle(title: string, query: string): string {
+	const escapeHtml = (text: string): string =>
+		text
+			.replace(/&/g, "&amp;")
+			.replace(/</g, "&lt;")
+			.replace(/>/g, "&gt;")
+			.replace(/"/g, "&quot;");
+
+	const terms = query
+		.trim()
+		.split(/\s+/)
+		.filter((term) => term.length > 0)
+		.map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+
+	if (terms.length === 0) return escapeHtml(title);
+
+	// 先转义再接回高亮标签，避免把标题里的 HTML 当结构
+	return escapeHtml(title).replace(
+		new RegExp(`(${terms.join("|")})`, "gi"),
+		"<mark>$1</mark>",
+	);
+}
+
+// 产生当前结果列表的查询词：高亮标题时用它，避免猜是哪个输入框触发
+let lastQuery = $state("");
+
 let pagefindLoadStarted = false;
 
 async function ensurePagefindLoaded() {
@@ -150,6 +183,8 @@ const search = async (keyword: string, isDesktop: boolean): Promise<void> => {
 		}
 		return;
 	}
+	lastQuery = keyword;
+
 	try {
 		let searchResults: SearchResult[] = [];
 		if (import.meta.env.PROD && window.pagefind) {
@@ -314,7 +349,7 @@ onDestroy(() => {
            onclick={(e) => handleResultClick(e, item.url)}
            class="transition first-of-type:mt-2 lg:first-of-type:mt-0 group block rounded-xl text-lg px-3 py-2 hover:bg-[var(--btn-plain-bg-hover)] active:bg-[var(--btn-plain-bg-active)]">
             <div class="transition text-90 inline-flex font-bold group-hover:text-[var(--primary)]">
-                {item.meta.title}<Icon icon="fa6-solid:chevron-right" class="transition text-[0.75rem] translate-x-1 my-auto text-[var(--primary)]"></Icon>
+                {@html highlightTitle(item.meta.title ?? "", lastQuery)}<Icon icon="fa6-solid:chevron-right" class="transition text-[0.75rem] translate-x-1 my-auto text-[var(--primary)]"></Icon>
             </div>
             <div class="transition text-sm text-50">
                 {@html item.excerpt}
