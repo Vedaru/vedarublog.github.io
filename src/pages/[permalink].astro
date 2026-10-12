@@ -68,6 +68,9 @@ export async function getStaticPaths() {
 }
 
 const { entry } = Astro.props;
+
+// 英文文章挂在 /en/ 下，前后篇链接要跟随当前语言前缀
+const localePrefix = Astro.currentLocale === "en" ? "/en" : "";
 const { Content, headings } = await render(entry);
 
 const { remarkPluginFrontmatter } = await render(entry);
@@ -253,7 +256,7 @@ const jsonLd = {
     >
         <a
             href={entry.data.nextSlug
-                ? getPostUrlBySlug(entry.data.nextSlug)
+                ? getPostUrlBySlug(entry.data.nextSlug, localePrefix)
                 : "#"}
             class:list={[
                 "w-full font-bold overflow-hidden active:scale-95",
@@ -277,7 +280,7 @@ const jsonLd = {
 
         <a
             href={entry.data.prevSlug
-                ? getPostUrlBySlug(entry.data.prevSlug)
+                ? getPostUrlBySlug(entry.data.prevSlug, localePrefix)
                 : "#"}
             class:list={[
                 "w-full font-bold overflow-hidden active:scale-95",

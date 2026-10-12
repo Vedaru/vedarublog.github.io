@@ -1,30 +1,45 @@
 import { type CollectionEntry, getCollection } from "astro:content";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
+import { defaultLocale, type Locale } from "@i18n/locales";
 import { getCategoryUrl, getPostUrl } from "@utils/url-utils";
 import { initPostIdMap } from "@utils/permalink-utils";
 
 type PostsEntry = CollectionEntry<"posts">;
 
-// 每个 Astro 渲染进程内只查询一次内容集合，避免同一页面的多个组件
-// （SiteStats / TagList / CategoryList / 归档等）重复触发 getCollection。
-let publishedPostsPromise: Promise<PostsEntry[]> | undefined;
-
-function getPublishedPosts(): Promise<PostsEntry[]> {
-	if (!publishedPostsPromise) {
-		publishedPostsPromise = getCollection("posts", ({ data }) => {
-			return import.meta.env.PROD ? data.draft !== true : true;
-		});
-	}
-	return publishedPostsPromise;
+/** 文章所属语言。未标注 lang 的旧文章按默认语言（中文）处理。 */
+export function postLocale(post: PostsEntry): Locale {
+	return post.data.lang === "en" ? "en" : defaultLocale;
 }
 
-let rawSortedPostsPromise: Promise<PostsEntry[]> | undefined;
+// 每个 Astro 渲染进程内只查询一次内容集合，避免同一页面的多个组件
+// （SiteStats / TagList / CategoryList / 归档等）重复触发 getCollection。
+// 双语站点下按语言分别缓存。
+const publishedPostsPromises = new Map<Locale, Promise<PostsEntry[]>>();
+
+function getPublishedPosts(
+	locale: Locale = defaultLocale,
+): Promise<PostsEntry[]> {
+	let cached = publishedPostsPromises.get(locale);
+	if (!cached) {
+		cached = getCollection("posts", ({ data }) => {
+			if (import.meta.env.PROD && data.draft === true) return false;
+			return (data.lang === "en" ? "en" : defaultLocale) === locale;
+		});
+		publishedPostsPromises.set(locale, cached);
+	}
+	return cached;
+}
+
+const rawSortedPostsPromises = new Map<Locale, Promise<PostsEntry[]>>();
 
 // Retrieve posts and sort them by publication date
-async function getRawSortedPosts(): Promise<PostsEntry[]> {
-	if (!rawSortedPostsPromise) {
-		rawSortedPostsPromise = getPublishedPosts().then((allBlogPosts) =>
+async function getRawSortedPosts(
+	locale: Locale = defaultLocale,
+): Promise<PostsEntry[]> {
+	let cached = rawSortedPostsPromises.get(locale);
+	if (!cached) {
+		cached = getPublishedPosts(locale).then((allBlogPosts) =>
 			// 复制后再排序，避免改动 getPublishedPosts 共享的原始数组
 			[...allBlogPosts].sort((a, b) => {
 				// 首先按置顶状态排序，置顶文章在前
@@ -50,12 +65,13 @@ async function getRawSortedPosts(): Promise<PostsEntry[]> {
 				return dateA > dateB ? -1 : 1;
 			}),
 		);
+		rawSortedPostsPromises.set(locale, cached);
 	}
-	return rawSortedPostsPromise;
+	return cached;
 }
 
-export async function getSortedPosts() {
-	const sorted = await getRawSortedPosts();
+export async function getSortedPosts(locale: Locale = defaultLocale) {
+	const sorted = await getRawSortedPosts(locale);
 
 	for (let i = 1; i < sorted.length; i++) {
 		sorted[i].data.nextSlug = sorted[i - 1].id;
@@ -73,8 +89,10 @@ export type PostForList = {
 	data: CollectionEntry<"posts">["data"];
 	url?: string; // 预计算的文章 URL
 };
-export async function getSortedPostsList(): Promise<PostForList[]> {
-	const sortedFullPosts = await getRawSortedPosts();
+export async function getSortedPostsList(
+	locale: Locale = defaultLocale,
+): Promise<PostForList[]> {
+	const sortedFullPosts = await getRawSortedPosts(locale);
 
 	// 初始化文章 ID 映射（用于 permalink 功能）
 	initPostIdMap(sortedFullPosts);
@@ -93,8 +111,10 @@ export type Tag = {
 	count: number;
 };
 
-export async function getTagList(): Promise<Tag[]> {
-	const allBlogPosts = await getPublishedPosts();
+export async function getTagList(
+	locale: Locale = defaultLocale,
+): Promise<Tag[]> {
+	const allBlogPosts = await getPublishedPosts(locale);
 
 	const countMap: { [key: string]: number } = {};
 	allBlogPosts.forEach((post: { data: { tags: string[] } }) => {
@@ -118,8 +138,10 @@ export type Category = {
 	url: string;
 };
 
-export async function getCategoryList(): Promise<Category[]> {
-	const allBlogPosts = await getPublishedPosts();
+export async function getCategoryList(
+	locale: Locale = defaultLocale,
+): Promise<Category[]> {
+	const allBlogPosts = await getPublishedPosts(locale);
 	const count: { [key: string]: number } = {};
 	allBlogPosts.forEach((post: { data: { category: string | null } }) => {
 		if (!post.data.category) {
@@ -163,7 +185,7 @@ const CJK_PATTERN =
 
 export function getTotalWordCount(): Promise<number> {
 	if (!totalWordCountPromise) {
-		totalWordCountPromise = getPublishedPosts().then((posts) => {
+		totalWordCountPromise = getPublishedPosts(defaultLocale).then((posts) => {
 			let total = 0;
 			for (const post of posts) {
 				const body = post.body;
