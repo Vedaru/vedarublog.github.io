@@ -169,6 +169,82 @@ function getStudioFromInfobox(infobox) {
 	return "Unknown";
 }
 
+/** infobox 中可能存放别名的键名（不同条目用词不一致）。 */
+const ALIAS_INFOBOX_KEYS = [
+	"别名",
+	"別名",
+	"英文名",
+	"英文名稱",
+	"英文名(别名)",
+	"引述名称",
+];
+
+const ASCII_ONLY = /^[\x20-\x7E]+$/;
+
+/**
+ * 从别名候选里挑一个最像"官方英文名"的。
+ *
+ * infobox 的别名常同时含罗马音（Sousou no Frieren 2nd Season）和官方
+ * 英文名（Frieren: Beyond Journey's End Season 2）。官方名一般带冒号或
+ * 破折号，且通常更长，因此优先带标点的、其次取最长的。
+ */
+function pickEnglishTitle(candidates) {
+	const ascii = candidates.filter(
+		(v) => ASCII_ONLY.test(v) && /[A-Za-z]/.test(v),
+	);
+	if (ascii.length === 0) return "";
+
+	const punctuated = ascii.filter((v) => /[:：]| - /.test(v));
+	const pool = punctuated.length > 0 ? punctuated : ascii;
+	return pool.reduce((best, v) => (v.length > best.length ? v : best));
+}
+
+/**
+ * 尝试从 Bangumi infobox 里取英文标题。
+ *
+ * Bangumi 的 `name` 通常是日文原名、`name_cn` 是中文名，两者都不一定是
+ * 英文；英文名一般作为别名存在 infobox 里。这里按"纯 ASCII 且含字母"
+ * 过滤，避免把日文/中文别名误当成英文。
+ */
+function getEnglishTitleFromInfobox(infobox) {
+	if (!Array.isArray(infobox)) return "";
+
+	const values = [];
+	for (const item of infobox) {
+		if (!ALIAS_INFOBOX_KEYS.includes(item.key)) continue;
+		if (typeof item.value === "string") {
+			values.push(item.value);
+		} else if (Array.isArray(item.value)) {
+			for (const entry of item.value) {
+				if (entry && typeof entry.v === "string") values.push(entry.v);
+			}
+		}
+	}
+
+	return pickEnglishTitle(values);
+}
+
+/**
+ * 归一化后的三种标题：
+ * - title：中文名（列表默认显示，保持既有行为）
+ * - titleOriginal：Bangumi 原名（多为日文）
+ * - titleEn：英文名（找不到则为空，交给前端回退）
+ */
+function resolveTitles(item, subjectDetail) {
+	const original = item.subject?.name || "";
+	const zh = item.subject?.name_cn || original || "Unknown Title";
+
+	const infoboxEn = getEnglishTitleFromInfobox(subjectDetail?.infobox);
+	const originalIsAscii =
+		original && ASCII_ONLY.test(original) && /[A-Za-z]/.test(original);
+
+	return {
+		title: zh,
+		titleOriginal: original,
+		titleEn: infoboxEn || (originalIsAscii ? original : ""),
+	};
+}
+
 async function fetchCollection(userId, type) {
 	let allData = [];
 	let offset = 0;
@@ -310,9 +386,12 @@ async function processData(items, status) {
 		const remoteCover = item.subject?.images?.medium || "";
 		const cover = await downloadCover(item.subject_id, remoteCover);
 
+		const titles = resolveTitles(item, subjectDetail);
+
 		results.push({
-			title:
-				item.subject?.name_cn || item.subject?.name || "Unknown Title",
+			title: titles.title,
+			titleOriginal: titles.titleOriginal,
+			titleEn: titles.titleEn,
 			status: status,
 			rating: rating,
 			cover: cover,
