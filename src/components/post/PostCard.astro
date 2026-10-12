@@ -3,6 +3,8 @@ import type { CollectionEntry } from "astro:content";
 import { render } from "astro:content";
 import { Icon } from "astro-icon/components";
 import { getFileDirFromPath, getTagUrl, getPostUrl } from "@/utils/url-utils";
+import { localePrefix } from "@i18n/locales";
+import { postLocale } from "@utils/content-utils";
 import { siteConfig } from "../../config";
 import I18nKey from "../../i18n/i18nKey";
 import { i18n } from "../../i18n/translation";
@@ -17,6 +19,9 @@ interface Props {
 
 const { entry, style } = Astro.props;
 const className = Astro.props.class;
+
+// 标签链接跟随文章语言（列表页与文章同语言，但以文章本身为准最稳）。
+const prefix = localePrefix(postLocale(entry));
 
 const {
 	title,
@@ -107,7 +112,7 @@ const { remarkPluginFrontmatter } = await render(entry);
 				tags && tags.length > 0 ? (
 					tags.map((tag) => (
 						<a
-							href={getTagUrl(tag)}
+							href={getTagUrl(tag, prefix)}
 							class:list={[
 								siteConfig.tagStyle?.useNewStyle
 									? "link-lg transition text-50 text-xs font-medium px-2 py-1 rounded-lg hover:text-[var(--primary)] dark:hover:text-[var(--primary)] active:text-[var(--primary)] dark:active:text-[var(--primary)] group/tag whitespace-nowrap"

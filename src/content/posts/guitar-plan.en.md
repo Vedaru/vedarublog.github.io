@@ -12,7 +12,7 @@ draft: false
 
 Why would I connect two things that have nothing to do with each other?  
 
-Well, the first thing I got into was [VOCALOID](/posts/vocaloid), but after transcribing songs for a while the idea of writing my own took root, so I vaguely downloaded Cubase too. Arranging in Cubase got me nowhere for a while, so I thought I should learn some music theory; honestly it is fairly abstract, and after a while I only half understood it.  
+Well, the first thing I got into was [VOCALOID](/en/posts/vocaloid), but after transcribing songs for a while the idea of writing my own took root, so I vaguely downloaded Cubase too. Arranging in Cubase got me nowhere for a while, so I thought I should learn some music theory; honestly it is fairly abstract, and after a while I only half understood it.  
 
 They say practice teaches truth, so I thought: if I learn an instrument first and practise through playing, theory would become far more intuitive. So I made this plan.  
 

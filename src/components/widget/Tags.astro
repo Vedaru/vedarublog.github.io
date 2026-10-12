@@ -4,11 +4,13 @@ import I18nKey from "../../i18n/i18nKey";
 import { i18n, normalizeLocale } from "../../i18n/translation";
 import { getTagList } from "../../utils/content-utils";
 import { getTagUrl } from "../../utils/url-utils";
+import { localePrefix } from "@i18n/locales";
 import { widgetManager } from "../../utils/widget-manager";
 import ButtonTag from "../control/ButtonTag.astro";
 import WidgetLayout from "./WidgetLayout.astro";
 
 const tags = await getTagList(normalizeLocale(Astro.currentLocale));
+const prefix = localePrefix(normalizeLocale(Astro.currentLocale));
 
 const COLLAPSED_HEIGHT = "7.5rem";
 
@@ -30,7 +32,7 @@ const style = Astro.props.style;
 <WidgetLayout name={i18n(I18nKey.tags, Astro.currentLocale)} id="tags" isCollapsed={isCollapsed} collapsedHeight={COLLAPSED_HEIGHT} class={className} style={style}>
     <div class="flex gap-2 flex-wrap">
         {tags.map(t => (
-            <ButtonTag href={getTagUrl(t.name)} label={`View all posts with the ${t.name.trim()} tag`}>
+            <ButtonTag href={getTagUrl(t.name, prefix)} label={`View all posts with the ${t.name.trim()} tag`}>
                 {t.name.trim()}
             </ButtonTag>
         ))}

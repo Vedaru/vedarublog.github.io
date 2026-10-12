@@ -1,7 +1,7 @@
 import { type CollectionEntry, getCollection } from "astro:content";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
-import { defaultLocale, type Locale } from "@i18n/locales";
+import { defaultLocale, localePrefix, type Locale } from "@i18n/locales";
 import {
 	getCategoryUrl,
 	getPostUrl,
@@ -95,11 +95,13 @@ export async function getSortedPosts(locale: Locale = defaultLocale) {
 	const sorted = await getRawSortedPosts(locale);
 
 	for (let i = 1; i < sorted.length; i++) {
-		sorted[i].data.nextSlug = sorted[i - 1].id;
+		// 用 postSlug 而不是原始 id：英文文件名带 .en 后缀，直接拼进 URL
+		// 会变成 /en/posts/vocaloid.en/。
+		sorted[i].data.nextSlug = postSlug(sorted[i - 1]);
 		sorted[i].data.nextTitle = sorted[i - 1].data.title;
 	}
 	for (let i = 0; i < sorted.length - 1; i++) {
-		sorted[i].data.prevSlug = sorted[i + 1].id;
+		sorted[i].data.prevSlug = postSlug(sorted[i + 1]);
 		sorted[i].data.prevTitle = sorted[i + 1].data.title;
 	}
 
@@ -191,7 +193,7 @@ export async function getCategoryList(
 		ret.push({
 			name: c,
 			count: count[c],
-			url: getCategoryUrl(c),
+			url: getCategoryUrl(c, localePrefix(locale)),
 		});
 	}
 	return ret;

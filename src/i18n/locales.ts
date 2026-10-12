@@ -37,6 +37,12 @@ const LOCALE_PREFIX: Partial<Record<Locale, string>> = {
 	en: "en",
 };
 
+/** URL 前缀字符串：默认语言为 ""，其它语言为 "/en"。 */
+export function localePrefix(locale: Locale): string {
+	const prefix = LOCALE_PREFIX[locale];
+	return prefix ? `/${prefix}` : "";
+}
+
 /** 由 URL 路径推断语言。 */
 export function getLocaleFromPath(pathname: string): Locale {
 	for (const locale of locales) {

@@ -42,7 +42,10 @@ export function getPostUrl(post: {
 }): string;
 export function getPostUrl(post: any): string {
 	// 英文文章挂在 /en/ 下；中文（默认语言）保持根路径不变。
-	const prefix = post.data.lang === "en" ? "/en" : "";
+	// 语言以文件名的 .en 后缀为准，与 content-utils 的 postLocale 保持一致
+	// （早期版本改成了后缀判定，这里没跟上，导致英文页链接指向中文 URL）。
+	const isEnglish = /\.en$/.test(removeFileExtension(String(post.id ?? "")));
+	const prefix = isEnglish ? "/en" : "";
 
 	// 如果文章有自定义 permalink，优先使用（在根目录下）
 	if (post.data.permalink) {
@@ -71,12 +74,12 @@ export function getPostUrl(post: any): string {
 	);
 }
 
-export function getTagUrl(tag: string): string {
-	if (!tag) return url("/archive/");
-	return url(`/archive/?tag=${encodeURIComponent(tag.trim())}`);
+export function getTagUrl(tag: string, prefix = ""): string {
+	if (!tag) return url(`${prefix}/archive/`);
+	return url(`${prefix}/archive/?tag=${encodeURIComponent(tag.trim())}`);
 }
 
-export function getCategoryUrl(category: string | null): string {
+export function getCategoryUrl(category: string | null, prefix = ""): string {
 	// 比较对象是文章数据里的分类名（中文），因此这里故意固定用默认语言，
 	// 不跟随页面语言，否则英文页面的“未分类”链接会失效。
 	if (
@@ -85,8 +88,8 @@ export function getCategoryUrl(category: string | null): string {
 		category.trim().toLowerCase() ===
 			i18n(I18nKey.uncategorized).toLowerCase()
 	)
-		return url("/archive/?uncategorized=true");
-	return url(`/archive/?category=${encodeURIComponent(category.trim())}`);
+		return url(`${prefix}/archive/?uncategorized=true`);
+	return url(`${prefix}/archive/?category=${encodeURIComponent(category.trim())}`);
 }
 
 export function getDir(path: string): string {
