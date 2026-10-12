@@ -330,12 +330,12 @@ export const profileConfig: ProfileConfig = {
 /**
  * 双语站点开关。
  *
- * enabledLocales 里列出的语言才会出现在语言切换器里。英文页面（/en/）
- * 尚未全部就绪前先只启用中文，避免切换器指向 404；等英文路由补齐后
- * 改成 ["zh_CN", "en"] 即可启用。
+ * enabledLocales 里列出的语言才会出现在语言切换器里。目前中英页面均已就绪，
+ * 因此两种都开放；若某个页面只存在单语版本，调用方可以用 LanguageSwitcher
+ * 的 href 覆盖，或临时把这里改回只留中文。
  */
 export const i18nConfig = {
-	enabledLocales: ["zh_CN"],
+	enabledLocales: ["zh_CN", "en"],
 };
 
 export const licenseConfig: LicenseConfig = {

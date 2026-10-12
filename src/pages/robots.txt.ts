@@ -5,6 +5,8 @@ User-agent: *
 Disallow: /
 Allow: /$
 Allow: /posts/
+Allow: /en/
+Allow: /en/posts/
 # 不要拦 sitemap 自身：Google 对 sitemap 是豁免 robots 的，但 Bing/校验工具
 # 会遵守，被 Disallow 时直接拒绝抓取，表现为 “sitemap 加载失败”。
 Allow: /sitemap-index.xml

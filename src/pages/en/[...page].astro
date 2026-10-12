@@ -1,0 +1,30 @@
+---
+/**
+ * 英文首页与分页（/en/、/en/2/ ...）。
+ *
+ * 与中文版结构一致，只是取英文文章集合。分页 URL 由 Astro 的 paginate
+ * 基于本路由生成，天然带 /en/ 前缀。
+ */
+import type { GetStaticPaths } from "astro";
+import Pagination from "../../components/control/Pagination.astro";
+import PostPage from "@components/post/PostPage.astro";
+import { PAGE_SIZE } from "@constants";
+import MainGridLayout from "../../layouts/MainGridLayout.astro";
+import { getSortedPosts } from "../../utils/content-utils";
+import { initPostIdMap } from "../../utils/permalink-utils";
+
+export const getStaticPaths = (async ({ paginate }) => {
+	const allBlogPosts = await getSortedPosts("en");
+	initPostIdMap(allBlogPosts);
+	return paginate(allBlogPosts, { pageSize: PAGE_SIZE });
+}) satisfies GetStaticPaths;
+
+const { page } = Astro.props;
+
+const len = page.data.length;
+---
+
+<MainGridLayout dualLocale>
+    <PostPage page={page}></PostPage>
+    <Pagination class="mx-auto onload-animation" page={page} style={`animation-delay: calc(var(--content-delay) + ${(len)*50}ms)`}></Pagination>
+</MainGridLayout>

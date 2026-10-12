@@ -1,0 +1,27 @@
+---
+/**
+ * 英文文章页（/en/posts/<slug>/）。
+ *
+ * 复用中文文章页组件：其内部已经用 Astro.currentLocale 决定界面语言与
+ * canonical/前后篇前缀，这里只负责提供英文文章集合与路由参数。
+ */
+import PostPage from "../../posts/[...slug].astro";
+import { getSortedPosts } from "@utils/content-utils";
+import { initPostIdMap } from "@utils/permalink-utils";
+import { removeFileExtension } from "@utils/url-utils";
+
+export async function getStaticPaths() {
+	const posts = await getSortedPosts("en");
+
+	initPostIdMap(posts);
+
+	return posts.map((entry) => ({
+		params: { slug: removeFileExtension(entry.id) },
+		props: { entry },
+	}));
+}
+
+const { entry } = Astro.props;
+---
+
+<PostPage entry={entry} />

@@ -139,13 +139,15 @@ export default defineConfig({
 			preprocess: vitePreprocess(),
 		}),
 		sitemap({
-			// robots.txt currently allows only the homepage and /posts/*.
-			// Advertising URLs that robots.txt then blocks makes Search Console
-			// report "Blocked by robots.txt" for half the sitemap, so keep the
-			// two in sync. Update both together if the robots policy changes.
+			// robots.txt 只放行首页与 /posts/（含 /en/ 版本），sitemap 保持一致。
 			filter: (page) => {
 				const pathname = new URL(page).pathname;
-				return pathname === "/" || pathname.startsWith("/posts/");
+				return (
+					pathname === "/" ||
+					pathname.startsWith("/posts/") ||
+					pathname === "/en/" ||
+					pathname.startsWith("/en/")
+				);
 			},
 		}),
 		compress({

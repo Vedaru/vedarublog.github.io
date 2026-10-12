@@ -36,6 +36,8 @@ interface Props {
 	setOGTypeArticle?: boolean;
 	postSlug?: string;
 	headings?: MarkdownHeading[];
+	/** 该页在两种语言下都存在时设为 true，透传给 Layout 输出 hreflang。 */
+	dualLocale?: boolean;
 }
 
 const bannerImages = await getBannerImages();
@@ -60,6 +62,7 @@ const {
 	setOGTypeArticle,
 	postSlug,
 	headings = [],
+	dualLocale,
 } = Astro.props;
 const hasBannerCredit = siteConfig.banner.credit.enable;
 const hasBannerLink = !!siteConfig.banner.credit.url;
@@ -189,7 +192,7 @@ const transparentClass = shouldEnableTransparency
 	: "";
 ---
 
-<Layout title={title} banner={banner} description={description} lang={lang} setOGTypeArticle={setOGTypeArticle} postSlug={postSlug}>
+<Layout title={title} banner={banner} description={description} lang={lang} setOGTypeArticle={setOGTypeArticle} postSlug={postSlug} dualLocale={dualLocale}>
 
 {shouldPreloadDesktopBanner && desktopBannerResponsive && (
 	<link

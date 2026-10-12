@@ -1,0 +1,21 @@
+---
+/**
+ * 英文相册详情路由壳。与中文同名路由共用结构组件，因此两边都要各自
+ * 生成 getStaticPaths。
+ */
+import AlbumDetailPage from "@components/pages/albums/AlbumDetailPage.astro";
+import type { AlbumGroup } from "@/types/album";
+import { scanAlbums } from "@/utils/album-scanner";
+
+export async function getStaticPaths() {
+	const albumsData = await scanAlbums();
+	return albumsData.map((album: AlbumGroup) => ({
+		params: { id: album.id },
+		props: { album },
+	}));
+}
+
+const { album } = Astro.props;
+---
+
+<AlbumDetailPage album={album} />
