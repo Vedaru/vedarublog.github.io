@@ -10,10 +10,6 @@
 #navbar > div {
   background: var(--card-bg);
   border-radius: var(--radius-large);
-  will-change: background, backdrop-filter, box-shadow;
-  transition-property: background, color, border-color, box-shadow, backdrop-filter;
-  transition-duration: 0.3s;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* 桌面端 - 亮色 */
@@ -31,7 +27,8 @@
 @media (max-width: 1279px) {
   #banner-wrapper ~ * #navbar[data-transparent-mode="semi"][data-is-home="true"] > div,
   body:has(#banner-wrapper) #navbar[data-transparent-mode="semi"][data-is-home="true"] > div {
-    backdrop-filter: blur(20px);
+    /* 不启用 blur：移动端 backdrop-filter 逐帧重算，是掉帧主因（见
+       wallpaper-navbar-transparent.css 的说明）。半透明底色已足够。 */
     background: rgba(255, 255, 255, 0.55);
     border: 1px solid rgba(255, 255, 255, 0.55);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
@@ -53,7 +50,6 @@
 @media (max-width: 1279px) {
   :root.dark #banner-wrapper ~ * #navbar[data-transparent-mode="semi"][data-is-home="true"] > div,
   :root.dark body:has(#banner-wrapper) #navbar[data-transparent-mode="semi"][data-is-home="true"] > div {
-    backdrop-filter: blur(20px);
     background: rgba(0, 0, 0, 0.55);
     border: 1px solid rgba(0, 0, 0, 0.55);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
@@ -100,15 +96,26 @@
   }
 }
 
-/* 首页 semifull：--semifull-fade 驱动渐变 */
+/* 首页 semifull：--semifull-fade 驱动渐变。
+
+   注意：blur 半径曾直接写在这里（全端生效）。--semifull-fade 随滚动
+   每帧变化，等于每帧重算一次 20px 模糊；导航栏横跨整个视口，是移动端
+   滚动/过渡手感不如桌面的主要原因。现在只在桌面端保留动态模糊。 */
 #banner-wrapper ~ * #navbar[data-transparent-mode="semifull"][data-is-home="true"] > div,
 body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"][data-is-home="true"] > div {
   --sf: var(--semifull-fade, 0);
-  backdrop-filter: blur(calc(20px * var(--sf)));
   background: rgba(255, 255, 255, calc(0.55 * var(--sf)));
   border: 1px solid rgba(255, 255, 255, calc(0.55 * var(--sf)));
   box-shadow: 0 4px 16px rgba(0, 0, 0, calc(0.1 * var(--sf)));
   transition: none;
+}
+
+/* 桌面端保留跟随滚动的毛玻璃 */
+@media (min-width: 1280px) {
+  #banner-wrapper ~ * #navbar[data-transparent-mode="semifull"][data-is-home="true"] > div,
+  body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"][data-is-home="true"] > div {
+    backdrop-filter: blur(calc(20px * var(--sf)));
+  }
 }
 
 :root.dark #banner-wrapper ~ * #navbar[data-transparent-mode="semifull"][data-is-home="true"] > div,
@@ -218,7 +225,7 @@ body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"][data-is-home
   body:has(#banner-wrapper) #navbar[data-is-home="true"] #mobile-toc-panel,
   body:has(#banner-wrapper) #navbar[data-is-home="true"] #search-panel,
   body:has(#banner-wrapper) #navbar[data-is-home="true"] #display-setting {
-    backdrop-filter: blur(20px);
+    /* 移动端不给面板加 blur：同导航栏，逐帧重算代价高。 */
     background: rgba(255, 255, 255, 0.85);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   }

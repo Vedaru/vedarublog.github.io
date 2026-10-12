@@ -104,12 +104,37 @@ body.wallpaper-transparent #navbar[data-transparent-mode="semifull"].scrolled:no
   box-shadow: var(--nav-shadow);
   border-radius: var(--nav-radius);
 
-  /* 性能优化 */
-  will-change: background, backdrop-filter, box-shadow;
-  /* 首页 semifull 由 --semifull-fade 驱动，禁用 transition 避免滞后 */
-  transition:
-    background 0.3s ease,
-    backdrop-filter 0.3s ease;
+  /* 只过渡 background-color。
+     以前这里还会过渡 backdrop-filter 与 box-shadow，并给它们加
+     will-change —— 但 backdrop-filter / box-shadow 都不是合成属性，
+     will-change 无法把它们提升为合成层，只会让浏览器一直为重绘做准备；
+     而每帧重算一次 blur(8px..20px) 正是移动端掉帧的主因
+     （导航栏横跨整个视口，blur 面积最大）。
+     上游 Fuwari 的导航栏是纯不透明底色，完全没有 backdrop-filter，
+     这也是它移动端过渡更顺的原因。 */
+  transition: background-color 0.3s ease;
+}
+
+/* 移动端不启用毛玻璃：backdrop-filter 在移动 GPU 上代价极高，
+   而换页/滚动时导航栏背后的内容一直在动，blur 必须逐帧重算。
+   半透明底色足以保留"磨砂"观感，视觉差异很小但帧率明显更稳。 */
+@media (max-width: 1279px) {
+  :root {
+    --panel-blur: none;
+  }
+
+  #navbar[data-dynamic-transparent="semi"] {
+    --nav-blur: none;
+  }
+
+  body.wallpaper-transparent #navbar[data-transparent-mode="semifull"].scrolled:not([data-is-home="true"]) {
+    --nav-blur: none;
+  }
+
+  /* 首页 semifull 的 --nav-blur 由 --sf 连续插值，同样逐帧重算 */
+  body.wallpaper-transparent #navbar[data-transparent-mode="semifull"][data-is-home="true"] {
+    --nav-blur: none;
+  }
 }
 
 #navbar[data-transparent-mode="semifull"][data-is-home="true"] > div {
@@ -124,10 +149,9 @@ body.wallpaper-transparent #navbar[data-transparent-mode="semifull"].scrolled:no
   box-shadow: var(--shadow-lg);
   border: none;
 
-  /* 优化过渡 */
-  transition:
-    background 0.3s ease,
-    backdrop-filter 0.3s ease;
+  /* 只过渡 background-color；理由同导航栏：backdrop-filter 不是合成属性，
+     过渡它等于每帧重算 blur。 */
+  transition: background-color 0.3s ease;
 }
 
 /* Banner 模式下的特殊增强 */

@@ -79,8 +79,10 @@ body:has(#banner-wrapper)
 	background-color: rgba(255, 255, 255, calc(0.55 * var(--sf))) !important;
 	border: 1px solid rgba(255, 255, 255, calc(0.55 * var(--sf))) !important;
 	box-shadow: 0 4px 16px rgba(0, 0, 0, calc(0.1 * var(--sf))) !important;
-	backdrop-filter: blur(calc(20px * var(--sf))) !important;
-	-webkit-backdrop-filter: blur(calc(20px * var(--sf))) !important;
+	/* 这里刻意不加 backdrop-filter：--semifull-fade 随滚动逐帧变化，
+	   写在这里等于每帧重算一次 20px 模糊；导航栏横跨整个视口，是移动端
+	   滚动/过渡不如桌面顺滑的主要原因（上游 Fuwari 的导航栏根本没有 blur）。
+	   动态模糊只在桌面端保留，见下方 @media (min-width: 1280px)。 */
 	transition: none !important;
 }
 
@@ -109,6 +111,14 @@ body:has(#banner-wrapper)
 }
 
 @media (min-width: 1280px) {
+	/* 桌面端保留跟随滚动渐变的毛玻璃 */
+	body:has(#banner-wrapper)
+		#navbar[data-transparent-mode="semifull"][data-is-home="true"]
+		> div {
+		backdrop-filter: blur(calc(20px * var(--sf))) !important;
+		-webkit-backdrop-filter: blur(calc(20px * var(--sf))) !important;
+	}
+
 	body:has(#banner-wrapper)
 		#navbar[data-transparent-mode="semifull"].scrolled:not([data-is-home="true"])
 		> div {
@@ -157,10 +167,18 @@ body.wallpaper-transparent
 			transparent
 		)
 		!important;
-	backdrop-filter: blur(calc(8px * var(--sf))) !important;
-	-webkit-backdrop-filter: blur(calc(8px * var(--sf))) !important;
 	box-shadow: 0 calc(4px * var(--sf)) calc(16px * var(--sf))
 		rgba(0, 0, 0, calc(0.08 * var(--sf))) !important;
+}
+
+@media (min-width: 1280px) {
+	/* 动态模糊只在桌面端：blur 半径跟随 --sf 逐帧变化，移动端代价过高 */
+	body.wallpaper-transparent
+		#navbar[data-transparent-mode="semifull"][data-is-home="true"]
+		> div {
+		backdrop-filter: blur(calc(8px * var(--sf))) !important;
+		-webkit-backdrop-filter: blur(calc(8px * var(--sf))) !important;
+	}
 }
 
 body.wallpaper-transparent
