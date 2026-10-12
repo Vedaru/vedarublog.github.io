@@ -178,7 +178,12 @@ class CodeBlockCollapser {
 		const button = document.createElement("button");
 		button.className = "collapse-toggle-btn";
 		button.type = "button";
-		button.setAttribute("aria-label", "折叠/展开代码块");
+		// 页面语言只有一个来源：<html data-locale>（由 Layout 按 URL 写入）
+		const isZh = (document.documentElement.dataset.locale || "zh").startsWith("zh");
+		button.setAttribute(
+			"aria-label",
+			isZh ? "折叠/展开代码块" : "Collapse or expand code block",
+		);
 
 		button.innerHTML = `
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

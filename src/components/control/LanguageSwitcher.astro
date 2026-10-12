@@ -63,7 +63,7 @@ const options = i18nConfig.enabledLocales.filter(isLocale).map((code) => ({
 						hreflang={option.code}
 						lang={option.code}
 						data-no-swup
-						data-locale={option.code}
+						data-target-locale={option.code}
 						data-active={option.active}
 						aria-current={option.active ? "true" : undefined}
 						class:list={[
@@ -109,9 +109,9 @@ const options = i18nConfig.enabledLocales.filter(isLocale).map((code) => ({
 		// 点击时按当前地址重算目标：导航栏不随 swup 换页重建，href 会过期。
 		// 语言在 URL 里（/zh 与 /en 各占一个前缀），所以这里真正跳转，
 		// 同时记下选择，供根路径的语言入口下次直接送到对应语言。
-		for (const link of panel.querySelectorAll<HTMLAnchorElement>("a[data-locale]")) {
+		for (const link of panel.querySelectorAll<HTMLAnchorElement>("a[data-target-locale]")) {
 			link.addEventListener("click", () => {
-				const locale = link.dataset.locale;
+				const locale = link.dataset.targetLocale;
 				if (locale) rememberLocale(locale);
 				link.href = resolveAlternatePath(
 					location.pathname,

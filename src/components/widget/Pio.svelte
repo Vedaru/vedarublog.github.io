@@ -111,7 +111,13 @@ function loadPioAssets() {
 		});
 }
 
+// 页面语言来自 <html data-locale>（Layout 依据 URL 写好的唯一来源）
+let pioLabel = "Live2D companion";
+
 onMount(async () => {
+    pioLabel = (document.documentElement.dataset.locale || "zh").startsWith("zh")
+        ? "Live2D 看板娘"
+        : "Live2D companion";
 	if (!pioConfig.enable) return;
 
 	if (pioConfig.hiddenOnMobile && window.matchMedia("(max-width: 1280px)").matches) {
@@ -164,7 +170,7 @@ onDestroy(() => {
     class={`pio-container ${pioConfig.position || 'right'}`}
     bind:this={pioContainer}
     role="complementary"
-    aria-label="Live2D 看板娘"
+    aria-label={pioLabel}
     on:mouseenter={handlePioMouseEnter}
     on:mouseleave={handlePioMouseLeave}
   >
