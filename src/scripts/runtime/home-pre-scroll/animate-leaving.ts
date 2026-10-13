@@ -2,7 +2,6 @@ import {
 	applyBlendedLeavingShift,
 	clearBlendedLayoutInlineStyles,
 } from "./blended-styles";
-import { cancelActivePreScrollTween } from "./cancel-tween";
 import { beginLeavingHomeLayoutShift } from "./layout-shift";
 import { getExpectedDesktopHomeGridShiftPx } from "./layout-measure";
 import { syncNavbarDuringPreScroll } from "./navbar-sync";
@@ -13,8 +12,6 @@ import {
 	isAnimationCancelledError,
 	runCancellableTween,
 } from "../cancellable-tween";
-
-export { cancelActivePreScrollTween };
 
 export function animateBlendedLeavingHome(
 	visit: HomePreScrollVisit,

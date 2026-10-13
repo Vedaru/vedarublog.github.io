@@ -1,5 +1,4 @@
 import { BANNER_HEIGHT, DARK_MODE, DEFAULT_THEME } from "@constants";
-import { pathsEqual, url } from "../utils/url-utils";
 import {
 	isMainHomePage,
 	isSamePageNavigation,

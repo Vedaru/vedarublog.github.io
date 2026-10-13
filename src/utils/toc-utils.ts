@@ -408,55 +408,6 @@ export function shouldSkipTocLayoutWork(): boolean {
 	return tocWrapper?.classList.contains("toc-not-ready") ?? false;
 }
 
-/** 创建「过渡结束后更新」调度器 */
-export function createTransitionDeferredUpdater(runUpdate: () => void) {
-	let pending = false;
-	let handler: (() => void) | null = null;
-
-	const schedule = () => {
-		if (pending) return;
-		pending = true;
-
-		const runPending = () => {
-			pending = false;
-			if (handler) {
-				document.removeEventListener("swup:transition-ready", handler);
-				handler = null;
-			}
-			runUpdate();
-		};
-
-		if (typeof window.__scheduleSwupIdleWork === "function") {
-			window.__scheduleSwupIdleWork(runPending);
-			return;
-		}
-
-		handler = runPending;
-		document.addEventListener("swup:transition-ready", handler, {
-			once: true,
-		});
-	};
-
-	const cleanup = () => {
-		if (handler) {
-			document.removeEventListener("swup:transition-ready", handler);
-			handler = null;
-		}
-		pending = false;
-	};
-
-	return { schedule, cleanup };
-}
-
-/** 判断数值是否在开区间内 */
-export function isValueInRange(
-	value: number,
-	min: number,
-	max: number,
-): boolean {
-	return min < value && value < max;
-}
-
 /** 判断值是否在范围内 */
 export function isInRange(value: number, min: number, max: number): boolean {
 	return min < value && value < max;
@@ -477,47 +428,6 @@ export function throttle<T extends (...args: unknown[]) => unknown>(
 			}, limit);
 		}
 	};
-}
-
-/** 查找与视口相交的所有章节索引 */
-export function findVisibleSectionIndices(
-	offsets: Array<{ top: number; bottom: number } | null>,
-	viewportTop: number,
-	viewportBottom: number,
-): number[] {
-	const indices: number[] = [];
-	for (let i = 0; i < offsets.length; i++) {
-		const offset = offsets[i];
-		if (!offset) continue;
-		if (offset.bottom > viewportTop && offset.top < viewportBottom) {
-			indices.push(i);
-		}
-	}
-	return indices;
-}
-
-/** 根据滚动位置回退查找当前可见章节索引 */
-export function findActiveSectionIndex(
-	offsets: Array<{ top: number; bottom: number } | null>,
-	scrollTop: number,
-	_viewportBottom?: number,
-	activationOffset = 120,
-): number | null {
-	let activeIdx: number | null = null;
-	const activationLine = scrollTop + activationOffset;
-
-	for (let i = 0; i < offsets.length; i++) {
-		const offset = offsets[i];
-		if (!offset) continue;
-
-		if (offset.top <= activationLine) {
-			activeIdx = i;
-			continue;
-		}
-		break;
-	}
-
-	return activeIdx;
 }
 
 /** 缓存标题元素的文档级 top 坐标（避免每帧 getBoundingClientRect） */

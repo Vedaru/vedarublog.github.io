@@ -2,7 +2,6 @@ import {
 	applyBlendedEnteringShift,
 	clearBlendedLayoutInlineStyles,
 } from "./blended-styles";
-import { cancelActivePreScrollTween } from "./cancel-tween";
 import { getExpectedDesktopHomeGridShiftPx } from "./layout-measure";
 import {
 	beginEnteringHomeLayoutShift,
@@ -16,8 +15,6 @@ import {
 	isAnimationCancelledError,
 	runCancellableTween,
 } from "../cancellable-tween";
-
-export { cancelActivePreScrollTween };
 
 function animateBlendedEnteringHome(
 	visit: HomePreScrollVisit,

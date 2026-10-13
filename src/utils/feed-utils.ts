@@ -46,46 +46,49 @@ export async function renderPostContent(
 	const body = markdownParser.render(String(post.body ?? ""));
 	const html = htmlParser.parse(body);
 
-	for (const img of html.querySelectorAll("img")) {
-		const src = img.getAttribute("src");
-		if (!src) continue;
+	// 每张图片的处理互相独立，并发执行以缩短构建时间（顺序不影响结果）。
+	await Promise.all(
+		Array.from(html.querySelectorAll("img"), async (img) => {
+			const src = img.getAttribute("src");
+			if (!src) return;
 
-		if (
-			src.startsWith("./") ||
-			src.startsWith("../") ||
-			(!src.startsWith("http") && !src.startsWith("/"))
-		) {
-			const postDir = post.id.includes("/") ? post.id.split("/")[0] : "";
-			let importPath: string | null = null;
+			if (
+				src.startsWith("./") ||
+				src.startsWith("../") ||
+				(!src.startsWith("http") && !src.startsWith("/"))
+			) {
+				const postDir = post.id.includes("/") ? post.id.split("/")[0] : "";
+				let importPath: string | null = null;
 
-			if (src.startsWith("./")) {
-				const prefixRemoved = src.slice(2);
-				importPath = postDir
-					? `/src/content/posts/${postDir}/${prefixRemoved}`
-					: `/src/content/posts/${prefixRemoved}`;
-			} else if (src.startsWith("../")) {
-				importPath = `/src/content/${src.replace(/^\.\.\//, "")}`;
-			} else {
-				importPath = postDir
-					? `/src/content/posts/${postDir}/${src}`
-					: `/src/content/posts/${src}`;
-			}
+				if (src.startsWith("./")) {
+					const prefixRemoved = src.slice(2);
+					importPath = postDir
+						? `/src/content/posts/${postDir}/${prefixRemoved}`
+						: `/src/content/posts/${prefixRemoved}`;
+				} else if (src.startsWith("../")) {
+					importPath = `/src/content/${src.replace(/^\.\.\//, "")}`;
+				} else {
+					importPath = postDir
+						? `/src/content/posts/${postDir}/${src}`
+						: `/src/content/posts/${src}`;
+				}
 
-			const imageMod = await imagesGlob[importPath]?.()?.then(
-				(res) => res.default,
-			);
-			if (imageMod) {
-				const optimizedImg = await getImage({ src: imageMod });
-				img.setAttribute("src", new URL(optimizedImg.src, site).href);
-			} else {
-				console.log(
-					`Failed to load image: ${importPath} for post: ${post.id}`,
+				const imageMod = await imagesGlob[importPath]?.()?.then(
+					(res) => res.default,
 				);
+				if (imageMod) {
+					const optimizedImg = await getImage({ src: imageMod });
+					img.setAttribute("src", new URL(optimizedImg.src, site).href);
+				} else {
+					console.log(
+						`Failed to load image: ${importPath} for post: ${post.id}`,
+					);
+				}
+			} else if (src.startsWith("/")) {
+				img.setAttribute("src", new URL(src, site).href);
 			}
-		} else if (src.startsWith("/")) {
-			img.setAttribute("src", new URL(src, site).href);
-		}
-	}
+		}),
+	);
 
 	return sanitizeHtml(html.toString(), {
 		allowedTags: sanitizeHtml.defaults.allowedTags.concat(["img"]),
@@ -117,6 +120,11 @@ export async function buildAtomFeed(
 	const posts = await getFeedPosts(locale);
 	const site = context.site;
 
+	// 各篇文章的正文渲染互相独立，并发处理以缩短构建时间。
+	const contents = await Promise.all(
+		posts.map((post) => renderPostContent(post, site)),
+	);
+
 	let atomFeed = `<?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
   <title>${escapeXml(siteConfig.title)}</title>
@@ -127,9 +135,10 @@ export async function buildAtomFeed(
   <updated>${new Date().toISOString()}</updated>
   <language>${locale === defaultLocale ? siteConfig.lang : locale}</language>`;
 
-	for (const post of posts) {
+	for (let i = 0; i < posts.length; i++) {
+		const post = posts[i];
 		const postUrl = new URL(getPostUrl(post), site).href;
-		const content = await renderPostContent(post, site);
+		const content = contents[i];
 
 		atomFeed += `
   <entry>

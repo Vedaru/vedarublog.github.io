@@ -10,23 +10,24 @@ export async function GET(context: APIContext) {
 		throw Error("site not set");
 	}
 
+	const site = context.site;
 	const posts = await getFeedPosts();
-	const items: RSSFeedItem[] = [];
 
-	for (const post of posts) {
-		items.push({
+	// 各条目互相独立，并发渲染正文（保持原顺序）。
+	const items: RSSFeedItem[] = await Promise.all(
+		posts.map(async (post) => ({
 			title: post.data.title,
 			description: post.data.description,
 			pubDate: post.data.published,
 			link: getPostUrl(post),
-			content: await renderPostContent(post, context.site),
-		});
-	}
+			content: await renderPostContent(post, site),
+		})),
+	);
 
 	return rss({
 		title: siteConfig.title,
 		description: siteConfig.subtitle || "No description",
-		site: context.site,
+		site,
 		items,
 		customData: `<language>${siteConfig.lang}</language>`,
 	});

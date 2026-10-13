@@ -11,14 +11,12 @@ import {
 	pioConfig,
 	profileConfig,
 	siteConfig,
-	commentConfig,
 } from "@/config";
 import { umamiConfig } from "../config";
 
 import {
 	BANNER_HEIGHT,
 	BANNER_HEIGHT_EXTEND,
-	BANNER_HEIGHT_HOME,
 	DARK_MODE,
 	DEFAULT_THEME,
 	defaultFavicons,
@@ -197,7 +195,6 @@ if (siteConfig.font) {
 <html
 	lang={siteLang}
 	class="bg-[var(--page-bg)] text-[14px] md:text-[16px]"
-	data-overlayscrollbars-initialize
 	data-wallpaper-mode={siteConfig.wallpaperMode.defaultMode}
 	data-post-list-layout={siteConfig.postListLayout?.defaultMode || "list"}
 	data-locale={urlLocale}
@@ -471,7 +468,6 @@ if (siteConfig.font) {
 	<body
 		class="min-h-screen"
 		class:list={[{ "lg:is-home": isHomePage, "is-home": isHomePage }]}
-		data-overlayscrollbars-initialize
 	>
 		<script is:inline>
 			(function () {

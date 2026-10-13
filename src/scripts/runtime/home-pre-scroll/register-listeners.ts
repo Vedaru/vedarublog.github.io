@@ -7,7 +7,6 @@ import {
 	clearPreScrollOnVisitEnd,
 	finishPreScrollTransition,
 	getActivePreScrollGeneration,
-	setActivePreScrollVisit,
 } from "./dom-state";
 import { beginLeavingHomeLayoutShift } from "./layout-shift";
 import {
@@ -208,7 +207,6 @@ function handleVisitStart(
 			? snapshotNavbarWrapperStyles()
 			: null;
 
-	setActivePreScrollVisit(visit);
 	addPreScrollClasses(leavingHome, enteringHome);
 	window.__homePreScrollWasUsed = true;
 	window.__homePreScrollActive = true;

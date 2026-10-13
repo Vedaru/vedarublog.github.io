@@ -375,12 +375,6 @@ export function initCalendar(config: {
 		}, 150);
 	}
 
-	function showMonthlyPosts() {
-		const key = `${currentYear}-${currentMonth}`; // Month is 0-11
-		const posts = postsByMonth[key] || [];
-		renderPostList(posts);
-	}
-
 	function renderPostList(posts) {
 		if (!dom.postsList) return;
 		if (posts.length === 0) {

@@ -21,15 +21,6 @@ const isBannerSrcObject = (
 	);
 };
 
-/** 从 banner src 配置中取第一张 URL */
-export function getFirstBannerUrl(
-	images: string | string[] | undefined,
-): string | null {
-	if (Array.isArray(images)) return images[0] ?? null;
-	if (typeof images === "string") return images;
-	return null;
-}
-
 /** 将 banner src 转为 URL 数组 */
 export function toBannerSrcList(src: string | string[] | undefined): string[] {
 	return Array.isArray(src)

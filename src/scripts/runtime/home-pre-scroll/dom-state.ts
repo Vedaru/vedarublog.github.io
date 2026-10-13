@@ -2,7 +2,6 @@ import { clearBlendedLayoutInlineStyles } from "./blended-styles";
 import { isTargetMainHomePage, shouldHandleEnteringHome } from "./visit";
 import type { HomePreScrollVisit } from "./types";
 
-let activePreScrollVisit: HomePreScrollVisit | null = null;
 let activeVisitGeneration = 0;
 
 export function bumpPreScrollGeneration(): number {
@@ -12,12 +11,6 @@ export function bumpPreScrollGeneration(): number {
 
 export function getActivePreScrollGeneration(): number {
 	return activeVisitGeneration;
-}
-
-export function setActivePreScrollVisit(
-	visit: HomePreScrollVisit | null,
-): void {
-	activePreScrollVisit = visit;
 }
 
 function removePreScrollClasses(): void {
@@ -92,7 +85,6 @@ export function finishPreScrollTransition(
 		} else {
 			removePreScrollClasses();
 		}
-		activePreScrollVisit = null;
 	});
 }
 
@@ -105,7 +97,6 @@ export function resetHomePreScrollState(): void {
 export function clearPreScrollOnVisitEnd(): void {
 	window.__homePreScrollCompleted = false;
 	window.__homePreScrollActive = false;
-	activePreScrollVisit = null;
 	removePreScrollClasses();
 	// 旧实现曾经在 body 上写 --banner-slide: 0 的内联快照作为
 	// “单一时钟”机制；现在 banner 与 grid 各自 transition，body 上

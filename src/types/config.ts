@@ -286,22 +286,6 @@ export type WALLPAPER_MODE =
 	| typeof WALLPAPER_FULLSCREEN
 	| typeof WALLPAPER_NONE;
 
-export type BlogPostData = {
-	body: string;
-	title: string;
-	published: Date;
-	description: string;
-	tags: string[];
-	draft?: boolean;
-	image?: string;
-	category?: string;
-	pinned?: boolean;
-	prevTitle?: string;
-	prevSlug?: string;
-	nextTitle?: string;
-	nextSlug?: string;
-};
-
 export type ExpressiveCodeConfig = {
 	theme: string;
 	hideDuringThemeTransition?: boolean; // 是否在主题切换时隐藏代码块
@@ -405,33 +389,6 @@ export type SidebarLayoutConfig = {
 			desktop: number; // 桌面端断点（px）
 		};
 	};
-};
-
-export type SakuraConfig = {
-	enable: boolean; // 是否启用樱花特效
-	sakuraNum: number; // 樱花数量，默认21
-	limitTimes: number; // 樱花越界限制次数，-1为无限循环
-	size: {
-		min: number; // 樱花最小尺寸倍数
-		max: number; // 樱花最大尺寸倍数
-	};
-	opacity: {
-		min: number; // 樱花最小不透明度
-		max: number; // 樱花最大不透明度
-	};
-	speed: {
-		horizontal: {
-			min: number; // 水平移动速度最小值
-			max: number; // 水平移动速度最大值
-		};
-		vertical: {
-			min: number; // 垂直移动速度最小值
-			max: number; // 垂直移动速度最大值
-		};
-		rotation: number; // 旋转速度
-		fadeSpeed: number; // 消失速度
-	};
-	zIndex: number; // 层级，确保樱花在合适的层级显示
 };
 
 export type FullscreenWallpaperConfig = {
