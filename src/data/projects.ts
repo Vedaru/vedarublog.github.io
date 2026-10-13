@@ -238,21 +238,6 @@ export const projectsData: Project[] = [
 		startDate: "2026-06-14",
 		tags: ["Dotfiles", "Linux"],
 	},
-	{
-		id: "scripts",
-		title: "scripts",
-		description:
-			"引导、发布与镜像同步脚本 —— 这台机器环境的复原路径。",
-		descriptionEn:
-			"Bootstrap, publish and mirroring scripts — the restore path for this machine's setup.",
-		image: "",
-		category: "other",
-		techStack: ["Shell", "Bash"],
-		status: "completed",
-		links: [{ url: "https://git.vedaru.cn/Vedaru/scripts", kind: "forgejo" }],
-		startDate: "2026-09-07",
-		tags: ["Automation", "Shell", "Linux"],
-	},
 ];
 
 // Get project statistics
