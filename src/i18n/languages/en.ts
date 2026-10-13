@@ -85,6 +85,8 @@ export const en: Translation = {
 	[Key.diaryMinutesAgo]: "minutes ago",
 	[Key.diaryHoursAgo]: "hours ago",
 	[Key.diaryDaysAgo]: "days ago",
+	[Key.diaryYearHeading]: "{year}",
+	[Key.diaryDateLabel]: "{month} {day}",
 
 	// 404 Page
 	[Key.notFound]: "404",

@@ -85,6 +85,8 @@ export const ja: Translation = {
 	[Key.diaryMinutesAgo]: "分前",
 	[Key.diaryHoursAgo]: "時間前",
 	[Key.diaryDaysAgo]: "日前",
+	[Key.diaryYearHeading]: "{year}年",
+	[Key.diaryDateLabel]: "{month}{day}日",
 
 	// 404ページ
 	[Key.notFound]: "404",

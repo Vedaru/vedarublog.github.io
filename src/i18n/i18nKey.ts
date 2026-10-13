@@ -81,6 +81,10 @@ enum I18nKey {
 	diaryMinutesAgo = "diaryMinutesAgo",
 	diaryHoursAgo = "diaryHoursAgo",
 	diaryDaysAgo = "diaryDaysAgo",
+	/** 日记时间轴年份标题，{year} 为占位符（如 "2026 年" / "2026"）。 */
+	diaryYearHeading = "diaryYearHeading",
+	/** 日记条目日期，{month} / {day} 为占位符（如 "10月5日" / "Oct 5"）。 */
+	diaryDateLabel = "diaryDateLabel",
 
 	// 404页面
 	notFound = "notFound",

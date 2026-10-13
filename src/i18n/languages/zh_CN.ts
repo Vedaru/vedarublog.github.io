@@ -83,6 +83,8 @@ export const zh_CN: Translation = {
 	[Key.diaryMinutesAgo]: "分钟前",
 	[Key.diaryHoursAgo]: "小时前",
 	[Key.diaryDaysAgo]: "天前",
+	[Key.diaryYearHeading]: "{year} 年",
+	[Key.diaryDateLabel]: "{month}{day}日",
 
 	// 404页面
 	[Key.notFound]: "404",

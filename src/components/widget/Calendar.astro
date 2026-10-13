@@ -1,7 +1,7 @@
 ---
 import { siteConfig } from "../../config";
 import I18nKey from "../../i18n/i18nKey";
-import { i18n, normalizeLocale } from "../../i18n/translation";
+import { getMonthLabels, i18n, normalizeLocale } from "../../i18n/translation";
 import WidgetLayout from "./WidgetLayout.astro";
 import { Icon } from "astro-icon/components";
 
@@ -12,20 +12,7 @@ interface Props {
 
 const { class: className, style } = Astro.props;
 
-const monthNames = [
-	i18n(I18nKey.calendarJanuary, Astro.currentLocale),
-	i18n(I18nKey.calendarFebruary, Astro.currentLocale),
-	i18n(I18nKey.calendarMarch, Astro.currentLocale),
-	i18n(I18nKey.calendarApril, Astro.currentLocale),
-	i18n(I18nKey.calendarMay, Astro.currentLocale),
-	i18n(I18nKey.calendarJune, Astro.currentLocale),
-	i18n(I18nKey.calendarJuly, Astro.currentLocale),
-	i18n(I18nKey.calendarAugust, Astro.currentLocale),
-	i18n(I18nKey.calendarSeptember, Astro.currentLocale),
-	i18n(I18nKey.calendarOctober, Astro.currentLocale),
-	i18n(I18nKey.calendarNovember, Astro.currentLocale),
-	i18n(I18nKey.calendarDecember, Astro.currentLocale),
-];
+const monthNames = getMonthLabels(Astro.currentLocale);
 
 const weekDays = [
 	i18n(I18nKey.calendarMonday, Astro.currentLocale),

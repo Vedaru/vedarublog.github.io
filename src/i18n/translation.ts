@@ -1,5 +1,5 @@
 import { siteConfig } from "../config";
-import type I18nKey from "./i18nKey";
+import I18nKey from "./i18nKey";
 import { en } from "./languages/en";
 import { ja } from "./languages/ja";
 import { zh_CN } from "./languages/zh_CN";
@@ -54,6 +54,27 @@ export function normalizeLocale(lang?: string | null): Locale {
 export function i18n(key: I18nKey, locale?: string | null): string {
 	const lang = locale || siteConfig.lang || defaultLocale;
 	return getTranslation(lang)[key];
+}
+
+/** 1-12 月的本地化名称：中文「1月」…「12月」，英文「Jan」…「Dec」。 */
+const MONTH_KEYS = [
+	I18nKey.calendarJanuary,
+	I18nKey.calendarFebruary,
+	I18nKey.calendarMarch,
+	I18nKey.calendarApril,
+	I18nKey.calendarMay,
+	I18nKey.calendarJune,
+	I18nKey.calendarJuly,
+	I18nKey.calendarAugust,
+	I18nKey.calendarSeptember,
+	I18nKey.calendarOctober,
+	I18nKey.calendarNovember,
+	I18nKey.calendarDecember,
+];
+
+/** 渲染月份名（日历、日记时间轴等）时用它，避免各处重复列 month key。 */
+export function getMonthLabels(locale?: string | null): string[] {
+	return MONTH_KEYS.map((key) => i18n(key, locale));
 }
 
 /**
