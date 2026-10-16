@@ -1,5 +1,5 @@
 <script lang="ts">
-import { loadPagefind } from "@/lib/pagefind-loader";
+import { highlightTitle, loadSearchIndex, search as searchDocuments } from "@/lib/search";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 import "@/lib/iconify-offline";
@@ -18,13 +18,14 @@ const isLocale = locale.toLowerCase().startsWith("en") ? "en" : "zh";
 let keywordDesktop = $state("");
 let keywordMobile = $state("");
 let result: SearchResult[] = $state([]);
-let pagefindLoaded = false;
-let initialized = $state(false);
 let isDesktopSearchExpanded = $state(false);
 let debounceTimer: NodeJS.Timeout;
 let windowJustFocused = false;
 let focusTimer: NodeJS.Timeout;
 let blurTimer: NodeJS.Timeout;
+
+/** 搜索防抖：输入停顿后再查，避免每敲一个字都查一遍 */
+const SEARCH_DEBOUNCE_MS = 300;
 
 const fakeResult: SearchResult[] = [
 	{
@@ -44,57 +45,15 @@ const fakeResult: SearchResult[] = [
 	},
 ];
 
-/**
- * 结果标题的高亮。
- *
- * Pagefind 只对摘要做高亮（`excerpt` 里带 <mark>），标题是以 meta 原样返回的，
- * 所以标题命中了也看不出来 —— 看起来像"搜不到标题"。这里按关键词自己标一遍。
- * 中文不分词，直接按整词做子串匹配；英文忽略大小写。
- */
-function highlightTitle(title: string, query: string): string {
-	const escapeHtml = (text: string): string =>
-		text
-			.replace(/&/g, "&amp;")
-			.replace(/</g, "&lt;")
-			.replace(/>/g, "&gt;")
-			.replace(/"/g, "&quot;");
-
-	const terms = query
-		.trim()
-		.split(/\s+/)
-		.filter((term) => term.length > 0)
-		.map((term) => term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-
-	if (terms.length === 0) return escapeHtml(title);
-
-	// 先转义再接回高亮标签，避免把标题里的 HTML 当结构
-	return escapeHtml(title).replace(
-		new RegExp(`(${terms.join("|")})`, "gi"),
-		"<mark>$1</mark>",
-	);
-}
-
 // 产生当前结果列表的查询词：高亮标题时用它，避免猜是哪个输入框触发
 let lastQuery = $state("");
 
-let pagefindLoadStarted = false;
-
-async function ensurePagefindLoaded() {
+/** 预热：悬停或聚焦搜索框时先把索引拉下来，正式搜索就不用等 */
+const warmSearchIndex = () => {
 	if (import.meta.env.DEV) return;
-	if (pagefindLoadStarted && initialized) return;
-	pagefindLoadStarted = true;
-	await loadPagefind();
-	if (!initialized) {
-		initialized = true;
-		pagefindLoaded =
-			typeof window !== "undefined" &&
-			!!window.pagefind &&
-			typeof window.pagefind.search === "function";
-	}
-}
-
-const handleSearchInteraction = () => {
-	void ensurePagefindLoaded();
+	loadSearchIndex(isLocale).catch((error) => {
+		console.error("Search index failed to load:", error);
+	});
 };
 
 const togglePanel = () => {
@@ -174,65 +133,23 @@ const search = async (keyword: string, isDesktop: boolean): Promise<void> => {
 		result = [];
 		return;
 	}
-	if (!initialized) {
-		if (import.meta.env.PROD) {
-			await ensurePagefindLoaded();
-			if (initialized) {
-				return search(keyword, isDesktop);
-			}
-		}
-		return;
-	}
 	lastQuery = keyword;
 
-	try {
-		let searchResults: SearchResult[] = [];
-		if (import.meta.env.PROD && window.pagefind) {
-			const response = await window.pagefind.search(keyword);
-			searchResults = await Promise.all(
-				response.results.map((item) => item.data()),
-			);
-			// 索引里两种语言是在一起的，按当前页面语言过滤，
-			// 否则英文页面的搜索结果会混进中文文章。
-			searchResults = searchResults.filter((item) =>
-				isLocale === "en"
-					? item.url.startsWith("/en/")
-					: !item.url.startsWith("/en/"),
-			);
-		} else if (import.meta.env.DEV) {
-			searchResults = fakeResult;
-		} else {
-			searchResults = [];
-			console.error("Pagefind is not available in production environment.");
+	if (import.meta.env.DEV) {
+		result = fakeResult;
+	} else {
+		try {
+			await loadSearchIndex(isLocale);
+			result = searchDocuments(keyword);
+		} catch (error) {
+			console.error("Search failed:", error);
+			result = [];
 		}
-		result = searchResults;
-		setPanelVisibility(result.length > 0, isDesktop);
-	} catch (error) {
-		console.error("Search error:", error);
-		result = [];
-		setPanelVisibility(false, isDesktop);
 	}
+	setPanelVisibility(result.length > 0, isDesktop);
 };
 
 onMount(() => {
-	const initializeSearch = () => {
-		initialized = true;
-		pagefindLoaded =
-			typeof window !== "undefined" &&
-			!!window.pagefind &&
-			typeof window.pagefind.search === "function";
-	};
-	if (import.meta.env.DEV) {
-		initializeSearch();
-	} else {
-		document.addEventListener("pagefindready", () => {
-			initializeSearch();
-		});
-		document.addEventListener("pagefindloaderror", () => {
-			initializeSearch();
-		});
-	}
-
 	// 监听窗口焦点事件，防止切换窗口时自动展开搜索框
 	const handleFocus = () => {
 		windowJustFocused = true;
@@ -250,19 +167,17 @@ onMount(() => {
 });
 
 $effect(() => {
-	if (initialized) {
-		const keyword = keywordDesktop || keywordMobile;
-		const isDesktop = !!keywordDesktop || isDesktopSearchExpanded;
+	const keyword = keywordDesktop || keywordMobile;
+	const isDesktop = !!keywordDesktop || isDesktopSearchExpanded;
 
-		clearTimeout(debounceTimer);
-		if (keyword) {
-			debounceTimer = setTimeout(() => {
-				search(keyword, isDesktop);
-			}, 300);
-		} else {
-			result = [];
-			setPanelVisibility(false, isDesktop);
-		}
+	clearTimeout(debounceTimer);
+	if (keyword) {
+		debounceTimer = setTimeout(() => {
+			void search(keyword, isDesktop);
+		}, SEARCH_DEBOUNCE_MS);
+	} else {
+		result = [];
+		setPanelVisibility(false, isDesktop);
 	}
 });
 
@@ -297,14 +212,14 @@ onDestroy(() => {
     onmouseenter={() => {if (!isDesktopSearchExpanded) toggleDesktopSearch()}}
     onmouseleave={collapseDesktopSearch}
     onclick={() => {
-        handleSearchInteraction();
+        warmSearchIndex();
         const input = document.getElementById("search-input-desktop") as HTMLInputElement;
         input?.focus();
     }}
     onkeydown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            handleSearchInteraction();
+            warmSearchIndex();
             if (!isDesktopSearchExpanded) toggleDesktopSearch();
             const input = document.getElementById("search-input-desktop") as HTMLInputElement;
             input?.focus();
@@ -317,10 +232,10 @@ onDestroy(() => {
         aria-hidden={!isDesktopSearchExpanded}
         class:pointer-events-none={!isDesktopSearchExpanded}
         onfocus={() => {
-            handleSearchInteraction();
+            warmSearchIndex();
             clearTimeout(blurTimer);
             if (!isDesktopSearchExpanded) toggleDesktopSearch();
-            search(keywordDesktop, true);
+            void search(keywordDesktop, true);
         }}
         onblur={handleBlur}
         class="transition-all pl-10 text-sm bg-transparent outline-0 h-full {isDesktopSearchExpanded ? 'w-36' : 'w-0'} text-black/50 dark:text-white/50"
@@ -328,7 +243,7 @@ onDestroy(() => {
 </div>
 
 <!-- toggle btn for phone/tablet view -->
-<button onclick={() => { handleSearchInteraction(); togglePanel(); }} aria-label="Search Panel" id="search-switch"
+<button onclick={() => { warmSearchIndex(); togglePanel(); }} aria-label="Search Panel" id="search-switch"
         class="btn-plain scale-animation lg:!hidden rounded-lg w-11 h-11 active:scale-90">
     <Icon icon="material-symbols:search" class="text-[1.25rem]"></Icon>
 </button>

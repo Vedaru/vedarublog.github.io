@@ -26,9 +26,6 @@ if (!friendsPost) {
 }
 
 const { Content } = await render(friendsPost);
-// Markdown 会带上 data-pagefind-body，而 Pagefind 见到空的内容区就不再索引整页，
-// 所以没有说明文档时干脆不渲染它（friends.zh.md 目前为空）。
-const hasDocs = Boolean(friendsPost.body?.trim());
 // 简介是中英双份（desc / descEn），在这里挑好语言再交给岛屿，
 // 这样岛屿内的搜索也只搜当前语言的内容。
 const locale = normalizeLocale(Astro.currentLocale);
@@ -43,7 +40,7 @@ const friendsList = getShuffledFriendsList().map((item) => ({
     import('@/scripts/right-sidebar-layout.js');
   </script>
 	<div class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative min-h-32">
-		<div data-pagefind-body class="card-base z-10 px-9 py-6 relative w-full">
+		<div data-search-body class="card-base z-10 px-9 py-6 relative w-full">
       <!-- 页面标题 -->
       <div class="flex flex-col items-start justify-center mb-8">
         <h1 class="text-4xl font-bold text-black/90 dark:text-white/90 mb-2 relative
@@ -60,11 +57,9 @@ const friendsList = getShuffledFriendsList().map((item) => ({
 			<FriendsPanel friendsList={friendsList} locale={Astro.currentLocale} client:load />
 
 			<!-- 说明文档 -->
-			{hasDocs && (
-				<Markdown class="mt-8 prose dark:prose-invert max-w-none">
-					<Content />
-				</Markdown>
-			)}
+			<Markdown class="mt-8 prose dark:prose-invert max-w-none">
+				<Content />
+			</Markdown>
 		</div>
 	</div>
 </MainGridLayout>
