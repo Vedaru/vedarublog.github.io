@@ -1,5 +1,5 @@
 <script lang="ts">
-import { highlightTitle, loadSearchIndex, search as searchDocuments } from "@/lib/search";
+import { highlightTitle, loadSearchIndex, prefetchSearchIndex, search as searchDocuments } from "@/lib/search";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 import "@/lib/iconify-offline";
@@ -48,12 +48,10 @@ const fakeResult: SearchResult[] = [
 // 产生当前结果列表的查询词：高亮标题时用它，避免猜是哪个输入框触发
 let lastQuery = $state("");
 
-/** 预热：悬停或聚焦搜索框时先把索引拉下来，正式搜索就不用等 */
+/** 预热：悬停或聚焦搜索框时先把索引文件拉下来（不建索引，避免卡顿） */
 const warmSearchIndex = () => {
 	if (import.meta.env.DEV) return;
-	loadSearchIndex(isLocale).catch((error) => {
-		console.error("Search index failed to load:", error);
-	});
+	prefetchSearchIndex(isLocale);
 };
 
 const togglePanel = () => {

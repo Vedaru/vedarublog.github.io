@@ -121,12 +121,16 @@ interface IndexedPages {
 /** 当前页面对应的索引（同一时间只有一个语言在用） */
 let indexed: IndexedPages | null = null;
 const pending = new Map<SearchLocale, Promise<IndexedPages>>();
+/** 预取下来的页面数据（仅网络+解析，尚未建索引） */
+let prefetched: { locale: SearchLocale; pages: SearchPage[] | null } | null = null;
 
-async function fetchIndexedPages(locale: SearchLocale): Promise<IndexedPages> {
+async function fetchIndexPages(locale: SearchLocale): Promise<SearchPage[]> {
 	const response = await fetch(`/search/${locale}.json`);
 	if (!response.ok) throw new Error(`search index: HTTP ${response.status}`);
+	return (await response.json()) as SearchPage[];
+}
 
-	const pages = (await response.json()) as SearchPage[];
+function buildIndex(locale: SearchLocale, pages: SearchPage[]): IndexedPages {
 	const index = new MiniSearch<SearchPage>({
 		fields: ["t", "x"],
 		tokenize,
@@ -137,13 +141,35 @@ async function fetchIndexedPages(locale: SearchLocale): Promise<IndexedPages> {
 	return { locale, pages, index };
 }
 
+/**
+ * 悬停/聚焦搜索框时预取索引文件：只做网络和 JSON 解析（几毫秒），
+ * 建索引的重活留到真正搜索时，以免打断展开动画（首次悬停卡顿）。
+ */
+export function prefetchSearchIndex(locale: SearchLocale): void {
+	if (indexed?.locale === locale || prefetched?.locale === locale) return;
+
+	prefetched = { locale, pages: null };
+	fetchIndexPages(locale)
+		.then((pages) => {
+			if (prefetched?.locale === locale) prefetched.pages = pages;
+		})
+		.catch(() => {
+			// 预取失败没关系，搜索时会重新拉取并报错
+		});
+}
+
 /** 拉取并索引指定语言的页面。同一语言重复调用只生效一次，失败后可以重试。 */
 export async function loadSearchIndex(locale: SearchLocale): Promise<void> {
 	if (indexed?.locale === locale) return;
 
 	let request = pending.get(locale);
 	if (!request) {
-		request = fetchIndexedPages(locale);
+		request = (async () => {
+			const pages =
+				(prefetched?.locale === locale ? prefetched.pages : null) ??
+				(await fetchIndexPages(locale));
+			return buildIndex(locale, pages);
+		})();
 		pending.set(locale, request);
 	}
 
