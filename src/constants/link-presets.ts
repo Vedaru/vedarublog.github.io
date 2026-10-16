@@ -45,11 +45,6 @@ export function getLinkPresets(locale?: string): {
 			url: to("/anime/"),
 			icon: "material-symbols:movie",
 		},
-		[LinkPreset.Diary]: {
-			name: i18n(I18nKey.diary, locale),
-			url: to("/diary/"),
-			icon: "material-symbols:book",
-		},
 		[LinkPreset.Albums]: {
 			name: i18n(I18nKey.albums, locale),
 			url: to("/albums/"),

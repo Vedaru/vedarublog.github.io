@@ -29,18 +29,11 @@ const postsCollection = defineCollection({
   }),
 });
 
-const diaryCollection = defineCollection({
-  schema: z.object({
-    month: z.string(),
-  }),
-});
-
 const specCollection = defineCollection({
   schema: z.object({}),
 });
 
 export const collections = {
   posts: postsCollection,
-  diary: diaryCollection,
   spec: specCollection,
 };

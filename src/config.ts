@@ -38,7 +38,6 @@ export const siteConfig: SiteConfig = {
 	// 特色页面开关配置（关闭未使用的页面有助于提升 SEO，关闭后请记得在 navbarConfig 中移除对应链接）
 	featurePages: {
 		anime: true, // 番剧页面开关
-		diary: true, // 日记页面开关
 		friends: true, // 友链页面开关
 		projects: true, // 项目页面开关
 		skills: true, // 技能页面开关
@@ -241,9 +240,10 @@ export const navBarConfig: NavBarConfig = {
 					icon: "material-symbols:movie",
 				},
 				{
-					name: "Diary",
-					url: "/diary/",
-					icon: "material-symbols:book",
+					name: "Memos",
+					url: "https://memos.vedaru.cn/",
+					external: true,
+					icon: "material-symbols:note-stack",
 				},
 				{
 					name: "Gallery",

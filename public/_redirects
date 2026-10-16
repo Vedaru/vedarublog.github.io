@@ -18,8 +18,10 @@
 /atom/*         /zh/atom/:splat         301
 /devices/       /zh/devices/            301
 /devices/*      /zh/devices/:splat      301
-/diary/         /zh/diary/              301
-/diary/*        /zh/diary/:splat        301
+/diary/         https://memos.vedaru.cn/  301
+/diary/*        https://memos.vedaru.cn/  301
+/zh/diary/      https://memos.vedaru.cn/  301
+/en/diary/      https://memos.vedaru.cn/  301
 /friends/       /zh/friends/            301
 /friends/*      /zh/friends/:splat      301
 /projects/      /zh/projects/           301

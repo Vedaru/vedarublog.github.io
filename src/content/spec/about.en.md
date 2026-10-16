@@ -39,7 +39,7 @@ Mostly a record of my learning and my hobbies:
 
 ## 🗓️ Update schedule
 - **Every Sunday** — Regular updates
-- **Irregularly** — Diary entries and anime progress
+- **Irregularly** — [memos](https://memos.vedaru.cn) and anime progress
 
 ## 🛠️ Self-hosted infrastructure
 
@@ -56,6 +56,7 @@ Maintenance works by forking upstream and rebasing on each release, rather than 
 | Service | Purpose |
 | --- | --- |
 | **Portainer** | Visual Docker container management |
+| **[Memos](https://memos.vedaru.cn)** | Notes and diary entries |
 | **Beszel** | Lightweight server monitoring (Hub + Agent) |
 
 ## 📬 Get in touch

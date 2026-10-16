@@ -58,7 +58,6 @@ export const en: Translation = {
 	[Key.publishedAt]: "Published at",
 	[Key.license]: "License",
 	[Key.anime]: "Anime",
-	[Key.diary]: "Diary",
 
 	// Anime Page
 	[Key.animeTitle]: "My Anime List",
@@ -76,16 +75,6 @@ export const en: Translation = {
 		"Please check Bangumi configuration or network connection",
 	[Key.animeEmptyLocal]:
 		"Please add anime information in src/data/anime.ts file",
-
-	// Diary Page
-	[Key.diarySubtitle]: "Share life, anytime, anywhere",
-	[Key.diaryCount]: "diary entries",
-	[Key.diaryReply]: "Reply",
-	[Key.diaryMinutesAgo]: "minutes ago",
-	[Key.diaryHoursAgo]: "hours ago",
-	[Key.diaryDaysAgo]: "days ago",
-	[Key.diaryYearHeading]: "{year}",
-	[Key.diaryDateLabel]: "{month} {day}",
 
 	// 404 Page
 	[Key.notFound]: "404",
@@ -338,7 +327,6 @@ export const en: Translation = {
 	[Key.profileStatsPageViews]: "Page views",
 	[Key.profileStatsVisits]: "Visits",
 	[Key.profileStatsUnavailable]: "Stats unavailable",
-	[Key.diaryDescription]: "Short notes, posted as they happen",
 	[Key.commentLoading]: "Loading comments…",
 	[Key.viewsLoading]: "Loading stats…",
 };

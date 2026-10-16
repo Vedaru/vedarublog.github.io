@@ -39,7 +39,7 @@ This website is built with the **Astro** framework using the [Mizuki](https://gi
 
 ## 🗓️ 更新时间
 - **每周日** - 固定更新
-- **不定期** - 更新日记和追番内容
+- **不定期** - [memos](https://memos.vedaru.cn) 和追番内容
 
 ## 🛠️ 自建基础设施
 
@@ -56,6 +56,7 @@ This website is built with the **Astro** framework using the [Mizuki](https://gi
 | 服务 | 用途 |
 | --- | --- |
 | **Portainer** | Docker 容器可视化管理 |
+| **[Memos](https://memos.vedaru.cn)** | 随笔、日记 |
 | **Beszel** | 轻量服务器监控（Hub + Agent） |
 
 ## 📬 与我联系

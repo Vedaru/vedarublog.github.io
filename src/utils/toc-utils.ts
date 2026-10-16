@@ -99,12 +99,11 @@ export function cleanHeadingText(text: string): string {
 	return text.replace(/#+\s*$/, "");
 }
 
-/** 是否为文章/日记等需要显示 TOC 的页面 */
+/** 是否为文章等需要显示 TOC 的页面 */
 export function isPostPagePath(pathname?: string): boolean {
 	const path = pathname ?? getCurrentPath();
 	return (
 		path.includes("/posts/") ||
-		path.includes("/diary") ||
 		(typeof document !== "undefined" &&
 			document.querySelector(MARKDOWN_SELECTOR) !== null)
 	);
@@ -128,19 +127,11 @@ export function collectHeadingsFromDocument(
 	container?: Element | Document | null,
 ): TocHeading[] {
 	let root: Element | Document = container ?? document;
-	if (!container) {
-		const path = getCurrentPath();
-		if (path.includes("/diary")) {
-			root =
-				document.querySelector(".moments-timeline") ??
-				document.querySelector("#swup-container") ??
-				document;
-		} else if (isPostPagePath(path)) {
-			root =
-				document.querySelector(MARKDOWN_SELECTOR) ??
-				document.querySelector("#swup-container") ??
-				document;
-		}
+	if (!container && isPostPagePath()) {
+		root =
+			document.querySelector(MARKDOWN_SELECTOR) ??
+			document.querySelector("#swup-container") ??
+			document;
 	}
 	const nodes = root.querySelectorAll(HEADING_SELECTOR);
 	const headings: TocHeading[] = [];

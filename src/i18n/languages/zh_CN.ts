@@ -58,7 +58,6 @@ export const zh_CN: Translation = {
 	[Key.publishedAt]: "发布于",
 	[Key.license]: "许可协议",
 	[Key.anime]: "追番",
-	[Key.diary]: "日记",
 
 	// 番剧页面
 	[Key.animeTitle]: "我的追番记录",
@@ -74,16 +73,6 @@ export const zh_CN: Translation = {
 	[Key.animeEmpty]: "暂无追番数据",
 	[Key.animeEmptyBangumi]: "请检查 Bangumi 配置或网络连接",
 	[Key.animeEmptyLocal]: "请在 src/data/anime.ts 文件中添加番剧信息",
-
-	// 短文页面
-	[Key.diarySubtitle]: "随时随地，分享生活",
-	[Key.diaryCount]: "条短文",
-	[Key.diaryReply]: "回复",
-	[Key.diaryMinutesAgo]: "分钟前",
-	[Key.diaryHoursAgo]: "小时前",
-	[Key.diaryDaysAgo]: "天前",
-	[Key.diaryYearHeading]: "{year} 年",
-	[Key.diaryDateLabel]: "{month}{day}日",
 
 	// 404页面
 	[Key.notFound]: "404",
@@ -326,7 +315,6 @@ export const zh_CN: Translation = {
 	[Key.profileStatsPageViews]: "浏览量",
 	[Key.profileStatsVisits]: "访问次数",
 	[Key.profileStatsUnavailable]: "统计不可用",
-	[Key.diaryDescription]: "即刻短文",
 	[Key.commentLoading]: "加载评论中…",
 	[Key.viewsLoading]: "统计加载中…",
 };

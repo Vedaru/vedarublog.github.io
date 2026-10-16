@@ -58,7 +58,6 @@ export const ja: Translation = {
 	[Key.publishedAt]: "公開日",
 	[Key.license]: "ライセンス",
 	[Key.anime]: "アニメ",
-	[Key.diary]: "日記",
 
 	// アニメページ
 	[Key.animeTitle]: "視聴したアニメ",
@@ -76,16 +75,6 @@ export const ja: Translation = {
 		"Bangumi の構成またはネットワークを接続を確認してください",
 	[Key.animeEmptyLocal]:
 		"src/data/anime.tsのファイルにアニメの情報を追加してください",
-
-	// 日記ページ
-	[Key.diarySubtitle]: "いつでも、どこでも生活を共有",
-	[Key.diaryCount]: "日記のエントリー",
-	[Key.diaryReply]: "返信",
-	[Key.diaryMinutesAgo]: "分前",
-	[Key.diaryHoursAgo]: "時間前",
-	[Key.diaryDaysAgo]: "日前",
-	[Key.diaryYearHeading]: "{year}年",
-	[Key.diaryDateLabel]: "{month}{day}日",
 
 	// 404ページ
 	[Key.notFound]: "404",
@@ -341,7 +330,6 @@ export const ja: Translation = {
 	[Key.profileStatsPageViews]: "ページの閲覧",
 	[Key.profileStatsVisits]: "訪問",
 	[Key.profileStatsUnavailable]: "統計は利用できません",
-	[Key.diaryDescription]: "その時々の短い記録",
 	[Key.commentLoading]: "コメントを読み込み中…",
 	[Key.viewsLoading]: "統計を読み込み中…",
 };
