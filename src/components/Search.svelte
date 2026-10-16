@@ -203,6 +203,13 @@ onDestroy(() => {
 </script>
 
 <!-- search bar for desktop view (collapsed by default) -->
+{#snippet searchIcon(className: string)}
+    <!-- 放大镜直接内联，不依赖图标运行时，避免搜索入口的图标因为 icon 数据缺失而不显示 -->
+    <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" viewBox="0 0 24 24" width="1em" height="1em" class={className}>
+        <path fill="currentColor" d="m19.6 21l-6.3-6.3q-.75.6-1.725.95T9.5 16q-2.725 0-4.612-1.888T3 9.5t1.888-4.612T9.5 3t4.613 1.888T16 9.5q0 1.1-.35 2.075T14.7 13.3l6.3 6.3zM9.5 14q1.875 0 3.188-1.312T14 9.5t-1.312-3.187T9.5 5T6.313 6.313T5 9.5t1.313 3.188T9.5 14"></path>
+    </svg>
+{/snippet}
+
 <div
     id="search-bar"
     class="hidden lg:flex transition-all items-center h-11 rounded-lg relative shrink-0 {isDesktopSearchExpanded ? 'bg-black/[0.04] hover:bg-black/[0.06] focus-within:bg-black/[0.06] dark:bg-white/5 dark:hover:bg-white/10 dark:focus-within:bg-white/10' : 'btn-plain active:scale-90'} {isDesktopSearchExpanded ? 'w-48' : 'w-11'}"
@@ -226,7 +233,7 @@ onDestroy(() => {
         }
     }}
 >
-    <Icon icon="material-symbols:search" class="absolute text-[1.25rem] pointer-events-none {isDesktopSearchExpanded ? 'left-3' : 'left-1/2 -translate-x-1/2'} transition top-1/2 -translate-y-1/2 {isDesktopSearchExpanded ? 'text-black/30 dark:text-white/30' : ''}"></Icon>
+    {@render searchIcon(`absolute text-[1.25rem] pointer-events-none ${isDesktopSearchExpanded ? 'left-3' : 'left-1/2 -translate-x-1/2'} transition top-1/2 -translate-y-1/2 ${isDesktopSearchExpanded ? 'text-black/30 dark:text-white/30' : ''}`)}
     <input id="search-input-desktop" placeholder={i18n(I18nKey.search, locale)} bind:value={keywordDesktop}
         tabindex={isDesktopSearchExpanded ? 0 : -1}
         aria-hidden={!isDesktopSearchExpanded}
@@ -245,16 +252,16 @@ onDestroy(() => {
 <!-- toggle btn for phone/tablet view -->
 <button onclick={() => { warmSearchIndex(); togglePanel(); }} aria-label="Search Panel" id="search-switch"
         class="btn-plain scale-animation lg:!hidden rounded-lg w-11 h-11 active:scale-90">
-    <Icon icon="material-symbols:search" class="text-[1.25rem]"></Icon>
+    {@render searchIcon("text-[1.25rem]")}
 </button>
 
 <!-- search panel -->
 <div id="search-panel" class="float-panel float-panel-closed absolute md:w-[30rem] top-20 left-4 md:left-[unset] right-4 z-50 search-panel shadow-2xl rounded-2xl p-2">
     <!-- search bar inside panel for phone/tablet -->
     <div id="search-bar-inside" class="flex relative lg:hidden transition-all items-center h-11 rounded-xl bg-black/[0.04] hover:bg-black/[0.06] focus-within:bg-black/[0.06] dark:bg-white/5 dark:hover:bg-white/10 dark:focus-within:bg-white/10">
-        <Icon icon="material-symbols:search" class="absolute text-[1.25rem] pointer-events-none ml-3 transition my-auto text-black/30 dark:text-white/30"></Icon>
+        {@render searchIcon("absolute text-[1.25rem] pointer-events-none ml-3 transition my-auto text-black/30 dark:text-white/30")}
         <input placeholder={i18n(I18nKey.search, locale)} bind:value={keywordMobile}
-               onfocus={handleSearchInteraction}
+               onfocus={warmSearchIndex}
                class="pl-10 absolute inset-0 text-sm bg-transparent outline-0 focus:w-60 text-black/50 dark:text-white/50"
         >
     </div>
