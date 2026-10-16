@@ -90,7 +90,6 @@
 		"@types/sanitize-html": "^2.16.0",
 		"fontmin": "^1.1.1",
 		"iconify-icon": "^3.0.2",
-		"pagefind": "^1.5.2",
 		"postcss-import": "^16.1.1",
 		"prettier": "^3.7.4",
 		"transliteration": "^2.6.1",
