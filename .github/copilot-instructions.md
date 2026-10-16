@@ -20,7 +20,7 @@
 - 本地开发：
   - `pnpm dev`（内部有 `predev`，会尝试执行 `generate-responsive-images` 和 `sync-content`，但这些步骤可被环境变量控制）。
 - 构建与预览：
-  - `pnpm build`（会执行 `astro build`、`pagefind` 索引与字体子集压缩）。
+  - `pnpm build`（会执行 `astro build`、站内搜索索引 `scripts/build-search-pages.mjs` 与字体子集压缩）。
   - `pnpm preview` 查看生产构建。
 - 常用脚本示例：
   - `pnpm run sync-content` — 同步/克隆内容仓库（Windows 回退为复制）。

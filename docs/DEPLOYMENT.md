@@ -273,7 +273,7 @@ USE_SUBMODULE=false  # ⚠️ Cloudflare Pages 默认不支持 submodule
 1. **Caching → Configuration → Browser Cache TTL** → 设为 **Respect Existing Headers**（勿用固定 1 hour）。
 2. **Speed → Optimization → Rocket Loader** → **关闭**（与站内 `data-cfasync="false"` 策略冲突，会拖长 JS 依赖链）。
 3. **Caching → Cache Rules**（与 `_headers` 双保险）：
-   - `/_astro/*`、`/assets/*`、`/js/*`、`/pagefind/*`、`/favicon/*` → Edge Cache TTL 1 年；Browser Cache TTL 尊重 Origin 或显式 1 年。
+   - `/_astro/*`、`/assets/*`、`/js/*`、`/search/*`、`/favicon/*` → Edge Cache TTL 1 年（`/search/*` 建议短一些，索引文件名固定，内容随构建更新）；Browser Cache TTL 尊重 Origin 或显式 1 年。
    - `/*`（HTML）→ 保持短 TTL（如 1–4 小时）+ `stale-while-revalidate`。
 
 部署后验证：
