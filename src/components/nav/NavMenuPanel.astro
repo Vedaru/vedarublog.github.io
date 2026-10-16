@@ -69,7 +69,6 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
     {processedLinks.map((link) => (
         <div class="mobile-menu-item">
             {link.children && link.children.length > 0 ? (
-                <!-- 有子菜单的项目 -->
                 <div class="mobile-dropdown" data-mobile-dropdown>
                     <button 
                         class="group flex justify-between items-center py-2 pl-3 pr-1 rounded-lg gap-8 w-full text-left
@@ -104,7 +103,6 @@ const processedLinks: ProcessedNavBarLink[] = Astro.props.links.map(
                     </div>
                 </div>
             ) : (
-                <!-- 普通链接项目 -->
                 <a href={link.external ? link.url : localizeInternalHref(link.url, Astro.currentLocale)} class="group flex justify-between items-center py-2 pl-3 pr-1 rounded-lg gap-8
                     hover:bg-[var(--btn-plain-bg-hover)] active:bg-[var(--btn-plain-bg-active)] transition-colors duration-150
                 "
