@@ -221,12 +221,6 @@ export const navBarConfig: NavBarConfig = {
 					external: true,
 					icon: "fa6-brands:bilibili",
 				},
-        {
-          name: "Forgejo",
-          url: "https://git.vedaru.cn",
-          external: true,
-          icon: "simple-icons:forgejo",
-        },
 			],
 		},
 		{
@@ -244,6 +238,12 @@ export const navBarConfig: NavBarConfig = {
 					url: "https://memos.vedaru.cn/",
 					external: true,
 					icon: "material-symbols:note-stack",
+				},
+				{
+					name: "Forgejo",
+					url: "https://git.vedaru.cn",
+					external: true,
+					icon: "simple-icons:forgejo",
 				},
 				{
 					name: "Gallery",
