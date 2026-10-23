@@ -63,6 +63,24 @@ export const projectsData: Project[] = [
 	// Desktop & Systems
 	// -------------------------------------------------------------------------
 	{
+		id: "oh-my-mc",
+		title: "oh-my-mc",
+		description:
+			"受 PCL 启发的 Flutter/Dart Minecraft 启动器，主打流畅动画和现代界面。",
+		descriptionEn:
+			"A PCL-inspired Minecraft launcher in Flutter/Dart, focused on fluid animation and a modern interface.",
+		image: "",
+		category: "desktop",
+		techStack: ["Flutter", "Dart"],
+		status: "in-progress",
+		links: [
+			{ url: "https://github.com/Vedaru/oh-my-mc", kind: "github" },
+			{ url: "https://git.vedaru.cn/Vedaru/oh-my-mc", kind: "forgejo" },
+		],
+		startDate: "2026-10-21",
+		tags: ["Desktop", "Flutter", "Minecraft"],
+	},
+	{
 		id: "kuro",
 		title: "kuro",
 		description:
