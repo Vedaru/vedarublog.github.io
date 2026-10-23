@@ -27,6 +27,7 @@ import { parseDirectiveNode } from "./src/plugins/remark-directive-rehype.js";
 import { remarkMermaid } from "./src/plugins/remark-mermaid.js";
 import { remarkContent } from "./src/plugins/remark-content.mjs";
 import { rehypeImageWidth } from "./src/plugins/rehype-image-width.mjs";
+import { rehypeForgejoCard } from "./src/plugins/rehype-forgejo-card.mjs";
 
 const SITE_BUILD_ID =
 	process.env.CF_PAGES_COMMIT_SHA ||
@@ -188,6 +189,7 @@ export default defineConfig({
 			rehypeWrapTable,
 			rehypeMermaid,
 			rehypeImageWidth,
+			rehypeForgejoCard,
 			[
 				rehypeComponents,
 				{
