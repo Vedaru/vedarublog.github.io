@@ -76,16 +76,19 @@ html.is-animating .transition-swup-fade {
 	}
 }
 
+/* 用 backwards 而不是 forwards：动画结束后不再持续占用 transform/opacity。
+   侧栏容器和组件常驻这个类，forwards 会让每个卡片一直处于“动画填充”
+   状态；祖先 #main-grid 做 700ms 位移过渡时，这些残留动画会让浏览器
+   逐帧重新合成卡片，侧栏看起来就在轻微发抖。backwards 只在延迟阶段
+   应用首帧（仍能避免闪烁），结束后把样式交还给 CSS。 */
 .onload-animation {
-	opacity: 0;
 	animation: fade-in-up var(--transition-duration) var(--transition-easing)
-		forwards;
+		backwards;
 }
 
 .onload-animation-fade-in {
-	opacity: 0;
 	animation: fade-in var(--transition-duration) var(--transition-easing)
-		forwards;
+		backwards;
 }
 
 /* 同级元素依次错开（侧栏组件、文章分块等） */
