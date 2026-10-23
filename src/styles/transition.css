@@ -112,6 +112,12 @@ html.is-animating .transition-swup-fade {
    的机器上会超出纹理预算，浏览器只能在动画中途逐片重光栅化，表现为
    换页时的抖动。所以只在 Swup 过渡窗口内提升图层，窗口结束后由浏览
    器自动回收。
+
+   只提升真正带过渡的元素。.onload-animation 是首屏/新内容的一次性
+   入场动画，不参与 Swup 过渡；而侧栏容器和组件常驻这个类，把它们
+   一起提升会在 #main-grid 的 700ms 位移过渡进行到一半时（is-changing
+   只有 ~120ms）提升又降级整棵侧栏图层，重新光栅化的整像素取整会让
+   侧栏卡片相对网格逐帧错位，也就是换页时的侧栏抖动。
    ============================================================ */
 html.is-changing .transition-main,
 html.is-animating .transition-main,
@@ -119,8 +125,7 @@ html.is-leaving .transition-main,
 html.is-changing .transition-leaving,
 html.is-animating .transition-leaving,
 html.is-changing .transition-swup-fade,
-html.is-animating .transition-swup-fade,
-html.is-changing .onload-animation {
+html.is-animating .transition-swup-fade {
 	will-change: transform, opacity;
 	backface-visibility: hidden;
 	-webkit-backface-visibility: hidden;

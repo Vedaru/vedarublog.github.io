@@ -137,11 +137,11 @@ html[data-wallpaper-mode="fullscreen"] [data-fullscreen-wallpaper] {
     transform: translateY(var(--banner-height-extend, 30dvh));
   }
 
-  /* 左侧 sticky 阈值随 is-home 类跳变（不需要平滑插值——sticky 偏移
-     跟随 grid transform 即可，grid 自身走 700ms 过渡）。 */
+  /* 左侧 sticky 阈值随 is-home 类跳变，不做 top 过渡：sticky 偏移跟随
+     grid transform 即可，grid 自身走 700ms 过渡；给 sticky 元素再补一条
+     top 过渡会在换页时触发逐帧布局重算，反而制造抖动。 */
   #sidebar-sticky {
     top: 1rem;
-    transition: top var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
   }
   html[data-wallpaper-mode="banner"] body.enable-banner.is-home #sidebar-sticky,
   html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #sidebar-sticky {

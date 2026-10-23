@@ -281,13 +281,9 @@ html.swup-scroll-lock body {
 html.swup-scroll-lock #navbar-wrapper,
 html.swup-scroll-lock #navbar > div,
 html.swup-scroll-lock #top-row,
-html.swup-scroll-lock #sidebar-sticky,
-html.swup-scroll-lock #right-sidebar-sticky,
 html.swup-perf-active #navbar-wrapper,
 html.swup-perf-active #navbar > div,
-html.swup-perf-active #top-row,
-html.swup-perf-active #sidebar-sticky,
-html.swup-perf-active #right-sidebar-sticky {
+html.swup-perf-active #top-row {
   transition: none !important;
 }
 
@@ -319,24 +315,18 @@ html.is-visit-pre-scrolling .absolute.w-full.z-30,
 html.is-visit-pre-scrolling #navbar-wrapper,
 html.is-visit-pre-scrolling #main-grid,
 html.is-visit-pre-scrolling #top-row,
-html.is-visit-pre-scrolling #sidebar-sticky,
-html.is-visit-pre-scrolling #right-sidebar-sticky,
 html.is-visit-pre-scrolling .banner-breathe-wrap img,
 html.is-visit-pre-scrolling #navbar > div {
   transition: none !important;
 }
 
 html.is-smooth-scrolling #navbar-wrapper,
-html.is-smooth-scrolling #navbar > div,
-html.is-smooth-scrolling #sidebar-sticky,
-html.is-smooth-scrolling #right-sidebar-sticky {
+html.is-smooth-scrolling #navbar > div {
   transition: none !important;
 }
 
 html.is-manual-scroll-syncing #navbar-wrapper,
-html.is-manual-scroll-syncing #navbar > div,
-html.is-manual-scroll-syncing #sidebar-sticky,
-html.is-manual-scroll-syncing #right-sidebar-sticky {
+html.is-manual-scroll-syncing #navbar > div {
   transition: none !important;
 }
 
@@ -387,11 +377,6 @@ html.is-visit-layout-shifting {
   overflow-anchor: none;
 }
 
-html.is-visit-layout-shifting #sidebar-sticky,
-html.is-visit-layout-shifting #right-sidebar-sticky {
-  transition: none !important;
-}
-
 html.is-visit-layout-shifting #main-grid,
 html.is-visit-layout-shifting .absolute.w-full.z-30,
 html.is-visit-layout-shifting #banner-wrapper {
@@ -405,14 +390,6 @@ html.is-visit-layout-shifting #banner-wrapper {
   html.is-visit-layout-shifting[data-wallpaper-mode="banner"] body.enable-banner.is-home #banner-wrapper:not(.mobile-hide-banner) {
     transform: none;
   }
-}
-
-/* 离开首页布局切换：预滚动期间强制 #sidebar-sticky 不参与 transform，
-   防止 sticky 偏移与 grid 的 transform 过渡叠加造成左侧卡片跳位。 */
-
-html.is-visit-layout-shifting.is-home-pre-scrolling #sidebar-sticky,
-html.is-visit-layout-shifting.is-visit-pre-scrolling #sidebar-sticky {
-  transform: none !important;
 }
 
 /* 预滚动期间禁用 navbar-hidden，避免解冻 transition-all 时 opacity 跳变 */
