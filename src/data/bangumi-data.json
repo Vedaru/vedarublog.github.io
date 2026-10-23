@@ -110,6 +110,28 @@
     "endDate": "2026-01-03"
   },
   {
+    "title": "赛博朋克：边缘行者 2",
+    "titleOriginal": "Cyberpunk: Edgerunners 2",
+    "titleEn": "Cyberpunk: Edgerunners 2",
+    "status": "planned",
+    "rating": 5.6,
+    "cover": "/assets/anime/cover/513878.webp",
+    "description": "《赛博朋克：边缘行者2》把你带回夜之城。在那里，人与人的命运纠缠到了极致。昔日的赛博朋克传奇人物微克如今风光不再，不得不脱离义体活着，在这个对他熟视无睹的世界里寻找人生的意义。与此同时，手段狠辣的流浪者D踏上了复仇之路，也让他触及到了永远不该被外人发现的公司秘密。在这部总共十集的独立动画中，你将了解到一个关于家庭、执念、传承的故事——以及在你的镜头记录下，身边的人又会呈现出一个个怎样的故事。",
+    "episodes": "10 episodes",
+    "year": "2026",
+    "genre": [
+      "TRIGGER",
+      "原创",
+      "科幻"
+    ],
+    "studio": "CD Projekt Red",
+    "link": "https://bgm.tv/subject/513878",
+    "progress": 4,
+    "totalEpisodes": 10,
+    "startDate": "2026-10-20",
+    "endDate": "2026-10-20"
+  },
+  {
     "title": "葬送的芙莉莲 第三季 黄金乡篇",
     "titleOriginal": "葬送のフリーレン 第3期【黄金郷編】",
     "titleEn": "",
@@ -152,28 +174,6 @@
     "totalEpisodes": 0,
     "startDate": "",
     "endDate": ""
-  },
-  {
-    "title": "赛博朋克：边缘行者 2",
-    "titleOriginal": "Cyberpunk: Edgerunners 2",
-    "titleEn": "Cyberpunk: Edgerunners 2",
-    "status": "planned",
-    "rating": 7.3,
-    "cover": "/assets/anime/cover/513878.webp",
-    "description": "《赛博朋克：边缘行者2》把你带回夜之城。在那里，人与人的命运纠缠到了极致。昔日的赛博朋克传奇人物微克如今风光不再，不得不脱离义体活着，在这个对他熟视无睹的世界里寻找人生的意义。与此同时，手段狠辣的流浪者D踏上了复仇之路，也让他触及到了永远不该被外人发现的公司秘密。在这部总共十集的独立动画中，你将了解到一个关于家庭、执念、传承的故事——以及在你的镜头记录下，身边的人又会呈现出一个个怎样的故事。",
-    "episodes": "10 episodes",
-    "year": "2026",
-    "genre": [
-      "TRIGGER",
-      "原创",
-      "2026年10月"
-    ],
-    "studio": "Unknown",
-    "link": "https://bgm.tv/subject/513878",
-    "progress": 0,
-    "totalEpisodes": 10,
-    "startDate": "2026-10-20",
-    "endDate": "2026-10-20"
   },
   {
     "title": "上伊那牡丹，酒醉身姿似百合花般",
