@@ -147,6 +147,21 @@ html[data-wallpaper-mode="fullscreen"] [data-fullscreen-wallpaper] {
   html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #sidebar-sticky {
     top: calc(1rem - var(--banner-height-extend, 30dvh));
   }
+
+  /* 进入首页时 #main-grid 要做 700ms 的 transform 位移。长文章会把网格
+     撑到数千像素高，超高的合成层无法稳定地跑合成器动画，侧栏就会跟着
+     逐帧重绘（从 archive 等短页面返回时网格只有一千多像素，不会触发）。
+     视口内的内容位置不受影响，被裁掉的部分本来就在首屏以下，所以这里
+     把滑动期间的网格限制为视口高度，让动画层和短页面一样小。 */
+  html.swup-perf-active[data-wallpaper-mode="banner"]
+    body.enable-banner.is-home
+    #main-grid,
+  html.swup-perf-active[data-wallpaper-mode="banner"]
+    body.enable-banner.lg\:is-home
+    #main-grid {
+    max-height: 100vh;
+    overflow: hidden;
+  }
 }
 
 /* 全屏 / 无壁纸：主内容区与 navbar 保留间距 */
