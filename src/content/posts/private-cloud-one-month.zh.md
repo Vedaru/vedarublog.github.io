@@ -1,111 +1,142 @@
 ---
-title: 我的私人云搭建记
+title: 两台机器，24 个容器，零 SaaS
 published: 2026-10-23
-description: 从一台旧笔记本和一台 ARM VPS 出发，把博客、Git、日记、Overleaf、AI 和监控收进同一套自建基础设施。
-tags: [Homelab, 基础设施, Docker, Cloudflare, Forgejo, 月度总结]
+updated: 2026-10-24
+description: 一台 4 核 ARM VPS，一台家里的笔记本，24 个容器，13 个域名，关键路径上没有一项订阅。
+tags: [Homelab, 基础设施, Docker, Cloudflare, Forgejo, CI, 自托管]
 category: 技术
 draft: false
 ---
 
-# 一个月，两台机器，二十个仓库
+# 两台机器，24 个容器，零 SaaS
 
-过去一个月，我的提交记录不太像在写博客，更像在给自己造一间机房。
+这就是我云端的全部家当：一台 4 核 ARM VPS，一台放在家里的笔记本。两台机器跑着 24 个容器，对外服务 13 个域名，托管着我的 Git forge、CI、自动化、笔记、LaTeX、音乐库、一个 Minecraft 世界和一个语言模型。关键路径上没有一项是订阅制。
 
-起点是一台 2016 年的 Lenovo 小新 Air 13。它没有屏幕，键盘也半残，装着 Ubuntu 26.04，靠在角落里跑 Docker。终点是两台机器、二十多个容器，以及二十个在这个月有提交的仓库。中间没有融资，也没有 KPI，只有一个很具体的问题：我不想再让学校网络决定我的服务能不能打开。
+## 两台机器
 
-## 起点：Cloudflare Tunnel 不再可靠
+| | oracle | laptop |
+| --- | --- | --- |
+| **角色** | 边缘、forge、CI、模型、大多数服务 | 家庭节点：自动化桥、第二 CI 架构、本地应用 |
+| **CPU** | 4 vCPU aarch64 | 4 核 amd64 |
+| **内存** | 23 GB | 6.8 GB |
+| **磁盘** | 193 GB SSD（已用 74 GB） | 233 GB NVMe（已用 89 GB） |
+| **系统** | Ubuntu 26.04 LTS，内核 7.0.0-1009-oracle | Ubuntu，已运行 17 天 |
+| **容器** | 17 | 7 |
+| **暴露方式** | 通过 Cloudflare 公网可达 | 无，只通过 FRP 隧道 |
 
-之前所有自建服务都从家里那台笔记本通过 Cloudflare Tunnel 出去。这个方案很优雅：不开放入站端口，证书自动，Cloudflare 负责边缘。但它有一个前提，家里到 Cloudflare 边缘的链路要稳定。
+## 一个边缘入口，一个登录
 
-过去几周，学校网络到 Cloudflare 边缘的 TLS 连接开始间歇性失败。尴尬的地方在于，Tunnel 本身是健康的，服务也活着，只是我在教室或实验室里打不开。每次排障都像在证明一个和实际体验无关的指标。
+nginx 是唯一监听 443 的东西，两台机器上的所有服务都由它前置。Cloudflare 终结公网 TLS。Authelia 通过 `auth_request` 挡在面板前面，所以所有不打算公开的东西都只有一个登录入口。
 
-于是我做了这个月最重要的一个决定：把公网入口从家里搬到 Oracle 的 ARM VPS。Cloudflare 继续负责 DNS 和边缘，博客继续放在 Cloudflare Pages；但所有自建服务的源站，改成那台在 Osaka 的 4 核 ARM 机器。
+| 域名 | 上游 | 是什么 |
+| --- | --- | --- |
+| `git.vedaru.cn` | `:3000`（+ `:8787`） | Forgejo |
+| `n8n.vedaru.cn` | `:5678` | n8n，在 Authelia 后面 |
+| `jev.vedaru.cn` | `:11435` | 模型 API |
+| `overleaf.vedaru.cn` | `:8081` | ShareLaTeX 6.3.1（arm64）+ mongo 8.2 + redis 7.4 |
+| `memos.vedaru.cn` | `:5230` | 笔记（自己 fork 的版本，带 TOTP） |
+| `music.vedaru.cn` | `:5082` | LMS server，19 GB 音乐库 |
+| `monitor.vedaru.cn` | `:8090` → 隧道 | Beszel |
+| `dozzle.vedaru.cn` / `portainer` | `:8080` | Dozzle，在 Authelia 后面 |
+| `hermes.vedaru.cn` | `:8787` → 隧道 | agent WebUI，在 Authelia 后面 |
+| `auth.vedaru.cn` | `:9091` | Authelia |
+| `paperclip`、`plan` | 自己的应用 | |
 
-家里的笔记本不再需要被公网直接看见。它主动通过 FRP 连到 Oracle，把 Hermes、Dozzle agent、Beszel 这些回环端口反向映射过去。Oracle 上的 nginx 按域名转发，Authelia 负责管理类服务的登录。这样，家宽只负责“把机器连上网”，公网入口变成一个可以随时替换的、很小的部件。
+每个站点的限制是逐项调的，不是全局一刀切：git 接受 512 MB 的 push，面板 100 MB，模型 API 16 MB。证书靠 `certbot.timer` 自动续期。
+
+## Forge 是重心
+
+Forgejo 20261017.1，用 Go 1.25 构建，跑在我自己维护的镜像上，SQLite，16 GB 数据。28 个仓库，其中五个带 `.forgejo/workflows`。它不只是代码待的地方，还是整个系统读取的中心：Dozzle、memos、LMS、Forgejo 和 n8n 自己的镜像，全都从那个 forge 里的仓库构建。
+
+## 双架构 CI，没有 registry
+
+如果问我哪部分想得最多，就是这里。两个 Forgejo runner，每个架构一个：
+
+| | oracle | laptop |
+| --- | --- | --- |
+| **Label** | `ubuntu-latest`、`glibc` | `glibc-amd64` |
+| **Job 镜像** | `ci-runner:3.47.7-arm64` | `ci-runner:3.47.7-amd64` |
+| **容器** | `--cpus=2 --memory=8g`，host network | `--cpus=4 --memory=5g`，host network |
+| **并发** | 1 个 job | 1 个 job |
+| **缓存** | 开启 | 关闭 |
+
+整条链路里没有任何 registry。每个 job 把镜像直接构建进那台宿主机的本地 Docker daemon（`--load`），runner 的 label 指向本地 tag，并带 `force_pull: false`，于是 job 容器创建时没有任何网络往返，也不需要 `docker login`。发布流程试过，后来删了：它意味着一次 registry 登录，token realm 还要过 Cloudflare，而且每个架构要推 ~8 GB 过一个隧道，只为了一份永远不会在别处被拉取的镜像。
+
+镜像是原生构建的，从不模拟。arm64 镜像的 Flutter 工具链，是靠解包 x64 tarball、换进 arm64 Dart SDK 拼出来的，而这个过程必须跑它自己的二进制，所以只能跑在 ARM 机器上。这条链路检查两遍：`scripts/smoke-test.sh` 在 Dockerfile 里跑一次，CI 的最后一步再在成品镜像里复检一次。工具链钉在 Flutter 3.47.7、Rust 1.98.1。
+
+两个细节很能说明这套设计：没有 `actions/checkout`，因为默认 action 源是 github.com，这两台 runner 都够不到它，克隆就是走 loopback 的普通 `git clone`。另外，流水线用两个静态 job 而不是 matrix，因为解析失败的 `runs-on` matrix 表达式会永远排队，而不是报错。
+
+## 一条隧道，把一台机器变成两台
+
+VPS 上的 frps 在 `:7000` 接受只走 TLS 的隧道连接，并把一小份白名单端口重新绑定到自己的 loopback：8080、8787、2223、7007、8090。笔记本上的 frpc 只映射四样东西：
+
+- 8787 → agent WebUI
+- 8090 → Beszel hub
+- 7007 → Dozzle agent
+- 22 → SSH，落到 2223
 
 ```mermaid
 flowchart LR
-    U[访客] --> CF[Cloudflare DNS / Edge]
-    CF --> P[博客<br/>Cloudflare Pages]
-    CF --> O[Oracle ARM VPS<br/>nginx + Authelia]
-    O --> S[Forgejo / Memos<br/>Overleaf / JevK5]
-    O -->|回环端口| F[FRP server]
-    H[家里的旧笔记本] -->|主动发起 FRP 隧道| F
-    H --> D[Hermes / Dozzle agent<br/>Beszel / 其他 Docker 服务]
+    U[访客] --> CF[Cloudflare]
+    CF --> N[nginx + Authelia<br/>oracle]
+    N --> S[Forgejo / n8n / Overleaf<br/>Memos / LMS / 模型 API]
+    N -->|loopback 8080 / 8787 / 8090| R[frps :7000]
+    C[frpc<br/>家里的笔记本] -->|出站 TLS| R
+    R --> A[agent WebUI :8787<br/>Beszel hub :8090<br/>Dozzle agent :7007]
 ```
 
-这张图里最重要的不是 Oracle，而是方向：两台机器都只主动向外连接，公网不需要知道我家在哪里。
+这就是全部的戏法：家里的机器没有公网 IP、没有端口转发、没有动态 DNS，却能从边缘访问，和其他服务处在同一套访问边界里。
 
-## 把入口收成一条线
+## 自动化层
 
-入口搬过去之后，第一件事不是装新服务，而是把“谁能从外面进来”写清楚。
+两套系统，故意分开。
 
-Oracle 上的 nginx 现在是唯一的 Web 入口。每个子域名对应一个很薄的 vhost，转发到 127.0.0.1 上的某个端口。Forgejo、Memos、LMS、Overleaf 这些内容型服务按各自的应用层账号访问；Dozzle、Hermes、监控面板这类管理界面走 Authelia，默认拒绝，登录后还要过 two-factor。服务本身大多只绑定回环地址，哪怕 nginx 配错了，也不至于直接把 Docker socket 或数据库暴露到公网。
+桥跑在笔记本上，负责我的计划工具和 forge 之间的接口。它的 entrypoint 起三个循环：每 300 秒一次 `linear sync --apply`、一个 webhook 接收器，以及每周的 governor。映射是单向的（`linear:VED` → `forgejo:Vedaru/linear-cli-rs`），按项目分 scope，kuro、forge 镜像和 CLI 仓库各自落到自己的仓库。我在 Linear 里写的 issue，五分钟内就会出现在 forge 里，不用复制任何东西。
 
-这套东西不新，甚至有点无聊。但“无聊”正是入口应该有的样子：配置文件短、依赖少、出问题能在五分钟内定位。过去一个月我换过隧道、换过证书、换过反代，唯一没换的是“入口只做入口”这个原则。
+governor（决策模型）是我最满意的一块，因为它把职责切得很清楚：模型判断，代码执行预算。它读取团队里所有 open issue，问本地 3B 模型每个 issue 该怎么处理，然后关掉价值最低的那些，直到数量降到 30 或以下。规则写在 policy 里，不在 prompt 里：
 
-## 这一个月到底装了什么
+- 最多 30 个 open issue
+- 只有聚合关闭概率 ≥ 0.75 才关
+- 每次最多关 10 个
+- 处于 In Progress/In Review、带 `keep`/`pinned`/`security`/`roadmap`/`blocked-on-user` 标签、或最近 7 天有更新的 issue 豁免
+- 候选只限于项目已经 canceled 或 completed 的 issue
 
-把提交记录按服务摊开，大概是这些：
+一次真实的 dry run：open 39，cap 30，超出 9 → 选中 9 个，保护 28 个，shortfall 0，被选中的 issue 置信度在 0.96–0.97。每个决定都会追加到 JSONL 审计文件，外加一份人可读的 plan。代码本身也是一个仓库，[`Vedaru/linear-decider`](https://git.vedaru.cn/Vedaru/linear-decider)，带 `container/`、`systemd/` 和 `tests/`，所以 policy 和其他东西一样有版本。
 
-| 服务 | 位置 | 这个月做了什么 |
+n8n 是更新的那一半：2.45.0，跑在自己的镜像上，在 Authelia 后面，SQLite 放在 `/srv/n8n-data`。clean task 现在也存在于那里，是一个 13 节点的 workflow：webhook 和每周 schedule 触发器、Linear GraphQL 读数据、每个 issue 一次模型调用、一个持有同一份 policy 的 Code 节点，然后是带保护的 mutation，以及作为 webhook 响应返回的 markdown 报告。默认 dry，只有生产运行才 apply。两个 issue 端到端：102 秒。
+
+## 家里的模型
+
+Ollaya 0.17.0 在 llama.cpp 上服务 `d1:3b` Q8_0，2.7 GB 权重，和所有东西跑在同一台 VPS 上。三个线程，限制在 3.5 CPU 和 12 GB，30 分钟 keep-alive，免得每个问题都重新加载。测过第四个线程，只多买到约 15%（每个请求 52 s → 43 s），然后回滚了，因为它会在每个请求的整个持续时间里再占掉其他容器一个核。边缘通过 loopback 访问它，容器通过 Docker bridge gateway 访问它，两种方式都要 API key。
+
+每次调用边际成本为零，governor 一轮问 30 个问题也不用看账单，旁边那套 agent（`jevk5-agent`、`jevk5-obscura-mcp`）也用同一个模型来浏览和调工具。
+
+## 配角
+
+Memos 记笔记，Overleaf 写论文，LMS 放音乐，itzg Minecraft 服务器在 25565，Dozzle 看日志（manager 在 VPS，agent 在笔记本），Beszel 看指标（hub 在笔记本，agent 两边都有），sing-box 做路由，Authelia 管身份。所有容器都是 `restart: unless-stopped`，三个有状态的（mongo、redis、ShareLaTeX）是 `always`，那些可能咬人的服务用资源上限管住，而不是靠信任：Ollaya 3.5 CPU / 12 GB，浏览 MCP 1 CPU / 1 GB，agent 0.5 CPU / 256 MB，CI runner 0.5 CPU / 512 MB。
+
+## 为什么这样更快
+
+不是感觉，是机制：
+
+- **Push 就是部署原语。** CI 在匹配的架构上构建，直接进将要运行容器的那个 daemon，`force_pull: false` 让下一次启动完全不需要网络。
+- **没有 registry，没有 auth，没有限流。** 链路里没有任何一环会被第三方限速，任一架构的镜像都只差一次 push。
+- **原生硬件上原生构建。** ARM job 在 ARM 机器，AMD64 job 在笔记本，Flutter 工具链不交 QEMU 税。
+- **一个边缘入口、一个登录**，管两台机器和十三个域名。
+- **计划和代码是同一套系统。** 镜像每五分钟跑一次，issue 和仓库不会分叉。
+- **面板已经在了。** 日志和指标就是一个 URL，在同一个 SSO 后面。
+
+## 为什么这样能自动运行
+
+每个循环都有节奏和护栏，这才让放着不管变得合理：
+
+| 循环 | 节奏 | 护栏 |
 | --- | --- | --- |
-| [Forgejo](https://git.vedaru.cn/Vedaru/forgejo) + Actions runner | Oracle + 家里 | fork 上游，补上 Projects REST API；两台机器各跑一个 runner |
-| [CI images](https://git.vedaru.cn/Vedaru/ci-images) | 本地镜像 | 把 Flutter、Rust、Node、Go、C/C++ 工具链烤进镜像，避免每个 job 重装 |
-| [Memos](https://git.vedaru.cn/Vedaru/memos) | Oracle | fork 出带 TOTP 的版本，把日记从博客迁过来 |
-| [Overleaf CE](https://git.vedaru.cn/Vedaru/overleaf-custom) | Oracle | 在 ARM64 上跑起来，补了暗色主题、设置页切换和暗色 PDF |
-| [Dozzle](https://git.vedaru.cn/Vedaru/dozzle) | Oracle + 家里 | 去掉云功能的 fork，聚合两台机器的容器日志 |
-| Hermes | 家里 | agent + WebUI，工作区接到 Forgejo/GitHub，外面套 Authelia |
-| [JevK5](https://git.vedaru.cn/Vedaru/jev-project) | Oracle | CPU-only 的 4B 决策模型，加一个由它驱动的浏览器 agent |
-| [LMS](https://git.vedaru.cn/Vedaru/lms) | Oracle + 家里 | 主题和模板定制，给音乐库换了一套配色 |
-| Minecraft | Oracle | Forge 26.2，给朋友用 |
-| Beszel | 家里 + 两台 agent | 看 CPU、内存、磁盘和容器状态 |
+| Linear → Forgejo 镜像 | 300 s | 单向映射，按项目分 scope |
+| Backlog governor | 每周 | cap 30 · ≥0.75 置信度 · ≤10/次 · 受保护状态/标签/最近更新 |
+| CI 构建 + 验证 | push 时 | 构建内 smoke test，成品镜像里复检 |
+| Clean task（n8n） | 每周 / webhook | 默认 dry，只有生产运行才 apply |
+| 证书 | `certbot.timer` | 自动续期 |
+| 容器 | 始终 | restart policy + healthcheck |
 
-真正花时间的不是 `docker compose up`，而是每个服务后面那一小块“为什么它在这里、坏了怎么办”。
-
-[Forgejo](https://git.vedaru.cn/Vedaru/forgejo) 这个月被我 fork 了。不是为了改界面，而是上游没有我需要的 Projects API。做法是跟着 release rebase，而不是给 tarball 打补丁。[CI 镜像](https://git.vedaru.cn/Vedaru/ci-images) 也是同一类问题：原来每次 push 都要在 job 里重新下载 1.5GB 的 Flutter SDK，跑一次 `oh-my-mc` 的构建，三个 job 各装一遍。把工具链烤进 `ci-runner` 镜像之后，job 启动就能直接编译。这个改动没有增加任何功能，但把等待时间从“去泡杯茶”变成了“刷新一下”。
-
-::forgejo{repo="Vedaru/forgejo" license="GPL-3.0"}
-
-[Memos](https://git.vedaru.cn/Vedaru/memos) 的 fork 更小，只加了 TOTP。[Overleaf](https://git.vedaru.cn/Vedaru/overleaf-custom) 的 fork 则完全在部署层：不改源码，只把主题、模板和 nginx 配置 bind mount 进去，升级时重新跑一次 `install.sh`。这条边界很重要，否则下一次上游升级就会变成考古。
-
-## 把 4B 模型塞进 4 核 ARM
-
-这个月最像“玩具”，但也最有意思的，是 [JevK5](https://git.vedaru.cn/Vedaru/jev-project)。
-
-Oracle 没有 GPU，只有 4 核 ARM 和 23GB 内存。我想要的也不是一个会写作文的聊天模型，而是一个能做选择题的小模型：给它一段状态和几个候选动作，它返回每个选项的概率。llama.cpp 只负责算 prompt 和输出 token 的 log-probability，不生成自由文本；上面再套一层很薄的 API，把这个能力包装成 `/v1/systemone`。
-
-模型是 JevK5 4B 的 Q8_0 GGUF。这里有个和直觉相反的结论：在这颗 aarch64 CPU 上，Q8_0 比更小的 Q5_K_M、Q4_K_M 更快。原因是 llama.cpp 给 aarch64 的 Q8_0 准备了 repacked GEMM kernel，而 Q5/Q4 会掉到逐 token 的 GEMV 路径。Q8_0 的 prompt processing 大约是 35 tok/s，Q5_K_M 只有 22 左右，Q4_K_M 即使换到长 prompt 也仍然低于 Q8_0。省下的内存，最后都还给了等待时间。
-
-在这个模型上面，我还搭了一个浏览器 agent：[Obscura](https://git.vedaru.cn/Vedaru/obscura) 负责用 Rust/V8 开无头页面，模型只从页面上抽出的 8 个左右候选动作里选一个，不写 selector，也不写自由文本。它在“找 robots.txt”这种小任务上能走对，而且每一步的犹豫都留在 trace 里。这个设计不追求通用，只追求可解释和便宜。
-
-## 博客本身，才是这个月最大的工程
-
-如果只看页面，博客这个月好像只是多了几篇文章。实际上，[vedarublog](https://github.com/Vedaru/vedarublog.github.io) 有 145 个提交，其中 78 个不是自动更新。大部分工作发生在看不见的地方。
-
-最大的一块是双语。现在中文在 `/zh/`，英文在 `/en/`，内容按 `.zh.md` / `.en.md` 成对存在。导航、归档、日记、番剧、专辑、搜索、RSS 都要跟着 locale 走，语言切换也不能把当前页面丢掉。把一个静态博客从“只有中文”改成“两套语言共用一套组件”，比加几个翻译字符串麻烦得多，尤其是那些在客户端 hydration 之后才决定语言的 island。
-
-第二块是搜索。之前用 Pagefind，后来换成了自己构建的 bigram MiniSearch 索引。原因不复杂：我想要对中文更可控的分词、更快的首屏，以及不依赖一个额外的构建步骤。现在的索引在构建时生成，页面只在需要时预取，不再在 hover 的时候现场构建。里面还踩了几个坑：搜索 island 的 hydration、非文章页面的索引、friends 页面的可检索性。每一个都值得单独写一篇，但这里先记一笔。
-
-第三块是减法。日记搬去了 Memos，博客不再维护一套自己的时间线后端；一些重复的页面和组件被删掉；CSS 动画从 layout 属性改成 transform/opacity，首页滑动时不再让 compositor 反复建层。这个月与内容无关的 diff 是 +15k / -25k，删除比新增多。对一个个人站点来说，这通常是好事。
-
-## 桌面端也没有停
-
-基础设施之外，这个月还有几个项目在推进：
-
-- **[bili-tui](https://git.vedaru.cn/Vedaru/bili-tui)**：Rust 写的 B 站直播 TUI。这个月主要修的是直播中的 face check 生命周期、弹幕 WebSocket 假死检测，以及把配色和焦点状态收成一套。
-- **[Kuro](https://git.vedaru.cn/Vedaru/kuro)**：原生 Linux 的鸣潮 / 战双安装器和更新器。不依赖 Wine，直接用 Rust 合并 Kuro 的 KrDiff 补丁，带 MD5 校验、断点续传和质量包管理。
-- **[Hyprland](https://git.vedaru.cn/Vedaru/Hyprland) / [HyprCapture](https://git.vedaru.cn/Vedaru/HyprCapture)**：给 Hyprland 打了一个输入法候选框的补丁，截图工具也在继续修。
-- **[oh-my-mc](https://git.vedaru.cn/Vedaru/oh-my-mc) / [linear-cli-rs](https://git.vedaru.cn/Vedaru/linear-cli-rs) / [splayer-audio-engine](https://git.vedaru.cn/Vedaru/splayer-audio-engine)**：分别是 Flutter 的 Minecraft 启动器、Rust 的 Linear CLI，以及从播放器里抽出来的 Rust 音频引擎。
-
-这些东西看起来和“私人云”无关，但它们共享同一套东西：Forgejo 仓库、CI runner、以及预烘焙镜像。
-
-## 数字，和还没做完的事
-
-把一个月压缩成几个数字：
-
-- 2 台常驻机器：一台 4 核 / 23GB 的 ARM VPS，一台 4 线程 / 6.8GB 的旧笔记本
-- 20 多个 Docker 容器
-- 20 个仓库有提交
-- 博客 145 个提交，78 个非自动提交
-- 一次入口迁移，从 Cloudflare Tunnel 改成 Oracle 上的 nginx + FRP
+大概就是这个形状：两台机器，二十四个容器，一个 forge，一个登录，一条通往家里那台机器的隧道，以及一个安静地防止 backlog 增长得比我关得还快的小模型。

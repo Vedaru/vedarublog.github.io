@@ -1,111 +1,142 @@
 ---
-title: "My private cloud build log"
+title: "Two boxes, 24 containers, no SaaS"
 published: 2026-10-23
-description: From an old laptop and an ARM VPS to a self-hosted stack for code, notes, LaTeX, AI, and observability.
-tags: [homelab, infrastructure, Docker, Cloudflare, Forgejo, monthly review]
+updated: 2026-10-24
+description: One 4-core ARM VPS, one laptop at home, 24 containers, 13 hostnames, and nothing in the critical path that bills monthly.
+tags: [homelab, infrastructure, Docker, Cloudflare, Forgejo, CI, self-hosting]
 category: Tech
 draft: false
 ---
 
-# One month, two machines, twenty repositories
+# Two boxes, 24 containers, no SaaS
 
-Last month my commit history looked less like a blog and more like a small datacenter.
+This is the whole of my cloud: one 4-core ARM VPS and one laptop at home. Between them they run 24 containers, serve 13 hostnames, host my git forge, my CI, my automation, my notes, my LaTeX, my music library, a Minecraft world and a language model. Nothing in the critical path is a subscription.
 
-It started with a 2016 Lenovo Xiaoxin Air 13. No screen, half a keyboard, Ubuntu 26.04, sitting in a corner running Docker. It ended with two machines, more than twenty containers, and twenty repositories with commits this month. No funding, no roadmap, just a concrete annoyance: I did not want my school network to decide whether my services loaded.
+## The two machines
 
-## The tunnel stopped being reliable
+| | oracle | laptop |
+| --- | --- | --- |
+| **Role** | edge, forge, CI, model, most services | home node: automation bridge, second CI arch, local apps |
+| **CPU** | 4 vCPU aarch64 | 4 cores amd64 |
+| **RAM** | 23 GB | 6.8 GB |
+| **Disk** | 193 GB SSD (74 GB used) | 233 GB NVMe (89 GB used) |
+| **OS** | Ubuntu 26.04 LTS, kernel 7.0.0-1009-oracle | Ubuntu, 17 days uptime |
+| **Containers** | 17 | 7 |
+| **Exposure** | public via Cloudflare | none, only through an FRP tunnel |
 
-Everything self-hosted used to leave the house through a Cloudflare Tunnel. It is a good design: no inbound ports, automatic certificates, Cloudflare at the edge. But it assumes a stable path from the house to Cloudflare's edge.
+## One edge, one login
 
-Over the past few weeks, TLS connections from the campus network to that edge started failing intermittently. The awkward part was that the tunnel itself was healthy and the services were alive. I just could not open them from a classroom or a lab. Every debugging session became a defence of a metric that had nothing to do with the user experience.
+nginx is the only thing listening on 443, and it fronts every service on both machines. Cloudflare terminates public TLS. Authelia sits in front of the panels via `auth_request`, so there is exactly one login for everything that isn't meant to be public.
 
-So I made the most important decision of the month: move the public entry point out of the house and onto an Oracle ARM VPS. Cloudflare still handles DNS and the edge, and the blog still lives on Cloudflare Pages. But the origin for every self-hosted service is now a four-core ARM box in Osaka.
+| Hostname | Upstream | What it is |
+| --- | --- | --- |
+| `git.vedaru.cn` | `:3000` (+ `:8787`) | Forgejo |
+| `n8n.vedaru.cn` | `:5678` | n8n, behind Authelia |
+| `jev.vedaru.cn` | `:11435` | model API |
+| `overleaf.vedaru.cn` | `:8081` | ShareLaTeX 6.3.1 (arm64) + mongo 8.2 + redis 7.4 |
+| `memos.vedaru.cn` | `:5230` | notes (own fork, TOTP) |
+| `music.vedaru.cn` | `:5082` | LMS server, 19 GB library |
+| `monitor.vedaru.cn` | `:8090` → tunnel | Beszel |
+| `dozzle.vedaru.cn` / `portainer` | `:8080` | Dozzle, behind Authelia |
+| `hermes.vedaru.cn` | `:8787` → tunnel | agent WebUI, behind Authelia |
+| `auth.vedaru.cn` | `:9091` | Authelia |
+| `paperclip`, `plan` | own apps | |
 
-The laptop at home no longer needs to be visible from the internet. It opens an outbound FRP connection to Oracle and reverse-maps its loopback ports for Hermes, the Dozzle agent, and Beszel. Nginx on Oracle routes by hostname, and Authelia handles login for the administrative services. The home connection is now only responsible for keeping the machine online. The public entry point is a small, replaceable component.
+Per-site limits are tuned rather than global: git accepts 512 MB pushes, the panels 100 MB, the model API 16 MB. Certificates renew on a `certbot.timer`.
+
+## The forge is the centre of gravity
+
+Forgejo 20261017.1, built with Go 1.25, running from an image I maintain myself, on SQLite, with 16 GB of data. 28 repositories, five of which carry `.forgejo/workflows`. It isn't just where code lives. It's the place the rest of the system reads from: images for Dozzle, memos, LMS, Forgejo and n8n itself are all built from repos in that forge.
+
+## CI for two architectures with no registry
+
+This is the part I'd point at if someone asked what took the most thought. Two Forgejo runners, one per architecture:
+
+| | oracle | laptop |
+| --- | --- | --- |
+| **Label** | `ubuntu-latest`, `glibc` | `glibc-amd64` |
+| **Job image** | `ci-runner:3.47.7-arm64` | `ci-runner:3.47.7-amd64` |
+| **Container** | `--cpus=2 --memory=8g`, host network | `--cpus=4 --memory=5g`, host network |
+| **Capacity** | 1 concurrent job | 1 concurrent job |
+| **Cache** | enabled | disabled |
+
+There is no registry anywhere in the loop. Each job builds its image straight into that host's local Docker daemon (`--load`), the runner labels point at that local tag with `force_pull: false`, and a job container is therefore created with no network round-trip and no `docker login`. Publishing was tried and removed: it meant a registry login whose token realm went through Cloudflare, and it pushed ~8 GB per architecture across the tunnel for an image that is never pulled anywhere else.
+
+The images are built natively, never emulated. The arm64 image assembles its Flutter toolchain by unpacking an x64 tarball and swapping in an arm64 Dart SDK, and that process has to run its own binaries, so it runs on the ARM box. The chain is checked twice: `scripts/smoke-test.sh` runs inside the Dockerfile, and the last CI step re-checks it in the finished image. Toolchain pinned at Flutter 3.47.7, Rust 1.98.1.
+
+Two details that say a lot about the design: there's no `actions/checkout`, because the default action source is github.com and these runners can't reach it, so the clone is a plain `git clone` over loopback. And the pipeline uses two static jobs instead of a matrix, because a `runs-on` matrix expression that fails to resolve queues forever instead of erroring.
+
+## The tunnel that makes one machine into two
+
+frps on the VPS accepts TLS-only tunnel connections on `:7000` and rebinds a small allowlist of ports to its own loopback: 8080, 8787, 2223, 7007, 8090. The laptop's frpc maps exactly four things:
+
+- 8787 → the agent WebUI
+- 8090 → the Beszel hub
+- 7007 → the Dozzle agent
+- 22 → SSH, on 2223
 
 ```mermaid
 flowchart LR
-    U[Visitor] --> CF[Cloudflare DNS / Edge]
-    CF --> P[Blog<br/>Cloudflare Pages]
-    CF --> O[Oracle ARM VPS<br/>nginx + Authelia]
-    O --> S[Forgejo / Memos<br/>Overleaf / JevK5]
-    O -->|loopback ports| F[FRP server]
-    H[Old laptop at home] -->|outbound FRP tunnel| F
-    H --> D[Hermes / Dozzle agent<br/>Beszel / other containers]
+    U[Visitor] --> CF[Cloudflare]
+    CF --> N[nginx + Authelia<br/>oracle]
+    N --> S[Forgejo / n8n / Overleaf<br/>Memos / LMS / model API]
+    N -->|loopback 8080 / 8787 / 8090| R[frps :7000]
+    C[frpc<br/>home laptop] -->|outbound TLS| R
+    R --> A[agent WebUI :8787<br/>Beszel hub :8090<br/>Dozzle agent :7007]
 ```
 
-The important part of that diagram is not Oracle. It is the direction of the arrows. Both machines only make outbound connections, and the public internet never needs to know where home is.
+That's the whole trick: the home box has no public IP, no port forward and no dynamic DNS, yet it is addressable from the edge and sits inside the same blast radius as every other service.
 
-## One entrance, very few moving parts
+## The automation layer
 
-Once the entry point moved, the first job was not to install something new. It was to write down who is allowed in.
+Two systems, deliberately separated.
 
-Nginx on Oracle is now the only web entrance. Each subdomain has a thin vhost that forwards to a port on 127.0.0.1. Content services such as Forgejo, Memos, LMS, and Overleaf keep their own application-level accounts. Administrative surfaces such as Dozzle, Hermes, and the monitoring dashboard sit behind Authelia, which denies by default and asks for a second factor after login. Most services bind only to loopback, so a mistaken nginx rule cannot put the Docker socket or a database directly on the internet.
+The bridge runs on the laptop and owns the interface between my planning tool and my forge. Its entrypoint starts three loops: a `linear sync --apply` every 300 seconds, a webhook intake listener, and the weekly governor. The mapping is one-way (`linear:VED` → `forgejo:Vedaru/linear-cli-rs`) with per-project scopes so that kuro, the forge mirror and the CLI repo each land in their own repository. An issue I write in Linear exists in the forge within five minutes without me copying anything.
 
-None of this is novel. It is almost boring. That is exactly what an entrance should be: short config, few dependencies, and a problem you can locate in five minutes. I changed tunnels, certificates, and reverse proxies this month. The one thing I did not change was the rule that the entrance only does entrance work.
+The governor, the decision model, is the piece I'm most pleased with, because the split of responsibility is explicit: the model judges, the code enforces the budget. It reads every open issue in the team, asks a local 3B model what should happen to each one, and then closes the lowest-value ones until the count is at or below 30. The rules are in the policy, not the prompt:
 
-## What actually went in
+- cap 30 open issues
+- close only at ≥ 0.75 aggregate close probability
+- at most 10 closures per run
+- anything in In Progress/In Review, labelled `keep`/`pinned`/`security`/`roadmap`/`blocked-on-user`, or touched in the last 7 days is immune
+- candidates are restricted to issues whose project is already canceled or completed
 
-Laid out by service, the month looks like this:
+A real dry run: open 39, cap 30, over 9 → 9 selected, 28 protected, shortfall 0, with the selected issues at 0.96–0.97 confidence. Every decision is appended to a JSONL audit file plus a human-readable plan. The code itself is a repository, [`Vedaru/linear-decider`](https://git.vedaru.cn/Vedaru/linear-decider), with `container/`, `systemd/` and `tests/`, so the policy is versioned like everything else.
 
-| Service | Where | What changed this month |
+n8n is the newer half: 2.45.0 on its own image, behind Authelia, SQLite in `/srv/n8n-data`. The clean task now exists there as a 13-node workflow: webhook and weekly schedule triggers, Linear GraphQL for reads, one model call per issue, a Code node holding the same policy, then guarded mutations and a markdown report returned as the webhook response. It defaults to dry, and only applies on a production run. Two issues end to end: 102 seconds.
+
+## The model at home
+
+Ollaya 0.17.0 serving `d1:3b` Q8_0 on llama.cpp, from 2.7 GB of weights on the same VPS as everything else. Three threads, capped at 3.5 CPU and 12 GB, 30-minute keep-alive so it isn't reloading for every question. A fourth thread was measured, bought ~15% (52 s → 43 s per request) and was reverted, because it would have cost the other containers a core for the entire duration of every request. It's reachable on loopback for the edge and on the Docker bridge gateway for containers, with an API key either way.
+
+At zero marginal cost per call, the governor can ask 30 questions in a sweep without a bill, and the agent stack next to it (`jevk5-agent`, `jevk5-obscura-mcp`) gets the same model for browsing and tool use.
+
+## The supporting cast
+
+Memos for notes, Overleaf for papers, LMS for music, an itzg Minecraft server on 25565, Dozzle for logs (manager on the VPS, agent on the laptop), Beszel for metrics (hub on the laptop, agent on both), sing-box for routing, Authelia for identity. Everything is `restart: unless-stopped`, the stateful trio (mongo, redis, ShareLaTeX) is `always`, and the services that can bite are resource-capped rather than trusted: Ollaya 3.5 CPU / 12 GB, the browsing MCP 1 CPU / 1 GB, the agent 0.5 CPU / 256 MB, the CI runner 0.5 CPU / 512 MB.
+
+## Why this is faster
+
+Not vibes. Mechanics:
+
+- **Push is the deploy primitive.** CI builds on the matching architecture into the daemon that will run the container, and `force_pull: false` means the next start needs no network at all.
+- **No registry, no auth, no rate limits.** Nothing in the chain can be throttled by a third party, and an image for either architecture is one push away.
+- **Native builds on native hardware.** ARM jobs on the ARM box, AMD64 jobs on the laptop, no QEMU tax on a Flutter toolchain.
+- **One edge and one login** for two machines and thirteen hostnames.
+- **Planning and code are the same system.** The mirror runs every five minutes, so the issue and the repository never diverge.
+- **Dashboards already exist.** Logs and metrics are a URL away behind the same SSO.
+
+## Why this is autonomous
+
+Every loop has a cadence and a guard, which is what makes leaving it alone reasonable:
+
+| Loop | Cadence | Guard |
 | --- | --- | --- |
-| [Forgejo](https://git.vedaru.cn/Vedaru/forgejo) + Actions runner | Oracle + home | Forked upstream for the Projects REST API; one runner on each machine |
-| [CI images](https://git.vedaru.cn/Vedaru/ci-images) | Local images | Baked Flutter, Rust, Node, Go, and C/C++ toolchains into the runner image |
-| [Memos](https://git.vedaru.cn/Vedaru/memos) | Oracle | Forked a TOTP build and moved the diary off the blog |
-| [Overleaf CE](https://git.vedaru.cn/Vedaru/overleaf-custom) | Oracle | Running on ARM64, with a dark theme, settings switcher, and dark PDF preview |
-| [Dozzle](https://git.vedaru.cn/Vedaru/dozzle) | Oracle + home | A fork with the cloud features removed, aggregating logs from both machines |
-| Hermes | Home | Agent plus WebUI, wired to Forgejo/GitHub, gated by Authelia |
-| [JevK5](https://git.vedaru.cn/Vedaru/jev-project) | Oracle | A CPU-only 4B decision model and a browser agent driven by it |
-| [LMS](https://git.vedaru.cn/Vedaru/lms) | Oracle + home | Theme and template customisation for the music library |
-| Minecraft | Oracle | Forge 26.2, for friends |
-| Beszel | Home + two agents | CPU, memory, disk, and container visibility |
+| Linear → Forgejo mirror | 300 s | one-way mapping, per-project scope |
+| Backlog governor | weekly | cap 30 · ≥0.75 confidence · ≤10/run · protected states/labels/recency |
+| CI build + verify | on push | smoke test inside the build, re-checked in the finished image |
+| Clean task (n8n) | weekly / webhook | dry by default, apply only on production runs |
+| Certificates | `certbot.timer` | automatic renewal |
+| Containers | always | restart policy + healthchecks |
 
-The time did not go into `docker compose up`. It went into the small questions behind every service: why is it here, and what happens when it breaks?
-
-I forked [Forgejo](https://git.vedaru.cn/Vedaru/forgejo) this month. Not to change the interface, but because upstream does not expose the Projects API I needed. The rule is to rebase on upstream releases, not to patch a tarball. [CI images](https://git.vedaru.cn/Vedaru/ci-images) had the same shape of problem. Every push used to download a 1.5 GB Flutter SDK inside the job. One `oh-my-mc` push ran three jobs, and each one paid the same cost. Baking the toolchain into a `ci-runner` image means a job starts ready to compile. It added no features, but it turned the wait from "go make tea" into "refresh the page".
-
-::forgejo{repo="Vedaru/forgejo" license="GPL-3.0"}
-
-The [Memos](https://git.vedaru.cn/Vedaru/memos) fork is smaller: TOTP and nothing else. The [Overleaf](https://git.vedaru.cn/Vedaru/overleaf-custom) fork lives entirely at the deployment layer. It does not touch the source tree; it bind-mounts a theme, templates, and an nginx config over the image, then re-runs `install.sh` after an upgrade. That boundary matters. Without it, the next upstream release becomes an archaeology project.
-
-## A 4B model on four ARM cores
-
-The most toy-like and most interesting project of the month was [JevK5](https://git.vedaru.cn/Vedaru/jev-project).
-
-Oracle has no GPU, only four ARM cores and 23 GB of RAM. I did not want a model that writes essays. I wanted a small model that answers multiple-choice questions: give it a state and a few candidate actions, and it returns a probability for each option. llama.cpp only evaluates the prompt and returns the log-probabilities of the answer letters. It never generates free text. A thin API wraps that into `/v1/systemone`.
-
-The model is JevK5 4B in Q8_0 GGUF. One result was counter-intuitive: on this aarch64 CPU, Q8_0 is faster than the smaller Q5_K_M and Q4_K_M files. llama.cpp ships a repacked GEMM kernel for Q8_0 on aarch64, while Q5 and Q4 fall back to a per-token GEMV path. Q8_0 processes a prompt at roughly 35 tokens per second. Q5_K_M sits around 22, and Q4_K_M stays below Q8_0 even on longer prompts. The memory saved by the smaller quant was paid back in latency.
-
-On top of that model I built a browser agent. [Obscura](https://git.vedaru.cn/Vedaru/obscura) opens pages with Rust and V8, the model picks one of roughly eight described actions, and it never writes a selector or a line of free text. It can solve a small task such as finding `robots.txt`, and every hesitant step stays in the trace. The design is not general. It is legible and cheap.
-
-## The blog was the biggest project
-
-From the outside, the blog looks like it just gained a few posts. In reality, [vedarublog](https://github.com/Vedaru/vedarublog.github.io) took 145 commits this month, 78 of them not automated chores. Most of the work is invisible.
-
-The largest piece was bilingual routing. Chinese now lives under `/zh/`, English under `/en/`, and content exists in paired `.zh.md` and `.en.md` files. Navigation, archive, diary, anime, albums, search, and RSS all follow the locale. Switching language cannot drop the current page. Turning a Chinese-only static blog into two languages over one component tree is much harder than adding translation strings, especially for islands that only learn their language after client-side hydration.
-
-The second piece was search. Pagefind is gone. It is replaced by a bigram MiniSearch index built by the site itself. I wanted more control over Chinese tokenisation, a faster first load, and one fewer build dependency. The index is generated at build time and prefetched only when needed, instead of being assembled on hover. That change came with its own bugs: search island hydration, non-article pages missing from the index, and the friends page needing to stay searchable. Each one deserves its own post. This is just the receipt.
-
-The third piece was subtraction. The diary moved to Memos, so the blog no longer maintains its own timeline backend. Duplicate pages and components were deleted. CSS animations moved off layout properties and onto transform and opacity, so the home slide no longer forces the compositor to rebuild layers. The non-content diff this month was +15k / -25k. More was deleted than added, which is usually healthy for a personal site.
-
-## Desktop work did not stop
-
-Outside the infrastructure, a few other projects moved:
-
-- **[bili-tui](https://git.vedaru.cn/Vedaru/bili-tui)**: a Rust TUI for Bilibili live streaming. This month was mostly the face-check lifecycle during a stream, detecting a dead danmaku WebSocket, and pulling the palette and focus states into one system.
-- **[Kuro](https://git.vedaru.cn/Vedaru/kuro)**: a native Linux installer and updater for Wuthering Waves and Punishing: Gray Raven. No Wine. It applies Kuro's KrDiff patches in Rust, with MD5 verification, resumable downloads, and quality-pack management.
-- **[Hyprland](https://git.vedaru.cn/Vedaru/Hyprland) / [HyprCapture](https://git.vedaru.cn/Vedaru/HyprCapture)**: a patch for the input-method candidate popup in Hyprland, plus more work on the screenshot tool.
-- **[oh-my-mc](https://git.vedaru.cn/Vedaru/oh-my-mc) / [linear-cli-rs](https://git.vedaru.cn/Vedaru/linear-cli-rs) / [splayer-audio-engine](https://git.vedaru.cn/Vedaru/splayer-audio-engine)**: a Flutter Minecraft launcher, a Rust Linear CLI, and a Rust audio engine extracted from a player so it can be built and released on its own.
-
-These look unrelated to a private cloud, but they share the same machinery: Forgejo repositories, CI runners, and pre-baked images.
-
-## The numbers, and what is still missing
-
-Compressed into numbers:
-
-- 2 always-on machines: a 4-core / 23 GB ARM VPS and a 4-thread / 6.8 GB old laptop
-- More than 20 Docker containers
-- 20 repositories with commits
-- 145 blog commits, 78 of them not automated
-- One entry-point migration, from Cloudflare Tunnel to nginx + FRP on Oracle
+That's the shape of it: two machines, twenty-four containers, one forge, one login, a tunnel for the box at home, and a small local model that quietly keeps the backlog from growing faster than I can close it.
