@@ -77,12 +77,53 @@ frps on the VPS accepts TLS-only tunnel connections on `:7000` and rebinds a sma
 
 ```mermaid
 flowchart LR
-    U[Visitor] --> CF[Cloudflare]
-    CF --> N[nginx + Authelia<br/>oracle]
-    N --> S[Forgejo / n8n / Overleaf<br/>Memos / LMS / model API]
-    N -->|loopback 8080 / 8787 / 8090| R[frps :7000]
-    C[frpc<br/>home laptop] -->|outbound TLS| R
-    R --> A[agent WebUI :8787<br/>Beszel hub :8090<br/>Dozzle agent :7007]
+    U[Visitor] --> CF[Cloudflare<br/>DNS + public TLS]
+
+    subgraph ORACLE["oracle · 4 vCPU aarch64 · 23 GB · 17 containers"]
+        direction TB
+        N[Nginx :443]
+        AU[Authelia :9091]
+        FJ[Forgejo :3000<br/>28 repos · SQLite]
+        N8[n8n :5678<br/>clean task]
+        OV[Overleaf :8081<br/>ShareLaTeX + mongo + redis]
+        ME[Memos :5230]
+        LM[LMS :5082<br/>19 GB library]
+        MO[Model API :11435<br/>Ollaya d1:3b Q8_0]
+        MC[Minecraft :25565]
+        CI1[CI runner<br/>arm64 · 1 job]
+        RS[frps :7000]
+    end
+
+    subgraph HOME["home laptop · 4 cores amd64 · 6.8 GB · 7 containers"]
+        direction TB
+        RC[frpc]
+        AG[agent WebUI :8787]
+        BH[Beszel hub :8090]
+        DA[Dozzle agent :7007]
+        CI2[CI runner<br/>amd64 · 1 job]
+        BR[automation bridge<br/>Linear → Forgejo]
+        LP[local apps]
+    end
+
+    CF --> N
+    N --> AU
+    N --> FJ
+    N --> N8
+    N --> OV
+    N --> ME
+    N --> LM
+    N --> MO
+    N --> MC
+    N -->|loopback 8080 / 8787 / 8090| RS
+    RC -->|outbound TLS :7000| RS
+    RS -.->|forwarded through the tunnel| RC
+    RC --> AG
+    RC --> BH
+    RC --> DA
+    RC -->|SSH :2223| LP
+    CI1 -.->|poll jobs| FJ
+    CI2 -.->|poll jobs| FJ
+    BR -.->|one-way mirror, 300 s| FJ
 ```
 
 That's the whole trick: the home box has no public IP, no port forward and no dynamic DNS, yet it is addressable from the edge and sits inside the same blast radius as every other service.
@@ -105,7 +146,7 @@ A real dry run: open 39, cap 30, over 9 → 9 selected, 28 protected, shortfall 
 
 n8n is the newer half: 2.45.0 on its own image, behind Authelia, SQLite in `/srv/n8n-data`. The clean task now exists there as a 13-node workflow: webhook and weekly schedule triggers, Linear GraphQL for reads, one model call per issue, a Code node holding the same policy, then guarded mutations and a markdown report returned as the webhook response. It defaults to dry, and only applies on a production run. Two issues end to end: 102 seconds.
 
-## The model at home
+## The model
 
 Ollaya 0.17.0 serving `d1:3b` Q8_0 on llama.cpp, from 2.7 GB of weights on the same VPS as everything else. Three threads, capped at 3.5 CPU and 12 GB, 30-minute keep-alive so it isn't reloading for every question. A fourth thread was measured, bought ~15% (52 s → 43 s per request) and was reverted, because it would have cost the other containers a core for the entire duration of every request. It's reachable on loopback for the edge and on the Docker bridge gateway for containers, with an API key either way.
 

@@ -77,12 +77,53 @@ VPS 上的 frps 在 `:7000` 接受只走 TLS 的隧道连接，并把一小份�
 
 ```mermaid
 flowchart LR
-    U[访客] --> CF[Cloudflare]
-    CF --> N[nginx + Authelia<br/>oracle]
-    N --> S[Forgejo / n8n / Overleaf<br/>Memos / LMS / 模型 API]
-    N -->|loopback 8080 / 8787 / 8090| R[frps :7000]
-    C[frpc<br/>家里的笔记本] -->|出站 TLS| R
-    R --> A[agent WebUI :8787<br/>Beszel hub :8090<br/>Dozzle agent :7007]
+    U[访客] --> CF[Cloudflare<br/>DNS + 公网 TLS]
+
+    subgraph ORACLE["oracle · 4 vCPU aarch64 · 23 GB · 17 个容器"]
+        direction TB
+        N[Nginx :443]
+        AU[Authelia :9091]
+        FJ[Forgejo :3000<br/>28 个仓库 · SQLite]
+        N8[n8n :5678<br/>clean task]
+        OV[Overleaf :8081<br/>ShareLaTeX + mongo + redis]
+        ME[Memos :5230]
+        LM[LMS :5082<br/>19 GB 音乐库]
+        MO[模型 API :11435<br/>Ollaya d1:3b Q8_0]
+        MC[Minecraft :25565]
+        CI1[CI runner<br/>arm64 · 1 个 job]
+        RS[frps :7000]
+    end
+
+    subgraph HOME["家里的笔记本 · 4 核 amd64 · 6.8 GB · 7 个容器"]
+        direction TB
+        RC[frpc]
+        AG[agent WebUI :8787]
+        BH[Beszel hub :8090]
+        DA[Dozzle agent :7007]
+        CI2[CI runner<br/>amd64 · 1 个 job]
+        BR[自动化桥<br/>Linear → Forgejo]
+        LP[本地应用]
+    end
+
+    CF --> N
+    N --> AU
+    N --> FJ
+    N --> N8
+    N --> OV
+    N --> ME
+    N --> LM
+    N --> MO
+    N --> MC
+    N -->|loopback 8080 / 8787 / 8090| RS
+    RC -->|出站 TLS :7000| RS
+    RS -.->|经隧道转发| RC
+    RC --> AG
+    RC --> BH
+    RC --> DA
+    RC -->|SSH :2223| LP
+    CI1 -.->|拉取 job| FJ
+    CI2 -.->|拉取 job| FJ
+    BR -.->|单向镜像，300 s| FJ
 ```
 
 这就是全部的戏法：家里的机器没有公网 IP、没有端口转发、没有动态 DNS，却能从边缘访问，和其他服务处在同一套访问边界里。
@@ -105,7 +146,7 @@ governor（决策模型）是我最满意的一块，因为它把职责切得很
 
 n8n 是更新的那一半：2.45.0，跑在自己的镜像上，在 Authelia 后面，SQLite 放在 `/srv/n8n-data`。clean task 现在也存在于那里，是一个 13 节点的 workflow：webhook 和每周 schedule 触发器、Linear GraphQL 读数据、每个 issue 一次模型调用、一个持有同一份 policy 的 Code 节点，然后是带保护的 mutation，以及作为 webhook 响应返回的 markdown 报告。默认 dry，只有生产运行才 apply。两个 issue 端到端：102 秒。
 
-## 家里的模型
+## 模型
 
 Ollaya 0.17.0 在 llama.cpp 上服务 `d1:3b` Q8_0，2.7 GB 权重，和所有东西跑在同一台 VPS 上。三个线程，限制在 3.5 CPU 和 12 GB，30 分钟 keep-alive，免得每个问题都重新加载。测过第四个线程，只多买到约 15%（每个请求 52 s → 43 s），然后回滚了，因为它会在每个请求的整个持续时间里再占掉其他容器一个核。边缘通过 loopback 访问它，容器通过 Docker bridge gateway 访问它，两种方式都要 API key。
 
