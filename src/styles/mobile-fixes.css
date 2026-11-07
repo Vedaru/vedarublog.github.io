@@ -483,8 +483,7 @@ html.is-visit-layout-shifting #navbar-wrapper.navbar-hidden {
   #nav-menu-panel,
   #mobile-toc-panel,
   #display-setting,
-  #search-panel,
-  #wallpaper-mode-panel {
+  #search-panel {
     max-width: calc(100vw - 1rem);
   }
 }
@@ -556,104 +555,5 @@ html.is-visit-layout-shifting #navbar-wrapper.navbar-hidden {
 @media (min-width: 769px) {
   #post-list-container {
     transition: opacity 0.3s ease-in-out;
-  }
-}
-
-/* 全局规则：确保所有 wallpaper-transparent 模式下的卡片都透明 */
-body.wallpaper-transparent .card-base,
-.wallpaper-transparent .card-base,
-body.wallpaper-transparent #post-list-container .card-base,
-body.wallpaper-transparent #post-list-container > * .card-base,
-body.wallpaper-transparent .post-card-item .card-base,
-/* 确保嵌套的卡片元素在全屏壁纸模式下也应用半透明效果 */
-body.wallpaper-transparent .card-base .card-base,
-.wallpaper-transparent .card-base .card-base {
-  background: var(--card-bg-transparent) !important;
-  background-color: var(--card-bg-transparent) !important;
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
-}
-
-/* 暗色模式 */
-:root.dark body.wallpaper-transparent .card-base,
-:root.dark .wallpaper-transparent .card-base,
-:root.dark body.wallpaper-transparent #post-list-container .card-base,
-:root.dark body.wallpaper-transparent #post-list-container > * .card-base,
-:root.dark body.wallpaper-transparent .post-card-item .card-base,
-/* 确保嵌套的卡片元素在全屏壁纸模式下也应用半透明效果 */
-:root.dark body.wallpaper-transparent .card-base .card-base,
-:root.dark .wallpaper-transparent .card-base .card-base {
-  background: var(--card-bg-transparent) !important;
-  background-color: var(--card-bg-transparent) !important;
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
-}
-
-/* 移动端（<768px）强制透明 */
-@media (max-width: 768px) {
-  body.wallpaper-transparent .card-base,
-  body.wallpaper-transparent #post-list-container .card-base {
-    background: var(--card-bg-transparent) !important;
-    background-color: var(--card-bg-transparent) !important;
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
-  }
-}
-
-/* 中等屏幕（769px-1280px）强制透明 - 重点修复区域 */
-@media (min-width: 769px) and (max-width: 1280px) {
-  body.wallpaper-transparent .card-base,
-  body.wallpaper-transparent #post-list-container .card-base,
-  body.wallpaper-transparent .post-card-item .card-base {
-    background: var(--card-bg-transparent) !important;
-    background-color: var(--card-bg-transparent) !important;
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
-  }
-
-  :root.dark body.wallpaper-transparent .card-base,
-  :root.dark body.wallpaper-transparent #post-list-container .card-base,
-  :root.dark body.wallpaper-transparent .post-card-item .card-base {
-    background: var(--card-bg-transparent) !important;
-    background-color: var(--card-bg-transparent) !important;
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
-  }
-}
-
-/* 大屏幕（>1280px）强制透明 */
-@media (min-width: 1281px) {
-  body.wallpaper-transparent .card-base,
-  body.wallpaper-transparent #post-list-container .card-base,
-  body.wallpaper-transparent .post-card-item .card-base {
-    background: var(--card-bg-transparent) !important;
-    background-color: var(--card-bg-transparent) !important;
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
-  }
-
-  :root.dark body.wallpaper-transparent .card-base,
-  :root.dark body.wallpaper-transparent #post-list-container .card-base,
-  :root.dark body.wallpaper-transparent .post-card-item .card-base {
-    background: var(--card-bg-transparent) !important;
-    background-color: var(--card-bg-transparent) !important;
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
-  }
-}
-
-/*
- * 确保文章列表容器本身也是透明的（针对移动端背景）
- */
-body.wallpaper-transparent #post-list-container {
-  background: transparent !important;
-  background-color: transparent !important;
-}
-
-/* 移动端文章列表容器透明 */
-@media (max-width: 768px) {
-  body.wallpaper-transparent #post-list-container {
-    background: transparent !important;
-    background-color: transparent !important;
   }
 }

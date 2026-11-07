@@ -212,15 +212,11 @@ window.__applyWallpaperBodyClasses = function applyWallpaperBodyClasses(
 	const body = document.body;
 	body.classList.remove(
 		"enable-banner",
-		"wallpaper-transparent",
 		"no-banner-mode",
 	);
 	switch (mode) {
 		case "banner":
 			body.classList.add("enable-banner");
-			break;
-		case "fullscreen":
-			body.classList.add("wallpaper-transparent", "no-banner-mode");
 			break;
 		case "none":
 			body.classList.add("no-banner-mode");

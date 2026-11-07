@@ -17,5 +17,4 @@ export const UNCATEGORIZED = "uncategorized";
 
 // Wallpaper mode constants
 export const WALLPAPER_BANNER = "banner";
-export const WALLPAPER_FULLSCREEN = "fullscreen";
 export const WALLPAPER_NONE = "none";

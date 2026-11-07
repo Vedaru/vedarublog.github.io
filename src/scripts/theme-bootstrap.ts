@@ -19,10 +19,6 @@ async function initializePanelManager() {
 				panel: "mobile-toc-panel",
 				ignores: ["mobile-toc-panel", "mobile-toc-switch"],
 			},
-			{
-				panel: "wallpaper-mode-panel",
-				ignores: ["wallpaper-mode-panel", "wallpaper-mode-switch"],
-			},
 		];
 
 		document.addEventListener("click", async function (event) {

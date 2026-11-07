@@ -227,9 +227,6 @@ body::-webkit-scrollbar {
   .is-theme-transitioning:not(.use-view-transition) #navbar > div,
   .is-theme-transitioning:not(.use-view-transition) #navbar[data-transparent-mode] > div,
   .is-theme-transitioning:not(.use-view-transition) #navbar[data-transparent-mode].scrolled > div,
-  .is-theme-transitioning:not(.use-view-transition) body.wallpaper-transparent #navbar > div,
-  .is-theme-transitioning:not(.use-view-transition) body.wallpaper-transparent #navbar[data-transparent-mode] > div,
-  .is-theme-transitioning:not(.use-view-transition) body.wallpaper-transparent #navbar[data-transparent-mode].scrolled > div,
   .is-theme-transitioning:not(.use-view-transition) #banner-wrapper ~ * #navbar > div,
   .is-theme-transitioning:not(.use-view-transition) #banner-wrapper ~ * #navbar[data-transparent-mode] > div,
   .is-theme-transitioning:not(.use-view-transition) body:has(#banner-wrapper) #navbar > div,
@@ -257,48 +254,6 @@ body::-webkit-scrollbar {
     @apply rounded-[var(--radius-large)] overflow-hidden bg-[var(--card-bg-transparent)] backdrop-blur-sm transition-colors duration-150;
   }
 
-  /* 全屏壁纸模式下的半透明效果 - 使用!important确保优先级 */
-  .wallpaper-transparent .card-base {
-    background: var(--card-bg-transparent) !important;
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
-  }
-
-  body.wallpaper-transparent .card-base {
-    background: var(--card-bg-transparent) !important;
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
-  }
-
-  /* 确保嵌套的卡片元素在全屏壁纸模式下也应用半透明效果 */
-  .wallpaper-transparent .card-base .card-base,
-  body.wallpaper-transparent .card-base .card-base {
-    background: var(--card-bg-transparent) !important;
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
-  }
-
-  .wallpaper-transparent .float-panel {
-    @apply bg-[var(--card-bg-transparent)] backdrop-blur-sm;
-  }
-
-  .wallpaper-transparent #navbar > div {
-    @apply bg-[var(--card-bg-transparent)] backdrop-blur-sm;
-  }
-
-  .wallpaper-transparent .btn-card {
-    @apply bg-[var(--card-bg-transparent)] backdrop-blur-sm;
-  }
-
-  .wallpaper-transparent ~ * .music-player .mini-player,
-  .wallpaper-transparent ~ * .music-player .expanded-player,
-  .wallpaper-transparent ~ * .music-player .playlist-panel,
-  body.wallpaper-transparent .music-player .mini-player,
-  body.wallpaper-transparent .music-player .expanded-player,
-  body.wallpaper-transparent .music-player .playlist-panel {
-    background-color: var(--card-bg-transparent) !important;
-    backdrop-filter: blur(8px) !important;
-  }
   /* 仅对需要主题色过渡的文本元素添加 transition，减少 INP 影响 */
   h1,
   h2,

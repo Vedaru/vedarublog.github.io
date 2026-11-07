@@ -34,7 +34,6 @@ html[data-wallpaper-mode="banner"] .main-panel {
   top: var(--banner-height, 35vh);
 }
 
-html[data-wallpaper-mode="fullscreen"] .main-panel,
 html[data-wallpaper-mode="none"] .main-panel {
   top: calc(5.5rem + 1rem);
   min-height: calc(100vh - 6.5rem);
@@ -43,7 +42,6 @@ html[data-wallpaper-mode="none"] .main-panel {
 /* mobile-main-no-banner 仅作用于移动端；桌面端非首页仍用 banner 重叠布局 (35vh) */
 @media (max-width: 1279px) {
   html[data-wallpaper-mode="banner"] .main-panel.mobile-main-no-banner,
-  html[data-wallpaper-mode="fullscreen"] .main-panel.mobile-main-no-banner,
   html[data-wallpaper-mode="none"] .main-panel.mobile-main-no-banner {
     top: calc(5.5rem + 1rem) !important;
     min-height: calc(100vh - 6.5rem) !important;
@@ -87,17 +85,8 @@ html[data-wallpaper-mode="banner"] #banner-wrapper {
     opacity var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
 }
 
-html[data-wallpaper-mode="fullscreen"] #banner-wrapper,
 html[data-wallpaper-mode="none"] #banner-wrapper {
   display: none;
-}
-
-[data-fullscreen-wallpaper] {
-  display: none;
-}
-
-html[data-wallpaper-mode="fullscreen"] [data-fullscreen-wallpaper] {
-  display: block;
 }
 
 /* 桌面端 banner 模式主内容 + 首页 banner 重叠布局 */
@@ -164,8 +153,7 @@ html[data-wallpaper-mode="fullscreen"] [data-fullscreen-wallpaper] {
   }
 }
 
-/* 全屏 / 无壁纸：主内容区与 navbar 保留间距 */
-html[data-wallpaper-mode="fullscreen"] #main-grid,
+/* 无壁纸：主内容区与 navbar 保留间距 */
 html[data-wallpaper-mode="none"] #main-grid {
   padding-top: 1rem;
 }

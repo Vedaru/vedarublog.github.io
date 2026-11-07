@@ -29,8 +29,7 @@
 
 #display-setting,
 #mobile-toc-panel,
-#nav-menu-panel,
-#wallpaper-mode-panel {
+#nav-menu-panel {
   transform-origin: top right;
 }
 

@@ -43,20 +43,12 @@ export function initMainGridSwup(config: MainGridSwupConfig): void {
 			case "banner":
 				return (
 					body.classList.contains("enable-banner") &&
-					!body.classList.contains("no-banner-mode") &&
-					!body.classList.contains("wallpaper-transparent")
-				);
-			case "fullscreen":
-				return (
-					body.classList.contains("wallpaper-transparent") &&
-					body.classList.contains("no-banner-mode") &&
-					!body.classList.contains("enable-banner")
+					!body.classList.contains("no-banner-mode")
 				);
 			case "none":
 				return (
 					body.classList.contains("no-banner-mode") &&
-					!body.classList.contains("enable-banner") &&
-					!body.classList.contains("wallpaper-transparent")
+					!body.classList.contains("enable-banner")
 				);
 			default:
 				return false;
@@ -95,11 +87,6 @@ export function initMainGridSwup(config: MainGridSwupConfig): void {
 				) {
 					window.initSemifullScrollDetection(scrollTop);
 				}
-			}
-		} else if (wallpaperMode === "fullscreen") {
-			if (navbar) {
-				navbar.setAttribute("data-dynamic-transparent", "semi");
-				navbar.removeAttribute("data-transparent-mode");
 			}
 		} else {
 			if (navbar) {
@@ -147,14 +134,6 @@ export function initMainGridSwup(config: MainGridSwupConfig): void {
 		var wallpaperMode = getWallpaperMode();
 		syncWallpaperDataset(wallpaperMode);
 
-		var mainContent = document.querySelector(".main-panel");
-		if (mainContent) {
-			mainContent.classList.toggle(
-				"wallpaper-transparent",
-				wallpaperMode === "fullscreen",
-			);
-		}
-
 		var scrollTop =
 			typeof cachedScrollTop === "number"
 				? cachedScrollTop
@@ -171,14 +150,6 @@ export function initMainGridSwup(config: MainGridSwupConfig): void {
 	function applyWallpaperMode(isInitialLoad) {
 		var wallpaperMode = getWallpaperMode();
 		syncWallpaperDataset(wallpaperMode);
-
-		var mainContent = document.querySelector(".main-panel");
-		if (mainContent) {
-			mainContent.classList.toggle(
-				"wallpaper-transparent",
-				wallpaperMode === "fullscreen",
-			);
-		}
 
 		if (isInitialLoad && isWallpaperBodySynced(wallpaperMode)) {
 			initWallpaperNavbarAndToc(wallpaperMode);

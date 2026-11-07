@@ -86,7 +86,7 @@ export const siteConfig: SiteConfig = {
 
 	// 壁纸模式配置
 	wallpaperMode: {
-		// 默认壁纸模式：banner=顶部横幅，fullscreen=全屏壁纸，none=无壁纸
+		// 默认壁纸模式：banner=顶部横幅，none=无壁纸
 		defaultMode: "banner",
 	},
 
