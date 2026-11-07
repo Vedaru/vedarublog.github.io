@@ -1,0 +1,33 @@
+/*
+ * Telegram-style doodle backdrop.
+ *
+ * One fixed layer, tinted with the theme hue and masked by a seamless SVG
+ * doodle tile. No canvas, no per-doodle animation.
+ */
+
+.doodle-backdrop {
+	--doodle-image: url("/assets/patterns/doodle.svg");
+
+	position: fixed;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	background: oklch(0.62 0.03 var(--hue));
+	-webkit-mask-image: var(--doodle-image);
+	mask-image: var(--doodle-image);
+	-webkit-mask-repeat: repeat;
+	mask-repeat: repeat;
+	-webkit-mask-position: 0 0;
+	mask-position: 0 0;
+	-webkit-mask-size: 340px auto;
+	mask-size: 340px auto;
+	opacity: 0.14;
+}
+
+@media (max-width: 768px) {
+	.doodle-backdrop {
+		-webkit-mask-size: 260px auto;
+		mask-size: 260px auto;
+		opacity: 0.12;
+	}
+}

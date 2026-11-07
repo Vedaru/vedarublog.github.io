@@ -1,6 +1,7 @@
 /* 导入动画样式 */
 @import "./_transition-vars.css";
 @import "./transition.css";
+@import "./doodle-background.css";
 @import "./banner-responsive.css";
 @import "./mobile-fixes.css";
 @import "./layout-stable.css";
