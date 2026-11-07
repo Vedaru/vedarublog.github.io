@@ -388,6 +388,14 @@ function setup() {
 		document.documentElement.style.setProperty("--content-delay", "0ms");
 
 		attachStylesheetErrorGuard();
+
+		// 移动端非首页导航：换页开始时为了不闪动锁定在旧滚动位置，
+		// 但新文章页必须从顶部开始。内容替换的瞬间旧页已消失、新页仍在
+		// 入场动画里，此时把滚动锁切到 0，可以避免动画结束后再跳回顶部。
+		if (window.innerWidth <= 1279 && !window.__homePreScrollWasUsed) {
+			window.__lockSwupScrollAndPin?.();
+		}
+
 		window.initLastModifiedPage?.();
 		window.initTwikooPage?.();
 
