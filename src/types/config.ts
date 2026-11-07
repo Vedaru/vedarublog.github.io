@@ -286,7 +286,6 @@ export type WALLPAPER_MODE =
 
 export type ExpressiveCodeConfig = {
 	theme: string;
-	hideDuringThemeTransition?: boolean; // 是否在主题切换时隐藏代码块
 };
 
 export type AnnouncementConfig = {

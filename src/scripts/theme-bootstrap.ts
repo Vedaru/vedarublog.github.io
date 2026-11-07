@@ -1,5 +1,3 @@
-import { widgetConfigs } from "../config";
-
 async function initializePanelManager() {
 	try {
 		const { panelManager } = await import("../utils/panel-manager.js");
@@ -112,16 +110,6 @@ export function showBanner() {
 			mobileBanner.classList.add("opacity-100");
 		}
 	});
-}
-
-function setupSakura() {
-	const sakuraConfig = (widgetConfigs as { sakura?: { enable?: boolean } })
-		?.sakura;
-	if (!sakuraConfig || !sakuraConfig.enable) return;
-	if ((window as Window & { sakuraInitialized?: boolean }).sakuraInitialized)
-		return;
-	(window as Window & { sakuraInitialized?: boolean }).sakuraInitialized =
-		true;
 }
 
 let fancyboxSelectors: string[] = [];
@@ -267,31 +255,11 @@ export function initThemeBootstrap() {
 	void initializePanelManager();
 
 	if (document.readyState === "loading") {
-		document.addEventListener("DOMContentLoaded", setupSakura);
-	} else {
-		setupSakura();
-	}
-
-	if (document.readyState === "loading") {
-		document.addEventListener("DOMContentLoaded", async () => {
-			showBanner();
-			try {
-				await import("../utils/panel-manager.js");
-				console.log("Panel manager initialized");
-			} catch (error) {
-				console.error("Failed to initialize panel manager:", error);
-			}
+		document.addEventListener("DOMContentLoaded", showBanner, {
+			once: true,
 		});
 	} else {
 		showBanner();
-		void (async () => {
-			try {
-				await import("../utils/panel-manager.js");
-				console.log("Panel manager initialized");
-			} catch (error) {
-				console.error("Failed to initialize panel manager:", error);
-			}
-		})();
 	}
 
 	if (window?.swup?.hooks) {

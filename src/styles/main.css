@@ -206,11 +206,6 @@ body::-webkit-scrollbar {
     will-change: auto !important;
   }
 
-  /* 仅在非 View Transition 且显式启用时临时隐藏代码块（见 expressiveCodeConfig.hideDuringThemeTransition） */
-  .is-theme-transitioning:not(.use-view-transition) .expressive-code.hide-during-transition {
-    content-visibility: hidden !important;
-    opacity: 0.99;
-  }
   /* 禁用复杂选择器元素的过渡 - 仅在非 View Transitions 模式下 */
   .is-theme-transitioning:not(.use-view-transition) .float-panel,
   .is-theme-transitioning:not(.use-view-transition) .float-panel *,

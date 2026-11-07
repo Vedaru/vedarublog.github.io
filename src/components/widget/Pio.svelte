@@ -68,7 +68,6 @@ function initPio() {
 				window.__PIO_MOUSE_HOVER = false;
 				// 初始化完成后确认为节流模式（l2d.js 初始化可能重置为 normal）
 				setRenderMode("reduced", IDLE_FPS);
-				console.log("Pio initialized successfully (Svelte)");
 			} else if (!pioContainer || !pioCanvas) {
 				console.warn("Pio DOM elements not found, retrying...");
 				setTimeout(initPio, 100);
@@ -161,7 +160,6 @@ onDestroy(() => {
 		document.removeEventListener("visibilitychange", visibilityHandler);
 		visibilityHandler = null;
 	}
-	console.log("Pio Svelte component destroyed (keeping instance alive)");
 });
 </script>
 

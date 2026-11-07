@@ -26,57 +26,6 @@ class CodeBlockCollapser {
 		}
 		this.observePageChanges();
 		this.setupThemeChangeListener();
-		this.setupThemeOptimizerSync();
-	}
-
-	setupThemeOptimizerSync() {
-		// 与主题优化器同步，确保代码块的隐藏/显示行为一致
-		this.syncWithThemeOptimizer();
-
-		// 监听主题优化器初始化完成事件
-		document.addEventListener("themeOptimizerReady", () => {
-			this.log("Theme optimizer ready, syncing code block behavior");
-			this.syncWithThemeOptimizer();
-		});
-
-		// 监听页面切换事件，确保同步
-		document.addEventListener("swup:pageView", () => {
-			// 延迟同步，确保主题优化器已经处理完代码块
-			setTimeout(() => {
-				this.syncWithThemeOptimizer();
-			}, 150);
-		});
-	}
-
-	syncWithThemeOptimizer() {
-		// 检查主题优化器是否存在
-		if (window.themeOptimizer) {
-			// 获取当前主题优化器的设置
-			const shouldHideDuringTransition =
-				window.themeOptimizer.hideCodeBlocksDuringTransition;
-
-			// 应用相同的设置到代码块
-			const codeBlocks = document.querySelectorAll(".expressive-code");
-			codeBlocks.forEach((block) => {
-				if (shouldHideDuringTransition) {
-					block.classList.add("hide-during-transition");
-				} else {
-					block.classList.remove("hide-during-transition");
-				}
-			});
-
-			this.log(
-				`Synced with theme optimizer: hide code blocks during transition = ${shouldHideDuringTransition}`,
-			);
-		} else {
-			// 如果主题优化器不存在，应用默认行为
-			const codeBlocks = document.querySelectorAll(".expressive-code");
-			codeBlocks.forEach((block) => {
-				block.classList.add("hide-during-transition");
-			});
-
-			this.log("Theme optimizer not available, applied default behavior");
-		}
 	}
 
 	setupThemeChangeListener() {

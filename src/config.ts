@@ -375,8 +375,6 @@ export const expressiveCodeConfig: ExpressiveCodeConfig = {
 	// 注意：某些样式（如背景颜色）已被覆盖，请参阅 astro.config.mjs 文件。
 	// 请选择深色主题，因为此博客主题目前仅支持深色背景
 	theme: "github-dark",
-	// 是否在主题切换时隐藏代码块以避免卡顿问题
-	hideDuringThemeTransition: false,
 };
 
 export const commentConfig: CommentConfig = {
@@ -605,17 +603,6 @@ export const pioConfig: import("./types/config").PioConfig & {
 		link: "https://github.com/Vedaru", // 关于链接
 	},
 };
-
-// 导出所有配置的统一接口
-export const widgetConfigs = {
-	profile: profileConfig,
-	announcement: announcementConfig,
-	music: musicPlayerConfig,
-	layout: sidebarLayoutConfig,
-	fullscreenWallpaper: fullscreenWallpaperConfig,
-	pio: pioConfig, // 添加 pio 配置
-	share: shareConfig, // 添加分享配置
-} as const;
 
 export const umamiConfig = {
 	enabled: false, // 是否显示Umami统计

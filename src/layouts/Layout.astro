@@ -154,6 +154,12 @@ const bannerOffset =
 const umamiEnabled = umamiConfig.enabled || false;
 const umamiScripts = umamiConfig.scripts || ""; // 获取Umami scripts配置
 
+// 全屏壁纸只在默认进入全屏模式、或用户可切换壁纸模式时才需要渲染。
+// 否则它会 eagerly 加载一张永远不可见的整屏图片。
+const fullscreenWallpaperEnabled =
+	siteConfig.wallpaperMode.defaultMode === "fullscreen" ||
+	(siteConfig.wallpaperMode?.showModeSwitchOnMobile || "off") !== "off";
+
 // 构建字体配置的 CSS 变量
 // ASCII 字体优先级最高（用于英文、数字等），CJK 字体作为回退
 let bodyFontFamily = "";
@@ -506,7 +512,9 @@ if (siteConfig.font) {
 		{shouldShowTopHighlight && <div class="top-gradient-highlight" />}
 
 		<ConfigCarrier />
-		<FullscreenWallpaper config={fullscreenWallpaperConfig} />
+		{fullscreenWallpaperEnabled && (
+			<FullscreenWallpaper config={fullscreenWallpaperConfig} />
+		)}
 		<slot />
 
 		<!-- Music Player - 仅在启用时加载 -->
