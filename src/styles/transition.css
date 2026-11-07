@@ -76,6 +76,39 @@ html.is-animating .transition-swup-fade {
 	}
 }
 
+/* Shared entrance animations. Defined once here instead of being redeclared
+   by each album/friend/skill/404 stylesheet. */
+@keyframes fade-in-up-sm {
+	from {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes fade-in-up-lg {
+	from {
+		opacity: 0;
+		transform: translateY(30px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
 /* 用 backwards 而不是 forwards：动画结束后不再持续占用 transform/opacity。
    侧栏容器和组件常驻这个类，forwards 会让每个卡片一直处于“动画填充”
    状态；祖先 #main-grid 做 700ms 位移过渡时，这些残留动画会让浏览器

@@ -32,20 +32,6 @@
 			flushScrollSync();
 		});
 	};
-
-	window.__cancelScrollSync = function cancelScrollSync(fn) {
-		callbacks.delete(fn);
-	};
-
-	window.__flushScrollSync = function flushScrollSyncNow() {
-		if (rafId) {
-			cancelAnimationFrame(rafId);
-			rafId = 0;
-		}
-		if (callbacks.size > 0) {
-			flushScrollSync();
-		}
-	};
 })();
 
 // 只是一个注册钩子的模块：没有任何导出，显式标记为模块

@@ -1,6 +1,6 @@
-import { clearBlendedLayoutInlineStyles } from "./blended-styles";
-import { isTargetMainHomePage, shouldHandleEnteringHome } from "./visit";
-import type { HomePreScrollVisit } from "./types";
+import { clearBlendedLayoutInlineStyles } from "./layout";
+import { isTargetMainHomePage, shouldHandleEnteringHome } from "./route";
+import type { Visit } from "./types";
 
 let activeVisitGeneration = 0;
 
@@ -36,7 +36,7 @@ export function addPreScrollClasses(
 	}
 }
 
-function applyDeferredVisitLayout(visit: HomePreScrollVisit): void {
+function applyDeferredVisitLayout(visit: Visit): void {
 	if (typeof window.__applyVisitStartLayout === "function") {
 		window.__applyVisitStartLayout(visit, { deferBodyLayout: true });
 		return;
@@ -44,13 +44,24 @@ function applyDeferredVisitLayout(visit: HomePreScrollVisit): void {
 
 	document.dispatchEvent(
 		new CustomEvent("vedaru:home-pre-scroll-done", {
-			detail: { visit: visit },
+			detail: { visit },
 		}),
 	);
 }
 
+function pinScrollTopWithFrames(frames = 2): void {
+	let remaining = frames;
+	const step = () => {
+		window.__pinPageScrollTop?.();
+		remaining -= 1;
+		if (remaining > 0) requestAnimationFrame(step);
+	};
+	window.__pinPageScrollTop?.();
+	requestAnimationFrame(step);
+}
+
 export function finishPreScrollTransition(
-	visit: HomePreScrollVisit,
+	visit: Visit,
 	generation?: number,
 ): void {
 	if (
@@ -62,8 +73,7 @@ export function finishPreScrollTransition(
 	window.__lockSwupScroll?.();
 	window.__pinPageScrollTop?.();
 
-	const targetIsHome = isTargetMainHomePage(visit);
-	window.applySemifullNavbarVisualState?.(0, targetIsHome);
+	window.applySemifullNavbarVisualState?.(0, isTargetMainHomePage(visit));
 
 	window.__homePreScrollCompleted = true;
 	window.__suppressSemifullNavbarReinit = true;
@@ -71,11 +81,11 @@ export function finishPreScrollTransition(
 
 	window.__homePreScrollActive = false;
 	window.__clearNavbarWrapperInlineStyles?.();
-	window.__pinScrollTopWithFrames?.(2);
+	pinScrollTopWithFrames(2);
 
 	const keepLayoutShiftUntilVisitEnd = shouldHandleEnteringHome(visit);
 
-	requestAnimationFrame(function () {
+	requestAnimationFrame(() => {
 		if (keepLayoutShiftUntilVisitEnd) {
 			document.documentElement.classList.remove(
 				"is-home-pre-scrolling",
@@ -98,7 +108,4 @@ export function clearPreScrollOnVisitEnd(): void {
 	window.__homePreScrollCompleted = false;
 	window.__homePreScrollActive = false;
 	removePreScrollClasses();
-	// 旧实现曾经在 body 上写 --banner-slide: 0 的内联快照作为
-	// “单一时钟”机制；现在 banner 与 grid 各自 transition，body 上
-	// 不再持有这个变量，这里也不需要清理。
 }

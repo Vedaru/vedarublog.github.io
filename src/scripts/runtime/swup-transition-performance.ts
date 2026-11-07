@@ -79,9 +79,7 @@
 
 		// 移动端：解锁后立即滚到顶部（body 已恢复，滚动生效）
 		if (window.innerWidth <= 1279) {
-			var nativeST =
-				window.__nativeScrollTo || window.scrollTo.bind(window);
-			nativeST(0, 0);
+			window.scrollTo(0, 0);
 		}
 
 		requestAnimationFrame(function () {
@@ -355,9 +353,6 @@
 	function bootstrapSwupPerf() {
 		registerSwupPerfListeners();
 	}
-
-	window.__swupPerfPause = pauseTransitionHeavyWork;
-	window.__swupPerfResume = resumeTransitionHeavyWork;
 
 	window.__onSwupPageWritePhase = function (fn) {
 		if (typeof fn === "function") {

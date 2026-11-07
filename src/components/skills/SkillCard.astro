@@ -69,22 +69,11 @@ const formatExperience = (exp: Skill["experience"]) => {
 	/* 用 backwards 而不是 forwards：动画结束后的 transform 交还给 CSS，
 	   这样 hover:-translate-y-1 的悬浮位移不会被固定在结束帧上。 */
 	.skill-card {
-		animation: fadeInUp 0.5s ease-out backwards;
+		animation: fade-in-up-sm 0.5s ease-out backwards;
 	}
 
 	.skill-card.filtered-out {
 		display: none;
-	}
-
-	@keyframes fadeInUp {
-		from {
-			opacity: 0;
-			transform: translateY(20px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
 	}
 
 	.skill-card:nth-child(1) {

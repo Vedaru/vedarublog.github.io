@@ -8,7 +8,7 @@ import {
 	isTocOrInPageAnchorLink,
 	shouldInitTocForPath,
 } from "../utils/toc-utils";
-import { shouldSmoothScrollSamePage } from "./runtime/home-pre-scroll/visit";
+import { shouldSmoothScrollSamePage } from "./runtime/home-pre-scroll/route";
 import {
 	checkKatex,
 	ensureJetBrainsMono,
@@ -507,10 +507,6 @@ function setup() {
 						},
 					);
 					document.dispatchEvent(pageLoadedEvent);
-					console.log(
-						"Layout: 触发 mizuki:page:loaded 事件，路径:",
-						window.location.pathname,
-					);
 				}
 			}, 300);
 		},

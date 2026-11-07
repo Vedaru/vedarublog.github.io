@@ -283,7 +283,7 @@ function hostnameOf(url: string): string {
 <style>
 	/* 友链卡片动画 */
 	.friend-card {
-		animation: fadeInUp 0.5s ease-out forwards;
+		animation: fade-in-up-sm 0.5s ease-out forwards;
 		opacity: 0;
 	}
 
@@ -304,17 +304,6 @@ function hostnameOf(url: string): string {
 	}
 	.friend-card:nth-child(6) {
 		animation-delay: 0.3s;
-	}
-
-	@keyframes fadeInUp {
-		from {
-			opacity: 0;
-			transform: translateY(20px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
 	}
 
 	/* 搜索框焦点效果 */

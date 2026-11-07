@@ -69,7 +69,6 @@ declare global {
 			easingFn?: (t: number) => number,
 			onProgress?: (progress: number, scrollY: number) => void,
 		) => Promise<void>;
-		__easeInOutCubic?: (t: number) => number;
 		__smoothScrollToElement?: (
 			element: Element | null,
 			offset?: number,
@@ -79,7 +78,6 @@ declare global {
 		__homePreScrollBootstrapped?: boolean;
 		__homePreScrollCompleted?: boolean;
 		__homePreScrollWasUsed?: boolean;
-		__shouldHomePreScroll?: (visit: { to?: { url?: string } }) => boolean;
 		__applyVisitStartLayout?: (
 			visit: { to?: { url?: string } },
 			options?: { deferBodyLayout?: boolean },
@@ -91,11 +89,7 @@ declare global {
 		__lockSwupScrollAndPin?: () => void;
 		__unlockSwupScroll?: () => void;
 		__resetHomePreScrollState?: () => void;
-		__nativeScrollTo?: typeof window.scrollTo;
-		__nativeScrollBy?: typeof window.scrollBy;
 		__swupPerfBootstrapped?: boolean;
-		__swupPerfPause?: () => void;
-		__swupPerfResume?: () => void;
 		__onSwupPageWritePhase?: (
 			fn: (detail: { scrollTop: number }) => void,
 		) => void;
@@ -126,11 +120,6 @@ declare global {
 		loadIconify?: () => Promise<void> | void;
 		preloadIcons?: (icons: string | string[]) => void;
 		onIconifyReady?: (callback: () => void) => void;
-		__getScrollY?: () => number;
-		__pinScrollTopWithFrames?: (count?: number) => void;
-		__getNavbarHideThreshold?: (options?: {
-			forceHomeBanner?: boolean;
-		}) => number;
 		__syncNavbarWrapperForScrollY?: (
 			scrollY?: number,
 			options?: { forceHomeBanner?: boolean },
@@ -142,15 +131,6 @@ declare global {
 		__scheduleScrollSync?: (
 			fn: (scrollTop: number, innerHeight: number) => void,
 		) => void;
-		__cancelScrollSync?: (
-			fn: (scrollTop: number, innerHeight: number) => void,
-		) => void;
-		__flushScrollSync?: () => void;
-		__normalizePath?: (path: string) => string;
-		__isHomePagePath?: (pathname: string) => boolean;
-		__isMainHomePage?: (pathname: string) => boolean;
-		__pathFromUrl?: (url: string) => string;
-		__pathsEqual?: (path1: string, path2: string) => boolean;
 		onSwupReady?: (
 			registerFn: (swup: any) => void,
 			options?: { retryMs?: number; timeoutMs?: number },

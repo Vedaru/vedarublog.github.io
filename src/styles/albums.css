@@ -11,7 +11,7 @@
 
 /* 照片网格布局 */
 .photo-gallery {
-  animation: fadeInUp 0.6s ease-out;
+  animation: fade-in-up-sm 0.6s ease-out;
 }
 
 .photo-item {
@@ -138,18 +138,6 @@
 
   .masonry-layout {
     columns: 1;
-  }
-}
-
-/* 加载动画 */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 

@@ -4,7 +4,8 @@ import {
 	cancelActiveTween,
 	isAnimationCancelledError,
 	runCancellableTween,
-} from "./cancellable-tween";
+} from "./animation/tween";
+import { easeOutCubic } from "./animation/easing";
 
 (function () {
 	if (window.__smoothScrollBootstrapped) {
@@ -21,14 +22,6 @@ import {
 		// 标准模式下滚动元素为 documentElement，body.scrollTop 为冗余无效写入
 		const scroller = document.scrollingElement || document.documentElement;
 		scroller.scrollTop = top;
-	}
-
-	function easeOutCubic(t: number) {
-		return 1 - Math.pow(1 - t, 3);
-	}
-
-	function easeInOutCubic(t: number) {
-		return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 	}
 
 	let activeScrollTrip: {
@@ -219,7 +212,6 @@ import {
 	window.__smoothScrollToY = smoothScrollToY;
 	window.__smoothScrollToTop = smoothScrollToTop;
 	window.__smoothScrollToElement = smoothScrollToElement;
-	window.__easeInOutCubic = easeInOutCubic;
 
 	var lockedScrollY = 0;
 	var isScrollLocked = false;
@@ -264,9 +256,7 @@ import {
 		document.body.style.top = "";
 		document.body.style.width = "";
 		// 使用原生 scrollTo 绕过 scroll-protection 的拦截,避免被误导向旧滚动位置
-		var nativeScrollTo =
-			window.__nativeScrollTo || window.scrollTo.bind(window);
-		nativeScrollTo(0, lockedScrollY);
+		window.scrollTo(0, lockedScrollY);
 		isScrollLocked = false;
 	};
 })();

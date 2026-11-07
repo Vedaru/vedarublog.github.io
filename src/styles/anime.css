@@ -121,14 +121,6 @@ html[data-post-list-layout="list"] .anime-grid-container .group p.text-xs {
   border-right-color: var(--primary);
   animation: spin 1s linear infinite;
 }
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
 
 /* 🔧 Hide play button on anime cards (remove play icon and background) */
 .anime-cover-container .w-12.h-12 {

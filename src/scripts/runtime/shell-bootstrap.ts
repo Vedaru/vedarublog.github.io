@@ -1,399 +1,312 @@
-// @ts-nocheck ? legacy side-effect IIFE migrated from public/js
-import {
-	isHomePagePath,
-	isMainHomePage,
-	normalizePath,
-	pathFromUrl,
-	pathsEqual,
-	resolveHomePageIndex,
-} from "../../utils/route-utils";
+/**
+ * Shell-level scroll/layout helpers.
+ *
+ * These live in the critical bundle and expose only the functions that the
+ * separately bundled scripts (swup-lifecycle, navbar-scroll, widgets) need on
+ * `window`. Everything used only inside the critical bundle is imported
+ * directly from its module instead of going through a global.
+ */
+import { isMainHomePage, pathFromUrl } from "../../utils/route-utils";
+import { getScrollY } from "./animation/scroll";
 
-(function () {
-	if (window.__scrollUtilsBootstrapped) return;
-	window.__scrollUtilsBootstrapped = true;
+const BANNER_HEIGHT = 35;
+const NAVBAR_BANNER_HEIGHT = 35;
+const NAVBAR_BANNER_HEIGHT_HOME = 65;
 
-	window.__getScrollY = function getScrollY() {
-		return window.scrollY || document.documentElement.scrollTop || 0;
+interface Visit {
+	to: { url: string };
+}
+
+// ── Scroll position ────────────────────────────────────────────────────────
+// Re-assert the current scroll position after a layout write. Used by the
+// pre-scroll flow, which writes transforms and then needs the scroll offset to
+// stay pinned to where it already was.
+window.__pinPageScrollTop =
+	window.__pinPageScrollTop ||
+	function pinPageScrollTop() {
+		window.scrollTo(0, getScrollY());
 	};
 
-	window.__pinPageScrollTop = function pinPageScrollTop() {
-		const y = window.__getScrollY();
-		window.scrollTo(0, y);
-	};
+// ── Navbar wrapper fade ───────────────────────────────────────────────────
+interface NavbarSyncOptions {
+	forceHomeBanner?: boolean;
+}
 
-	window.__pinScrollTopWithFrames = function pinScrollTopWithFrames(count) {
-		const frames = typeof count === "number" ? count : 2;
-		window.__pinPageScrollTop?.();
-		let remaining = frames;
-		function step() {
-			window.__pinPageScrollTop?.();
-			remaining -= 1;
-			if (remaining > 0) {
-				requestAnimationFrame(step);
-			}
-		}
-		requestAnimationFrame(step);
-	};
-})();
-/** 路由工具挂到 window，供不经过打包的脚本复用（单一实现见 utils/route-utils.ts）*/
-(function () {
-	if (window.__routeUtilsBootstrapped) return;
-	window.__routeUtilsBootstrapped = true;
+let lastNavbarFadeKey = "";
 
-	window.__normalizePath = normalizePath;
-	window.__isHomePagePath = isHomePagePath;
-	window.__resolveHomePageIndex = resolveHomePageIndex;
-	window.__isMainHomePage = isMainHomePage;
-	window.__pathFromUrl = pathFromUrl;
-	window.__pathsEqual = pathsEqual;
-})();
-/** Navbar ???????????home-pre-scroll / Layout scroll ?? */
-
-(function () {
-	if (window.__navbarScrollSyncBootstrapped) return;
-	window.__navbarScrollSyncBootstrapped = true;
-
-	const NAVBAR_BANNER_HEIGHT = 35;
-	const NAVBAR_BANNER_HEIGHT_HOME = 65;
-
-	window.__getNavbarHideThreshold = function getNavbarHideThreshold(options) {
-		if (!document.body.classList.contains("enable-banner")) {
-			return Number.POSITIVE_INFINITY;
-		}
-
-		let isHome;
-		if (typeof options?.forceHomeBanner === "boolean") {
-			isHome = options.forceHomeBanner;
-		} else {
-			isHome =
-				document.body.classList.contains("lg:is-home") &&
-				(window.__cachedInnerWidth ?? window.innerWidth) >= 1024;
-		}
-		const bannerHeight = isHome
-			? NAVBAR_BANNER_HEIGHT_HOME
-			: NAVBAR_BANNER_HEIGHT;
-
-		return window.innerHeight * (bannerHeight / 100) - 88;
-	};
-
-	let lastNavbarFadeKey = "";
-
-	window.__clearNavbarWrapperInlineStyles =
-		function clearNavbarWrapperInlineStyles() {
-			const navbarWrapper = document.getElementById("navbar-wrapper");
-			if (!navbarWrapper) return;
-			navbarWrapper.style.removeProperty("opacity");
-			navbarWrapper.style.removeProperty("transform");
-			lastNavbarFadeKey = "";
-		};
-
-	function computeNavbarWrapperFade(scrollY, threshold) {
-		const fadeRange = Math.max(120, threshold * 0.2);
-		if (scrollY <= threshold) {
-			return { opacity: 1, translateRem: 0, active: false };
-		}
-		const progress = Math.min(1, (scrollY - threshold) / fadeRange);
-		return {
-			opacity: 1 - progress,
-			translateRem: progress * 4,
-			active: progress > 0,
-		};
+function getNavbarHideThreshold(options?: NavbarSyncOptions): number {
+	if (!document.body.classList.contains("enable-banner")) {
+		return Number.POSITIVE_INFINITY;
 	}
 
-	window.__syncNavbarWrapperForScrollY = function syncNavbarWrapperForScrollY(
-		scrollY,
-		options,
-	) {
-		const navbarWrapper = document.getElementById("navbar-wrapper");
-		if (
-			!navbarWrapper ||
-			!document.body.classList.contains("enable-banner")
-		) {
-			return;
-		}
+	const isHome =
+		typeof options?.forceHomeBanner === "boolean"
+			? options.forceHomeBanner
+			: document.body.classList.contains("lg:is-home") &&
+				(window.__cachedInnerWidth ?? window.innerWidth) >= 1024;
 
-		if (typeof scrollY !== "number") {
-			scrollY =
-				window.__getScrollY?.() ??
-				window.scrollY ??
-				document.documentElement.scrollTop ??
-				0;
-		}
+	const bannerHeight = isHome
+		? NAVBAR_BANNER_HEIGHT_HOME
+		: NAVBAR_BANNER_HEIGHT;
 
-		const threshold =
-			window.__getNavbarHideThreshold?.(options) ??
-			Number.POSITIVE_INFINITY;
-		const fade = computeNavbarWrapperFade(scrollY, threshold);
-		const fadeKey =
-			fade.opacity.toFixed(3) + ":" + fade.translateRem.toFixed(3);
+	return window.innerHeight * (bannerHeight / 100) - 88;
+}
 
-		// Write class + style after layout reads to avoid forced reflow
-		navbarWrapper.classList.remove("navbar-hidden");
+function computeNavbarWrapperFade(scrollY: number, threshold: number) {
+	const fadeRange = Math.max(120, threshold * 0.2);
+	if (scrollY <= threshold) {
+		return { opacity: 1, translateRem: 0 };
+	}
+	const progress = Math.min(1, (scrollY - threshold) / fadeRange);
+	return { opacity: 1 - progress, translateRem: progress * 4 };
+}
 
-		if (fadeKey === lastNavbarFadeKey) {
-			return;
-		}
-		lastNavbarFadeKey = fadeKey;
+function clearNavbarWrapperInlineStyles(): void {
+	const navbarWrapper = document.getElementById("navbar-wrapper");
+	if (!navbarWrapper) return;
+	navbarWrapper.style.removeProperty("opacity");
+	navbarWrapper.style.removeProperty("transform");
+	lastNavbarFadeKey = "";
+}
 
-		navbarWrapper.style.opacity = String(fade.opacity);
-		if (fade.opacity < 0.05) {
-			navbarWrapper.style.transform = "translateY(-4rem)";
-		} else if (fade.translateRem > 0) {
-			navbarWrapper.style.transform =
-				"translateY(" + -fade.translateRem + "rem)";
-		} else {
-			navbarWrapper.style.removeProperty("transform");
-		}
-	};
+window.__clearNavbarWrapperInlineStyles = clearNavbarWrapperInlineStyles;
 
-	window.__finalizeNavbarWrapperAfterScroll =
-		function finalizeNavbarWrapperAfterScroll() {
-			const scrollY =
-				window.__getScrollY?.() ??
-				window.scrollY ??
-				document.documentElement.scrollTop ??
-				0;
+function syncNavbarWrapperForScrollY(
+	scrollY?: number,
+	options?: NavbarSyncOptions,
+): void {
+	const navbarWrapper = document.getElementById("navbar-wrapper");
+	if (!navbarWrapper || !document.body.classList.contains("enable-banner")) {
+		return;
+	}
 
-			// Remove sync class after layout reads to avoid forced reflow
-			document.documentElement.classList.remove(
-				"is-manual-scroll-syncing",
-			);
+	const y = typeof scrollY === "number" ? scrollY : getScrollY();
+	const threshold = getNavbarHideThreshold(options);
+	const fade = computeNavbarWrapperFade(y, threshold);
+	const fadeKey = `${fade.opacity.toFixed(3)}:${fade.translateRem.toFixed(3)}`;
 
-			const navbarEl = document.getElementById("navbar");
-			if (
-				navbarEl?.getAttribute("data-transparent-mode") === "semifull"
-			) {
-				const isHome = navbarEl.getAttribute("data-is-home") === "true";
-				window.applySemifullNavbarVisualState?.(scrollY, isHome);
-			}
+	navbarWrapper.classList.remove("navbar-hidden");
 
-			const navbarWrapper = document.getElementById("navbar-wrapper");
-			if (
-				!navbarWrapper ||
-				!document.body.classList.contains("enable-banner")
-			) {
-				return;
-			}
+	if (fadeKey === lastNavbarFadeKey) return;
+	lastNavbarFadeKey = fadeKey;
 
-			const threshold =
-				window.__getNavbarHideThreshold?.() ?? Number.POSITIVE_INFINITY;
+	navbarWrapper.style.opacity = String(fade.opacity);
+	if (fade.opacity < 0.05) {
+		navbarWrapper.style.transform = "translateY(-4rem)";
+	} else if (fade.translateRem > 0) {
+		navbarWrapper.style.transform = `translateY(${-fade.translateRem}rem)`;
+	} else {
+		navbarWrapper.style.removeProperty("transform");
+	}
+}
 
-			if (scrollY > threshold) {
-				return;
-			}
+window.__syncNavbarWrapperForScrollY = syncNavbarWrapperForScrollY;
 
-			const currentOpacity = Number.parseFloat(
-				navbarWrapper.style.opacity,
-			);
-			const needsFadeIn =
-				!Number.isNaN(currentOpacity) && currentOpacity < 0.999;
+function finalizeNavbarWrapperAfterScroll(): void {
+	const scrollY = getScrollY();
 
-			if (
-				needsFadeIn &&
-				!window.matchMedia("(prefers-reduced-motion: reduce)").matches
-			) {
-				let cleared = false;
-				const clearAfterTransition = function () {
-					if (cleared) return;
-					cleared = true;
-					navbarWrapper.removeEventListener(
-						"transitionend",
-						onTransitionEnd,
-					);
-					window.__clearNavbarWrapperInlineStyles?.();
-				};
-				const onTransitionEnd = function (event) {
-					if (
-						event.target !== navbarWrapper ||
-						event.propertyName !== "opacity"
-					) {
-						return;
-					}
-					clearAfterTransition();
-				};
+	document.documentElement.classList.remove("is-manual-scroll-syncing");
 
-				navbarWrapper.addEventListener(
-					"transitionend",
-					onTransitionEnd,
-				);
-				navbarWrapper.style.opacity = "1";
-				window.setTimeout(clearAfterTransition, 350);
-				return;
-			}
-
-			window.__clearNavbarWrapperInlineStyles?.();
-		};
-})();
-/** Swup ?????? ???? onSwupReady / onSwupHook ?? */
-
-(function () {
-	if (window.__swupBootstrapBootstrapped) return;
-	window.__swupBootstrapBootstrapped = true;
-
-	window.onSwupReady = function onSwupReady(registerFn, options) {
-		const retryMs = options?.retryMs ?? 50;
-		const timeoutMs = options?.timeoutMs ?? 5000;
-		let registered = false;
-		let retryTimer = null;
-		let timeoutTimer = null;
-
-		function tryRegister() {
-			if (registered) return;
-			if (window.swup?.hooks) {
-				registered = true;
-				if (retryTimer) clearInterval(retryTimer);
-				if (timeoutTimer) clearTimeout(timeoutTimer);
-				registerFn(window.swup);
-			}
-		}
-
-		tryRegister();
-		if (registered) return;
-
-		document.addEventListener("swup:enable", tryRegister);
-
-		retryTimer = setInterval(tryRegister, retryMs);
-		timeoutTimer = setTimeout(function () {
-			if (retryTimer) clearInterval(retryTimer);
-		}, timeoutMs);
-
-		if (document.readyState === "loading") {
-			document.addEventListener("DOMContentLoaded", tryRegister);
-		} else {
-			tryRegister();
-		}
-	};
-
-	window.onSwupHook = function onSwupHook(hook, fn, options) {
-		window.onSwupReady(function (swup) {
-			swup.hooks.on(hook, fn);
-		}, options);
-	};
-})();
-/** ?? body ?? / ?? class / TOC ???? ??Layout ??MainGridLayout ?? */
-
-(function () {
-	if (window.__visitLayoutBootstrapped) return;
-	window.__visitLayoutBootstrapped = true;
-
-	const BANNER_HEIGHT = 35;
-
-	window.__applyWallpaperBodyClasses = function applyWallpaperBodyClasses(
-		mode,
-	) {
-		const body = document.body;
-		body.classList.remove(
-			"enable-banner",
-			"wallpaper-transparent",
-			"no-banner-mode",
+	const navbar = document.getElementById("navbar");
+	if (navbar?.getAttribute("data-transparent-mode") === "semifull") {
+		window.applySemifullNavbarVisualState?.(
+			scrollY,
+			navbar.getAttribute("data-is-home") === "true",
 		);
-		switch (mode) {
-			case "banner":
-				body.classList.add("enable-banner");
-				break;
-			case "fullscreen":
-				body.classList.add("wallpaper-transparent", "no-banner-mode");
-				break;
-			case "none":
-				body.classList.add("no-banner-mode");
-				break;
-		}
-	};
+	}
 
-	window.__syncTocHideForScroll = function syncTocHideForScroll(
-		scrollTop,
-		innerHeight,
+	const navbarWrapper = document.getElementById("navbar-wrapper");
+	if (!navbarWrapper || !document.body.classList.contains("enable-banner")) {
+		return;
+	}
+
+	if (scrollY > getNavbarHideThreshold()) return;
+
+	const currentOpacity = Number.parseFloat(navbarWrapper.style.opacity);
+	const needsFadeIn = !Number.isNaN(currentOpacity) && currentOpacity < 0.999;
+
+	if (
+		needsFadeIn &&
+		!window.matchMedia("(prefers-reduced-motion: reduce)").matches
 	) {
-		const wallpaperMode =
+		let cleared = false;
+		const clearAfterTransition = () => {
+			if (cleared) return;
+			cleared = true;
+			navbarWrapper.removeEventListener("transitionend", onTransitionEnd);
+			clearNavbarWrapperInlineStyles();
+		};
+		const onTransitionEnd = (event: TransitionEvent) => {
+			if (
+				event.target !== navbarWrapper ||
+				event.propertyName !== "opacity"
+			) {
+				return;
+			}
+			clearAfterTransition();
+		};
+
+		navbarWrapper.addEventListener("transitionend", onTransitionEnd);
+		navbarWrapper.style.opacity = "1";
+		window.setTimeout(clearAfterTransition, 350);
+		return;
+	}
+
+	clearNavbarWrapperInlineStyles();
+}
+
+window.__finalizeNavbarWrapperAfterScroll = finalizeNavbarWrapperAfterScroll;
+
+// ── Swup readiness ────────────────────────────────────────────────────────
+interface SwupReadyOptions {
+	retryMs?: number;
+	timeoutMs?: number;
+}
+
+window.onSwupReady = function onSwupReady(
+	registerFn: (swup: unknown) => void,
+	options?: SwupReadyOptions,
+) {
+	const retryMs = options?.retryMs ?? 50;
+	const timeoutMs = options?.timeoutMs ?? 5000;
+	let registered = false;
+	let retryTimer: ReturnType<typeof setInterval> | null = null;
+	let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
+
+	function tryRegister() {
+		if (registered || !window.swup?.hooks) return;
+		registered = true;
+		if (retryTimer) clearInterval(retryTimer);
+		if (timeoutTimer) clearTimeout(timeoutTimer);
+		registerFn(window.swup);
+	}
+
+	tryRegister();
+	if (registered) return;
+
+	document.addEventListener("swup:enable", tryRegister);
+	retryTimer = setInterval(tryRegister, retryMs);
+	timeoutTimer = setTimeout(() => {
+		if (retryTimer) clearInterval(retryTimer);
+	}, timeoutMs);
+
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", tryRegister);
+	} else {
+		tryRegister();
+	}
+};
+
+window.onSwupHook = function onSwupHook(hook, fn, options) {
+	window.onSwupReady?.((swup) => {
+		(
+			window.swup as { hooks: { on: (h: string, f: unknown) => void } }
+		).hooks.on(hook, fn);
+	}, options);
+};
+
+// ── Wallpaper / visit layout ──────────────────────────────────────────────
+window.__applyWallpaperBodyClasses = function applyWallpaperBodyClasses(
+	mode: string,
+) {
+	const body = document.body;
+	body.classList.remove(
+		"enable-banner",
+		"wallpaper-transparent",
+		"no-banner-mode",
+	);
+	switch (mode) {
+		case "banner":
+			body.classList.add("enable-banner");
+			break;
+		case "fullscreen":
+			body.classList.add("wallpaper-transparent", "no-banner-mode");
+			break;
+		case "none":
+			body.classList.add("no-banner-mode");
+			break;
+	}
+};
+
+window.__syncTocHideForScroll = function syncTocHideForScroll(
+	scrollTop: number,
+	innerHeight?: number,
+) {
+	const wallpaperMode =
+		document.documentElement.getAttribute("data-wallpaper-mode") ||
+		"banner";
+	const tocWrapper = document.getElementById("toc-wrapper");
+	if (!tocWrapper) return;
+
+	const vh =
+		typeof innerHeight === "number" ? innerHeight : window.innerHeight;
+
+	if (wallpaperMode !== "banner") {
+		tocWrapper.classList.remove("toc-hide");
+		return;
+	}
+
+	const bannerHeight = vh * (BANNER_HEIGHT / 100);
+	tocWrapper.classList.toggle("toc-hide", scrollTop <= bannerHeight);
+};
+
+function isHomeVisit(visit: Visit): boolean {
+	return isMainHomePage(pathFromUrl(visit.to.url));
+}
+
+window.__applyVisitBodyLayout = function applyVisitBodyLayout(
+	visit: Visit,
+): void {
+	const body = document.body;
+	if (isHomeVisit(visit)) {
+		body.classList.add("lg:is-home", "is-home");
+	} else {
+		body.classList.remove("lg:is-home", "is-home");
+	}
+
+	window.__applyVisitBannerLayout?.(visit);
+};
+
+window.__applyVisitBannerLayout = function applyVisitBannerLayout(
+	visit: Visit,
+): void {
+	const isHomePage = isHomeVisit(visit);
+
+	const bannerTextOverlay = document.querySelector(".banner-text-overlay");
+	if (bannerTextOverlay) {
+		bannerTextOverlay.classList.toggle("hidden", !isHomePage);
+	}
+
+	const bannerWrapper = document.getElementById("banner-wrapper");
+	const mainContentWrapper = document.querySelector<HTMLElement>(
+		".absolute.w-full.z-30",
+	);
+
+	if (!bannerWrapper || !mainContentWrapper) return;
+
+	if (isHomePage) {
+		bannerWrapper.classList.remove("mobile-hide-banner");
+		mainContentWrapper.classList.remove("mobile-main-no-banner");
+		// Clear inline layout left behind by the mobile transition settle step.
+		mainContentWrapper.style.removeProperty("top");
+		mainContentWrapper.style.removeProperty("min-height");
+		return;
+	}
+
+	bannerWrapper.classList.add("mobile-hide-banner");
+	// On mobile the panel must not shift; the transition suppresses the banner
+	// visually instead. On desktop it can use the banner-less offset.
+	if (window.innerWidth > 1279) {
+		mainContentWrapper.classList.add("mobile-main-no-banner");
+	}
+};
+
+window.__bootstrapWallpaperBodyClasses =
+	function bootstrapWallpaperBodyClasses(): void {
+		const mode =
 			document.documentElement.getAttribute("data-wallpaper-mode") ||
 			"banner";
-		const tocWrapper = document.getElementById("toc-wrapper");
-		if (!tocWrapper) return;
-
-		const vh =
-			typeof innerHeight === "number" ? innerHeight : window.innerHeight;
-
-		if (wallpaperMode === "banner") {
-			const bannerHeight = vh * (BANNER_HEIGHT / 100);
-			if (scrollTop <= bannerHeight) {
-				tocWrapper.classList.add("toc-hide");
-			} else {
-				tocWrapper.classList.remove("toc-hide");
-			}
-		} else {
-			tocWrapper.classList.remove("toc-hide");
-		}
+		window.__applyWallpaperBodyClasses?.(mode);
 	};
 
-	window.__applyVisitBodyLayout = function applyVisitBodyLayout(visit) {
-		const pathsEqual = window.__pathsEqual;
-		if (!pathsEqual) return;
-
-		const bodyElement = document.querySelector("body");
-		const targetPath = window.__pathFromUrl?.(visit.to.url) ?? visit.to.url;
-		const isHomePage = window.__isMainHomePage?.(targetPath) ?? false;
-
-		if (bodyElement) {
-			if (isHomePage) {
-				bodyElement.classList.add("lg:is-home", "is-home");
-			} else {
-				bodyElement.classList.remove("lg:is-home", "is-home");
-			}
-		}
-
-		window.__applyVisitBannerLayout?.(visit);
-	};
-
-	/** ??? banner ????? is-home??????? sticky ?? top ????? */
-	window.__applyVisitBannerLayout = function applyVisitBannerLayout(visit) {
-		const pathsEqual = window.__pathsEqual;
-		if (!pathsEqual) return;
-
-		const targetPath = window.__pathFromUrl?.(visit.to.url) ?? visit.to.url;
-		const isHomePage = window.__isMainHomePage?.(targetPath) ?? false;
-
-		const bannerTextOverlay = document.querySelector(
-			".banner-text-overlay",
-		);
-		if (bannerTextOverlay) {
-			if (isHomePage) {
-				bannerTextOverlay.classList.remove("hidden");
-			} else {
-				bannerTextOverlay.classList.add("hidden");
-			}
-		}
-
-		const bannerWrapper = document.getElementById("banner-wrapper");
-		const mainContentWrapper = document.querySelector(
-			".absolute.w-full.z-30",
-		);
-
-		if (bannerWrapper && mainContentWrapper) {
-			if (isHomePage) {
-				bannerWrapper.classList.remove("mobile-hide-banner");
-				mainContentWrapper.classList.remove("mobile-main-no-banner");
-				// 清除 settlePageLayoutBeforeResume 遗留的 inline top/minHeight
-				mainContentWrapper.style.removeProperty("top");
-				mainContentWrapper.style.removeProperty("min-height");
-			} else {
-				// mobile-hide-banner 正常添加（banner 不在 Swup 容器内，不会被替换）
-				// CSS 抑制规则会在换页期间覆盖其视觉效果
-				bannerWrapper.classList.add("mobile-hide-banner");
-				// 移动端：不添加 mobile-main-no-banner，避免容器位移
-				// 换页期间由 CSS 抑制规则保持稳定
-				if (window.innerWidth > 1279) {
-					mainContentWrapper.classList.add("mobile-main-no-banner");
-				}
-			}
-		}
-	};
-
-	/** ?? body ?? class ???? Layout body ???? */
-	window.__bootstrapWallpaperBodyClasses =
-		function bootstrapWallpaperBodyClasses() {
-			const mode =
-				document.documentElement.getAttribute("data-wallpaper-mode") ||
-				"banner";
-			window.__applyWallpaperBodyClasses(mode);
-		};
-})();
+export {};
