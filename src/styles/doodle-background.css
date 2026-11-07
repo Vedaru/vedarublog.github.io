@@ -24,6 +24,11 @@
 	opacity: 0.14;
 }
 
+:root:not(.dark) .doodle-backdrop {
+	background: oklch(0.45 0.03 var(--hue));
+	opacity: 0.2;
+}
+
 @media (max-width: 768px) {
 	.doodle-backdrop {
 		-webkit-mask-size: 260px auto;
