@@ -1,12 +1,10 @@
 ---
 import { getLocaleFromPath, localeHtmlLang, locales, localizePath, stripLocalePrefix } from "@i18n/locales";
 import ConfigCarrier from "@components/ConfigCarrier.astro";
-import FullscreenWallpaper from "@components/misc/FullscreenWallpaper.astro";
 import MusicPlayer from "@components/widget/MusicPlayer.svelte";
 import Pio from "@components/widget/Pio.svelte";
 import TerminalEasterEgg from "@components/widget/TerminalEasterEgg.svelte";
 import {
-	fullscreenWallpaperConfig,
 	musicPlayerConfig,
 	pioConfig,
 	profileConfig,
@@ -62,7 +60,6 @@ interface Props {
 	description?: string;
 	lang?: string;
 	setOGTypeArticle?: boolean;
-	postSlug?: string;
 	/**
 	 * 该页面在两种语言下都存在时设为 true，会输出 hreflang alternate 链接，
 	 * 帮助搜索引擎把中英文页面识别为同一内容的两个语言版本。
@@ -71,7 +68,7 @@ interface Props {
 	dualLocale?: boolean;
 }
 
-let { title, banner, description, lang, setOGTypeArticle, postSlug, dualLocale } =
+let { title, banner, description, lang, setOGTypeArticle, dualLocale } =
 	Astro.props;
 
 // apply a class to the body element to decide the height of the banner, only used for initial page load
@@ -114,11 +111,6 @@ if (title) {
 // search engines always see one URL per page (www vs non-www, ?ref=..., etc.).
 const canonicalURL = new URL(Astro.url.pathname, siteConfig.siteURL).href;
 
-let ogImageUrl: string | undefined;
-if (siteConfig.generateOgImages && postSlug) {
-	ogImageUrl = new URL(`/og/${postSlug}.png`, Astro.site).toString();
-}
-
 const favicons: Favicon[] =
 	siteConfig.favicon.length > 0 ? siteConfig.favicon : defaultFavicons;
 
@@ -153,12 +145,6 @@ const bannerOffset =
 
 const umamiEnabled = umamiConfig.enabled || false;
 const umamiScripts = umamiConfig.scripts || ""; // 获取Umami scripts配置
-
-// 全屏壁纸只在默认进入全屏模式、或用户可切换壁纸模式时才需要渲染。
-// 否则它会 eagerly 加载一张永远不可见的整屏图片。
-const fullscreenWallpaperEnabled =
-	siteConfig.wallpaperMode.defaultMode === "fullscreen" ||
-	(siteConfig.wallpaperMode?.showModeSwitchOnMobile || "off") !== "off";
 
 // 构建字体配置的 CSS 变量
 // ASCII 字体优先级最高（用于英文、数字等），CJK 字体作为回退
@@ -244,7 +230,6 @@ if (siteConfig.font) {
 		<meta property="og:url" content={Astro.url} />
 		<meta property="og:title" content={pageTitle} />
 		<meta property="og:description" content={description || pageTitle} />
-		{ogImageUrl && <meta property="og:image" content={ogImageUrl} />}
 		{
 			setOGTypeArticle ? (
 				<meta property="og:type" content="article" />
@@ -292,8 +277,6 @@ if (siteConfig.font) {
 				defaultWallpaperMode: siteConfig.wallpaperMode.defaultMode,
 				defaultPostListLayout:
 					siteConfig.postListLayout?.defaultMode || "list",
-				allowPostListSwitch:
-					siteConfig.postListLayout?.allowSwitch ?? false,
 				pageScaling: siteConfig.pageScaling,
 			}}
 		>
@@ -357,19 +340,10 @@ if (siteConfig.font) {
 				defaultWallpaperMode,
 			);
 
-			// 文章列表布局 — allowSwitch 关闭时忽略 localStorage 陈旧值
-			var postListLayout = defaultPostListLayout;
-			if (allowPostListSwitch) {
-				postListLayout =
-					localStorage.getItem("postListLayout") ||
-					defaultPostListLayout;
-			}
-			if (postListLayout !== "grid" && postListLayout !== "list") {
-				postListLayout = defaultPostListLayout;
-			}
+			// 文章列表布局使用配置的默认值
 			document.documentElement.setAttribute(
 				"data-post-list-layout",
-				postListLayout,
+				defaultPostListLayout,
 			);
 
 			// pageScaling — 同步 inline 设置（优先级高于 md:text-[16px]），避免 CLS
@@ -512,9 +486,6 @@ if (siteConfig.font) {
 		{shouldShowTopHighlight && <div class="top-gradient-highlight" />}
 
 		<ConfigCarrier />
-		{fullscreenWallpaperEnabled && (
-			<FullscreenWallpaper config={fullscreenWallpaperConfig} />
-		)}
 		<slot />
 
 		<!-- Music Player - 仅在启用时加载 -->

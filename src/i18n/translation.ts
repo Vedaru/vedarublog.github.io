@@ -1,9 +1,7 @@
 import { siteConfig } from "../config";
 import I18nKey from "./i18nKey";
 import { en } from "./languages/en";
-import { ja } from "./languages/ja";
 import { zh_CN } from "./languages/zh_CN";
-import { zh_TW } from "./languages/zh_TW";
 import { defaultLocale, type Locale } from "./locales";
 
 export type Translation = {
@@ -19,13 +17,10 @@ const map: { [key: string]: Translation } = {
 	en_au: en,
 	zh: zh_CN,
 	zh_cn: zh_CN,
-	zh_tw: zh_TW,
-	ja: ja,
-	ja_jp: ja,
 };
 
 function getTranslation(lang: string): Translation {
-	// 兼容 Astro i18n 的 BCP-47 写法（zh-CN / en）与站点内部写法（zh / zh_TW）。
+	// 兼容 Astro i18n 的 BCP-47 写法（zh-CN / en）与站点内部写法（zh）。
 	const key = lang.toLowerCase().replace(/-/g, "_");
 	return map[key] || map[lang.toLowerCase()] || defaultTranslation;
 }

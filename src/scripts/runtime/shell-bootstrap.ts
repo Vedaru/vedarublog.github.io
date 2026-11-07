@@ -272,11 +272,6 @@ window.__applyVisitBannerLayout = function applyVisitBannerLayout(
 ): void {
 	const isHomePage = isHomeVisit(visit);
 
-	const bannerTextOverlay = document.querySelector(".banner-text-overlay");
-	if (bannerTextOverlay) {
-		bannerTextOverlay.classList.toggle("hidden", !isHomePage);
-	}
-
 	const bannerWrapper = document.getElementById("banner-wrapper");
 	const mainContentWrapper = document.querySelector<HTMLElement>(
 		".absolute.w-full.z-30",

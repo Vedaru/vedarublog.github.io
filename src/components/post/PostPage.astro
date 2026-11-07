@@ -56,11 +56,9 @@ const initialLayoutClass = defaultLayout === "grid" ? "grid-mode" : "list-mode";
 			);
 			if (!postListContainer) return;
 
-			// 读取偏好
-			const savedLayout = localStorage.getItem("postListLayout");
 			const defaultLayout =
 				postListContainer.getAttribute("data-default-layout") || "list";
-			const currentLayout = savedLayout || defaultLayout;
+			const currentLayout = defaultLayout;
 
 			// 检查现有状态是否一致，避免重复初始化
 			const hasGridClass =
@@ -139,12 +137,11 @@ const initialLayoutClass = defaultLayout === "grid" ? "grid-mode" : "list-mode";
 		clearTimeout(resizeTimeout);
 		resizeTimeout = window.setTimeout(() => {
 			if (window.innerWidth >= 769) {
-				const savedLayout = localStorage.getItem("postListLayout");
 				const defaultLayout =
 					document
 						.getElementById("post-list-container")
 						?.getAttribute("data-default-layout") || "list";
-				updatePostListLayout(savedLayout || defaultLayout);
+				updatePostListLayout(defaultLayout);
 			}
 		}, 100);
 	});

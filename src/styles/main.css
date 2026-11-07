@@ -69,17 +69,6 @@ body {
     @apply opacity-0 -translate-y-16;
   }
 
-  .waves > .parallax use {
-    animation: wave 25s cubic-bezier(0.5, 0.5, 0.45, 0.5) infinite;
-  }
-  @keyframes wave {
-    0% {
-      transform: translate3d(-90px, 0, 0);
-    }
-    100% {
-      transform: translate3d(85px, 0, 0);
-    }
-  }
 }
 @tailwind utilities;
 
@@ -259,27 +248,6 @@ body::-webkit-scrollbar {
   .is-theme-transitioning #search-panel {
     transition: none !important;
     backdrop-filter: none !important;
-  }
-
-  /* 波浪容器的颜色传递 */
-  .is-theme-transitioning #header-waves {
-    /* 设置当前颜色为页面背景色，供SVG继承 */
-    color: var(--page-bg);
-    /* 确保与页面在同一合成层 */
-    isolation: isolate;
-    /* 优化渲染性能 */
-    contain: layout style paint;
-    /* GPU层合成 */
-    transform: translateZ(0);
-    /* 确保没有背景色 */
-    background: transparent;
-  }
-
-  .is-theme-transitioning #header-waves use {
-    /* 保持动画连续性 */
-    will-change: transform;
-    /* GPU优化 */
-    transform: translateZ(0);
   }
 
   .card-base {

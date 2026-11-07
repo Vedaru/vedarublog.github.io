@@ -58,24 +58,9 @@ export function getDefaultBannerUrl(): string {
 	return "";
 }
 
-/** 获取 banner 图片（含 API 拉取） */
-export async function getBannerImages(): Promise<BannerImages> {
-	let bannerSrc = siteConfig.banner.src;
-
-	if (siteConfig.banner.imageApi?.enable && siteConfig.banner.imageApi?.url) {
-		try {
-			const response = await fetch(siteConfig.banner.imageApi.url);
-			const text = await response.text();
-			const apiImages = text.split("\n").filter((line) => line.trim());
-
-			if (apiImages.length > 0) {
-				bannerSrc = apiImages;
-			}
-		} catch (error) {
-			console.warn("Failed to fetch images from API:", error);
-		}
-	}
-
+/** 获取 banner 图片 */
+export function getBannerImages(): BannerImages {
+	const bannerSrc = siteConfig.banner.src;
 	if (isBannerSrcObject(bannerSrc)) {
 		return {
 			desktop: bannerSrc.desktop || bannerSrc.mobile || "",

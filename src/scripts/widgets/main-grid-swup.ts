@@ -2,8 +2,6 @@ export interface MainGridSwupConfig {
 	navbarTransparentMode: string;
 	defaultWallpaperMode: string;
 	defaultPostListLayout: string;
-	allowPostListSwitch: boolean;
-	allowWallpaperSwitch: boolean;
 }
 
 export function initMainGridSwup(config: MainGridSwupConfig): void {
@@ -11,8 +9,6 @@ export function initMainGridSwup(config: MainGridSwupConfig): void {
 		navbarTransparentMode,
 		defaultWallpaperMode,
 		defaultPostListLayout,
-		allowPostListSwitch,
-		allowWallpaperSwitch,
 	} = config;
 
 	function setMainGridLayout(mainGrid, layout) {
@@ -22,20 +18,10 @@ export function initMainGridSwup(config: MainGridSwupConfig): void {
 	}
 
 	function getWallpaperMode() {
-		if (allowWallpaperSwitch) {
-			return (
-				localStorage.getItem("wallpaperMode") || defaultWallpaperMode
-			);
-		}
 		return defaultWallpaperMode;
 	}
 
 	function getPostListLayout() {
-		if (allowPostListSwitch) {
-			return (
-				localStorage.getItem("postListLayout") || defaultPostListLayout
-			);
-		}
 		return defaultPostListLayout;
 	}
 
@@ -220,11 +206,6 @@ export function initMainGridSwup(config: MainGridSwupConfig): void {
 			initWallpaperNavbarAndToc(wallpaperMode, scrollTop);
 		});
 	}
-
-	// 鐩戝惉澹佺焊妯″紡鍙樺寲锛岀珛鍗冲簲鐢紙涓嶉噸杞介〉闈級
-	window.addEventListener("wallpaper-mode-change", function (_event) {
-		applyWallpaperMode(false);
-	});
 
 	// Swup 页面过渡布局同步
 	function setupSwupLayoutSync() {

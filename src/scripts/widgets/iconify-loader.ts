@@ -4,7 +4,7 @@ export interface IconifyLoaderConfig {
 	retryCount: number;
 }
 
-class IconifyLoader {
+export class IconifyLoader {
 	isLoaded = false;
 	isLoading = false;
 	loadPromise: Promise<void> | null = null;

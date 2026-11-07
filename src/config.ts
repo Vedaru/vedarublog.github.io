@@ -3,7 +3,6 @@ import type {
 	CommentConfig,
 	ExpressiveCodeConfig,
 	FooterConfig,
-	FullscreenWallpaperConfig,
 	LicenseConfig,
 	MusicPlayerConfig,
 	NavBarConfig,
@@ -77,8 +76,6 @@ export const siteConfig: SiteConfig = {
 		// 默认布局模式："list" 列表模式（单列布局），"grid" 网格模式（双列布局）
 		// 注意：如果侧边栏配置启用了"both"双侧边栏，则无法使用文章列表"grid"网格（双列）布局
 		defaultMode: "list",
-		// 是否允许用户切换布局
-		allowSwitch: false,
 	},
 
 	// 标签样式配置
@@ -91,12 +88,6 @@ export const siteConfig: SiteConfig = {
 	wallpaperMode: {
 		// 默认壁纸模式：banner=顶部横幅，fullscreen=全屏壁纸，none=无壁纸
 		defaultMode: "banner",
-		// 整体布局方案切换按钮显示设置（默认："desktop"）
-		// "off" = 不显示
-		// "mobile" = 仅在移动端显示
-		// "desktop" = 仅在桌面端显示
-		// "both" = 在所有设备上显示
-		showModeSwitchOnMobile: "off",
 	},
 
 	banner: {
@@ -109,42 +100,6 @@ export const siteConfig: SiteConfig = {
 		position: "center", // 等同于 object-position，仅支持 'top', 'center', 'bottom'。默认为 'center'
 		mobilePosition: "left center", // 移动端横幅裁剪焦点（0% 最左，可用 "20% center" 微调）
 
-		waves: {
-			enable: false, // 是否启用水波纹效果（注意：此功能性能开销较大）
-			performanceMode: true, // 性能模式：减少动画复杂度(性能提升40%)
-			mobileDisable: false, // 移动端禁用
-		},
-
-		// PicFlow API支持(智能图片API)
-		imageApi: {
-			enable: false, // 启用图片API
-			url: "http://domain.com/api_v2.php?format=text&count=4", // API地址，返回每行一个图片链接的文本
-		},
-		// 这里需要使用PicFlow API的Text返回类型,所以我们需要format=text参数
-		// 项目地址:https://github.com/matsuzaka-yuki/PicFlow-API
-		// 请自行搭建API
-
-		homeText: {
-			enable: false, // 在主页显示自定义文本
-			title: "Vedaruの心之海", // 主页横幅主标题
-
-			subtitle: [],
-			typewriter: {
-				enable: true, // 启用副标题打字机效果
-
-				speed: 100, // 打字速度（毫秒）
-				deleteSpeed: 50, // 删除速度（毫秒）
-				pauseTime: 2000, // 完全显示后的暂停时间（毫秒）
-			},
-		},
-
-		credit: {
-			enable: false, // 显示横幅图片来源文本
-
-			text: "Describe", // 要显示的来源文本
-			url: "", // （可选）原始艺术品或艺术家页面的 URL 链接
-		},
-
 		navbar: {
 			transparentMode: "semifull", // 导航栏透明模式："semi" 半透明加圆角，"full" 完全透明，"semifull" 动态透明
 		},
@@ -156,7 +111,6 @@ export const siteConfig: SiteConfig = {
 		useJapaneseBadge: false, // 使用日语假名标记（あいうえお...）代替数字，开启后会将 1、2、3... 改为 あ、い、う...
 	},
 	showCoverInContent: true, // 在文章内容页显示文章封面
-	generateOgImages: false, // 启用生成OpenGraph图片功能,注意开启后要渲染很长时间，不建议本地调试的时候开启
 	favicon: [
 		// 留空以使用默认 favicon
 		// {
@@ -188,17 +142,6 @@ export const siteConfig: SiteConfig = {
 	},
 	showLastModified: true, // 控制“上次编辑”卡片显示的开关
 };
-export const fullscreenWallpaperConfig: FullscreenWallpaperConfig = {
-	src: {
-		desktop: "/assets/desktop-banner/138800451_p0.webp",
-		mobile: "/assets/desktop-banner/138800451_p0.webp",
-	},
-	position: "center",
-	zIndex: 0,
-	opacity: 1,
-	blur: 1,
-};
-
 export const navBarConfig: NavBarConfig = {
 	links: [
 		LinkPreset.Home,
