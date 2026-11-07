@@ -8,8 +8,6 @@ export {
 	BANNER_HEIGHT_HOME,
 	PAGE_WIDTH,
 	UNCATEGORIZED,
-	WALLPAPER_BANNER,
-	WALLPAPER_NONE,
 } from "./constants";
 
 export { defaultFavicons } from "./icon";

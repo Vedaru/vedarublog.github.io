@@ -1,8 +1,6 @@
 import type {
 	DARK_MODE,
 	LIGHT_MODE,
-	WALLPAPER_BANNER,
-	WALLPAPER_NONE,
 } from "@constants";
 
 export type SiteConfig = {
@@ -239,8 +237,6 @@ type TwikooConfig = {
 };
 
 export type LIGHT_DARK_MODE = typeof LIGHT_MODE | typeof DARK_MODE;
-
-export type WALLPAPER_MODE = typeof WALLPAPER_BANNER | typeof WALLPAPER_NONE;
 
 export type ExpressiveCodeConfig = {
 	theme: string;

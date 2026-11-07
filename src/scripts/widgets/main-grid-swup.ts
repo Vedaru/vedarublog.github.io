@@ -247,7 +247,7 @@ export function initMainGridSwup(config: MainGridSwupConfig): void {
 		return false;
 	}
 
-	// 灏濊瘯绔嬪嵆璁剧疆锛屽鏋滃け璐ュ垯寤惰繜閲嶈瘯
+	// 尝试立即设置；失败则在编排器就绪前短暂重试
 	if (!setupSwupLayoutSync()) {
 		const checkSwup = setInterval(function () {
 			if (setupSwupLayoutSync()) {
@@ -260,7 +260,7 @@ export function initMainGridSwup(config: MainGridSwupConfig): void {
 		}, 2000);
 	}
 
-	// 鏀寔 Swup 椤甸潰杩囨浮 鈥?澹佺焊/navbar 鍚屾寤跺悗鍒扮紪鎺掑櫒 Phase 1
+	// Swup 换页：壁纸/navbar 同步延后到编排器 Phase 1
 	document.addEventListener("swup:page:view", function () {
 		window.__deferWallpaperNavbarSync?.();
 

@@ -14,7 +14,3 @@ export const PAGE_WIDTH = 90;
 
 // Category constants
 export const UNCATEGORIZED = "uncategorized";
-
-// Wallpaper mode constants
-export const WALLPAPER_BANNER = "banner";
-export const WALLPAPER_NONE = "none";
