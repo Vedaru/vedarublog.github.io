@@ -462,13 +462,6 @@ html.is-visit-layout-shifting #navbar-wrapper.navbar-hidden {
     visibility: visible !important;
   }
 
-  /* 换页期间阻止 mobile-main-no-banner 改变 main-panel 的 top */
-  html.is-changing .main-panel.mobile-main-no-banner,
-  html.is-animating .main-panel.mobile-main-no-banner {
-    top: auto !important;
-    min-height: auto !important;
-  }
-
   /* Swup 换页期间：banner 保持常驻合成层，避免 toggling contain/will-change 导致换页结束时抽动 */
   html.is-changing #swup-container,
   html.is-animating #swup-container,
