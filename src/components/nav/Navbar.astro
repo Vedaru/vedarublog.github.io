@@ -179,10 +179,6 @@ function initSemifullScrollDetection(initialScrollTop?: number) {
     const transparentMode = navbar.getAttribute('data-transparent-mode');
     if (transparentMode !== 'semifull') return;
 
-    if (window.__suppressSemifullNavbarReinit) {
-        return;
-    }
-    
     const isHomePage = isNavbarHomePage(navbar);
     const resolvedInitialScroll =
         typeof initialScrollTop === 'number' ? initialScrollTop : readDocumentScrollTop();
@@ -203,7 +199,6 @@ function initSemifullScrollDetection(initialScrollTop?: number) {
     
     function updateNavbarState(scrollTop: number) {
         if (
-            window.__homePreScrollActive ||
             window.__smoothScrollActive ||
             document.documentElement.classList.contains('is-manual-scroll-syncing')
         ) {

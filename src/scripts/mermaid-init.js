@@ -253,7 +253,22 @@ function setupEventListeners() {
 }
 
 function scheduleMermaidRender(delay = 150) {
-	setTimeout(() => renderMermaidDiagrams(), delay);
+	setTimeout(() => {
+		if (isPageTransitioning()) {
+			scheduleMermaidRender(300);
+			return;
+		}
+		renderMermaidDiagrams();
+	}, delay);
+}
+
+function isPageTransitioning() {
+	const html = document.documentElement;
+	return (
+		html.classList.contains("is-changing") ||
+		html.classList.contains("is-animating") ||
+		html.classList.contains("is-layout-sliding")
+	);
 }
 
 function registerSwupListeners() {
@@ -264,21 +279,27 @@ function registerSwupListeners() {
 		renderGeneration++; // 使所有进行中的旧渲染任务感知到导航已发生
 		isRendering = false;
 		currentTheme = null;
+	});
+
+	// Load and render only after the layout slide has fully settled, and let
+	// the module load run in idle time so it cannot stall the content fade.
+	document.addEventListener("swup:transition-ready", () => {
 		if (!hasMermaidDiagrams()) return;
-		loadMermaid()
-			.catch((error) =>
-				console.warn(
-					"Mermaid lazy load after navigation failed:",
-					error,
-				),
-			)
-			.finally(() => scheduleMermaidRender(200));
-	});
-	window.swup.hooks.on("page:view", () => {
-		if (hasMermaidDiagrams()) scheduleMermaidRender(300);
-	});
-	window.swup.hooks.on("animation:in:end", () => {
-		if (hasMermaidDiagrams()) scheduleMermaidRender(100);
+		const loadAndRender = () => {
+			loadMermaid()
+				.catch((error) =>
+					console.warn(
+						"Mermaid lazy load after navigation failed:",
+						error,
+					),
+				)
+				.finally(() => scheduleMermaidRender(100));
+		};
+		if (window.__scheduleSwupIdleWork) {
+			window.__scheduleSwupIdleWork(loadAndRender);
+		} else {
+			loadAndRender();
+		}
 	});
 }
 
@@ -315,6 +336,11 @@ async function initializeMermaid() {
 async function renderMermaidDiagrams(options = {}) {
 	const { forceThemeRefresh = false } = options;
 	const generation = renderGeneration; // 记录本次渲染的代数
+
+	if (isPageTransitioning()) {
+		scheduleMermaidRender(300);
+		return;
+	}
 
 	if (isRendering) {
 		return;

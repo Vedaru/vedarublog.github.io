@@ -82,8 +82,7 @@ export function initMainGridSwup(config: MainGridSwupConfig): void {
 				if (
 					!options?.skipSemifullInit &&
 					navbarTransparentMode === "semifull" &&
-					window.initSemifullScrollDetection &&
-					!window.__suppressSemifullNavbarReinit
+					window.initSemifullScrollDetection
 				) {
 					window.initSemifullScrollDetection(scrollTop);
 				}
@@ -125,8 +124,7 @@ export function initMainGridSwup(config: MainGridSwupConfig): void {
 		var html = document.documentElement;
 		return (
 			html.classList.contains("is-changing") ||
-			html.classList.contains("is-animating") ||
-			html.classList.contains("swup-perf-active")
+			html.classList.contains("is-animating")
 		);
 	}
 
@@ -145,8 +143,6 @@ export function initMainGridSwup(config: MainGridSwupConfig): void {
 		});
 	}
 
-	window.__runWallpaperNavbarSyncOnTransition = runWallpaperSyncOnTransition;
-
 	function applyWallpaperMode(isInitialLoad) {
 		var wallpaperMode = getWallpaperMode();
 		syncWallpaperDataset(wallpaperMode);
@@ -157,7 +153,6 @@ export function initMainGridSwup(config: MainGridSwupConfig): void {
 		}
 
 		if (!isInitialLoad && isSwupTransitionLocked()) {
-			window.__deferWallpaperNavbarSync?.();
 			return;
 		}
 
@@ -260,11 +255,10 @@ export function initMainGridSwup(config: MainGridSwupConfig): void {
 		}, 2000);
 	}
 
-	// Swup 换页：壁纸/navbar 同步延后到编排器 Phase 1
+	// Swup 换页：内容替换完成后同步壁纸/navbar 状态
 	document.addEventListener("swup:page:view", function () {
-		window.__deferWallpaperNavbarSync?.();
-
 		requestAnimationFrame(function () {
+			runWallpaperSyncOnTransition(undefined);
 			syncMainGridLayoutFromDataset();
 		});
 	});

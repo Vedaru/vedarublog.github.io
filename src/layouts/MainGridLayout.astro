@@ -245,7 +245,7 @@ const mainContentClass = `
 >
     <!-- The pointer-events-none here prevent blocking the click event of the TOC -->
     <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto min-w-0 w-full overflow-x-clip">
-        <div id="main-grid" class={`w-full min-w-0 left-0 right-0 grid ${gridCols} grid-rows-none md:grid-rows-[auto] mx-auto gap-4 px-2 md:px-4 overflow-x-clip ${!mobileShowSidebar || !hasMobileDrawerComponents ? 'mobile-no-sidebar' : ''} ${hasRightSidebarComponents ? 'mobile-both-sidebar' : ''}`}
+        <div id="main-grid" class={`transition-transform duration-700 w-full max-w-[var(--page-width)] min-w-0 left-0 right-0 grid ${gridCols} grid-rows-none md:grid-rows-[auto] mx-auto gap-4 px-2 md:px-4 ${!mobileShowSidebar || !hasMobileDrawerComponents ? 'mobile-no-sidebar' : ''} ${hasRightSidebarComponents ? 'mobile-both-sidebar' : ''}`}
              data-layout-mode={defaultPostListLayout}
         >
             {/* 侧边栏和主内容区域容器 */}
@@ -261,10 +261,9 @@ const mainContentClass = `
                 )}
             </div>
 
-            <main id="swup-container" class={`${mainContentClass} transition-main min-w-0`}>
+            <main id="swup-container" class={`${mainContentClass} transition-swup-fade min-w-0 overflow-hidden`}>
                 <div class="sr-only" data-swup-a11y-title>{title || siteConfig.title}</div>
-                <div id="content-wrapper" class="transition-leaving overflow-hidden">
-                    <!-- the overflow-hidden here prevent long text break the layout-->
+                <div id="content-wrapper" class="onload-animation">
                     <!-- make id different from windows.swup global property -->
                     <slot></slot>
                     <div class="footer col-span-full onload-animation hidden lg:block">
@@ -379,23 +378,13 @@ body.no-banner-mode #toc-inner-wrapper {
     }
 }
 
-/* 移动端图片优化
-   object-position 由 head 内 is:inline 按 config.mobilePosition 注入。
-
-   注：移动端曾在此用一个 0.8s 的 scale(1.1)→scale(1) 动画、带 !important
-   覆盖 .onload-animation-fade-in（文章列表卡片）。结果手机端卡片入场比
-   桌面端慢 4 倍、且从 1.1 倍缩放“弹”进来，与其它元素纯淡入不一致，是
-   移动端动效看起来“别扭”的主要来源之一。已移除该覆盖与 mobile-fade-in
-   关键帧，统一走 transition.css 的变量化淡入。 */
+/* 移动端图片优化：object-position 由 head 内 is:inline 按
+   config.mobilePosition 注入。 */
 
 /* #banner-wrapper 定位规则见 layout-stable.css（BannerWrapper 组件化后须用全局样式） */
 
-/* 手机端非首页：主内容区域过渡（banner 隐藏动画见 layout-stable.css） */
+/* 手机端非首页：主内容区域位置（banner 隐藏动画见 layout-stable.css） */
 @media (max-width: 1279px) {
-    .absolute.w-full.z-30 {
-        transition: top var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
-    }
-    
     .absolute.w-full.z-30.mobile-main-no-banner {
         top: calc(5.5rem + 1rem) !important;
         min-height: calc(100vh - 6.5rem) !important;
@@ -460,8 +449,8 @@ body.no-banner-mode #toc-inner-wrapper {
 
 /* Grid 模式下调整主网格布局 */
 /* #main-grid 与 #banner-wrapper 的 transform 各自带 700ms 过渡
-   （layout-stable.css，与上游 Fuwari 一致）。这里不要再为 #main-grid
-   自身的 transform 写额外的 transition / animation——会与原本的 700ms
+   （组件 class，与上游 Fuwari 一致）。这里不要再为 #main-grid
+   自身的 transform 写额外的 transition / animation——会与原本的
    过渡叠加引起接缝抖动。
 
    data-layout-mode 变化由下方 [data-layout-mode="grid"] 选择器只切换

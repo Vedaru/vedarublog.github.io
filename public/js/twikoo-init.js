@@ -20,6 +20,15 @@ if (window.__twikooInitBootstrapped) {
 		return window.matchMedia("(max-width: 768px)").matches ? 220 : 100;
 	}
 
+	function isLayoutTransitionActive() {
+		const html = document.documentElement;
+		return (
+			html.classList.contains("is-changing") ||
+			html.classList.contains("is-animating") ||
+			html.classList.contains("is-layout-sliding")
+		);
+	}
+
 	function getCurrentPath() {
 		const pathname = window.location.pathname;
 		return pathname.endsWith("/") && pathname.length > 1
@@ -146,6 +155,11 @@ if (window.__twikooInitBootstrapped) {
 	}
 
 	async function runTwikooInit(retryCount = 0) {
+		if (isLayoutTransitionActive()) {
+			scheduleTwikooInit(120);
+			return;
+		}
+
 		const generation = initGeneration;
 		const commentEl = document.getElementById("tcomment");
 		if (!commentEl || !commentEl.isConnected) return;

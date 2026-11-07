@@ -4,7 +4,7 @@
 //
 // #main-grid 的 data-layout-mode 由 main-grid-swup.ts 统一管理；本文件不再
 // 触碰它。历史的 animateMainGrid（添加 layout-switching 类触发 main-grid-float
-// 关键帧）会与 #main-grid 自身的 700ms transform 过渡叠加造成回顶抖动，
+// 关键帧）会与 #main-grid 自身的 transform 过渡叠加造成回顶抖动，
 // 已删除。
 
 function isGridLayout() {

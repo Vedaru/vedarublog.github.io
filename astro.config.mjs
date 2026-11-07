@@ -70,7 +70,7 @@ export default defineConfig({
 			theme: false,
 			animationClass: "transition-swup-",
 			containers: ["main"],
-			smoothScrolling: false,
+			smoothScrolling: true,
 			cache: false,
 			// 仅悬停预加载，避免首屏拉取 archive 等页面的脚本链
 			preload: { hover: false, visible: false },

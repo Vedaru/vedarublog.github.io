@@ -1,5 +1,4 @@
 /* 导入动画样式 */
-@import "./_transition-vars.css";
 @import "./transition.css";
 @import "./doodle-background.css";
 @import "./banner-responsive.css";
@@ -58,7 +57,7 @@ body {
       @apply h-[var(--banner-height-home)] translate-y-0;
     }
     .enable-banner #banner {
-      @apply h-[var(--banner-height-home)] translate-y-0;
+      @apply h-[var(--banner-height-home)] translate-y-[var(--bannerOffset)];
     }
     /* #main-grid 与 #banner-wrapper 的 transform 各自 transition（700ms），
        与上游 Fuwari 一致。详见 layout-stable.css。 */
@@ -336,33 +335,6 @@ body::-webkit-scrollbar {
 
   .toc-hide,
   .toc-not-ready {
-    @apply opacity-0 pointer-events-none;
-  }
-
-  /* 优化 sticky 元素滚动性能：隔离布局重算，减少强制重排开销。
-     不要加 will-change: transform。它会把 sticky 容器提升为独立合成层；
-     换页时祖先 #main-grid 正在跑 700ms 的 transform 过渡，父层由合成器
-     驱动、子层的 sticky 位置由主线程按帧重算，两层取整不一致就会让
-     侧栏卡片相对网格逐帧轻微抖动。contain 已足够隔离重排。 */
-  #sidebar-sticky,
-  #right-sidebar-sticky {
-    contain: layout style;
-  }
-
-  /* #top-row 是 navbar-wrapper 的父容器；transition-all 会使子元素 sticky
-     位置变化时触发全属性过渡快照，显著放大强制重排耗时 */
-  #top-row {
-    transition:
-      opacity 0.7s ease,
-      transform 0.7s ease;
-  }
-
-  html.is-home-pre-scrolling #toc-wrapper,
-  html.is-visit-pre-scrolling #toc-wrapper,
-  html.swup-perf-active #toc-wrapper,
-  html.is-changing #toc-wrapper,
-  html.is-animating #toc-wrapper {
-    transition: none !important;
     @apply opacity-0 pointer-events-none;
   }
 
@@ -686,21 +658,4 @@ body::-webkit-scrollbar {
 
 :root:not(.dark) .custom-md spoiler {
   --_spoiler-mask: color-mix(in oklch, var(--primary) 55%, white 45%);
-}
-
-/* ============================================================
-   换页性能 — 折叠区内容按需绘制
-   ============================================================
-   实测（Firefox Profiler）：每次换页主线程产生数千次 Image Paint
-   （内联 iconify SVG symbol + 日历/标签组件 + 排版光栅化），持续 1-3s，
-   期间合成器掉帧（240Hz 面板上呈现间隔从 4.2ms 拉长到 13-21ms），
-   即换页滑动抖动。content-visibility:auto 让视口外的内容跳过首帧绘制，
-   滚动到附近才按需光栅化，把换页期的主线程负担降到只剩可见区域。
-
-   注意：只作用于文章卡片列表。侧边栏组件不加此属性——swup 保留滚动
-   位置时组件可能在动画调度时位于视口外，入场动画会被跳过，滚动回来
-   时组件直接"瞬移"出现。 */
-#post-list-container > .card-base {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 200px;
 }

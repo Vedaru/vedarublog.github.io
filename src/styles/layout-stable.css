@@ -12,23 +12,6 @@ html:not(.layout-ready) .banner-breathe-wrap {
   transition: none !important;
 }
 
-/* 页面切换时冻结 navbar / top-row 的所有过渡，消除 navbar 抽动 */
-html.is-changing #navbar-wrapper,
-html.is-animating #navbar-wrapper,
-html.is-changing #top-row,
-html.is-animating #top-row,
-html.swup-perf-active #navbar-wrapper,
-html.swup-perf-active #top-row {
-  transition: none !important;
-}
-
-/* 页面切换时确保导航栏高度稳定 */
-html.is-changing #navbar,
-html.is-animating #navbar {
-  min-height: 4.5rem;
-  height: 4.5rem;
-}
-
 /* 主内容 top — desktop banner 重叠布局 */
 html[data-wallpaper-mode="banner"] .main-panel {
   top: var(--banner-height, 35vh);
@@ -56,33 +39,15 @@ html[data-wallpaper-mode="none"] .main-panel {
   }
 }
 
-/* ─── 桌面端 banner 模式：banner 与 main-grid 各自走自己的 transition ──
-   上游 Fuwari 的设计：#banner-wrapper 与 #main-grid 都带
-   `transition: transform 700ms ...`，body 加上 `is-home` 类时两者
-   的 transform 各自从 0 过渡到 banner-height-extend。easing 与 duration
-   一致→视觉上同步，不需要共享一个变量。
-
-   此前版本试图用单一 @property --banner-slide 在 body 上做过渡，让
-   两个元素读取同一个插值，理论上能消除相位差，但实测：
-   - #banner-wrapper 在媒体查询里 transition 被重写为 `opacity`，
-     缺少 `transform` 条目，导致 transform 实际不参与原生过渡
-   - 不同合成层上同一 transform 浮点值的栅格化舍入会让 banner 底
-     边与 grid 顶边出现像素级错位
-   - 60Hz + dpr3 下"接缝抖动"明显
-
-   改为各自独立 transition，与上游对齐，逻辑更简单、像素更稳。 */
+/* ─── 页面布局滑动 ──────────────────────────────────────────────────────
+   content:replace 换上目标页 DOM 后才切换 is-home，因此滑动的是新页面
+   的网格；旧文章的超高网格不会被当成巨大的合成层拖动。 */
 
 /* Banner 基础高度（与 Layout.astro enable-banner 一致） */
 html[data-wallpaper-mode="banner"] #banner-wrapper {
   display: block;
   height: var(--banner-height-home, 65vh);
   top: calc(-1 * var(--banner-height-extend, 30dvh));
-  transform-origin: top center;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  transition:
-    transform var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94)),
-    opacity var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
 }
 
 html[data-wallpaper-mode="none"] #banner-wrapper {
@@ -92,20 +57,15 @@ html[data-wallpaper-mode="none"] #banner-wrapper {
 /* 桌面端 banner 模式主内容 + 首页 banner 重叠布局 */
 @media (min-width: 1280px) {
   html[data-wallpaper-mode="banner"] body.enable-banner .main-panel {
-    top: 35vh !important;
+    /* Same integer offset as the banner/grid transform. Using 35vh here
+       while the transform uses a 4px-rounded pixel value leaves a 1-4px
+       sliver where the grid pokes over the banner on non-round viewports. */
+    top: calc(var(--banner-height-home, 65vh) - var(--banner-height-extend, 30dvh)) !important;
   }
 
   html[data-wallpaper-mode="banner"] #top-row {
     height: calc(var(--banner-height-home, 65vh) - 4.5rem);
     min-height: calc(var(--banner-height-home, 65vh) - 4.5rem);
-  }
-
-  /* banner 与 grid 各自 transition，与上游 Fuwari 一致。easing 与
-     duration 完全相同→视觉上同步。is-home 类切换时两者 transform
-     各自从 0 过渡到 var(--banner-height-extend)。 */
-  body.enable-banner #banner-wrapper,
-  body.enable-banner #main-grid {
-    transition: transform var(--mobile-shift-duration, 700ms) var(--mobile-shift-easing, cubic-bezier(0.25, 0.46, 0.45, 0.94));
   }
 
   html[data-wallpaper-mode="banner"] body.enable-banner #banner-wrapper {
@@ -126,9 +86,8 @@ html[data-wallpaper-mode="none"] #banner-wrapper {
     transform: translateY(var(--banner-height-extend, 30dvh));
   }
 
-  /* 左侧 sticky 阈值随 is-home 类跳变，不做 top 过渡：sticky 偏移跟随
-     grid transform 即可，grid 自身走 700ms 过渡；给 sticky 元素再补一条
-     top 过渡会在换页时触发逐帧布局重算，反而制造抖动。 */
+  /* Sticky offset follows is-home instantly, like Fuwari. Animating `top`
+     would force layout on every frame of the grid slide. */
   #sidebar-sticky {
     top: 1rem;
   }
@@ -136,20 +95,9 @@ html[data-wallpaper-mode="none"] #banner-wrapper {
   html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #sidebar-sticky {
     top: calc(1rem - var(--banner-height-extend, 30dvh));
   }
-
-  /* 进入首页时 #main-grid 要做 700ms 的 transform 位移。长文章会把网格
-     撑到数千像素高，超高的合成层无法稳定地跑合成器动画，侧栏就会跟着
-     逐帧重绘（从 archive 等短页面返回时网格只有一千多像素，不会触发）。
-     视口内的内容位置不受影响，被裁掉的部分本来就在首屏以下，所以这里
-     把滑动期间的网格限制为视口高度，让动画层和短页面一样小。 */
-  html.swup-perf-active[data-wallpaper-mode="banner"]
-    body.enable-banner.is-home
-    #main-grid,
-  html.swup-perf-active[data-wallpaper-mode="banner"]
-    body.enable-banner.lg\:is-home
-    #main-grid {
-    max-height: 100vh;
-    overflow: hidden;
+  html[data-wallpaper-mode="banner"] body.enable-banner.is-home #right-sidebar-sticky,
+  html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #right-sidebar-sticky {
+    top: calc(1rem - var(--banner-height-extend, 30dvh));
   }
 }
 

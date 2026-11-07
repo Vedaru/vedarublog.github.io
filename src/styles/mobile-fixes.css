@@ -274,52 +274,6 @@ body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"][data-is-home
  * 移动端页面/壁纸/布局切换时的溢出修复
  */
 
-html.swup-scroll-lock body {
-  overflow: hidden;
-}
-
-html.swup-scroll-lock #navbar-wrapper,
-html.swup-scroll-lock #navbar > div,
-html.swup-scroll-lock #top-row,
-html.swup-perf-active #navbar-wrapper,
-html.swup-perf-active #navbar > div,
-html.swup-perf-active #top-row {
-  transition: none !important;
-}
-
-#page-height-extend {
-  position: fixed;
-  width: 0;
-  height: 0;
-  overflow: hidden;
-  pointer-events: none;
-  visibility: hidden;
-}
-
-/* 换页预滚动期间：冻结布局与 navbar 背景过渡，减轻回顶卡顿与透明度跳变 */
-html.is-home-pre-scrolling,
-html.is-visit-pre-scrolling {
-  overflow-anchor: none;
-}
-
-html.is-home-pre-scrolling #navbar-wrapper,
-html.is-visit-pre-scrolling #navbar-wrapper,
-html.is-visit-layout-shifting #navbar-wrapper {
-  transition: none !important;
-}
-
-html.is-home-pre-scrolling #navbar-wrapper,
-html.is-home-pre-scrolling #navbar > div,
-html.is-visit-pre-scrolling #banner-wrapper,
-html.is-visit-pre-scrolling .absolute.w-full.z-30,
-html.is-visit-pre-scrolling #navbar-wrapper,
-html.is-visit-pre-scrolling #main-grid,
-html.is-visit-pre-scrolling #top-row,
-html.is-visit-pre-scrolling .banner-breathe-wrap img,
-html.is-visit-pre-scrolling #navbar > div {
-  transition: none !important;
-}
-
 html.is-smooth-scrolling #navbar-wrapper,
 html.is-smooth-scrolling #navbar > div {
   transition: none !important;
@@ -331,71 +285,6 @@ html.is-manual-scroll-syncing #navbar > div {
 }
 
 html.is-smooth-scrolling #navbar-wrapper.navbar-hidden {
-  opacity: 1 !important;
-  transform: none !important;
-}
-
-html.is-home-pre-scrolling #swup-container,
-html.is-visit-pre-scrolling #swup-container,
-html.is-visit-layout-shifting #swup-container {
-  pointer-events: none;
-}
-
-/* ─── 换页动画进行中：全面禁用导航交互 ───────────────────────────────────────
-   覆盖完整窗口：is-changing/is-animating（Swup 生命周期与动画）+
-   预滚动 / blended 阶段（is-*-pre-scrolling / is-visit-layout-shifting，
-   此时 banner 正被 JS 逐帧 transform）。防止并发导航/点击打断动画造成抽动。 */
-html.is-changing #swup-container,
-html.is-changing .main-panel,
-html.is-changing #navbar a,
-html.is-animating #swup-container,
-html.is-animating .main-panel,
-html.is-animating #navbar a,
-html.is-home-pre-scrolling .main-panel,
-html.is-home-pre-scrolling #navbar a,
-html.is-visit-pre-scrolling .main-panel,
-html.is-visit-pre-scrolling #navbar a,
-html.is-visit-layout-shifting .main-panel,
-html.is-visit-layout-shifting #navbar a {
-  pointer-events: none !important;
-  cursor: default;
-}
-
-/* 换页动画期间内容（主网格滑入/旧页面离场）在 navbar 下方移动，
-   backdrop-filter 会逐帧重采样毛玻璃（60Hz/dpr3 下是掉帧主因，实测）。
-   与主题过渡（.is-theme-transitioning）同一处理模式：动画期间关闭模糊，
-   半透明底色保持视觉接近，过渡结束后自动恢复。 */
-html.is-changing #navbar > div,
-html.is-animating #navbar > div,
-html.is-leaving #navbar > div {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
-/* 布局切换过渡：保持 banner / 主内容 CSS transition，仅冻结交互 */
-html.is-visit-layout-shifting {
-  overflow-anchor: none;
-}
-
-html.is-visit-layout-shifting #main-grid,
-html.is-visit-layout-shifting .absolute.w-full.z-30,
-html.is-visit-layout-shifting #banner-wrapper {
-  transition: none !important;
-}
-
-/* 进入首页 blended 动画：允许 JS 内联 transform 覆盖 is-home 的 transform:none */
-@media (max-width: 1279px) {
-  html.is-visit-pre-scrolling[data-wallpaper-mode="banner"] body.enable-banner.is-home #banner-wrapper:not(.mobile-hide-banner),
-  html.is-home-pre-scrolling[data-wallpaper-mode="banner"] body.enable-banner.is-home #banner-wrapper:not(.mobile-hide-banner),
-  html.is-visit-layout-shifting[data-wallpaper-mode="banner"] body.enable-banner.is-home #banner-wrapper:not(.mobile-hide-banner) {
-    transform: none;
-  }
-}
-
-/* 预滚动期间禁用 navbar-hidden，避免解冻 transition-all 时 opacity 跳变 */
-html.is-home-pre-scrolling #navbar-wrapper.navbar-hidden,
-html.is-visit-pre-scrolling #navbar-wrapper.navbar-hidden,
-html.is-visit-layout-shifting #navbar-wrapper.navbar-hidden {
   opacity: 1 !important;
   transform: none !important;
 }
@@ -446,29 +335,6 @@ html.is-visit-layout-shifting #navbar-wrapper.navbar-hidden {
     font-size: 16px;
   }
 
-  /* Swup 换页期间：冻结 banner 过渡 + 抑制 mobile-* 类的布局效果，
-     让容器像桌面端一样稳定；换页结束后 CSS transition 自然接管 */
-  html.is-changing #banner-wrapper,
-  html.is-animating #banner-wrapper {
-    transition: none !important;
-  }
-
-  /* 换页期间阻止 mobile-hide-banner 隐藏 banner */
-  html.is-changing #banner-wrapper.mobile-hide-banner,
-  html.is-animating #banner-wrapper.mobile-hide-banner {
-    height: auto !important;
-    min-height: auto !important;
-    overflow: visible !important;
-    visibility: visible !important;
-  }
-
-  /* Swup 换页期间：banner 保持常驻合成层，避免 toggling contain/will-change 导致换页结束时抽动 */
-  html.is-changing #swup-container,
-  html.is-animating #swup-container,
-  html.swup-perf-active #swup-container {
-    contain: layout style paint;
-    pointer-events: none;
-  }
 }
 
 @media (max-width: 768px) {

@@ -1,69 +1,20 @@
-@import "./_transition-vars.css";
-
-/* ============================================================
-   页面过渡动画 / Page transitions (Swup)
-   ------------------------------------------------------------
-   Swup 在 <html> 上切换三个类：
-     .is-changing  一次过渡正在进行
-     .is-animating 新内容正在进入
-     .is-leaving   旧内容正在离开
-
-   这里是与上游 Fuwari / Mizuki 对齐的唯一动效来源：
-   - 所有时长/位移/缓动都走 _transition-vars.css 的 CSS 变量，
-     响应式只改变量值，不再用重复的 @media 覆盖规则（旧实现里
-     三个文件各写一份移动端规则，互相打架，是抖动的根源之一）。
-   ============================================================ */
-
-/* 主内容（进入） */
-.transition-main {
-	transition:
-		opacity var(--transition-duration) var(--transition-easing),
-		transform var(--transition-duration) var(--transition-easing);
+/* Page transition animations (Swup). */
+html.is-changing .transition-swup-fade {
+	@apply transition-all duration-200;
 }
-
-/* 内层容器（离开） */
-.transition-leaving {
-	transition:
-		opacity var(--transition-duration) var(--transition-easing-out),
-		transform var(--transition-duration) var(--transition-easing-out);
-}
-
-/* 进入：从下方轻微滑入并淡入 */
-html.is-animating .transition-main {
-	opacity: 0;
-	transform: translateY(var(--transition-translate));
-}
-
-/* 离开：向上滑出并淡出 */
-html.is-animating.is-leaving .transition-leaving {
-	opacity: 0;
-	transform: translateY(calc(var(--transition-translate) * -1));
-}
-
-/* 跟随页面淡入淡出的元素（浮动 TOC 等） */
-.transition-swup-fade {
-	transition:
-		opacity var(--transition-duration) var(--transition-easing),
-		transform var(--transition-duration) var(--transition-easing);
-}
-
 html.is-animating .transition-swup-fade {
-	opacity: 0;
-	transform: translateY(var(--transition-translate));
+	@apply opacity-0 translate-y-4;
 }
 
-/* ============================================================
-   首屏入场动画 / On-load reveal
-   ============================================================ */
-
+/* Fade-in animations for components */
 @keyframes fade-in-up {
-	from {
+	0% {
+		transform: translateY(2rem);
 		opacity: 0;
-		transform: translateY(var(--transition-translate));
 	}
-	to {
-		opacity: 1;
+	100% {
 		transform: translateY(0);
+		opacity: 1;
 	}
 }
 
@@ -76,8 +27,7 @@ html.is-animating .transition-swup-fade {
 	}
 }
 
-/* Shared entrance animations. Defined once here instead of being redeclared
-   by each album/friend/skill/404 stylesheet. */
+/* Shared entrance animations used by album/friend/skill/404 pages. */
 @keyframes fade-in-up-sm {
 	from {
 		opacity: 0;
@@ -109,73 +59,25 @@ html.is-animating .transition-swup-fade {
 	}
 }
 
-/* 用 backwards 而不是 forwards：动画结束后不再持续占用 transform/opacity。
-   侧栏容器和组件常驻这个类，forwards 会让每个卡片一直处于“动画填充”
-   状态；祖先 #main-grid 做 700ms 位移过渡时，这些残留动画会让浏览器
-   逐帧重新合成卡片，侧栏看起来就在轻微发抖。backwards 只在延迟阶段
-   应用首帧（仍能避免闪烁），结束后把样式交还给 CSS。 */
+/* Main components */
 .onload-animation {
-	animation: fade-in-up var(--transition-duration) var(--transition-easing)
-		backwards;
+	animation: 300ms fade-in-up;
+	/* `both` hides the element during its delay and keeps the final frame
+	   afterwards. Releasing the transform (`backwards`) makes the browser
+	   tear down the entrance layers while the grid is still moving, which
+	   shows up as text shimmer on the main grid. */
+	animation-fill-mode: both;
 }
-
-.onload-animation-fade-in {
-	animation: fade-in var(--transition-duration) var(--transition-easing)
-		backwards;
+#swup-container {
+	outline: none;
 }
-
-/* 同级元素依次错开（侧栏组件、文章分块等） */
-.onload-animation:nth-child(1) {
-	animation-delay: calc(var(--transition-stagger) * 0);
+#content-wrapper {
+	animation-delay: var(--content-delay);
 }
-.onload-animation:nth-child(2) {
-	animation-delay: calc(var(--transition-stagger) * 1);
+.footer {
+	animation-delay: 250ms;
 }
-.onload-animation:nth-child(3) {
-	animation-delay: calc(var(--transition-stagger) * 2);
-}
-.onload-animation:nth-child(4) {
-	animation-delay: calc(var(--transition-stagger) * 3);
-}
-.onload-animation:nth-child(5) {
-	animation-delay: calc(var(--transition-stagger) * 4);
-}
-
-/* ============================================================
-   图层提升 — 仅在过渡窗口内生效
-   ------------------------------------------------------------
-   常驻 will-change 会让整页内容永久占用 GPU 纹理；在 60Hz + 高 dpr
-   的机器上会超出纹理预算，浏览器只能在动画中途逐片重光栅化，表现为
-   换页时的抖动。所以只在 Swup 过渡窗口内提升图层，窗口结束后由浏览
-   器自动回收。
-
-   只提升真正带过渡的元素。.onload-animation 是首屏/新内容的一次性
-   入场动画，不参与 Swup 过渡；而侧栏容器和组件常驻这个类，把它们
-   一起提升会在 #main-grid 的 700ms 位移过渡进行到一半时（is-changing
-   只有 ~120ms）提升又降级整棵侧栏图层，重新光栅化的整像素取整会让
-   侧栏卡片相对网格逐帧错位，也就是换页时的侧栏抖动。
-   ============================================================ */
-html.is-changing .transition-main,
-html.is-animating .transition-main,
-html.is-leaving .transition-main,
-html.is-changing .transition-leaving,
-html.is-animating .transition-leaving,
-html.is-changing .transition-swup-fade,
-html.is-animating .transition-swup-fade {
-	will-change: transform, opacity;
-	backface-visibility: hidden;
-	-webkit-backface-visibility: hidden;
-}
-
-/* ============================================================
-   减少动画偏好 / Reduced motion — 唯一权威规则
-   （旧实现里 5 个文件各写一份，这里合并为一处）
-
-   用通配选择器而不是逐个列元素：组件级 scoped 样式（如
-   #post-list-container > *）优先级高于类选择器，逐个枚举会漏掉它们，
-   导致部分卡片在“减少动态效果”下仍然动画。通配 + !important 是
-   Fuwari/Mizuki 及大多数主题采用的稳妥做法。
-   ============================================================ */
+/* Reduced-motion: one authoritative rule for the whole site. */
 @media (prefers-reduced-motion: reduce) {
 	*,
 	*::before,
@@ -186,11 +88,8 @@ html.is-animating .transition-swup-fade {
 		scroll-behavior: auto !important;
 	}
 
-	.transition-main,
-	.transition-leaving,
-	.transition-swup-fade,
-	.onload-animation,
-	.onload-animation-fade-in {
-		will-change: auto !important;
+	.onload-animation {
+		animation: none !important;
+		opacity: 1 !important;
 	}
 }

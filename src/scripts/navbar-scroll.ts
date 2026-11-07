@@ -5,11 +5,8 @@ const bannerEnabled = !!document.getElementById("banner-wrapper");
 function shouldSkipNavbarScrollSync() {
 	const html = document.documentElement;
 	return (
-		html.classList.contains("is-home-pre-scrolling") ||
-		html.classList.contains("is-visit-pre-scrolling") ||
 		html.classList.contains("is-changing") ||
 		html.classList.contains("is-animating") ||
-		html.classList.contains("swup-perf-active") ||
 		!!window.__smoothScrollActive
 	);
 }

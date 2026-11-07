@@ -315,12 +315,22 @@ if (siteConfig.font) {
 				`${PAGE_WIDTH}rem`,
 			);
 
-			// 使用 CSS dvh 替代 JS 计算，避免移动端 URL 栏变化导致的 CLS
-			// dvh 会动态适应视口高度变化，不再需要 JS 计算和 resize 监听
-			document.documentElement.style.setProperty(
-				"--banner-height-extend",
-				`${BANNER_HEIGHT_EXTEND}dvh`,
-			);
+			// 与 Fuwari 一致：转成 4px 对齐的整数像素，避免 transform/top
+			// 在 700ms 过渡中逐帧取整，出现文字发虚和网格抖动。
+			function syncBannerExtend() {
+				let offset = Math.floor(
+					window.innerHeight * (BANNER_HEIGHT_EXTEND / 100),
+				);
+				offset -= offset % 4;
+				document.documentElement.style.setProperty(
+					"--banner-height-extend",
+					`${offset}px`,
+				);
+			}
+			syncBannerExtend();
+			window.addEventListener("resize", syncBannerExtend, {
+				passive: true,
+			});
 			document.documentElement.style.setProperty(
 				"--banner-height-home",
 				`${BANNER_HEIGHT + BANNER_HEIGHT_EXTEND}vh`,
@@ -493,8 +503,6 @@ if (siteConfig.font) {
 <!-- Easter egg: type "holo" on any page -->
 <TerminalEasterEgg client:only="svelte" />
 
-		<!-- Swup 换页滚动锁占位（不参与文档流，避免 300vh 撑高引发 CLS） -->
-		<div id="page-height-extend" aria-hidden="true"></div>
 	</body>
 </html>
 

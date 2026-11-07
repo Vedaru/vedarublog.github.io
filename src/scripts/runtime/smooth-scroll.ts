@@ -30,19 +30,11 @@ import { easeOutCubic } from "./animation/easing";
 	} | null = null;
 
 	function syncNavbarDuringSmoothScroll(scrollY: number) {
-		if (window.__homePreScrollActive) {
-			return;
-		}
-
 		window.__syncNavbarWrapperForScrollY?.(scrollY);
 		syncSemifullNavbarDuringSmoothScroll(scrollY);
 	}
 
 	function syncTocDuringSmoothScroll(scrollY: number) {
-		if (window.__homePreScrollActive) {
-			return;
-		}
-
 		window.__syncTocHideForScroll?.(scrollY, window.innerHeight);
 	}
 
@@ -53,9 +45,7 @@ import { easeOutCubic } from "./animation/easing";
 		window.__clearNavbarWrapperInlineStyles?.();
 		document.documentElement.classList.remove("is-smooth-scrolling");
 
-		if (!window.__homePreScrollActive) {
-			window.applySemifullNavbarVisualState?.(goalY, isHome);
-		}
+		window.applySemifullNavbarVisualState?.(goalY, isHome);
 
 		window.__smoothScrollActive = false;
 		activeScrollTrip = null;
@@ -72,10 +62,6 @@ import { easeOutCubic } from "./animation/easing";
 	}
 
 	function syncSemifullNavbarDuringSmoothScroll(scrollY: number) {
-		if (window.__homePreScrollActive) {
-			return;
-		}
-
 		const applyState = window.applySemifullNavbarVisualState;
 		if (typeof applyState !== "function") {
 			return;
@@ -212,51 +198,4 @@ import { easeOutCubic } from "./animation/easing";
 	window.__smoothScrollToY = smoothScrollToY;
 	window.__smoothScrollToTop = smoothScrollToTop;
 	window.__smoothScrollToElement = smoothScrollToElement;
-
-	var lockedScrollY = 0;
-	var isScrollLocked = false;
-
-	window.__pinPageScrollTop = function () {
-		setDocumentScrollTop(0);
-		if (isScrollLocked) {
-			lockedScrollY = 0;
-			document.body.style.top = "0px";
-		}
-	};
-
-	window.__lockSwupScroll = function () {
-		if (isScrollLocked) return;
-		lockedScrollY =
-			window.scrollY || document.documentElement.scrollTop || 0;
-		document.body.style.position = "fixed";
-		document.body.style.top = "-" + lockedScrollY + "px";
-		document.body.style.width = "100%";
-		document.documentElement.classList.add("swup-scroll-lock");
-		isScrollLocked = true;
-	};
-
-	window.__lockSwupScrollAndPin = function () {
-		window.__pinPageScrollTop?.();
-		lockedScrollY = 0;
-		if (isScrollLocked) {
-			document.body.style.top = "0px";
-			return;
-		}
-		document.body.style.position = "fixed";
-		document.body.style.top = "0px";
-		document.body.style.width = "100%";
-		document.documentElement.classList.add("swup-scroll-lock");
-		isScrollLocked = true;
-	};
-
-	window.__unlockSwupScroll = function () {
-		if (!isScrollLocked) return;
-		document.documentElement.classList.remove("swup-scroll-lock");
-		document.body.style.position = "";
-		document.body.style.top = "";
-		document.body.style.width = "";
-		// 使用原生 scrollTo 绕过 scroll-protection 的拦截,避免被误导向旧滚动位置
-		window.scrollTo(0, lockedScrollY);
-		isScrollLocked = false;
-	};
 })();

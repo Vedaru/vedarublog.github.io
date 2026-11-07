@@ -24,7 +24,7 @@ const {
 ---
 
 <!-- Banner - 始终渲染，通过 JS 控制显示隐藏 -->
-<div id="banner-wrapper" class={`absolute z-10 w-full overflow-hidden ${mobileNonHomeBannerClass}`}>
+<div id="banner-wrapper" class={`absolute z-10 w-full transition-[transform,opacity] duration-700 ${mobileNonHomeBannerClass}`}>
 
     <!-- Banner 单图 -->
     <div id="banner-single-container" class="relative h-full w-full min-h-[inherit]">
@@ -44,7 +44,7 @@ const {
                         <img
                             id="banner"
                             alt="Banner image of the blog"
-                            class="object-cover w-full h-full"
+                            class="object-cover w-full h-full transition-transform duration-700"
                             src={url(desktopBannerResponsive.full)}
                             width={1920}
                             height={1097}

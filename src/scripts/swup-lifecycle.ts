@@ -1,14 +1,9 @@
 import { BANNER_HEIGHT, DARK_MODE, DEFAULT_THEME } from "@constants";
-import {
-	isMainHomePage,
-	isSamePageNavigation,
-	pathFromUrl,
-} from "../utils/route-utils";
+import { isMainHomePage, pathFromUrl } from "../utils/route-utils";
 import {
 	isTocOrInPageAnchorLink,
 	shouldInitTocForPath,
 } from "../utils/toc-utils";
-import { shouldSmoothScrollSamePage } from "./runtime/home-pre-scroll/route";
 import {
 	checkKatex,
 	ensureJetBrainsMono,
@@ -16,9 +11,11 @@ import {
 	initCustomScrollbar,
 	initFancybox,
 } from "./theme-bootstrap";
+import { easeInOutCubic } from "./runtime/animation/easing";
 
 const DYNAMIC_STYLE_PATTERN =
 	/\/_astro\/.*(fancybox|katex|jetbrains|fancybox-custom)/i;
+const LAYOUT_SLIDE_MS = 700;
 const bannerEnabled = !!document.getElementById("banner-wrapper");
 
 function removeViteInjectedStyles() {
@@ -58,7 +55,7 @@ function evictSwupCacheIfOversized() {
 	if (cached.length > MAX_SWUP_CACHE_ENTRIES) {
 		cached
 			.slice(0, cached.length - MAX_SWUP_CACHE_ENTRIES)
-			.forEach((url) => window.swup.cache.delete(url));
+			.forEach((url) => window.swup?.cache?.delete(url));
 	}
 }
 
@@ -82,7 +79,12 @@ function attachStylesheetErrorGuard() {
 		});
 }
 
-export function runSwupPageWritePhase() {
+/**
+ * Everything here is deliberately non-critical. The page transition includes
+ * a 700ms grid/banner slide; running TOC/widget work before it finishes is
+ * what made the motion stutter.
+ */
+function runDeferredInit() {
 	window.__scheduleSwupIdleWork?.(() => {
 		void initFancybox();
 		checkKatex();
@@ -96,25 +98,14 @@ export function runSwupPageWritePhase() {
 	});
 }
 
-export function runSwupPageLayoutPhase(detail?: { scrollTop?: number }) {
-	const scrollTop = detail?.scrollTop ?? 0;
+function runPageLayout() {
+	const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
 	const tocWrapper = document.getElementById("toc-wrapper");
 	const tocElement = document.querySelector("table-of-contents");
 	const shouldInitToc = shouldInitTocForPath();
 
-	const html = document.documentElement;
-	const swupTransitionActive =
-		html.classList.contains("is-changing") ||
-		html.classList.contains("is-animating") ||
-		html.classList.contains("swup-perf-active");
-
-	if (swupTransitionActive) {
-		tocWrapper?.classList.add("toc-not-ready");
-	} else {
-		window.__syncTocHideForScroll?.(
-			scrollTop,
-			window.__swupPhaseInnerHeight,
-		);
+	if (tocWrapper) {
+		tocWrapper.classList.remove("toc-not-ready");
 	}
 
 	if (tocWrapper && tocElement) {
@@ -132,212 +123,119 @@ export function runSwupPageLayoutPhase(detail?: { scrollTop?: number }) {
 		}
 	}
 
+	window.__syncTocHideForScroll?.(scrollTop, window.innerHeight);
+
 	const navbar = document.getElementById("navbar");
 	if (navbar) {
 		const transparentMode = navbar.getAttribute("data-transparent-mode");
-		if (transparentMode === "semifull") {
-			if (window.__suppressSemifullNavbarReinit) {
-				const isHome = navbar.getAttribute("data-is-home") === "true";
-				window.applySemifullNavbarVisualState?.(scrollTop, isHome);
-			} else if (
-				typeof window.initSemifullScrollDetection === "function"
-			) {
-				window.initSemifullScrollDetection(scrollTop);
-			}
+		if (
+			transparentMode === "semifull" &&
+			typeof window.initSemifullScrollDetection === "function"
+		) {
+			window.initSemifullScrollDetection(scrollTop);
 		}
 	}
 }
 
-let swupPhasesRegistered = false;
+let layoutSlideTimer: ReturnType<typeof setTimeout> | null = null;
+let layoutApplyGeneration = 0;
 
-function runInitialLayoutPhaseIfIdle() {
+function endLayoutSlide() {
 	const html = document.documentElement;
-	if (
-		html.classList.contains("is-changing") ||
-		html.classList.contains("is-animating")
-	) {
-		return;
+	html.classList.remove("is-layout-sliding");
+	if (layoutSlideTimer !== null) {
+		clearTimeout(layoutSlideTimer);
+		layoutSlideTimer = null;
+		document.dispatchEvent(new CustomEvent("vedaru:layout-settled"));
 	}
-	runSwupPageLayoutPhase({
-		scrollTop: window.scrollY || document.documentElement.scrollTop || 0,
-	});
 }
 
-function registerSwupPagePhases() {
-	if (swupPhasesRegistered) return;
+function beginLayoutSlide() {
+	const html = document.documentElement;
+	if (layoutSlideTimer !== null) clearTimeout(layoutSlideTimer);
+	html.classList.add("is-layout-sliding");
 
-	if (!window.__onSwupPageWritePhase || !window.__onSwupPageLayoutPhase) {
-		return;
-	}
-
-	swupPhasesRegistered = true;
-	window.__onSwupPageWritePhase(runSwupPageWritePhase);
-	window.__onSwupPageLayoutPhase(runSwupPageLayoutPhase);
-	runInitialLayoutPhaseIfIdle();
+	// Reading a CSS variable here forces a full style recalculation of the
+	// freshly inserted page right before the transform starts. Match the CSS
+	// duration in JS instead so both mutations batch into the next frame.
+	const duration = window.matchMedia("(prefers-reduced-motion: reduce)")
+		.matches
+		? 0
+		: LAYOUT_SLIDE_MS;
+	layoutSlideTimer = setTimeout(endLayoutSlide, duration + 100);
 }
 
-function ensureSwupPagePhasesRegistered() {
-	if (swupPhasesRegistered) return;
-
-	registerSwupPagePhases();
-	if (swupPhasesRegistered) return;
-
-	const startedAt = performance.now();
-	const retry = () => {
-		registerSwupPagePhases();
-		if (swupPhasesRegistered) return;
-		if (performance.now() - startedAt > 5000) return;
-		requestAnimationFrame(retry);
-	};
-	requestAnimationFrame(retry);
-
-	document.addEventListener("swup:swup-perf-ready", registerSwupPagePhases, {
-		once: true,
-	});
-}
-
-function applyVisitBodyLayout(visit: { to: { url: string } }) {
-	window.__applyVisitBodyLayout?.(visit);
-}
-
-export function flushPendingVisitBodyLayout() {
-	if (!window.__pendingVisitBodyLayout) return;
-
-	window.__pendingVisitBodyLayout = undefined;
-	window.__lockSwupScroll?.();
-	window.__pinPageScrollTop?.();
-	requestAnimationFrame(() => {
-		window.__pinPageScrollTop?.();
-		requestAnimationFrame(() => {
-			window.__pinPageScrollTop?.();
-		});
-	});
-}
-
-export function applyVisitStartLayout(
-	visit: { to: { url: string } },
-	options?: { deferBodyLayout?: boolean },
-) {
+/**
+ * Apply the target layout after content:replace. Only the incoming DOM is
+ * transformed; the outgoing page (often a very tall article) is never dragged
+ * around as a giant compositor layer, which is what made the grid stutter.
+ */
+function applyTargetLayout(visit: {
+	to: { url: string };
+	from?: { url?: string };
+}) {
 	const isHomePage = isMainHomePage(pathFromUrl(visit.to.url));
-	const cachedScrollTop =
-		window.scrollY || document.documentElement.scrollTop || 0;
+	const fromUrl = visit.from?.url;
+	const fromHome = fromUrl
+		? isMainHomePage(pathFromUrl(fromUrl))
+		: document.body.classList.contains("is-home");
 
-	// 换页开始就应用目标页 banner / is-home 布局，避免 content:replace 时才跳变
-	applyVisitBodyLayout(visit);
-
-	if (options?.deferBodyLayout) {
-		window.__pendingVisitBodyLayout = visit;
-	} else if (!window.__homePreScrollWasUsed) {
-		// 移动端：锁定当前滚动位置（不滚动到顶部），避免换页时视觉跳变
-		if (window.innerWidth <= 1279) {
-			window.__lockSwupScroll?.();
-		} else {
-			window.__lockSwupScrollAndPin?.();
-		}
+	if (fromHome !== isHomePage) {
+		beginLayoutSlide();
+	} else {
+		endLayoutSlide();
 	}
 
-	const scrollForSemifull =
-		!options?.deferBodyLayout && !window.__homePreScrollWasUsed
-			? 0
-			: cachedScrollTop;
+	window.__applyVisitBodyLayout?.(visit);
 
 	const navbar = document.getElementById("navbar");
 	if (navbar) {
 		navbar.setAttribute("data-is-home", isHomePage.toString());
 		const transparentMode = navbar.getAttribute("data-transparent-mode");
 		if (transparentMode === "semifull") {
-			if (window.__suppressSemifullNavbarReinit) {
-				window.applySemifullNavbarVisualState?.(0, isHomePage);
-			} else if (
-				typeof window.initSemifullScrollDetection === "function"
-			) {
-				window.initSemifullScrollDetection(scrollForSemifull);
-			}
+			window.initSemifullScrollDetection?.(0);
 		}
 	}
 
 	const navbarWrapper = document.getElementById("navbar-wrapper");
 	if (navbarWrapper) {
 		navbarWrapper.classList.remove("navbar-hidden");
-		// 清除 __syncNavbarWrapperForScrollY 遗留的内联 opacity/transform。
-		// 若不清除，从文章底部（opacity:0）跳转时 navbar-wrapper 会保持不可见，
-		// 直到下次 scroll 事件才被修正。
 		window.__clearNavbarWrapperInlineStyles?.();
 	}
 
-	const toc = document.getElementById("toc-wrapper");
-	if (toc) {
-		toc.classList.add("toc-not-ready");
-	}
+	document.getElementById("toc-wrapper")?.classList.add("toc-not-ready");
+}
+
+function syncThemeFromStorage() {
+	const storedTheme = localStorage.getItem("theme") || DEFAULT_THEME;
+	const isDark = storedTheme === DARK_MODE;
+	const expectedTheme = isDark ? "github-dark" : "github-light";
+
+	const currentTheme = document.documentElement.getAttribute("data-theme");
+	const hasDarkClass = document.documentElement.classList.contains("dark");
+
+	if (currentTheme === expectedTheme && hasDarkClass === isDark) return;
+
+	requestAnimationFrame(() => {
+		document.documentElement.setAttribute("data-theme", expectedTheme);
+		document.documentElement.classList.toggle("dark", isDark);
+	});
 }
 
 function setup() {
 	invalidateSwupCacheIfStale();
 	attachStylesheetErrorGuard();
 
-	// ── 换页/动画进行中拦截用户滚动 ─────────────────────────────────────────
-	// wheel / touchmove 的 non-passive preventDefault 阻止用户手动滚动；
-	// 预滚动 / blended 动画 JS 直接写 scrollTop，不触发这两个事件，不受影响。
-	// 键盘 Space / PgUp / PgDn / Home / End / ↑↓ 也一并拦截。
-	// 必须覆盖完整窗口：is-changing/is-animating（Swup 生命周期与动画）之外，
-	// 还要包含预滚动 / blended 阶段（此时 banner 正被 JS 逐帧 transform，
-	// 而 Swup 的 is-changing 可能尚未生效），否则用户滚动会与 setScrollY 打架致 banner 抽动。
-	// 与 navbar-scroll.ts 的 shouldSkipNavbarScrollSync 保持同一判定集合。
-	{
-		const SCROLL_KEYS = new Set([32, 33, 34, 35, 36, 38, 40]);
-
-		// 注意：不含 is-smooth-scrolling / __smoothScrollActive 单独项，
-		// 避免误伤同页 TOC 锚点平滑滚动（用户应能随时手动接管）。
-		// 换页/blended 阶段一定带有 is-*-pre-scrolling / is-visit-layout-shifting，已覆盖 banner 动画窗口。
-		function isSwupTransitionActive(): boolean {
-			const html = document.documentElement;
-			return (
-				html.classList.contains("is-changing") ||
-				html.classList.contains("is-animating") ||
-				html.classList.contains("swup-perf-active") ||
-				html.classList.contains("is-home-pre-scrolling") ||
-				html.classList.contains("is-visit-pre-scrolling") ||
-				html.classList.contains("is-visit-layout-shifting") ||
-				!!window.__homePreScrollActive
-			);
-		}
-
-		function onUserScrollAttempt(e: Event): void {
-			if (isSwupTransitionActive()) {
-				e.preventDefault();
-			}
-		}
-
-		function onKeyScrollAttempt(e: KeyboardEvent): void {
-			if (isSwupTransitionActive() && SCROLL_KEYS.has(e.keyCode)) {
-				e.preventDefault();
-			}
-		}
-
-		window.addEventListener("wheel", onUserScrollAttempt, {
-			passive: false,
-		});
-		window.addEventListener("touchmove", onUserScrollAttempt, {
-			passive: false,
-		});
-		window.addEventListener("keydown", onKeyScrollAttempt);
-	}
-
-	// ── 换页/动画进行中拦截新的导航请求 ──────────────────────────────────────
-	// priority: 100 确保在所有其他 link:click 处理器之前运行（home-pre-scroll 是 -200/-100）。
-	// 检测 is-changing（visit 生命周期全程）+ is-animating（动画播放期）+
-	// __homePreScrollActive / __smoothScrollActive（预滚动阶段，is-changing 可能尚未生效）。
-	// 返回 false 取消此次 Swup 导航，同时 preventDefault 防止浏览器跟随链接。
-	window.swup.hooks.on(
+	// Block a second navigation while one is already running.
+	window.swup?.hooks.on(
 		"link:click",
 		(_visit: unknown, context?: { el?: Element; event?: Event }) => {
 			const html = document.documentElement;
-			const isInTransition =
+			if (
 				html.classList.contains("is-changing") ||
 				html.classList.contains("is-animating") ||
-				!!window.__homePreScrollActive ||
-				!!window.__smoothScrollActive;
-			if (isInTransition) {
+				!!window.__smoothScrollActive
+			) {
 				context?.event?.preventDefault();
 				context?.event?.stopPropagation();
 				return false;
@@ -346,10 +244,9 @@ function setup() {
 		{ before: true, priority: 100 },
 	);
 
-	window.swup.hooks.on(
+	window.swup?.hooks.on(
 		"link:click",
 		(_visit: unknown, context?: { el?: Element }) => {
-			// 页内锚点 / TOC 点击不会触发 visit:end，不能加 toc-not-ready
 			if (
 				isTocOrInPageAnchorLink(context?.el) ||
 				(window.tocClickTimestamp &&
@@ -358,10 +255,9 @@ function setup() {
 				return;
 			}
 
-			const tocOnClick = document.getElementById("toc-wrapper");
-			if (tocOnClick) {
-				tocOnClick.classList.add("toc-not-ready");
-			}
+			document.getElementById("toc-wrapper")?.classList.add(
+				"toc-not-ready",
+			);
 
 			if (bannerEnabled) {
 				const scrollY = document.documentElement.scrollTop;
@@ -382,163 +278,91 @@ function setup() {
 		},
 	);
 
-	window.swup.hooks.on("content:replace", () => {
-		// 旧内容已被替换，此时再清零延迟，让新页卡片立即入场，
-		// 同时不会重排当前(旧)页尚未播完的入场动画造成闪跳。
-		document.documentElement.style.setProperty("--content-delay", "0ms");
-
-		attachStylesheetErrorGuard();
-
-		// 移动端非首页导航：换页开始时为了不闪动锁定在旧滚动位置，
-		// 但新文章页必须从顶部开始。内容替换的瞬间旧页已消失、新页仍在
-		// 入场动画里，此时把滚动锁切到 0，可以避免动画结束后再跳回顶部。
-		if (window.innerWidth <= 1279 && !window.__homePreScrollWasUsed) {
-			window.__lockSwupScrollAndPin?.();
-		}
-
-		window.initLastModifiedPage?.();
-		window.initTwikooPage?.();
-
-		if (window.__homePreScrollWasUsed && window.__pendingVisitBodyLayout) {
-			requestAnimationFrame(() => {
-				flushPendingVisitBodyLayout();
-			});
-		}
-	});
-
-	ensureSwupPagePhasesRegistered();
-
-	window.__applyVisitStartLayout = applyVisitStartLayout;
-	window.__flushPendingVisitBodyLayout = flushPendingVisitBodyLayout;
-
-	document.addEventListener("vedaru:home-pre-scroll-done", ((
-		event: CustomEvent<{ visit: { to: { url: string } } }>,
-	) => {
-		if (event.detail?.visit) {
-			applyVisitStartLayout(event.detail.visit, {
-				deferBodyLayout: true,
-			});
-		}
-	}) as EventListener);
-
-	window.swup.hooks.on(
+	window.swup?.hooks.on(
 		"visit:start",
-		(visit: { to: { url: string }; scroll?: { reset?: boolean } }) => {
+		async () => {
+			const scrollY =
+				window.scrollY || document.documentElement.scrollTop || 0;
+			if (scrollY <= 80) return;
+			// Do the scroll while the current page is static. Otherwise the
+			// sidebar's sticky top transition and the page scroll run at the
+			// same time and the cards visibly slide down the screen.
+			await (window.__smoothScrollToTop?.(
+				500,
+				easeInOutCubic,
+			) ?? Promise.resolve());
+		},
+		{ before: true, priority: -200 },
+	);
+
+	window.swup?.hooks.on(
+		"visit:start",
+		(visit: { to: { url: string }; from?: { url?: string } }) => {
 			cleanupFancybox();
-
-			if (shouldSmoothScrollSamePage(visit)) {
-				if (visit.scroll) {
-					visit.scroll.reset = false;
-				}
-				return;
-			}
-
-			// 桌面端：当前已在目标页时跳过换页，避免同页替换闪动
-			// （同样的 pathname 但查询参数不同属于不同视图，仍需正常换页）
-			if (isSamePageNavigation(window.location.href, visit.to.url)) {
-				if (visit.scroll) visit.scroll.reset = false;
-				return;
-			}
-
-			if (window.__homePreScrollWasUsed) {
-				const tocEarly = document.getElementById("toc-wrapper");
-				if (tocEarly) {
-					tocEarly.classList.add("toc-not-ready");
-				}
-				return;
-			}
-
-			// 移动端：禁止 Swup 默认的 scroll-to-top，避免换页时视觉跳变
-			// scroll-to-top 由 settlePageLayoutBeforeResume 统一处理
-			if (window.innerWidth <= 1279 && visit.scroll) {
-				visit.scroll.reset = false;
-			}
-
-			applyVisitStartLayout(visit);
+			document.documentElement.style.setProperty(
+				"--content-delay",
+				"0ms",
+			);
+			document.getElementById("toc-wrapper")?.classList.add(
+				"toc-not-ready",
+			);
 		},
 		{ priority: 0 },
 	);
 
-	window.swup.hooks.on(
+	window.swup?.hooks.on(
+		"content:replace",
+		(visit: { to: { url: string }; from?: { url?: string } }) => {
+			document.documentElement.style.setProperty(
+				"--content-delay",
+				"0ms",
+			);
+			// Let the replacement finish its style/layout work and paint once
+			// before starting the transform. Otherwise the slide's first frames
+			// compete with the incoming page's DOM and style recalculation.
+			const generation = ++layoutApplyGeneration;
+			requestAnimationFrame(() => {
+				requestAnimationFrame(() => {
+					if (generation !== layoutApplyGeneration) return;
+					applyTargetLayout(visit);
+					window.__applyVisitBannerLayout?.(visit);
+				});
+			});
+			attachStylesheetErrorGuard();
+		},
+	);
+
+	window.swup?.hooks.on(
 		"page:view",
 		(visit: { to: { document?: Document } }) => {
 			const nextTitle = visit?.to?.document?.title;
 			if (nextTitle && document.title !== nextTitle) {
 				document.title = nextTitle;
 			}
-
-			const hadHomePreScroll = !!window.__homePreScrollWasUsed;
-
-			if (hadHomePreScroll) {
-				if (window.__homePreScrollActive) {
-					return;
-				}
-				window.__pinPageScrollTop?.();
-			}
-
-			const storedTheme = localStorage.getItem("theme") || DEFAULT_THEME;
-			const isDark = storedTheme === DARK_MODE;
-			const expectedTheme = isDark ? "github-dark" : "github-light";
-
-			const currentTheme =
-				document.documentElement.getAttribute("data-theme");
-			const hasDarkClass =
-				document.documentElement.classList.contains("dark");
-
-			if (currentTheme !== expectedTheme || hasDarkClass !== isDark) {
-				requestAnimationFrame(() => {
-					if (currentTheme !== expectedTheme) {
-						document.documentElement.setAttribute(
-							"data-theme",
-							expectedTheme,
-						);
-					}
-					if (hasDarkClass !== isDark) {
-						if (isDark) {
-							document.documentElement.classList.add("dark");
-						} else {
-							document.documentElement.classList.remove("dark");
-						}
-					}
-				});
-			}
-
-			setTimeout(() => {
-				if (document.getElementById("tcomment")) {
-					const pageLoadedEvent = new CustomEvent(
-						"mizuki:page:loaded",
-						{
-							detail: {
-								path: window.location.pathname,
-								timestamp: Date.now(),
-							},
-						},
-					);
-					document.dispatchEvent(pageLoadedEvent);
-				}
-			}, 300);
+			syncThemeFromStorage();
 		},
 	);
 
-	window.swup.hooks.on("visit:end", () => {
-		window.__pendingVisitBodyLayout = undefined;
+	window.swup?.hooks.on("animation:in:end", () => {
+		removeViteInjectedStyles();
+	});
+
+	window.swup?.hooks.on("visit:end", () => {
 		evictSwupCacheIfOversized();
-
 		setTimeout(() => {
-			if (!window.__homePreScrollWasUsed) {
-				window.__unlockSwupScroll?.();
-			}
-
-			const toc = document.getElementById("toc-wrapper");
-			if (toc) {
-				toc.classList.remove("toc-not-ready");
-			}
+			document.getElementById("toc-wrapper")?.classList.remove(
+				"toc-not-ready",
+			);
 		}, 200);
 	});
 
-	window.swup.hooks.on("animation:in:end", () => {
-		removeViteInjectedStyles();
+	// Post-transition work waits for the layout slide (if any) to finish.
+	document.addEventListener("swup:transition-ready", () => {
+		runPageLayout();
+		runDeferredInit();
 	});
+
+	requestAnimationFrame(runPageLayout);
 }
 
 export function initSwupLifecycle() {

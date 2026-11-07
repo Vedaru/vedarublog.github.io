@@ -17,16 +17,6 @@ interface Visit {
 	to: { url: string };
 }
 
-// ── Scroll position ────────────────────────────────────────────────────────
-// Re-assert the current scroll position after a layout write. Used by the
-// pre-scroll flow, which writes transforms and then needs the scroll offset to
-// stay pinned to where it already was.
-window.__pinPageScrollTop =
-	window.__pinPageScrollTop ||
-	function pinPageScrollTop() {
-		window.scrollTo(0, getScrollY());
-	};
-
 // ── Navbar wrapper fade ───────────────────────────────────────────────────
 interface NavbarSyncOptions {
 	forceHomeBanner?: boolean;
@@ -259,8 +249,6 @@ window.__applyVisitBodyLayout = function applyVisitBodyLayout(
 	} else {
 		body.classList.remove("lg:is-home", "is-home");
 	}
-
-	window.__applyVisitBannerLayout?.(visit);
 };
 
 window.__applyVisitBannerLayout = function applyVisitBannerLayout(
@@ -285,11 +273,11 @@ window.__applyVisitBannerLayout = function applyVisitBannerLayout(
 	}
 
 	bannerWrapper.classList.add("mobile-hide-banner");
-	// On mobile the panel must not shift; the transition suppresses the banner
-	// visually instead. On desktop it can use the banner-less offset.
-	if (window.innerWidth > 1279) {
-		mainContentWrapper.classList.add("mobile-main-no-banner");
-	}
+	// Called from content:replace: the old DOM is gone and the new page is
+	// still transparent, so the banner-less offset can snap without a jump.
+	mainContentWrapper.classList.add("mobile-main-no-banner");
+	mainContentWrapper.style.removeProperty("top");
+	mainContentWrapper.style.removeProperty("min-height");
 };
 
 window.__bootstrapWallpaperBodyClasses =

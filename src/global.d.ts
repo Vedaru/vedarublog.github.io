@@ -27,7 +27,6 @@ declare global {
 			scrollTop: number,
 			isHomePage: boolean,
 		) => void;
-		__suppressSemifullNavbarReinit?: boolean;
 		iconifyLoaded?: boolean;
 		__iconifyLoader?: {
 			load: () => Promise<void>;
@@ -54,7 +53,6 @@ declare global {
 			_softResumeUntil?: number;
 		};
 		__PIO_RESET_ANIMATION_DELTA?: () => void;
-		__homePreScrollActive?: boolean;
 		__smoothScrollActive?: boolean;
 		__smoothScrollBootstrapped?: boolean;
 		__cancelSmoothScroll?: () => void;
@@ -75,35 +73,10 @@ declare global {
 			duration?: number,
 		) => Promise<void>;
 		tocClickTimestamp?: number;
-		__homePreScrollBootstrapped?: boolean;
-		__homePreScrollCompleted?: boolean;
-		__homePreScrollWasUsed?: boolean;
-		__applyVisitStartLayout?: (
-			visit: { to?: { url?: string } },
-			options?: { deferBodyLayout?: boolean },
-		) => void;
-		__flushPendingVisitBodyLayout?: () => void;
-		__pendingVisitBodyLayout?: { to?: { url?: string } };
-		__pinPageScrollTop?: () => void;
-		__lockSwupScroll?: () => void;
-		__lockSwupScrollAndPin?: () => void;
-		__unlockSwupScroll?: () => void;
-		__resetHomePreScrollState?: () => void;
 		__swupPerfBootstrapped?: boolean;
-		__onSwupPageWritePhase?: (
-			fn: (detail: { scrollTop: number }) => void,
-		) => void;
-		__onSwupPageLayoutPhase?: (
-			fn: (detail: { scrollTop: number }) => void,
-		) => void;
 		__onSwupPageIdlePhase?: (fn: () => void) => void;
 		__scheduleSwupIdleWork?: (fn: () => void) => void;
-		__deferWallpaperNavbarSync?: () => void;
-		__pendingWallpaperSync?: boolean;
-		__runWallpaperNavbarSyncOnTransition?: (scrollTop?: number) => void;
 		__wallpaperSwitchTimer?: number;
-		__swupPhaseScrollTop?: number;
-		__swupPhaseInnerHeight?: number;
 		__syncTocHideForScroll?: (
 			scrollTop: number,
 			innerHeight?: number,

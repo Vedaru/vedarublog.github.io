@@ -388,10 +388,7 @@ export function shouldSkipTocLayoutWork(): boolean {
 	const html = document.documentElement;
 	if (
 		html.classList.contains("is-changing") ||
-		html.classList.contains("is-animating") ||
-		html.classList.contains("swup-perf-active") ||
-		html.classList.contains("is-home-pre-scrolling") ||
-		html.classList.contains("is-visit-pre-scrolling")
+		html.classList.contains("is-animating")
 	) {
 		return true;
 	}

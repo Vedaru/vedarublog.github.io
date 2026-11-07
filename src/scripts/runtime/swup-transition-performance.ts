@@ -1,4 +1,12 @@
-/** Swup 换页性能：分阶段编排 DOM 写入/布局读/idle 重活，减轻换页尖峰强制重排 */
+/**
+ * Minimal Swup post-transition layer.
+ *
+ * The old implementation paused compositing work, locked the page, forced
+ * decodes and split the visit into write/layout/idle phases. That machinery
+ * existed to keep the grid slide from stuttering, and was itself a source of
+ * long tasks during the slide. All we need now is one place to run
+ * non-critical work after the grid/banner slide has finished.
+ */
 
 (function () {
 	if (window.__swupPerfBootstrapped) {
@@ -6,413 +14,111 @@
 	}
 	window.__swupPerfBootstrapped = true;
 
-	let perfListenersRegistered = false;
-	let resumeTimer: ReturnType<typeof setTimeout> | null = null;
-	let transitionDepth = 0;
-	// 每次新换页递增，用于让上一轮换页遗留的异步恢复回调失效，
-	// 避免在 Pio 隐藏未恢复的间隙再次换页时，旧回调中途解锁滚动导致页面跳回。
-	let transitionEpoch = 0;
-	const writePhaseCallbacks: Array<(detail: { scrollTop: number }) => void> =
-		[];
-	const layoutPhaseCallbacks: Array<(detail: { scrollTop: number }) => void> =
-		[];
 	const idlePhaseCallbacks: Array<() => void> = [];
-	let idleWorkQueue: Array<() => void> = [];
-	let idleDrainScheduled = false;
-
-	function getMobileShiftDurationMs() {
-		const raw = getComputedStyle(document.documentElement)
-			.getPropertyValue("--mobile-shift-duration")
-			.trim();
-		const parsed = Number.parseInt(raw, 10);
-		return Number.isFinite(parsed) ? parsed : 700;
-	}
-
-	// 换页期间不再隐藏 Pio：保持其连续渲染，抽动由稳定帧率 + l2d 停顿守卫消除。
-	function setPioContinuousDuringTransition() {
-		if (!window.__PIO_RENDER_CONTROL) {
-			return;
-		}
-
-		// 保持 normal 连续渲染，避免可见状态下降帧/帧率翻转造成的抽动。
-		window.__PIO_RENDER_CONTROL._wasPaused = false;
-		window.__PIO_RENDER_CONTROL.mode = "normal";
-		window.__PIO_RENDER_CONTROL._softResumeUntil = 0;
-	}
-
-	function resumePioSoftly() {
-		if (window.__PIO_RENDER_CONTROL) {
-			// 干净恢复到 normal，不引入软恢复窗口与帧率翻转。
-			window.__PIO_RENDER_CONTROL._wasPaused = false;
-			window.__PIO_RENDER_CONTROL.mode = "normal";
-			window.__PIO_RENDER_CONTROL._softResumeUntil = 0;
-		}
-	}
-
-	function settlePageLayoutBeforeResume(epoch, done) {
-		if (epoch !== transitionEpoch) return;
-
-		// 移动端：在解锁前先设置 .main-panel 位置，避免解锁后闪现空挡
-		if (window.innerWidth <= 1279) {
-			var mainPanel = document.querySelector(
-				".absolute.w-full.z-30",
-			) as HTMLElement | null;
-			if (mainPanel) {
-				var isHome = document.body.classList.contains("is-home");
-				if (!isHome) {
-					mainPanel.style.transition = "none";
-					mainPanel.style.top = "calc(5.5rem + 1rem)";
-					mainPanel.style.minHeight = "calc(100vh - 6.5rem)";
-					mainPanel.classList.add("mobile-main-no-banner");
-				} else {
-					// 回到首页：清理旧文章页遗留的 inline 样式，让 CSS 规则接管
-					mainPanel.style.removeProperty("top");
-					mainPanel.style.removeProperty("min-height");
-					mainPanel.style.removeProperty("transition");
-					mainPanel.classList.remove("mobile-main-no-banner");
-				}
-			}
-		}
-
-		window.__pinPageScrollTop?.();
-		window.__unlockSwupScroll?.();
-
-		// 移动端：解锁后立即滚到顶部（body 已恢复，滚动生效）
-		if (window.innerWidth <= 1279) {
-			window.scrollTo(0, 0);
-		}
-
-		requestAnimationFrame(function () {
-			if (epoch !== transitionEpoch) return;
-			window.__pinPageScrollTop?.();
-			requestAnimationFrame(function () {
-				if (epoch !== transitionEpoch) return;
-				window.__pinPageScrollTop?.();
-				done();
-			});
-		});
-	}
-
-	function removeTocNotReady() {
-		const toc = document.getElementById("toc-wrapper");
-		if (toc) {
-			toc.classList.remove("toc-not-ready");
-		}
-	}
-
-	function readDocumentScrollTop() {
-		return window.scrollY || document.documentElement.scrollTop || 0;
-	}
-
-	function runWritePhase(scrollTop) {
-		removeTocNotReady();
-		window.__swupPhaseScrollTop = scrollTop;
-		window.__swupPhaseInnerHeight = window.innerHeight;
-
-		if (window.__pendingWallpaperSync) {
-			window.__pendingWallpaperSync = false;
-			window.__runWallpaperNavbarSyncOnTransition?.(scrollTop);
-		}
-
-		for (let i = 0; i < writePhaseCallbacks.length; i++) {
-			writePhaseCallbacks[i]({ scrollTop: scrollTop });
-		}
-	}
-
-	function runLayoutPhase(scrollTop) {
-		const detail = { scrollTop: scrollTop };
-		for (let i = 0; i < layoutPhaseCallbacks.length; i++) {
-			layoutPhaseCallbacks[i](detail);
-		}
-	}
-
-	function runIdleWorkQueue() {
-		for (let i = 0; i < idleWorkQueue.length; i++) {
-			idleWorkQueue[i]();
-		}
-		idleWorkQueue = [];
-	}
+	const idleWorkQueue: Array<() => void> = [];
+	let idleScheduled = false;
+	let readyScheduled = false;
+	let readyDone = false;
+	let visitGeneration = 0;
 
 	function runIdlePhaseCallbacks() {
-		for (let i = 0; i < idlePhaseCallbacks.length; i++) {
-			idlePhaseCallbacks[i]();
+		for (const fn of idlePhaseCallbacks) {
+			try {
+				fn();
+			} catch (error) {
+				console.error("Swup idle phase callback failed:", error);
+			}
 		}
 	}
 
-	function runPioAndBannerResume() {
-		resumePioSoftly();
-		window.__resetHomePreScrollState?.();
+	function drainIdleQueue() {
+		idleScheduled = false;
+		const queue = idleWorkQueue.splice(0);
+		for (const fn of queue) {
+			try {
+				fn();
+			} catch (error) {
+				console.error("Swup idle work failed:", error);
+			}
+		}
 	}
 
-	function dispatchTransitionReady() {
-		document.dispatchEvent(
-			new CustomEvent("swup:transition-ready", {
-				detail: { path: window.location.pathname },
-			}),
-		);
-	}
-
-	function scheduleIdlePhase(epoch, done) {
+	function scheduleIdle() {
+		if (idleScheduled || idleWorkQueue.length === 0) return;
+		idleScheduled = true;
 		const schedule =
 			window.requestIdleCallback ||
-			function (cb) {
-				setTimeout(cb, 48);
+			function (cb: IdleRequestCallback) {
+				return window.setTimeout(
+					() =>
+						cb({
+							didTimeout: false,
+							timeRemaining: () => 16,
+						} as IdleDeadline),
+					48,
+				);
 			};
-		schedule(
-			function () {
-				if (epoch !== transitionEpoch) return;
-				runIdleWorkQueue();
-				requestAnimationFrame(function () {
-					if (epoch !== transitionEpoch) return;
-					runIdlePhaseCallbacks();
-					requestAnimationFrame(function () {
-						if (epoch !== transitionEpoch) return;
-						runPioAndBannerResume();
-						if (typeof done === "function") {
-							done();
-						}
-					});
-				});
-			},
-			{ timeout: 500 },
-		);
+		schedule(drainIdleQueue, { timeout: 800 });
 	}
 
-	function finishTransitionResume(epoch) {
-		settlePageLayoutBeforeResume(epoch, function () {
-			if (epoch !== transitionEpoch) return;
-
-			document.documentElement.classList.remove("swup-perf-active");
-
-			const scrollTop = window.__homePreScrollWasUsed
-				? 0
-				: readDocumentScrollTop();
-			runWritePhase(scrollTop);
-
-			requestAnimationFrame(function () {
-				if (epoch !== transitionEpoch) return;
-				runLayoutPhase(scrollTop);
-				scheduleIdlePhase(epoch, function () {
-					requestAnimationFrame(dispatchTransitionReady);
-				});
-			});
-		});
-	}
-
-	function scheduleTransitionResume() {
-		if (resumeTimer !== null) {
-			clearTimeout(resumeTimer);
-		}
-
-		const epoch = transitionEpoch;
-		const isMobile = window.matchMedia("(max-width: 1279px)").matches;
-		const hadHomePreScroll = !!window.__homePreScrollWasUsed;
-		const baseDelay = isMobile ? getMobileShiftDurationMs() + 80 : 48;
-		const delay = hadHomePreScroll ? baseDelay + 80 : baseDelay;
-
-		resumeTimer = setTimeout(function () {
-			// 已有新换页开始，放弃这一轮恢复，交由新换页自己的恢复流程处理。
-			if (epoch !== transitionEpoch) {
-				return;
-			}
-
-			if (
-				document.documentElement.classList.contains("is-animating") ||
-				document.documentElement.classList.contains("is-changing")
-			) {
-				scheduleTransitionResume();
-				return;
-			}
-
-			finishTransitionResume(epoch);
-		}, delay);
-	}
-
-	function pauseTransitionHeavyWork() {
-		if (window.__homePreScrollActive) {
+	function announceTransitionReady() {
+		if (readyDone || readyScheduled) return;
+		const html = document.documentElement;
+		if (
+			html.classList.contains("is-layout-sliding") ||
+			html.classList.contains("is-changing") ||
+			html.classList.contains("is-animating")
+		) {
+			window.setTimeout(announceTransitionReady, 100);
 			return;
 		}
-
-		transitionDepth += 1;
-		if (transitionDepth > 1) return;
-
-		// 新一轮换页开始：递增 epoch，使上一轮遗留的恢复回调全部失效。
-		transitionEpoch += 1;
-
-		if (resumeTimer !== null) {
-			clearTimeout(resumeTimer);
-			resumeTimer = null;
-		}
-		document.documentElement.classList.add("swup-perf-active");
-		setPioContinuousDuringTransition();
-	}
-
-	function resumeTransitionHeavyWork() {
-		transitionDepth = Math.max(0, transitionDepth - 1);
-		if (transitionDepth > 0) return;
-		scheduleTransitionResume();
-	}
-
-	// 桌面端：在换页动画开始前完成新页面图片解码与首帧光栅化。
-	// 实测：动画期间若发生图片解码/重绘，Firefox 会把合成呈现速率在 60Hz↔240Hz
-	// 之间切换（此机器 240Hz 面板），切换瞬间即为主网格滑动的“抖动”。
-	// 提前完成全部重绘工作，让整个过渡在单一帧率模式下完成。
-	//
-	// 关键：只解码视口内（视口高 1.5 倍以内）的图片。
-	// 视口外、且处于 content-visibility: auto 跳过态的图片，调 .decode()
-	// 在 Chromium 上会无限挂起——浏览器认为该元素没在渲染中，没有要解码的
-	// 表面。Promise.all 因此永远不 settle，content:replace 的返回 Promise
-	// 不 resolve，Swup 不发 animation:in:start，is-animating 一直留在 <html>
-	// 上，.transition-main（即 #swup-container）卡在 opacity:0。追番页有 21
-	// 张 cover 全在 content-visibility:auto 的卡里，是唯一会触发的页面。
-	// 再加一个 400ms 硬超时兜底：即便将来某个 in-viewport 图解码也卡住，
-	// 也不会再卡死整次 visit。
-	function primeNewPageContent(): Promise<void> {
-		const images = Array.from(
-			document.querySelectorAll("#swup-container img"),
-		) as HTMLImageElement[];
-		const viewportHeight =
-			window.__swupPhaseInnerHeight || window.innerHeight;
-		const margin = viewportHeight * 1.5;
-		const decodes: Array<Promise<void>> = [];
-		for (const img of images) {
-			if (img.complete || typeof img.decode !== "function") continue;
-			const rect = img.getBoundingClientRect();
-			// content-visibility:auto + 视口外 = 跳过态。decode 会挂起。
-			// 只对真正会在首帧绘制的图调用 decode。
-			if (rect.bottom < -margin || rect.top > viewportHeight + margin) {
-				continue;
-			}
-			decodes.push(
-				img.decode().then(
-					function () {
-						return undefined;
-					},
-					function () {
-						return undefined;
-					},
-				),
+		readyScheduled = true;
+		const generation = visitGeneration;
+		requestAnimationFrame(() => {
+			if (generation !== visitGeneration || readyDone) return;
+			readyScheduled = false;
+			readyDone = true;
+			document.dispatchEvent(
+				new CustomEvent("swup:transition-ready", {
+					detail: { path: window.location.pathname },
+				}),
 			);
-		}
-
-		return new Promise<void>(function (resolve) {
-			let settled = false;
-			const finish = function () {
-				if (settled) return;
-				settled = true;
-				resolve();
-			};
-			// 硬超时：即使所有 decode 都被 content-visibility 卡住也不会阻塞
-			// 页面切换。实测正常情况 0–50ms 内 settle，400ms 是极保守兜底。
-			const timeoutId = window.setTimeout(finish, 400);
-			requestAnimationFrame(function () {
-				void document.documentElement.offsetHeight; // 强制样式/布局
-				requestAnimationFrame(function () {
-					void document.documentElement.offsetHeight; // 强制首帧绘制
-					Promise.all(decodes).then(function () {
-						window.clearTimeout(timeoutId);
-						requestAnimationFrame(function () {
-							void document.documentElement.offsetHeight;
-							finish();
-						});
-					});
-				});
-			});
+			runIdlePhaseCallbacks();
+			scheduleIdle();
 		});
 	}
 
-	function registerSwupPerfListeners() {
-		if (perfListenersRegistered || !window.swup?.hooks) return;
-		perfListenersRegistered = true;
-
-		window.swup.hooks.on("visit:start", pauseTransitionHeavyWork);
-		window.swup.hooks.on("animation:out:start", pauseTransitionHeavyWork);
-		window.swup.hooks.on("animation:in:end", resumeTransitionHeavyWork);
-		window.swup.hooks.on("visit:end", resumeTransitionHeavyWork);
-
-		// 移动端：content:replace 时立即设置文章页布局，避免过渡期间的 gap 闪现
-		window.swup.hooks.on("content:replace", function () {
-			if (window.innerWidth <= 1279) {
-				var mainPanel = document.querySelector(
-					".absolute.w-full.z-30",
-				) as HTMLElement | null;
-				if (mainPanel && !document.body.classList.contains("is-home")) {
-					mainPanel.style.transition = "none";
-					mainPanel.style.top = "calc(5.5rem + 1rem)";
-					mainPanel.style.minHeight = "calc(100vh - 6.5rem)";
-					mainPanel.classList.add("mobile-main-no-banner");
-				}
-				return;
-			}
-
-			// 桌面端：先完成解码/光栅化再进入动画（swup 会等待返回的 Promise）
-			return primeNewPageContent();
-		});
-	}
-
-	function bootstrapSwupPerf() {
-		registerSwupPerfListeners();
-	}
-
-	window.__onSwupPageWritePhase = function (fn) {
-		if (typeof fn === "function") {
-			writePhaseCallbacks.push(fn);
-		}
-	};
-
-	window.__onSwupPageLayoutPhase = function (fn) {
-		if (typeof fn === "function") {
-			layoutPhaseCallbacks.push(fn);
-		}
-	};
-
+	// Kept as globals because sidebar widgets and the theme scaler register
+	// through them from independently bundled scripts.
 	window.__onSwupPageIdlePhase = function (fn) {
-		if (typeof fn === "function") {
-			idlePhaseCallbacks.push(fn);
-		}
+		if (typeof fn === "function") idlePhaseCallbacks.push(fn);
 	};
 
 	window.__scheduleSwupIdleWork = function (fn) {
-		if (typeof fn === "function") {
-			idleWorkQueue.push(fn);
-		}
-		if (
-			transitionDepth === 0 &&
-			!idleDrainScheduled &&
-			idleWorkQueue.length > 0
-		) {
-			idleDrainScheduled = true;
-			var schedule =
-				window.requestIdleCallback ||
-				function (cb) {
-					setTimeout(cb, 48);
-				};
-			schedule(
-				function () {
-					idleDrainScheduled = false;
-					if (transitionDepth === 0) {
-						runIdleWorkQueue();
-					}
-				},
-				{ timeout: 500 },
-			);
-		}
+		if (typeof fn !== "function") return;
+		idleWorkQueue.push(fn);
+		scheduleIdle();
 	};
 
-	window.__deferWallpaperNavbarSync = function () {
-		window.__pendingWallpaperSync = true;
-	};
-
-	document.dispatchEvent(new CustomEvent("swup:swup-perf-ready"));
-
-	document.addEventListener("swup:enable", registerSwupPerfListeners);
-
-	if (document.readyState === "loading") {
-		document.addEventListener("DOMContentLoaded", bootstrapSwupPerf);
-	} else {
-		bootstrapSwupPerf();
+	function attach() {
+		if (!window.swup?.hooks) return false;
+		window.swup.hooks.on("visit:start", () => {
+			visitGeneration++;
+			readyDone = false;
+			readyScheduled = false;
+		});
+		window.swup.hooks.on("visit:end", announceTransitionReady);
+		document.addEventListener("vedaru:layout-settled", () => {
+			announceTransitionReady();
+		});
+		return true;
 	}
+
+	if (!attach()) {
+		document.addEventListener("swup:enable", attach, { once: true });
+	}
+
+	window.addEventListener("load", scheduleIdle, { once: true });
 })();
 
-// 只是一个注册钩子的模块：没有任何导出，显式标记为模块
 export {};
