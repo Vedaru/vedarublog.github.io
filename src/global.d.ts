@@ -35,7 +35,6 @@ declare global {
 			isLoaded: boolean;
 		};
 		siteConfig: any;
-		__pendingLayoutMode?: string;
 		__lastModifiedBootstrapped?: boolean;
 		initLastModifiedPage?: () => void;
 		__twikooInitBootstrapped?: boolean;
@@ -56,7 +55,6 @@ declare global {
 		tocClickTimestamp?: number;
 		__onSwupPageIdlePhase?: (fn: () => void) => void;
 		__scheduleSwupIdleWork?: (fn: () => void) => void;
-		__wallpaperSwitchTimer?: number;
 		__syncTocHideForScroll?: (
 			scrollTop: number,
 			innerHeight?: number,

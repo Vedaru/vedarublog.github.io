@@ -23,10 +23,6 @@ const posts = sortedPostsList.map((post) => ({
 ---
 
 <MainGridLayout title={i18n(I18nKey.archive, Astro.currentLocale)} dualLocale>
-	<!-- 引入右侧边栏布局管理器 -->
-	<script>
-		import("@/scripts/right-sidebar-layout.js");
-	</script>
 
 	<!-- 列表在服务端渲染（client:load 而非 client:only），首屏即有内容：
 	     既避免 hydration 后才插入列表造成的下移/跳动，也利于 SEO。 -->

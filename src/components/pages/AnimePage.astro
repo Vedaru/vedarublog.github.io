@@ -106,10 +106,6 @@ const resolvedAnimeList = animeList.map((anime) => ({
 	description={i18n(I18nKey.animeSubtitle, Astro.currentLocale)}
 	dualLocale
 >
-	<!-- 让列表/网格布局切换时右侧边栏同步隐藏（原 anime-page.js 里的手工处理） -->
-	<script>
-		import('@/scripts/right-sidebar-layout.js');
-	</script>
 	<div
 		class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative min-h-32"
 	>

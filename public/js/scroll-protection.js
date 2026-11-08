@@ -11,12 +11,10 @@
 	}
 	window.__scrollProtectionBootstrapped = true;
 
-	// 保存原始的滚动方法（供预滚动等需要绕过劫持的场景使用）
+	// 保存原始的滚动方法，供拦截器内部调用
 	const originalScrollTo = window.scrollTo.bind(window);
 	const originalScrollBy = window.scrollBy.bind(window);
 	const originalScrollIntoView = Element.prototype.scrollIntoView;
-	window.__nativeScrollTo = originalScrollTo;
-	window.__nativeScrollBy = originalScrollBy;
 
 	// 滚动保护状态
 	const scrollProtection = {
@@ -55,8 +53,7 @@
 		var html = document.documentElement;
 		if (
 			html.classList.contains("is-changing") ||
-			html.classList.contains("is-animating") ||
-			html.classList.contains("swup-perf-active")
+			html.classList.contains("is-animating")
 		) {
 			return;
 		}
@@ -95,14 +92,8 @@
 		var html = document.documentElement;
 		if (
 			html.classList.contains("is-changing") ||
-			html.classList.contains("is-animating") ||
-			html.classList.contains("swup-perf-active")
+			html.classList.contains("is-animating")
 		) {
-			return true;
-		}
-
-		// 换页预滚动 / 平滑回顶组件自行驱动 scrollTop
-		if (window.__homePreScrollActive) {
 			return true;
 		}
 

@@ -293,9 +293,7 @@ html.is-manual-scroll-syncing #navbar > div {
   /* Swup 页面切换、壁纸模式切换期间禁止横向溢出 */
   html.is-changing,
   html.is-animating,
-  html.is-leaving,
-  body.wallpaper-switching,
-  body.layout-switching {
+  html.is-leaving {
     overflow-x: clip;
   }
 
@@ -310,10 +308,6 @@ html.is-manual-scroll-syncing #navbar > div {
   .absolute.w-full.z-30 {
     max-width: 100%;
     min-width: 0;
-    overflow-x: clip;
-  }
-
-  #post-list-container.layout-switching {
     overflow-x: clip;
   }
 
@@ -345,17 +339,6 @@ html.is-manual-scroll-syncing #navbar > div {
 
 /* 关键：页面加载时立即应用正确的移动端样式 */
 @media (max-width: 768px) {
-  /* 强制在初始化前隐藏内容，避免闪烁 */
-  #post-list-container:not(.js-initialized) {
-    opacity: 0;
-    transition: opacity 0.1s ease-in-out;
-  }
-
-  /* JavaScript初始化完成后显示内容 */
-  #post-list-container.js-initialized {
-    opacity: 1;
-  }
-
   /* 确保移动端使用紧凑的列表布局 */
   #post-list-container {
     display: flex !important;

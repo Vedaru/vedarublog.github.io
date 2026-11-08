@@ -4,6 +4,11 @@ export interface MainGridSwupConfig {
 	defaultPostListLayout: string;
 }
 
+/**
+ * Wallpaper and post-list layout are configuration, not runtime state.
+ * Apply them once and re-assert them after a Swup visit; no layout toggling,
+ * no wallpaper transition timers.
+ */
 export function initMainGridSwup(config: MainGridSwupConfig): void {
 	const {
 		navbarTransparentMode,
@@ -11,255 +16,43 @@ export function initMainGridSwup(config: MainGridSwupConfig): void {
 		defaultPostListLayout,
 	} = config;
 
-	function setMainGridLayout(mainGrid, layout) {
-		if (!mainGrid) return;
-		mainGrid.classList.remove("layout-switching");
-		mainGrid.setAttribute("data-layout-mode", layout);
-	}
+	function apply() {
+		const html = document.documentElement;
+		html.setAttribute("data-wallpaper-mode", defaultWallpaperMode);
+		html.setAttribute("data-post-list-layout", defaultPostListLayout);
 
-	function getWallpaperMode() {
-		return defaultWallpaperMode;
-	}
+		window.__applyWallpaperBodyClasses?.(defaultWallpaperMode);
 
-	function getPostListLayout() {
-		return defaultPostListLayout;
-	}
-
-	function syncWallpaperDataset(mode) {
-		document.documentElement.setAttribute("data-wallpaper-mode", mode);
-	}
-
-	function syncPostListDataset(layout) {
-		document.documentElement.setAttribute("data-post-list-layout", layout);
-	}
-
-	function applyWallpaperBodyClasses(mode) {
-		window.__applyWallpaperBodyClasses?.(mode);
-	}
-
-	function isWallpaperBodySynced(mode) {
-		var body = document.body;
-		switch (mode) {
-			case "banner":
-				return (
-					body.classList.contains("enable-banner") &&
-					!body.classList.contains("no-banner-mode")
-				);
-			case "none":
-				return (
-					body.classList.contains("no-banner-mode") &&
-					!body.classList.contains("enable-banner")
-				);
-			default:
-				return false;
+		const mainGrid = document.getElementById("main-grid");
+		if (mainGrid) {
+			mainGrid.setAttribute("data-layout-mode", defaultPostListLayout);
 		}
-	}
 
-	function syncTocHideForScroll(scrollTop, innerHeight) {
-		window.__syncTocHideForScroll?.(scrollTop, innerHeight);
-	}
-
-	function initWallpaperNavbarAndToc(
-		wallpaperMode: string,
-		cachedScrollTop?: number,
-		options?: {
-			skipSemifullInit?: boolean;
-			skipTocHideSync?: boolean;
-		},
-	) {
-		var scrollTop =
-			typeof cachedScrollTop === "number"
-				? cachedScrollTop
-				: window.scrollY || document.documentElement.scrollTop || 0;
-		var navbar = document.getElementById("navbar");
-		if (wallpaperMode === "banner") {
-			if (navbar) {
+		const navbar = document.getElementById("navbar");
+		if (navbar) {
+			if (defaultWallpaperMode === "banner") {
 				navbar.removeAttribute("data-dynamic-transparent");
 				navbar.setAttribute(
 					"data-transparent-mode",
 					navbarTransparentMode,
 				);
-				if (
-					!options?.skipSemifullInit &&
-					navbarTransparentMode === "semifull" &&
-					window.initSemifullScrollDetection
-				) {
-					window.initSemifullScrollDetection(scrollTop);
-				}
-			}
-		} else {
-			if (navbar) {
+			} else {
 				navbar.setAttribute("data-dynamic-transparent", "none");
 				navbar.removeAttribute("data-transparent-mode");
 			}
 		}
 
-		if (!options?.skipTocHideSync) {
-			syncTocHideForScroll(scrollTop, window.innerHeight);
-		}
-	}
-
-	function syncMainGridLayoutFromDataset() {
-		var layout =
-			document.documentElement.getAttribute("data-post-list-layout") ||
-			getPostListLayout();
-		var mainGrid = document.getElementById("main-grid");
-		if (mainGrid) {
-			setMainGridLayout(mainGrid, layout);
-		}
-	}
-
-	// DOM 加载后执行
-	if (document.readyState === "loading") {
-		document.addEventListener("DOMContentLoaded", function () {
-			applyWallpaperMode(true);
-			syncMainGridLayoutFromDataset();
-		});
-	} else {
-		applyWallpaperMode(true);
-		syncMainGridLayoutFromDataset();
-	}
-
-	function isSwupTransitionLocked() {
-		var html = document.documentElement;
-		return (
-			html.classList.contains("is-changing") ||
-			html.classList.contains("is-animating")
+		window.__syncTocHideForScroll?.(
+			window.scrollY || document.documentElement.scrollTop || 0,
+			window.innerHeight,
 		);
 	}
 
-	function runWallpaperSyncOnTransition(cachedScrollTop) {
-		var wallpaperMode = getWallpaperMode();
-		syncWallpaperDataset(wallpaperMode);
-
-		var scrollTop =
-			typeof cachedScrollTop === "number"
-				? cachedScrollTop
-				: window.scrollY || document.documentElement.scrollTop || 0;
-		applyWallpaperBodyClasses(wallpaperMode);
-		initWallpaperNavbarAndToc(wallpaperMode, scrollTop, {
-			skipSemifullInit: true,
-			skipTocHideSync: true,
-		});
+	if (document.readyState === "loading") {
+		document.addEventListener("DOMContentLoaded", apply, { once: true });
+	} else {
+		apply();
 	}
 
-	function applyWallpaperMode(isInitialLoad) {
-		var wallpaperMode = getWallpaperMode();
-		syncWallpaperDataset(wallpaperMode);
-
-		if (isInitialLoad && isWallpaperBodySynced(wallpaperMode)) {
-			initWallpaperNavbarAndToc(wallpaperMode);
-			return;
-		}
-
-		if (!isInitialLoad && isSwupTransitionLocked()) {
-			return;
-		}
-
-		var body = document.body;
-		body.classList.add("wallpaper-switching");
-		if (window.__wallpaperSwitchTimer) {
-			window.clearTimeout(window.__wallpaperSwitchTimer);
-		}
-		window.__wallpaperSwitchTimer = window.setTimeout(function () {
-			body.classList.remove("wallpaper-switching");
-		}, 750);
-
-		requestAnimationFrame(function () {
-			var scrollTop =
-				window.scrollY || document.documentElement.scrollTop || 0;
-			applyWallpaperBodyClasses(wallpaperMode);
-			initWallpaperNavbarAndToc(wallpaperMode, scrollTop);
-		});
-	}
-
-	// Swup 页面过渡布局同步
-	function setupSwupLayoutSync() {
-		// @ts-ignore
-		if (typeof window !== "undefined" && window.swup) {
-			// animation:out:start 前准备布局
-			// @ts-ignore
-			window.swup.hooks.on("animation:out:start", function () {
-				var pendingLayout = getPostListLayout();
-				if (pendingLayout) {
-					// @ts-ignore
-					window.__pendingLayoutMode = pendingLayout;
-				}
-			});
-
-			// 在内容替换后立即应用布局，不等待其他脚本
-			// @ts-ignore
-			window.swup.hooks.on("content:replace", function () {
-				const mainGrid = document.getElementById("main-grid");
-				if (mainGrid) {
-					// @ts-ignore
-					const currentLayout =
-						window.__pendingLayoutMode || getPostListLayout();
-					setMainGridLayout(mainGrid, currentLayout);
-					syncPostListDataset(currentLayout);
-					const postListContainer = document.getElementById(
-						"post-list-container",
-					);
-					if (postListContainer) {
-						// 移除现有布局类
-						postListContainer.classList.remove(
-							"list-mode",
-							"grid-mode",
-						);
-
-						if (currentLayout === "grid") {
-							postListContainer.classList.add("grid-mode");
-							postListContainer.classList.add(
-								"grid",
-								"grid-cols-1",
-								"lg:grid-cols-2",
-								"gap-6",
-							);
-							postListContainer.classList.remove(
-								"flex",
-								"flex-col",
-							);
-						} else {
-							postListContainer.classList.add("list-mode");
-							postListContainer.classList.add("flex", "flex-col");
-							postListContainer.classList.remove(
-								"grid",
-								"grid-cols-1",
-								"lg:grid-cols-2",
-								"gap-6",
-							);
-						}
-					}
-
-					// 清除临时状态
-					// @ts-ignore
-					delete window.__pendingLayoutMode;
-				}
-			});
-
-			return true;
-		}
-		return false;
-	}
-
-	// 尝试立即设置；失败则在编排器就绪前短暂重试
-	if (!setupSwupLayoutSync()) {
-		const checkSwup = setInterval(function () {
-			if (setupSwupLayoutSync()) {
-				clearInterval(checkSwup);
-			}
-		}, 50);
-
-		setTimeout(function () {
-			clearInterval(checkSwup);
-		}, 2000);
-	}
-
-	// Swup 换页：内容替换完成后同步壁纸/navbar 状态
-	document.addEventListener("swup:page:view", function () {
-		requestAnimationFrame(function () {
-			runWallpaperSyncOnTransition(undefined);
-			syncMainGridLayoutFromDataset();
-		});
-	});
+	document.addEventListener("swup:transition-ready", apply);
 }

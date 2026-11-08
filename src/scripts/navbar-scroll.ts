@@ -13,13 +13,13 @@ function shouldSkipNavbarScrollSync() {
 export function initNavbarScroll() {
 	let backToTopBtn = document.getElementById("back-to-top-btn");
 	let navbar = document.getElementById("navbar-wrapper");
-	const contentWrapperRef = document.getElementById("content-wrapper");
 	let backToTopThreshold = 0;
 	let scrollEndTimer: ReturnType<typeof setTimeout> | null = null;
 
 	function cacheContentWrapperOffset() {
-		if (contentWrapperRef) {
-			const rect = contentWrapperRef.getBoundingClientRect();
+		const contentWrapper = document.getElementById("content-wrapper");
+		if (contentWrapper) {
+			const rect = contentWrapper.getBoundingClientRect();
 			backToTopThreshold =
 				rect.top + window.scrollY + window.innerHeight / 4;
 		} else {
@@ -32,7 +32,7 @@ export function initNavbarScroll() {
 		requestAnimationFrame(cacheContentWrapperOffset);
 	});
 
-	document.addEventListener("swup:page:view", () => {
+	document.addEventListener("swup:transition-ready", () => {
 		requestAnimationFrame(() => {
 			requestAnimationFrame(cacheContentWrapperOffset);
 		});

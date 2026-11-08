@@ -107,9 +107,7 @@ const tabletShowLeftSidebar = hasTabletLeftSidebarComponents;
 const tabletShowRightSidebar = false; // 平板端不再有独立的右侧栏，如果右移左了，它就在 tabletShowLeftSidebar 中显示
 const tabletAnySidebar = tabletShowLeftSidebar;
 
-// 检查默认布局模式，如果是 grid 模式，右侧边栏初始就应该隐藏
 const defaultPostListLayout = siteConfig.postListLayout?.defaultMode || "list";
-const initialRightSidebarHidden = defaultPostListLayout === "grid";
 
 // 动态网格布局类名 - 根据侧边栏模式和是否有组件调整列宽
 let desktopGridCols = "lg:grid-cols-1";
@@ -143,13 +141,11 @@ const sidebarClass = `
 // 手机端：隐藏（手机端只通过 drawer 显示组件）
 // 平板端：根据简化逻辑显示（只有当左侧为空时才显示并移到左侧）
 // 桌面端：定位到网格最后一列（右侧）
-// 如果默认是 grid 模式，初始就隐藏
 const rightSidebarClass = `
 	onload-animation
 	hidden
 	${tabletShowRightSidebar ? "md:block md:mb-4 md:max-w-[17.5rem]" : "md:hidden"}
 	${desktopShowRightSidebar ? `lg:block lg:mb-4 lg:row-start-1 lg:row-end-2 lg:max-w-[17.5rem] ${desktopShowLeftSidebar ? "lg:col-start-3 lg:col-end-4" : "lg:col-start-2 lg:col-end-3"} lg:col-span-1` : "lg:hidden"}
-	${initialRightSidebarHidden ? "hidden-in-grid-mode" : ""}
 `
 	.trim()
 	.replace(/\s+/g, " ");
@@ -440,11 +436,6 @@ body.no-banner-mode #toc-inner-wrapper {
 .no-banner-layout {
     top: 5.5rem !important;
     min-height: calc(100vh - 5.5rem) !important;
-}
-
-/* Grid 模式下隐藏右侧边栏 */
-.right-sidebar-container.hidden-in-grid-mode {
-    display: none !important;
 }
 
 /* Grid 模式下调整主网格布局 */

@@ -121,33 +121,21 @@ body:has(#banner-wrapper)
 html.is-changing .card-base,
 html.is-animating .card-base,
 html.is-leaving .card-base,
-html.is-theme-transitioning .card-base,
-html.is-home-pre-scrolling .card-base,
-html.is-visit-pre-scrolling .card-base,
-html.swup-perf-active .card-base,
-body.wallpaper-switching .card-base,
-body.layout-switching .card-base,
-#main-grid.layout-switching .card-base {
+html.is-theme-transitioning .card-base {
 	background-color: var(--card-bg) !important;
 	transition: none !important;
 }
 
 html.is-changing #navbar:not([data-transparent-mode="semifull"]) > div,
 html.is-animating #navbar:not([data-transparent-mode="semifull"]) > div,
-html.is-theme-transitioning #navbar:not([data-transparent-mode="semifull"]) > div,
-html.is-home-pre-scrolling #navbar:not([data-transparent-mode="semifull"]) > div,
-html.is-visit-pre-scrolling #navbar:not([data-transparent-mode="semifull"]) > div,
-body.wallpaper-switching #navbar:not([data-transparent-mode="semifull"]) > div {
+html.is-theme-transitioning #navbar:not([data-transparent-mode="semifull"]) > div {
 	background-color: var(--card-bg) !important;
 	transition: none !important;
 }
 
 html.is-changing #navbar[data-transparent-mode="semifull"] > div,
 html.is-animating #navbar[data-transparent-mode="semifull"] > div,
-html.is-theme-transitioning #navbar[data-transparent-mode="semifull"] > div,
-html.is-home-pre-scrolling #navbar[data-transparent-mode="semifull"] > div,
-html.is-visit-pre-scrolling #navbar[data-transparent-mode="semifull"] > div,
-body.wallpaper-switching #navbar[data-transparent-mode="semifull"] > div {
+html.is-theme-transitioning #navbar[data-transparent-mode="semifull"] > div {
 	transition: none !important;
 }
 

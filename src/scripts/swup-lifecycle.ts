@@ -149,6 +149,36 @@ function syncThemeFromStorage() {
 let layoutApplyGeneration = 0;
 let postTransitionTimer: number | null = null;
 
+/**
+ * Scroll the current page to the top before Swup starts. Doing it after the
+ * grid transform begins makes the sticky sidebar travel with the scroll.
+ * Native smooth scroll with a short cap replaces the old JS tween runtime.
+ */
+function resetScrollBeforeVisit(): Promise<void> {
+	const scroller = document.scrollingElement || document.documentElement;
+	if (scroller.scrollTop <= 0) return Promise.resolve();
+
+	if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+		scroller.scrollTop = 0;
+		return Promise.resolve();
+	}
+
+	return new Promise((resolve) => {
+		let done = false;
+		const finish = () => {
+			if (done) return;
+			done = true;
+			window.removeEventListener("scrollend", finish);
+			scroller.scrollTop = 0;
+			resolve();
+		};
+
+		window.addEventListener("scrollend", finish, { once: true });
+		window.setTimeout(finish, 450);
+		window.scrollTo({ top: 0, behavior: "smooth" });
+	});
+}
+
 function schedulePostTransition() {
 	if (postTransitionTimer !== null) {
 		window.clearTimeout(postTransitionTimer);
@@ -222,7 +252,8 @@ function setup() {
 
 	window.swup?.hooks.on(
 		"visit:start",
-		() => {
+		async () => {
+			await resetScrollBeforeVisit();
 			resetSwupIdle();
 			if (postTransitionTimer !== null) {
 				window.clearTimeout(postTransitionTimer);
@@ -238,7 +269,7 @@ function setup() {
 				"toc-not-ready",
 			);
 		},
-		{ priority: 0 },
+		{ before: true, priority: -200 },
 	);
 
 	window.swup?.hooks.on(
