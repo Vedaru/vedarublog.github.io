@@ -37,6 +37,9 @@ const SITE_BUILD_ID =
 
 // https://astro.build/config
 export default defineConfig({
+	// The dev toolbar's xray plugin walks every island on each page view and
+	// forces layout while the banner is sliding. Keep it out of transition work.
+	devToolbar: { enabled: false },
 	site: siteConfig.siteURL,
 	base: "/",
 	trailingSlash: "always",

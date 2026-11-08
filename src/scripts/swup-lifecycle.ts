@@ -15,7 +15,8 @@ import { resetSwupIdle, runSwupIdle } from "./runtime/swup-idle";
 
 const DYNAMIC_STYLE_PATTERN =
 	/\/_astro\/.*(fancybox|katex|jetbrains|fancybox-custom)/i;
-const POST_TRANSITION_MS = 700;
+const LAYOUT_TRANSITION_MS = 800;
+const CONTENT_TRANSITION_MS = 220;
 const bannerEnabled = !!document.getElementById("banner-wrapper");
 
 function removeViteInjectedStyles() {
@@ -110,9 +111,17 @@ function runPageLayout() {
  * the movement; this only flips the state.
  */
 function applyTargetLayout(visit: { to: { url: string } }) {
+	const wasHome = document.body.classList.contains("is-home");
 	const isHomePage = isMainHomePage(pathFromUrl(visit.to.url));
+	layoutSlides =
+		wasHome !== isHomePage &&
+		window.matchMedia("(min-width: 1280px)").matches;
 
 	window.__applyVisitBodyLayout?.(visit);
+
+	if (layoutSlides) {
+		document.documentElement.classList.add("is-layout-sliding");
+	}
 
 	const navbar = document.getElementById("navbar");
 	if (navbar) {
@@ -150,6 +159,7 @@ function syncThemeFromStorage() {
 
 let postTransitionTimer: number | null = null;
 let pageHeightTimer: number | null = null;
+let layoutSlides = false;
 
 function setPageHeightExtend(visible: boolean) {
 	if (pageHeightTimer !== null) {
@@ -176,13 +186,17 @@ function schedulePostTransition() {
 	const delay = window.matchMedia("(prefers-reduced-motion: reduce)")
 		.matches
 		? 0
-		: POST_TRANSITION_MS;
+		: layoutSlides
+			? LAYOUT_TRANSITION_MS
+			: CONTENT_TRANSITION_MS;
 	postTransitionTimer = window.setTimeout(() => {
 		postTransitionTimer = null;
 		runPageLayout();
 		runDeferredInit();
 		runSwupIdle();
 		document.getElementById("toc-wrapper")?.classList.remove("toc-not-ready");
+		document.documentElement.classList.remove("is-layout-sliding");
+		layoutSlides = false;
 	}, delay);
 }
 
@@ -244,6 +258,7 @@ function setup() {
 		"visit:start",
 		() => {
 			setPageHeightExtend(true);
+			document.documentElement.classList.remove("is-layout-sliding");
 			// Start Swup's own smooth scroll while the outgoing page is still
 			// visible. By the time content:replace runs the page is near the
 			// top, so the new article does not appear from mid-page.
@@ -279,6 +294,7 @@ function setup() {
 			applyTargetLayout(visit);
 			window.__applyVisitBannerLayout?.(visit);
 			attachStylesheetErrorGuard();
+			schedulePostTransition();
 		},
 	);
 
@@ -298,7 +314,6 @@ function setup() {
 	});
 
 	window.swup?.hooks.on("visit:end", () => {
-		schedulePostTransition();
 		collapsePageHeightAfterVisit();
 	});
 
