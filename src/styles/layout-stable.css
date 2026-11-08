@@ -33,9 +33,18 @@
 }
 
 /* The banner is two layers in Fuwari: the wrapper slides the whole image,
-   and the image itself offsets by `--bannerOffset` on content pages so the
+   and the image itself offsets by `--banner-offset` on content pages so the
    visible 35vh strip shows the centre of the artwork. Both use the same
    700ms clock, so the crop moves with the wrapper instead of snapping. */
+/* Promote both banner layers for the duration of the site. They are the only
+   large bitmaps that move on every visit; recreating the layer mid-transition
+   shows up as a one-frame shimmer. */
+#banner-wrapper,
+#banner {
+	will-change: transform;
+	backface-visibility: hidden;
+}
+
 #banner {
 	transition: transform 700ms cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -46,21 +55,34 @@ body.no-banner-mode #banner-wrapper {
 
 /* ── Desktop: home reveals 65vh, content pages show the 35vh strip ───── */
 @media (min-width: 1280px) {
+	/* The last 4px of the banner sit *under* the grid instead of ending
+	   exactly on its edge. Two independently composited layers can round a
+	   shared edge to different pixels for a frame, which shows up as a
+	   hairline flicker. The grid paints over the extra strip, so this is
+	   invisible and the visible edge stays where the content starts. */
 	html[data-wallpaper-mode="banner"] body.enable-banner #banner-wrapper {
-		transform: translateY(0);
+		height: calc(var(--banner-height-home, 65vh) + 4px);
+	}
+
+	html[data-wallpaper-mode="banner"] body.enable-banner #banner-wrapper {
+		transform: translate3d(0, 0, 0);
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
 		#banner-wrapper {
-		transform: translateY(var(--banner-height-extend, 30dvh));
+		transform: translate3d(
+			0,
+			var(--banner-height-extend, 30dvh),
+			0
+		);
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner #banner {
-		transform: translateY(var(--bannerOffset, 0px));
+		transform: translate3d(0, var(--banner-offset, 0px), 0);
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home #banner {
-		transform: translateY(0);
+		transform: translate3d(0, 0, 0);
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner .main-panel {
@@ -79,12 +101,16 @@ body.no-banner-mode #banner-wrapper {
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner #main-grid {
-		transform: translateY(0);
+		transform: translate3d(0, 0, 0);
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
 		#main-grid {
-		transform: translateY(var(--banner-height-extend, 30dvh));
+		transform: translate3d(
+			0,
+			var(--banner-height-extend, 30dvh),
+			0
+		);
 	}
 
 	#sidebar-sticky,

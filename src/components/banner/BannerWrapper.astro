@@ -26,29 +26,20 @@ const {
 <!-- Banner - 始终渲染，通过 JS 控制显示隐藏 -->
 <div id="banner-wrapper" class={`absolute z-10 w-full overflow-hidden ${mobileNonHomeBannerClass}`}>
     {desktopBannerResponsive && (
-        <div id="banner" class="relative h-full w-full overflow-hidden object-cover">
-            <picture class="block h-full w-full">
-                <source
-                    media="(max-width: 767px)"
-                    srcset={`${url((mobileBannerResponsive ?? desktopBannerResponsive).w768)} 768w`}
-                />
-                <source
-                    media="(min-width: 768px)"
-                    srcset={`${url(desktopBannerResponsive.w1280)} 1280w, ${url(desktopBannerResponsive.full)} 1920w, ${url(desktopBannerResponsive.w2560)} 2560w`}
-                    sizes="100vw"
-                />
-                <img
-                    alt="Banner image of the blog"
-                    class="object-cover w-full h-full"
-                    src={url(desktopBannerResponsive.full)}
-                    width={1920}
-                    height={1097}
-                    style={`object-position: ${bannerObjectPosition}`}
-                    loading="eager"
-                    fetchpriority="high"
-                    decoding="async"
-                />
-            </picture>
+        <div id="banner" class="relative h-full w-full">
+            <img
+                alt="Banner image of the blog"
+                class="object-cover w-full h-full"
+                src={url(desktopBannerResponsive.full)}
+                srcset={`${url((mobileBannerResponsive ?? desktopBannerResponsive).w768)} 768w, ${url(desktopBannerResponsive.w1280)} 1280w, ${url(desktopBannerResponsive.full)} 1920w, ${url(desktopBannerResponsive.w2560)} 2560w`}
+                sizes="100vw"
+                width={1920}
+                height={1097}
+                style={`object-position: ${bannerObjectPosition}`}
+                loading="eager"
+                fetchpriority="high"
+                decoding="async"
+            />
         </div>
     )}
 </div>

@@ -5,6 +5,8 @@
  * so every visit swaps in a fresh element. The custom element only needs to
  * wire observers to the new headings; it never builds HTML.
  */
+import { runAfterLayoutSettled } from "./runtime/after-transition";
+
 class TableOfContents extends HTMLElement {
 	tocEl: HTMLElement | null = null;
 	visibleClass = "visible";
@@ -141,27 +143,11 @@ class TableOfContents extends HTMLElement {
 	};
 
 	connectedCallback() {
-		// Wait for the content entrance animation; getBoundingClientRect is
-		// meaningless while the article is still translated 2rem down.
-		const prose =
-			document.querySelector(".custom-md") ||
-			document.querySelector(".markdown-content");
-		if (!prose) {
-			this.init();
-			return;
-		}
-
-		const onEnd = (event: AnimationEvent) => {
-			if (event.target !== prose) return;
-			prose.removeEventListener("animationend", onEnd);
-			this.init();
-		};
-		prose.addEventListener("animationend", onEnd);
-		// Reduced motion and already-finished animations have no event.
-		window.setTimeout(() => {
-			prose.removeEventListener("animationend", onEnd);
-			this.init();
-		}, 450);
+		// The content entrance animation ends while the 700ms grid glide is
+		// still running. Initialising here would read section geometry and
+		// start an IntersectionObserver in the middle of the slide, which
+		// shows up as a dropped frame on wide screens.
+		runAfterLayoutSettled(() => this.init());
 	}
 
 	init() {

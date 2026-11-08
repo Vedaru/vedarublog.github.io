@@ -84,7 +84,9 @@ const init = () => {
 
 onMount(() => {
 	const timeoutId = window.setTimeout(init, 100);
-	const onPageLoad = () => window.setTimeout(init, 0);
+	// page:view fires mid-glide; the mobile panel is closed then, so wait for
+	// the layout transform before rebuilding its heading list.
+	const onPageLoad = () => window.setTimeout(init, 750);
 	document.addEventListener("astro:page-load", onPageLoad);
 
 	return () => {

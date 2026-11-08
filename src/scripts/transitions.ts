@@ -46,6 +46,10 @@ function setHomeLayout(isHome: boolean): void {
  * still visible would make that page jump.
  */
 function setBannerVisibility(isHome: boolean): void {
+	// Desktop does not hide the banner on content pages. Skipping the class
+	// mutation keeps the composited banner layer untouched during the swap.
+	if (window.innerWidth >= 1280) return;
+
 	document
 		.getElementById("banner-wrapper")
 		?.classList.toggle("mobile-hide-banner", !isHome);
@@ -205,6 +209,9 @@ export function initTransitions(): void {
 		"resize",
 		() => {
 			updateScrollChrome();
+			setBannerVisibility(
+				document.body.classList.contains("is-home"),
+			);
 		},
 		{ passive: true },
 	);

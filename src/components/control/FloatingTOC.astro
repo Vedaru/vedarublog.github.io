@@ -493,7 +493,7 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 				if (e.key === "Escape" && this.isOpen) this.close();
 			});
 			document.addEventListener("astro:page-load", () => {
-				window.setTimeout(() => this.reinit(), 350);
+				window.setTimeout(() => this.reinit(), 750);
 			});
 		}
 

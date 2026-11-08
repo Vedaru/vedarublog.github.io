@@ -99,7 +99,7 @@ const allIcons = skillsData.map((skill) => skill.icon).filter(Boolean);
       </div>
 
       <!-- 分类筛选标签（Svelte 岛屿，客户端切换技能卡片的可见性） -->
-      <SkillsPanel tabs={filterTabs} client:load />
+      <SkillsPanel tabs={filterTabs} client:idle />
 
       <!-- 技能网格 -->
       <div class="skills-container" style="container-type: inline-size;">

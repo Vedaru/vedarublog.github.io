@@ -67,6 +67,10 @@ html.is-animating .transition-swup-fade {
 }
 #swup-container {
 	outline: none;
+	/* The main column is the only subtree whose contents change on a visit.
+	   Paint containment keeps that invalidation from re-rastering the whole
+	   transformed grid layer while the banner is gliding. */
+	contain: paint;
 }
 #content-wrapper {
 	animation-delay: var(--content-delay);
