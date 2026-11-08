@@ -104,9 +104,10 @@ function runPageLayout() {
 }
 
 /**
- * Flip the target layout. Called at visit:start so the grid/banner slide runs
- * alongside Swup's scroll animation, then again after content:replace for the
- * new DOM. The CSS transition does the movement; this only flips the state.
+ * Flip the target layout after content:replace. Swup starts its smooth scroll
+ * in the same phase, so the 700ms grid/banner transform and the scroll run
+ * together instead of moving the outgoing page first. The CSS transition does
+ * the movement; this only flips the state.
  */
 function applyTargetLayout(visit: { to: { url: string } }) {
 	const isHomePage = isMainHomePage(pathFromUrl(visit.to.url));
@@ -241,9 +242,15 @@ function setup() {
 
 	window.swup?.hooks.on(
 		"visit:start",
-		(visit: { to: { url: string } }) => {
-			applyTargetLayout(visit);
+		() => {
 			setPageHeightExtend(true);
+			// Start Swup's own smooth scroll while the outgoing page is still
+			// visible. By the time content:replace runs the page is near the
+			// top, so the new article does not appear from mid-page.
+			const reduceMotion = window.matchMedia(
+				"(prefers-reduced-motion: reduce)",
+			).matches;
+			window.swup?.scrollTo?.(0, !reduceMotion);
 			resetSwupIdle();
 			if (postTransitionTimer !== null) {
 				window.clearTimeout(postTransitionTimer);

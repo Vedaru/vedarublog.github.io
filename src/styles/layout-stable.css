@@ -40,9 +40,10 @@ html[data-wallpaper-mode="none"] .main-panel {
 }
 
 /* ─── 页面布局滑动 ──────────────────────────────────────────────────────
-   visit:start 就切换 is-home，让网格/banner 的 700ms 滑动与 Swup 的
-   回顶滚动同时开始（Fuwari 行为）。#page-height-extend 在过渡期间
-   撑高页面，避免新页更短时滚动位置被截断而跳一下。 */
+   content:replace 切换 is-home，与 Swup 在同一阶段启动的回顶滚动同步；
+   网格/banner 的 700ms 滑动与滚动同时发生，不再先让旧页面滑走。
+   #page-height-extend 在过渡期间撑高页面，避免新页更短时滚动位置
+   被截断而跳一下。 */
 
 /* Banner 基础高度（与 Layout.astro enable-banner 一致） */
 html[data-wallpaper-mode="banner"] #banner-wrapper {

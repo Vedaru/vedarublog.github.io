@@ -2,6 +2,12 @@
 html.is-changing .transition-swup-fade {
 	@apply transition-all duration-200;
 }
+/* Keep the outgoing page visible while Swup fetches the next one. Fading it
+   out here leaves a blank content area for the whole network wait. */
+html.is-changing.is-leaving .transition-swup-fade {
+	opacity: 1;
+	transform: none;
+}
 html.is-animating .transition-swup-fade {
 	@apply opacity-0 translate-y-4;
 }
