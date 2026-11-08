@@ -54,10 +54,12 @@ body {
       @apply h-[var(--banner-height-home)];
     }
     .enable-banner.is-home #banner {
-      @apply h-[var(--banner-height-home)] translate-y-0;
+      @apply h-[var(--banner-height-home)];
+      transform: none;
     }
     .enable-banner #banner {
-      @apply h-[var(--banner-height-home)] translate-y-[var(--bannerOffset)];
+      @apply h-[var(--banner-height-home)];
+      transform: none;
     }
     /* #main-grid 与 #banner-wrapper 的 transform 各自 transition（700ms），
        与上游 Fuwari 一致。详见 layout-stable.css。 */

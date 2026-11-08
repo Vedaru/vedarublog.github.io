@@ -105,10 +105,9 @@ function runPageLayout() {
 }
 
 /**
- * Flip the target layout after content:replace. Swup starts its smooth scroll
- * in the same phase, so the 700ms grid/banner transform and the scroll run
- * together instead of moving the outgoing page first. The CSS transition does
- * the movement; this only flips the state.
+ * Flip the target layout at page:view, after the new DOM and scroll position
+ * are committed. Starting the 700ms transform earlier competes with Swup's
+ * content swap and drops the first slide frame.
  */
 function applyTargetLayout(visit: { to: { url: string } }) {
 	const wasHome = document.body.classList.contains("is-home");
@@ -191,12 +190,30 @@ function schedulePostTransition() {
 			: CONTENT_TRANSITION_MS;
 	postTransitionTimer = window.setTimeout(() => {
 		postTransitionTimer = null;
-		runPageLayout();
-		runDeferredInit();
-		runSwupIdle();
-		document.getElementById("toc-wrapper")?.classList.remove("toc-not-ready");
-		document.documentElement.classList.remove("is-layout-sliding");
-		layoutSlides = false;
+		const finish = () => {
+			runPageLayout();
+			const after = () => {
+				runDeferredInit();
+				runSwupIdle();
+				document
+					.getElementById("toc-wrapper")
+					?.classList.remove("toc-not-ready");
+				document.documentElement.classList.remove(
+					"is-layout-sliding",
+				);
+				layoutSlides = false;
+			};
+			if (window.requestIdleCallback) {
+				window.requestIdleCallback(after, { timeout: 300 });
+			} else {
+				window.setTimeout(after, 0);
+			}
+		};
+		if (window.requestIdleCallback) {
+			window.requestIdleCallback(finish, { timeout: 400 });
+		} else {
+			window.setTimeout(finish, 0);
+		}
 	}, delay);
 }
 
@@ -259,13 +276,6 @@ function setup() {
 		() => {
 			setPageHeightExtend(true);
 			document.documentElement.classList.remove("is-layout-sliding");
-			// Start Swup's own smooth scroll while the outgoing page is still
-			// visible. By the time content:replace runs the page is near the
-			// top, so the new article does not appear from mid-page.
-			const reduceMotion = window.matchMedia(
-				"(prefers-reduced-motion: reduce)",
-			).matches;
-			window.swup?.scrollTo?.(0, !reduceMotion);
 			resetSwupIdle();
 			if (postTransitionTimer !== null) {
 				window.clearTimeout(postTransitionTimer);
@@ -291,21 +301,22 @@ function setup() {
 				"--content-delay",
 				"0ms",
 			);
-			applyTargetLayout(visit);
 			window.__applyVisitBannerLayout?.(visit);
 			attachStylesheetErrorGuard();
-			schedulePostTransition();
 		},
 	);
 
 	window.swup?.hooks.on(
 		"page:view",
-		(visit: { to: { document?: Document } }) => {
+		(visit: { to: { url: string; document?: Document } }) => {
 			const nextTitle = visit?.to?.document?.title;
 			if (nextTitle && document.title !== nextTitle) {
 				document.title = nextTitle;
 			}
 			syncThemeFromStorage();
+			applyTargetLayout(visit);
+			window.__applyVisitBannerLayout?.(visit);
+			schedulePostTransition();
 		},
 	);
 

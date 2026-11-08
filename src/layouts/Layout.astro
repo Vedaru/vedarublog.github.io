@@ -136,12 +136,9 @@ const alternateLinks = dualLocale
 // src/scripts/language-mode.ts。
 
 const bannerOffsetByPosition = {
-	// Use the same rounded pixel variable as the banner/grid transform.
-	// Mixing vh here and px there makes the image land on different
-	// subpixels every frame and reads as jitter.
-	top: "var(--banner-height-extend, 30dvh)",
-	center: "calc(var(--banner-height-extend, 30dvh) / 2)",
-	bottom: "0px",
+	top: `${BANNER_HEIGHT_EXTEND}vh`,
+	center: `${BANNER_HEIGHT_EXTEND / 2}vh`,
+	bottom: "0",
 };
 const bannerOffset =
 	bannerOffsetByPosition[siteConfig.banner.position || "center"];
@@ -495,7 +492,8 @@ if (siteConfig.font) {
 		<ConfigCarrier />
 		<slot />
 
-		<!-- Keep the page tall while Swup animates the scroll to the top. -->
+		<!-- Fuwari keeps the page tall during the visit so the scroll reset
+		     cannot clamp against a shorter incoming page. -->
 		<div id="page-height-extend" class="hidden h-[300vh]"></div>
 
 		<!-- Music Player - 仅在启用时加载 -->

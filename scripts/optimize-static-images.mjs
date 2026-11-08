@@ -67,9 +67,18 @@ async function optimizeBanner(baseName) {
 	const meta = await sharp(source).metadata();
 	const aspect = (meta.width || 16) / (meta.height || 9);
 
-	for (const width of [768, 1280]) {
+	for (const width of [768, 1280, 2560]) {
 		const height = Math.round(width / aspect);
 		const out = join(bannerDir, `${baseName}-${width}.webp`);
+		// The 2560 variant is generated from the original high-resolution
+		// artwork. Do not overwrite it by upscaling the 1920 master.
+		if (
+			width === 2560 &&
+			(meta.width || 0) < 2560 &&
+			existsSync(out)
+		) {
+			continue;
+		}
 		await writeWebp(source, out, { width, height, quality: 78 });
 	}
 
@@ -161,4 +170,3 @@ main().catch((error) => {
 	console.error("[images] optimization failed:", error);
 	process.exit(1);
 });
-

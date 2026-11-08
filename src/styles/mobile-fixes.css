@@ -107,7 +107,6 @@ body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"][data-is-home
   background: rgba(255, 255, 255, calc(0.55 * var(--sf)));
   border: 1px solid rgba(255, 255, 255, calc(0.55 * var(--sf)));
   box-shadow: 0 4px 16px rgba(0, 0, 0, calc(0.1 * var(--sf)));
-  transition: none;
 }
 
 /* 桌面端保留跟随滚动的毛玻璃 */
@@ -274,8 +273,7 @@ body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"][data-is-home
  * 移动端页面/壁纸/布局切换时的溢出修复
  */
 
-html.is-manual-scroll-syncing #navbar-wrapper,
-html.is-manual-scroll-syncing #navbar > div {
+html.is-manual-scroll-syncing #navbar-wrapper {
   transition: none !important;
 }
 

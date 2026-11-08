@@ -87,14 +87,15 @@ html[data-wallpaper-mode="none"] #banner-wrapper {
     transform: translateY(var(--banner-height-extend, 30dvh));
   }
 
-  /* Sticky offset follows is-home instantly, like Fuwari. Animating `top`
-     would force layout on every frame of the grid slide. */
   #sidebar-sticky {
     top: 1rem;
   }
   html[data-wallpaper-mode="banner"] body.enable-banner.is-home #sidebar-sticky,
   html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #sidebar-sticky {
     top: calc(1rem - var(--banner-height-extend, 30dvh));
+  }
+  #right-sidebar-sticky {
+    top: 1rem;
   }
   html[data-wallpaper-mode="banner"] body.enable-banner.is-home #right-sidebar-sticky,
   html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #right-sidebar-sticky {
@@ -129,6 +130,7 @@ html[data-wallpaper-mode="none"] #main-grid {
   html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #main-grid {
     transform: none !important;
   }
+
 }
 
 /* 小屏手机 (320px - 479px) */

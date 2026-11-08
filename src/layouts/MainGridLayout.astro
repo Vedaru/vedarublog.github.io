@@ -180,7 +180,7 @@ const mainContentClass = `
 		slot="head"
 		rel="preload"
 		as="image"
-		imagesrcset={`${url(desktopBannerResponsive.w1280)} 1280w, ${url(desktopBannerResponsive.full)} 1920w`}
+		imagesrcset={`${url(desktopBannerResponsive.w1280)} 1280w, ${url(desktopBannerResponsive.full)} 1920w, ${url(desktopBannerResponsive.w2560)} 2560w`}
 		imagesizes="100vw"
 		fetchpriority="high"
 		media="(min-width: 768px)"
@@ -240,7 +240,7 @@ const mainContentClass = `
 	]}
 >
     <!-- The pointer-events-none here prevent blocking the click event of the TOC -->
-    <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto min-w-0 w-full overflow-x-clip">
+    <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto min-w-0 w-full">
         <div id="main-grid" class={`transition-transform duration-700 w-full max-w-[var(--page-width)] min-w-0 left-0 right-0 grid ${gridCols} grid-rows-none md:grid-rows-[auto] mx-auto gap-4 px-2 md:px-4 ${!mobileShowSidebar || !hasMobileDrawerComponents ? 'mobile-no-sidebar' : ''} ${hasRightSidebarComponents ? 'mobile-both-sidebar' : ''}`}
              data-layout-mode={defaultPostListLayout}
         >
