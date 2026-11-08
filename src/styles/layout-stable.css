@@ -32,6 +32,14 @@
 	object-fit: cover;
 }
 
+/* The banner is two layers in Fuwari: the wrapper slides the whole image,
+   and the image itself offsets by `--bannerOffset` on content pages so the
+   visible 35vh strip shows the centre of the artwork. Both use the same
+   700ms clock, so the crop moves with the wrapper instead of snapping. */
+#banner {
+	transition: transform 700ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 body.no-banner-mode #banner-wrapper {
 	display: none;
 }
@@ -45,6 +53,14 @@ body.no-banner-mode #banner-wrapper {
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
 		#banner-wrapper {
 		transform: translateY(var(--banner-height-extend, 30dvh));
+	}
+
+	html[data-wallpaper-mode="banner"] body.enable-banner #banner {
+		transform: translateY(var(--bannerOffset, 0px));
+	}
+
+	html[data-wallpaper-mode="banner"] body.enable-banner.is-home #banner {
+		transform: translateY(0);
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner .main-panel {

@@ -76,6 +76,10 @@ Rules for future changes:
   `calc(var(--banner-height-home) - var(--banner-height-extend))`, never a
   separate `35vh`. The extend variable is rounded to a 4px grid, so `35vh`
   drifts by 1-4px and the seam becomes visible.
+- The banner is two layers: `#banner-wrapper` translates by the extend value
+  and `#banner` translates by `--bannerOffset` (15vh for centre) on content
+  pages. Both use the same 700ms curve as `#main-grid`. Do not give the image
+  its own duration or easing.
 - `backdrop-filter` on the navbar is allowed only when the page is idle
   (`html:not(.is-changing):not(.is-animating)`) and on desktop. The navbar
   transparency itself is CSS-only in `src/styles/navbar.css`; the transition
