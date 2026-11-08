@@ -253,7 +253,6 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 		cacheHeadingTopOffsets,
 		findActiveHeadingByScrollCached,
 		getTocConfig,
-		registerTocSwupReinit,
 		scrollToTocHeading,
 	} from "../../utils/toc-utils";
 
@@ -273,6 +272,7 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 		private cachedDocScrollHeight = 0;
 		private cachedDocClientHeight = 0;
 		private lastScrollTop = -1;
+		private scrollRaf = 0;
 
 		constructor() {
 			this.btn = document.getElementById("floating-toc-btn");
@@ -306,7 +306,7 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 		};
 
 		private handleScroll = () => {
-			window.__scheduleScrollSync?.(this.onScrollSync);
+			this.scheduleUpdate();
 		};
 
 		private handleResize = () => {
@@ -342,7 +342,15 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 		}
 
 		private scheduleUpdate() {
-			window.__scheduleScrollSync?.(this.onScrollSync);
+			if (this.scrollRaf) return;
+			this.scrollRaf = requestAnimationFrame(() => {
+				this.scrollRaf = 0;
+				const scrollTop =
+					window.scrollY ||
+					document.documentElement.scrollTop ||
+					0;
+				this.onScrollSync(scrollTop);
+			});
 		}
 
 		private observeContent() {
@@ -484,7 +492,9 @@ const useJapaneseBadge = siteConfig.toc.useJapaneseBadge;
 			document.addEventListener("keydown", (e) => {
 				if (e.key === "Escape" && this.isOpen) this.close();
 			});
-			registerTocSwupReinit(() => this.reinit());
+			document.addEventListener("astro:page-load", () => {
+				window.setTimeout(() => this.reinit(), 350);
+			});
 		}
 
 		private toggle() {

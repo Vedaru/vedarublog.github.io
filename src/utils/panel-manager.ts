@@ -1,162 +1,76 @@
 /**
- * 统一的浮窗管理器
- * 确保同一时间只有一个浮窗处于打开状态，并提供统一的动画效果
+ * Floating panel state.
+ *
+ * Animation lives in panel-animations.css: every panel has the same CSS
+ * transition on transform/opacity, and `.float-panel-closed` is the only state
+ * this module toggles. No forced reflow, no inline transition strings, no
+ * per-panel timers.
  */
-
-type PanelId =
+export type PanelId =
 	| "language-panel"
 	| "mobile-toc-panel"
 	| "display-setting"
 	| "nav-menu-panel"
 	| "search-panel";
 
+const PANELS: PanelId[] = [
+	"language-panel",
+	"mobile-toc-panel",
+	"display-setting",
+	"nav-menu-panel",
+	"search-panel",
+];
+
+function getPanel(id: PanelId): HTMLElement | null {
+	return document.getElementById(id);
+}
+
 class PanelManager {
-	private activePanels: Set<PanelId> = new Set();
-	private panelStack: PanelId[] = [];
-	private readonly duration = 220;
-	private readonly easing = "cubic-bezier(0.25, 0.46, 0.45, 0.94)";
-
-	/**
-	 * 应用动画打开浮窗
-	 */
-	private animateIn(panel: HTMLElement): Promise<void> {
-		return new Promise((resolve) => {
-			// 检查是否正在主题切换，如果是则跳过动画
-			const isThemeTransitioning =
-				document.documentElement.classList.contains(
-					"is-theme-transitioning",
-				);
-
-			if (isThemeTransitioning) {
-				// 主题切换期间，直接显示面板，不设置pointer-events: none
-				panel.classList.remove("float-panel-closed");
-				panel.style.opacity = "1";
-				panel.style.transform = "translateY(0)";
-				resolve();
-				return;
-			}
-
-			panel.classList.remove("float-panel-closed");
-			panel.style.opacity = "0";
-			panel.style.transform = "translateY(-8px)";
-			panel.style.pointerEvents = "none";
-
-			panel.offsetHeight; // 强制重排
-
-			panel.style.transition = `opacity ${this.duration}ms ${this.easing}, transform ${this.duration}ms ${this.easing}`;
-
-			requestAnimationFrame(() => {
-				panel.style.opacity = "1";
-				panel.style.transform = "translateY(0)";
-				panel.style.pointerEvents = "auto";
-
-				setTimeout(() => {
-					panel.style.transition = "";
-					resolve();
-				}, this.duration);
-			});
-		});
-	}
-
-	/**
-	 * 应用动画关闭浮窗
-	 */
-	private animateOut(panel: HTMLElement): Promise<void> {
-		return new Promise((resolve) => {
-			// 检查是否正在主题切换
-			const isThemeTransitioning =
-				document.documentElement.classList.contains(
-					"is-theme-transitioning",
-				);
-
-			if (isThemeTransitioning) {
-				// 主题切换期间，直接关闭面板，不设置pointer-events: none
-				panel.classList.add("float-panel-closed");
-				panel.style.opacity = "";
-				panel.style.transform = "";
-				resolve();
-				return;
-			}
-
-			panel.style.transition = `opacity ${this.duration}ms ${this.easing}, transform ${this.duration}ms ${this.easing}`;
-			panel.style.pointerEvents = "none";
-			panel.style.opacity = "0";
-			panel.style.transform = "translateY(-8px)";
-
-			setTimeout(() => {
-				panel.classList.add("float-panel-closed");
-				panel.style.transition = "";
-				panel.style.opacity = "";
-				panel.style.transform = "";
-				panel.style.pointerEvents = "";
-				resolve();
-			}, this.duration);
-		});
-	}
-
-	/**
-	 * 切换指定浮窗的开关状态
-	 * @param panelId 浮窗ID
-	 * @param forceState 强制设置状态 (可选)
-	 * @returns 浮窗最终状态 (true: 打开, false: 关闭)
-	 */
-	async togglePanel(
-		panelId: PanelId,
-		forceState?: boolean,
-	): Promise<boolean> {
-		const panel = document.getElementById(panelId);
+	togglePanel(panelId: PanelId, forceState?: boolean): boolean {
+		const panel = getPanel(panelId);
 		if (!panel) {
 			console.warn(`Panel ${panelId} not found`);
 			return false;
 		}
 
-		const isClosed = panel.classList.contains("float-panel-closed");
-		const shouldOpen = forceState !== undefined ? forceState : isClosed;
-
-		if (shouldOpen) {
-			await this.closeAllPanelsExcept(panelId);
-			await this.animateIn(panel);
-			this.activePanels.add(panelId);
-			this.panelStack = this.panelStack.filter((id) => id !== panelId);
-			this.panelStack.push(panelId);
-			return true;
+		const shouldOpen =
+			forceState ??
+			panel.classList.contains("float-panel-closed");
+		if (!shouldOpen) {
+			this.closePanel(panelId);
+			return false;
 		}
-		await this.closePanel(panelId);
-		return false;
+
+		this.closeAllPanelsExcept(panelId);
+		panel.classList.remove("float-panel-closed");
+		return true;
 	}
 
-	/**
-	 * 关闭指定浮窗
-	 * @param panelId 浮窗ID
-	 */
-	async closePanel(panelId: PanelId): Promise<void> {
-		const panel = document.getElementById(panelId);
-		if (panel && !panel.classList.contains("float-panel-closed")) {
-			await this.animateOut(panel);
-			this.activePanels.delete(panelId);
-			this.panelStack = this.panelStack.filter((id) => id !== panelId);
-		}
+	closePanel(panelId: PanelId): void {
+		getPanel(panelId)?.classList.add("float-panel-closed");
 	}
 
-	/**
-	 * 关闭指定浮窗外的所有浮窗
-	 * @param exceptPanelId 要保持打开的浮窗ID
-	 */
-	async closeAllPanelsExcept(exceptPanelId?: PanelId): Promise<void> {
-		const closingPromises = Array.from(this.activePanels)
-			.filter((panelId) => panelId !== exceptPanelId)
-			.map((panelId) => this.closePanel(panelId));
-
-		await Promise.all(closingPromises);
+	closeAllPanelsExcept(exceptPanelId?: PanelId): void {
+		for (const panelId of PANELS) {
+			if (panelId !== exceptPanelId) this.closePanel(panelId);
+		}
 	}
 }
 
-// 创建全局浮窗管理器实例
 export const panelManager = new PanelManager();
 
-// 将浮窗管理器暴露到全局，方便在其他地方使用
-if (typeof window !== "undefined") {
-	(window as any).panelManager = panelManager;
+export function initPanelOutsideClick(
+	configs: Array<{ panel: PanelId; ignores: string[] }>,
+): void {
+	document.addEventListener("click", (event) => {
+		const target = event.target;
+		if (!(target instanceof Node)) return;
+		for (const { panel, ignores } of configs) {
+			const inside = ignores.some((id) => {
+				const el = document.getElementById(id);
+				return el === target || !!el?.contains(target);
+			});
+			if (!inside) panelManager.closePanel(panel);
+		}
+	});
 }
-
-export default panelManager;

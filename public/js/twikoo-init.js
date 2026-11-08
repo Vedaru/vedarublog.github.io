@@ -24,8 +24,7 @@ if (window.__twikooInitBootstrapped) {
 		const html = document.documentElement;
 		return (
 			html.classList.contains("is-changing") ||
-			html.classList.contains("is-animating") ||
-			html.classList.contains("is-layout-sliding")
+			html.classList.contains("is-animating")
 		);
 	}
 
@@ -266,16 +265,38 @@ if (window.__twikooInitBootstrapped) {
 		});
 
 		window.swup.hooks.on("content:replace", () => {
-			scheduleTwikooInit(getNavDelay());
+			// Do not boot here: content:replace happens while the 700ms
+			// banner/grid glide is still running, and parsing the 1.1MB
+			// twikoo bundle then drops frames. Wait until the card is near
+			// the viewport (the observer below handles it).
+			observeCommentForTwikoo();
 		});
+	}
 
-		window.swup.hooks.on("page:view", () => scheduleTwikooInit(getNavDelay() + 80));
-		window.swup.hooks.on("animation:in:end", () =>
-			scheduleTwikooInit(getNavDelay()),
+	let commentObserver = null;
+
+	function observeCommentForTwikoo() {
+		commentObserver?.disconnect();
+		commentObserver = null;
+
+		const commentEl = document.getElementById("tcomment");
+		if (!commentEl) return;
+
+		if (!("IntersectionObserver" in window)) {
+			scheduleTwikooInit(getNavDelay());
+			return;
+		}
+
+		commentObserver = new IntersectionObserver(
+			(entries) => {
+				if (!entries.some((entry) => entry.isIntersecting)) return;
+				commentObserver.disconnect();
+				commentObserver = null;
+				scheduleTwikooInit(0);
+			},
+			{ rootMargin: "300px 0px" },
 		);
-		window.swup.hooks.on("visit:end", () =>
-			scheduleTwikooInit(getNavDelay() + 120),
-		);
+		commentObserver.observe(commentEl);
 	}
 
 	function bootstrapTwikoo() {

@@ -1,4 +1,4 @@
-/* Page transition animations (Swup). */
+/* Page transition animations with Swup (Fuwari's model). */
 html.is-changing .transition-swup-fade {
 	@apply transition-all duration-200;
 }
@@ -61,12 +61,9 @@ html.is-animating .transition-swup-fade {
 
 /* Main components */
 .onload-animation {
+	opacity: 0;
 	animation: 300ms fade-in-up;
-	/* `both` hides the element during its delay and keeps the final frame
-	   afterwards. Releasing the transform (`backwards`) makes the browser
-	   tear down the entrance layers while the grid is still moving, which
-	   shows up as text shimmer on the main grid. */
-	animation-fill-mode: both;
+	animation-fill-mode: forwards;
 }
 #swup-container {
 	outline: none;
@@ -77,6 +74,7 @@ html.is-animating .transition-swup-fade {
 .footer {
 	animation-delay: 250ms;
 }
+
 /* Reduced-motion: one authoritative rule for the whole site. */
 @media (prefers-reduced-motion: reduce) {
 	*,

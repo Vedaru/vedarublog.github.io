@@ -73,12 +73,6 @@ export async function runPostDecryptHandlers(
 		});
 	}
 
-	const tocElement = document.querySelector("table-of-contents");
-	if (tocElement && typeof tocElement.regenerateTOC === "function") {
-		tocElement.regenerateTOC();
-		tocElement.init?.();
-	}
-
 	if (typeof window.mobileTOCInit === "function") {
 		window.mobileTOCInit();
 	}

@@ -2,10 +2,7 @@ export {};
 
 declare global {
 	interface HTMLElementTagNameMap {
-		"table-of-contents": HTMLElement & {
-			init?: () => void;
-			regenerateTOC?: () => void;
-		};
+		"table-of-contents": HTMLElement;
 	}
 
 	interface Window {
@@ -22,11 +19,6 @@ declare global {
 		closeAnnouncement: () => void;
 
 		mobileTOCInit?: () => void;
-		initSemifullScrollDetection?: (initialScrollTop?: number) => void;
-		applySemifullNavbarVisualState?: (
-			scrollTop: number,
-			isHomePage: boolean,
-		) => void;
 		iconifyLoaded?: boolean;
 		__iconifyLoader?: {
 			load: () => Promise<void>;
@@ -53,16 +45,6 @@ declare global {
 		};
 		__PIO_RESET_ANIMATION_DELTA?: () => void;
 		tocClickTimestamp?: number;
-		__onSwupPageIdlePhase?: (fn: () => void) => void;
-		__scheduleSwupIdleWork?: (fn: () => void) => void;
-		__syncTocHideForScroll?: (
-			scrollTop: number,
-			innerHeight?: number,
-		) => void;
-		__applyWallpaperBodyClasses?: (mode: string) => void;
-		__applyVisitBodyLayout?: (visit: { to?: { url?: string } }) => void;
-		__applyVisitBannerLayout?: (visit: { to?: { url?: string } }) => void;
-		__bootstrapWallpaperBodyClasses?: () => void;
 		__themePageScaling?: { enable?: boolean; targetWidth?: number };
 		__adjustPageScale?: () => void;
 		__analyticsSchedulerBootstrapped?: boolean;
@@ -71,26 +53,6 @@ declare global {
 		loadIconify?: () => Promise<void> | void;
 		preloadIcons?: (icons: string | string[]) => void;
 		onIconifyReady?: (callback: () => void) => void;
-		__syncNavbarWrapperForScrollY?: (
-			scrollY?: number,
-			options?: { forceHomeBanner?: boolean },
-		) => void;
-		__finalizeNavbarWrapperAfterScroll?: () => void;
-		__clearNavbarWrapperInlineStyles?: () => void;
-		__scrollSyncBootstrapped?: boolean;
-		__cachedInnerWidth?: number; // pre-read by flushScrollSync to avoid inter-callback forced reflow
-		__scheduleScrollSync?: (
-			fn: (scrollTop: number, innerHeight: number) => void,
-		) => void;
-		onSwupReady?: (
-			registerFn: (swup: any) => void,
-			options?: { retryMs?: number; timeoutMs?: number },
-		) => void;
-		onSwupHook?: (
-			hook: string,
-			fn: (...args: any[]) => void,
-			options?: { retryMs?: number; timeoutMs?: number },
-		) => void;
 		scrollProtectionManager?: {
 			observeTwikoo?: () => void;
 		};

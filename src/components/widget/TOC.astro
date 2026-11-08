@@ -1,5 +1,6 @@
 ---
 import type { MarkdownHeading } from "astro";
+import { siteConfig } from "../../config";
 
 interface Props {
 	class?: string;
@@ -7,446 +8,119 @@ interface Props {
 }
 
 let { headings = [] } = Astro.props;
+const className = Astro.props.class;
 
 let minDepth = 10;
 for (const heading of headings) {
 	minDepth = Math.min(minDepth, heading.depth);
 }
 
-const className = Astro.props.class;
+// 与 Fuwari 一致：只保留从最小层级起 depth 层标题。
+const visibleHeadings = headings.filter(
+	(heading) => heading.depth < minDepth + siteConfig.toc.depth,
+);
+
+const removeTailingHash = (text: string) => {
+	const lastIndexOfHash = text.lastIndexOf("#");
+	if (lastIndexOfHash !== text.length - 1) return text;
+	return text.substring(0, lastIndexOfHash);
+};
+
+// 一级标题徽章：默认数字，配置开启后使用片假名。
+const KATAKANA = [
+	"ア", "イ", "ウ", "エ", "オ", "カ", "キ", "ク", "ケ", "コ",
+	"サ", "シ", "ス", "セ", "ソ", "タ", "チ", "ツ", "テ", "ト",
+	"ナ", "ニ", "ヌ", "ネ", "ノ", "ハ", "ヒ", "フ", "ヘ", "ホ",
+	"マ", "ミ", "ム", "メ", "モ", "ヤ", "ユ", "ヨ", "ラ", "リ",
+	"ル", "レ", "ロ", "ワ", "ヲ", "ン",
+] as const;
+
+let heading1Count = 0;
+const badgeFor = (index: number, depth: number) => {
+	if (depth !== minDepth) return "";
+	const text = siteConfig.toc.useJapaneseBadge
+		? (KATAKANA[index] ?? String(index + 1))
+		: String(index + 1);
+	heading1Count++;
+	return text;
+};
 ---
-<table-of-contents class:list={[className, "group"]} id="toc">
-    <!-- TOC内容将由JavaScript动态生成 -->
+
+<table-of-contents class:list={[className, "group"]}>
+	{
+		visibleHeadings.map((heading) => {
+			const depthClass =
+				heading.depth === minDepth
+					? ""
+					: heading.depth === minDepth + 1
+						? "ml-4"
+						: "ml-8";
+			const badge = badgeFor(heading1Count, heading.depth);
+
+			return (
+				<a
+					href={`#${heading.slug}`}
+					class="px-2 flex gap-2 relative transition w-full min-h-9 rounded-xl hover:bg-[var(--toc-btn-hover)] active:bg-[var(--toc-btn-active)] py-2"
+				>
+					<div
+						class:list={[
+							"transition w-5 h-5 shrink-0 rounded-lg text-xs flex items-center justify-center font-bold",
+							depthClass,
+							{
+								"bg-[var(--toc-badge-bg)] text-[var(--btn-content)]":
+									heading.depth === minDepth,
+							},
+						]}
+					>
+						{heading.depth === minDepth && badge}
+						{heading.depth === minDepth + 1 && (
+							<div class="transition w-2 h-2 rounded-[0.1875rem] bg-[var(--toc-badge-bg)]" />
+						)}
+						{heading.depth === minDepth + 2 && (
+							<div class="transition w-1.5 h-1.5 rounded-sm bg-black/5 dark:bg-white/10" />
+						)}
+					</div>
+					<div
+						class:list={[
+							"transition text-sm",
+							{
+								"text-50":
+									heading.depth === minDepth ||
+									heading.depth === minDepth + 1,
+								"text-30": heading.depth === minDepth + 2,
+							},
+						]}
+					>
+						{removeTailingHash(heading.text)}
+					</div>
+				</a>
+			);
+		})
+	}
+	<div
+		id="active-indicator"
+		style="opacity: 0"
+		class:list={[
+			"hidden",
+			"-z-10 absolute bg-[var(--toc-btn-hover)] left-0 right-0 rounded-xl transition-[top,height,opacity,background-color,border-color] group-hover:bg-transparent border-2 border-[var(--toc-btn-hover)] group-hover:border-[var(--toc-btn-active)] border-dashed",
+		]}
+	>
+	</div>
 </table-of-contents>
 
-<script>
-import {
-	buildSidebarTocMarkup,
-	collectHeadingsFromDocument,
-	isInRange,
-	isPostPagePath,
-	scheduleTocDomInit,
-	scrollToTocHeading,
-	shouldSkipTocLayoutWork,
-	throttle,
-} from "../../utils/toc-utils";
-
-class TableOfContents extends HTMLElement {
-    tocEl: HTMLElement | null = null;
-    scrollContainer: HTMLElement | null = null;
-    visibleClass = "visible";
-    observer: IntersectionObserver;
-    anchorNavTarget: HTMLElement | null = null;
-    headingIdxMap = new Map<string, number>();
-    headings: HTMLElement[] = [];
-    sections: HTMLElement[] = [];
-    tocEntries: HTMLAnchorElement[] = [];
-    active: boolean[] = [];
-    activeIndicator: HTMLElement | null = null;
-    updateRaf = 0;
-    cachedTocClientHeight = 0;
-    cachedTocScrollTop = 0;
-    cachedTocScrollHeight = 0;
-    tocScrollHandler: ((() => void) | null) = null;
-    navbarHeight = 80;
-
-    resolveTocSection = (heading: HTMLElement): HTMLElement => {
-        // 与 Fuwari / Mizuki 一致：section 即 heading.parentElement
-        // （rehype-sectionize 会把每个标题与其正文包进 <section>）。
-        const parent = heading.parentElement;
-        if (!parent) return heading;
-
-        // 本土偏差：本站正文容器内也渲染了 h1（页面标题），sectionize 会把
-        // 整篇正文包进这个 h1 所属的 <section>。若直接采用它，h1 将在整个滚动
-        // 过程中持续命中，指示器被钉死在首个条目上。故跳过「正文容器的直接子
-        // section」——h1 退化为标题元素本身，其覆盖范围即「到下一个标题为止」。
-        const container = parent.parentElement;
-        if (!container) return heading;
-        if (
-            container.matches(".prose, .custom-md, .markdown-content") ||
-            container.id === "post-container"
-        ) {
-            return heading;
-        }
-
-        // 该 section 必须直接拥有这一个标题；子 section 里的更深标题不算数。
-        // 原先的 `parent.childElementCount > 1` 会把所有正常 section
-        // （[heading, content] 恰好 2 个子节点）误判成容器而退化为标题元素，
-        // 于是视口内同时命中 6+ 个 27px 标题，长 section 处还出现无命中空档。
-        const directHeadings = Array.from(parent.children).filter((child) =>
-            /^H[1-6]$/.test(child.tagName),
-        );
-        return directHeadings.length === 1 && directHeadings[0] === heading
-            ? parent
-            : heading;
-    };
-
-    constructor() {
-        super();
-        this.observer = new IntersectionObserver(this.markVisibleSection.bind(this), {
-            threshold: 0,
-        });
-    }
-
-    markVisibleSection = (entries: IntersectionObserverEntry[]) => {
-        if (shouldSkipTocLayoutWork()) {
-            return;
-        }
-
-        entries.forEach((entry) => {
-            const target = entry.target as HTMLElement;
-            const id =
-                target.getAttribute("id") ||
-                target.children[0]?.getAttribute("id");
-            const idx = id ? this.headingIdxMap.get(id) : undefined;
-            if (idx != undefined && idx < this.active.length) {
-                this.active[idx] = entry.isIntersecting;
-            }
-
-            if (
-                entry.isIntersecting &&
-                (this.anchorNavTarget === entry.target ||
-                    this.anchorNavTarget === entry.target.firstChild)
-            ) {
-                this.anchorNavTarget = null;
-            }
-        });
-
-        if (!this.active.includes(true)) {
-            this.fallback();
-        }
-
-        this.updateSync();
-    };
-
-    observeSections = () => {
-        this.sections.forEach((section) => {
-            if (section) this.observer.observe(section);
-        });
-    };
-
-    toggleActiveHeading = () => {
-        // Fuwari 动画系统：向后扫描找出「最后一段连续命中」的跨度，把跨度内每个
-        // 条目标为 visible，指示器框住整个跨度 —— 视口里同时出现的多个标题要一起
-        // 高亮（回归保护：指示器必须覆盖屏幕上所有标题，不能只锚定单个条目）。
-        // 竖向堆叠的 section 使命中集合恒连续，故「最后一段连续」== 全局 min..max。
-        let i = this.active.length - 1;
-        let min = this.active.length - 1;
-        let max = -1;
-        while (i >= 0 && !this.active[i]) {
-            this.tocEntries[i]?.classList.remove(this.visibleClass);
-            i--;
-        }
-        while (i >= 0 && this.active[i]) {
-            this.tocEntries[i]?.classList.add(this.visibleClass);
-            min = Math.min(min, i);
-            max = Math.max(max, i);
-            i--;
-        }
-        while (i >= 0) {
-            this.tocEntries[i]?.classList.remove(this.visibleClass);
-            i--;
-        }
-
-        const indicator = this.activeIndicator;
-        if (!indicator) return;
-
-        if (min > max) {
-            // 无命中标题：整段 style 重写为只淡出（Fuwari 原样，几何随重置清零）
-            if (indicator.getAttribute("style") !== "opacity: 0") {
-                indicator.setAttribute("style", `opacity: 0`);
-            }
-            return;
-        }
-
-        // Fuwari 几何：用实时 getBoundingClientRect 相对滚动容器换算，整段
-        // setAttribute 全量重写 style（top/height），过渡收敛成一次滑动。
-        // top 向下取整、height 向上取整：指示器始终覆盖全部标题（回归保护），
-        // 且几何串在滚动中保持稳定，只在跨度变化时重写 style、触发一次过渡。
-        const parentOffset = this.tocEl?.getBoundingClientRect().top || 0;
-        const scrollOffset = this.tocEl?.scrollTop || 0;
-        const top = Math.floor(
-            this.tocEntries[min].getBoundingClientRect().top -
-                parentOffset +
-                scrollOffset
-        );
-        const bottom =
-            this.tocEntries[max].getBoundingClientRect().bottom -
-            parentOffset +
-            scrollOffset;
-        const style = `top: ${top}px; height: ${Math.ceil(bottom - top)}px`;
-        if (indicator.getAttribute("style") !== style) {
-            indicator.setAttribute("style", style);
-        }
-    };
-
-    scrollToActiveHeading = throttle(() => {
-        const scrollContainer = this.scrollContainer || this.tocEl;
-        if (this.anchorNavTarget || !this.tocEl || !scrollContainer) return;
-
-        const activeEntries = this.tocEntries.filter((entry) =>
-            entry.classList.contains(this.visibleClass),
-        );
-        if (activeEntries.length === 0) return;
-
-        const topmost = activeEntries[0] as HTMLElement;
-        const bottommost = activeEntries[activeEntries.length - 1] as HTMLElement;
-        const tocHeight = scrollContainer.clientHeight;
-
-        // 阶段1：批量读取所有布局值（避免与后续 scrollTo 写入交错导致 forced reflow）
-        const topmostRect = topmost.getBoundingClientRect();
-        const bottommostRect = bottommost.getBoundingClientRect();
-        const topmostOffset = topmost.offsetTop;
-        const bottommostOffset = bottommost.offsetTop;
-        const scrollHeight = scrollContainer.scrollHeight;
-        const currentScrollTop = scrollContainer.scrollTop || 0;
-
-        const visibleHeight = bottommostRect.bottom - topmostRect.top;
-
-        // 阶段2：计算目标滚动位置（纯算术，无布局查询）
-        let top: number;
-        if (visibleHeight < 0.9 * tocHeight) {
-            top = topmostOffset - 32;
-        } else {
-            top = bottommostOffset - tocHeight * 0.8;
-        }
-
-        const maxTop = Math.max(0, scrollHeight - tocHeight);
-        top = Math.max(0, Math.min(top, maxTop));
-
-        if (Math.abs(currentScrollTop - top) < 24) return;
-
-        // 阶段3：写入（触发滚动，无后续布局读取）
-        scrollContainer.scrollTo({ top, left: 0, behavior: "smooth" });
-    }, 200);
-
-    updateSync = () => {
-        if (this.updateRaf) cancelAnimationFrame(this.updateRaf);
-        this.updateRaf = requestAnimationFrame(() => {
-            this.updateRaf = 0;
-            this.toggleActiveHeading();
-            // 与 Mizuki SidebarTOC.update() 一致：指示器更新后由「节流版」负责内部滚动，
-            // 保证 scrollTo 只有一个调用方（原先 toggleActiveHeading 里未节流的 scrollTo
-            // 会在每帧用 smooth 重启动画，导致 TOC 内部滚动条反复起停、看起来在抖）
-            this.scrollToActiveHeading();
-        });
-    };
-
-    fallback = () => {
-        if (!this.sections.length) return;
-
-        const innerHeight = window.innerHeight;
-
-        // 阶段1：批量读取所有布局信息（只读，避免读写交错导致 forced reflow）
-        const rects: Array<{ top: number; bottom: number } | null> = [];
-        for (let i = 0; i < this.sections.length; i++) {
-            const section = this.sections[i];
-            if (!section) {
-                rects.push(null);
-                continue;
-            }
-            const r = section.getBoundingClientRect();
-            rects.push({ top: r.top, bottom: r.bottom });
-        }
-
-        // 阶段2：基于缓存的布局数据更新状态（只写，不触发额外 reflow）
-        for (let i = 0; i < rects.length; i++) {
-            const rect = rects[i];
-            if (!rect) continue;
-            if (
-                isInRange(rect.top, 0, innerHeight) ||
-                isInRange(rect.bottom, 0, innerHeight) ||
-                (rect.top < 0 && rect.bottom > innerHeight)
-            ) {
-                this.active[i] = true;
-            } else if (rect.top > innerHeight) {
-                break;
-            }
-        }
-    };
-
-    markActiveHeading = (idx: number) => {
-        this.active.fill(false);
-        this.active[idx] = true;
-    };
-
-    handleAnchorClick = (event: Event) => {
-        const anchor = event
-            .composedPath()
-            .find((element) => element instanceof HTMLAnchorElement);
-
-        if (anchor) {
-            event.preventDefault();
-            window.tocClickTimestamp = Date.now();
-
-            const id = decodeURIComponent(anchor.hash?.substring(1));
-            const idx = this.headingIdxMap.get(id);
-
-            if (idx !== undefined) {
-                this.anchorNavTarget = this.headings[idx];
-            } else {
-                this.anchorNavTarget = null;
-            }
-
-            scrollToTocHeading(id);
-        }
-    };
-
-    connectedCallback() {
-        if ((window as any).swup) {
-            return;
-        }
-
-        scheduleTocDomInit(() => this.init());
-    }
-
-    teardown() {
-        if (this.updateRaf) cancelAnimationFrame(this.updateRaf);
-        this.updateRaf = 0;
-
-        this.sections.forEach((section) => {
-            if (section) this.observer.unobserve(section);
-        });
-
-        this.tocEl?.removeEventListener("click", this.handleAnchorClick, {
-            capture: true,
-        });
-
-        this.sections = [];
-        this.headings = [];
-        this.tocEntries = [];
-        if (this.tocScrollHandler && this.scrollContainer) {
-            this.scrollContainer.removeEventListener("scroll", this.tocScrollHandler);
-            this.tocScrollHandler = null;
-        }
-        this.active = [];
-        this.headingIdxMap.clear();
-        this.anchorNavTarget = null;
-        this.tocEl = null;
-        this.scrollContainer = null;
-        this.activeIndicator = null;
-    }
-
-    init() {
-        this.teardown();
-        this.dataset.managedByLayout = "true";
-
-        this.regenerateTOC();
-
-        this.tocEl = this;
-        // #toc-inner-wrapper has overflow:hidden and never scrolls.
-        // The actual scrollable element is <table-of-contents> itself,
-        // which has overflow:auto via its CSS.
-        this.scrollContainer = this.tocEl;
-
-        this.tocEl.addEventListener("click", this.handleAnchorClick, {
-            capture: true,
-        });
-
-        this.activeIndicator = this.querySelector("#active-indicator");
-
-        this.tocEntries = Array.from(
-            this.querySelectorAll<HTMLAnchorElement>("a[href^='#']"),
-        );
-
-        if (this.tocEntries.length === 0) return;
-
-        this.sections = new Array(this.tocEntries.length);
-        this.headings = new Array(this.tocEntries.length);
-        for (let i = 0; i < this.tocEntries.length; i++) {
-            const id = decodeURIComponent(this.tocEntries[i].hash?.substring(1));
-            const heading = document.getElementById(id);
-            const section = heading
-                ? this.resolveTocSection(heading)
-                : null;
-            if (heading instanceof HTMLElement && section instanceof HTMLElement) {
-                this.headings[i] = heading;
-                this.sections[i] = section;
-                this.headingIdxMap.set(id, i);
-            }
-        }
-	this.active = new Array(this.tocEntries.length).fill(false);
-
-	// 将布局读取推迟到 rAF，避免初始化期间 sticky 重算导致 41ms 强制重排
-	requestAnimationFrame(() => {
-		if (!this.isConnected || this.tocEntries.length === 0) return;
-
-		const container = this.scrollContainer || this.tocEl;
-		if (container) {
-			this.cachedTocClientHeight = container.clientHeight;
-			this.cachedTocScrollHeight = container.scrollHeight;
-			this.cachedTocScrollTop = container.scrollTop || 0;
-
-			if (this.tocScrollHandler) container.removeEventListener("scroll", this.tocScrollHandler);
-			this.tocScrollHandler = () => { this.cachedTocScrollTop = container.scrollTop || 0; };
-			container.addEventListener("scroll", this.tocScrollHandler, { passive: true });
-		}
-
-		this.observeSections();
-		this.fallback();
-		this.updateSync();
-	});
-    }
-
-    regenerateTOC(retryCount = 0) {
-        if (!isPostPagePath()) {
-            this.innerHTML = "";
-            delete this.dataset.loaded;
-            return;
-        }
-
-        const headings = collectHeadingsFromDocument();
-        if (headings.length === 0 && retryCount < 3) {
-            setTimeout(() => this.regenerateTOC(retryCount + 1), 120);
-            return;
-        }
-        if (headings.length === 0) {
-            this.innerHTML = "";
-            delete this.dataset.loaded;
-            return;
-        }
-
-        this.innerHTML = buildSidebarTocMarkup(headings);
-        this.dataset.loaded = "true";
-    }
-
-    disconnectedCallback() {
-        this.teardown();
-        this.observer.disconnect();
-    }
-}
-
-if (!customElements.get("table-of-contents")) {
-    customElements.define("table-of-contents", TableOfContents);
-}
-</script>
-
 <style>
-  table-of-contents#toc {
-      max-height: calc(100vh - 200px);
-      overflow: auto;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior: contain;
-      position: relative;
-      scroll-behavior: auto;
-      display: block;
-      contain: layout style;
-  }
+	table-of-contents {
+		display: block;
+		position: relative;
+	}
 
-  /* #active-indicator 由 JS（buildSidebarTocMarkup）在运行时注入，
-     不会带上 Astro 的 data-astro-cid-* 属性，因此这里任何针对它的
-     作用域规则都无法命中（含原本写在这里的 transition: opacity）。
-     其定位与过渡完全由 toc-utils 注入的 Tailwind 类负责。 */
+	table-of-contents a.visible > div:last-child {
+		@apply text-black/90 dark:text-white/90;
+	}
 
-  table-of-contents#toc a.visible > div:last-child {
-      @apply text-black/90 dark:text-white/90;
-  }
-
-  table-of-contents#toc a.visible > div:first-child.bg-\[var\(--toc-badge-bg\)\] {
-      @apply bg-[var(--primary)] text-[var(--btn-content)];
-  }
-
-  table-of-contents#toc::-webkit-scrollbar {
-      display: none;
-  }
+	table-of-contents a.visible > div:first-child.bg-\[var\(--toc-badge-bg\)\] {
+		/* --btn-content is the same hue family as --primary and disappears on
+		   the active badge. Use the deep text colour for contrast. */
+		@apply bg-[var(--primary)] text-[var(--deep-text)];
+	}
 </style>

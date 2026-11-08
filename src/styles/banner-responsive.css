@@ -1,8 +1,0 @@
-/* 横幅响应式样式 — 布局高度见 layout-stable.css */
-
-/* 桌面端 (1280px+) */
-@media (min-width: 1280px) {
-  #banner img {
-    object-position: center center !important;
-  }
-}

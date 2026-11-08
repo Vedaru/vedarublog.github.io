@@ -242,7 +242,9 @@ function setupEventListeners() {
 	document.addEventListener("astro:page-load", () => {
 		currentTheme = null;
 		retryCount = 0;
-		scheduleMermaidRender(100);
+		// page:view fires while the banner/grid transform is still running.
+		// Wait out the 700ms glide before parsing a 662KB mermaid chunk.
+		scheduleMermaidRender(900);
 	});
 
 	document.addEventListener("visibilitychange", () => {
@@ -280,26 +282,8 @@ function registerSwupListeners() {
 		currentTheme = null;
 	});
 
-	// Load and render only after the layout slide has fully settled, and let
-	// the module load run in idle time so it cannot stall the content fade.
-	document.addEventListener("swup:transition-ready", () => {
-		if (!hasMermaidDiagrams()) return;
-		const loadAndRender = () => {
-			loadMermaid()
-				.catch((error) =>
-					console.warn(
-						"Mermaid lazy load after navigation failed:",
-						error,
-					),
-				)
-				.finally(() => scheduleMermaidRender(100));
-		};
-		if (window.__scheduleSwupIdleWork) {
-			window.__scheduleSwupIdleWork(loadAndRender);
-		} else {
-			loadAndRender();
-		}
-	});
+	// Rendering after navigation is handled by setupEventListeners' 900ms
+	// delay (astro:page-load). There is no transition-ready bus anymore.
 }
 
 async function initializeMermaid() {

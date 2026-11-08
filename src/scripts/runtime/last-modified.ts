@@ -59,16 +59,9 @@ if (window.__lastModifiedBootstrapped) {
 		tickTimer = setInterval(updateLastModifiedDisplay, 1000);
 	}
 
-	function registerLastModifiedSwupListeners(swup: {
-		hooks: { on: (hook: string, fn: () => void) => void };
-	}) {
-		swup.hooks.on("content:replace", () => startLastModifiedTimer());
-		swup.hooks.on("page:view", () => startLastModifiedTimer());
-	}
-
 	window.initLastModifiedPage = startLastModifiedTimer;
 
-	window.onSwupReady?.(registerLastModifiedSwupListeners);
+	document.addEventListener("astro:page-load", startLastModifiedTimer);
 
 	if (document.readyState === "loading") {
 		document.addEventListener("DOMContentLoaded", startLastModifiedTimer);

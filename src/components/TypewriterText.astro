@@ -90,6 +90,16 @@ class TypewriterEffect {
     }
 
     private type() {
+        // A textContent write while the grid is gliding forces a layout in the
+        // transformed subtree. Pause for the 200ms fade; typing resumes after.
+        if (
+            document.documentElement.classList.contains("is-changing") ||
+            document.documentElement.classList.contains("is-animating")
+        ) {
+            this.timeoutId = window.setTimeout(() => this.type(), this.speed);
+            return;
+        }
+
         const currentText = this.getCurrentText();
         
         if (this.isDeleting) {

@@ -78,7 +78,7 @@ function renderComponent(component: any, index: number, _components: any[]) {
     stickyComponents.length > 0 && (
       <div
         id="right-sidebar-sticky"
-        class="transition-all duration-700 flex flex-col w-full gap-4 sticky top-4"
+        class="transition-[top] duration-700 flex flex-col w-full gap-4 sticky top-4"
       >
         {stickyComponents.map((component, index) => {
           const renderData = renderComponent(
@@ -95,105 +95,3 @@ function renderComponent(component: any, index: number, _components: any[]) {
     )
   }
 </div>
-
-<!-- 响应式样式和JavaScript -->
-<style>
-  /* 响应式断点样式 */
-  @media (max-width: 768px) {
-    #right-sidebar {
-      display: var(--sidebar-mobile-display, block);
-    }
-  }
-
-  @media (min-width: 769px) and (max-width: 1024px) {
-    #right-sidebar {
-      display: var(--sidebar-tablet-display, block);
-    }
-  }
-
-  @media (min-width: 1025px) {
-    #right-sidebar {
-      display: var(--sidebar-desktop-display, block);
-    }
-  }
-</style>
-
-<script>
-  import { widgetManager } from "../../utils/widget-manager";
-  
-  // 响应式布局管理
-  class RightSidebarManager {
-    pendingUpdate = 0;
-
-    constructor() {
-      this.init();
-    }
-    
-    registerSwupIdleUpdate() {
-      const schedule = () => {
-        if (window.__onSwupPageIdlePhase) {
-          window.__onSwupPageIdlePhase(() => {
-            requestAnimationFrame(() => {
-              requestAnimationFrame(() => this.scheduleUpdate());
-            });
-          });
-        } else {
-          document.addEventListener('swup:transition-ready', () => {
-            this.scheduleUpdate();
-          });
-        }
-      };
-      if (window.__onSwupPageIdlePhase) {
-        schedule();
-      } else {
-        document.addEventListener('DOMContentLoaded', schedule, { once: true });
-      }
-    }
-
-    init() {
-      this.scheduleUpdate();
-      window.addEventListener('resize', () => this.scheduleUpdate());
-      this.registerSwupIdleUpdate();
-    }
-
-    scheduleUpdate() {
-      if (this.pendingUpdate) cancelAnimationFrame(this.pendingUpdate);
-      this.pendingUpdate = requestAnimationFrame(() => {
-        this.pendingUpdate = 0;
-        this.updateResponsiveDisplay();
-      });
-    }
-    
-    updateResponsiveDisplay() {
-      const breakpoints = widgetManager.getBreakpoints();
-      const width = window.innerWidth;
-      
-      let deviceType: 'mobile' | 'tablet' | 'desktop';
-      if (width < breakpoints.mobile) {
-        deviceType = 'mobile';
-      } else if (width < breakpoints.tablet) {
-        deviceType = 'tablet';
-      } else {
-        deviceType = 'desktop';
-      }
-      
-      const shouldShow = widgetManager.shouldShowSidebar(deviceType);
-      const sidebar = document.getElementById('right-sidebar');
-      
-      if (sidebar) {
-        sidebar.style.setProperty(
-          `--sidebar-${deviceType}-display`, 
-          shouldShow ? 'block' : 'none'
-        );
-      }
-    }
-  }
-  
-  // 初始化右侧边栏管理器（延迟到空闲时，缩短关键请求链）
-  const initRightSidebar = () => new RightSidebarManager();
-  if ("requestIdleCallback" in window) {
-    requestIdleCallback(initRightSidebar, { timeout: 2000 });
-  } else {
-    setTimeout(initRightSidebar, 200);
-  }
-</script>

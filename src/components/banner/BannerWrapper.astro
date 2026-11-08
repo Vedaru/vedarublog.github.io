@@ -1,5 +1,4 @@
 ---
-import { siteConfig } from "../../config";
 import { url } from "../../utils/url-utils";
 
 type BannerResponsive = {
@@ -25,7 +24,7 @@ const {
 ---
 
 <!-- Banner - 始终渲染，通过 JS 控制显示隐藏 -->
-<div id="banner-wrapper" class={`absolute z-10 w-full overflow-hidden transition-transform duration-700 ${mobileNonHomeBannerClass}`}>
+<div id="banner-wrapper" class={`absolute z-10 w-full overflow-hidden ${mobileNonHomeBannerClass}`}>
     {desktopBannerResponsive && (
         <div id="banner" class="relative h-full w-full overflow-hidden object-cover">
             <picture class="block h-full w-full">

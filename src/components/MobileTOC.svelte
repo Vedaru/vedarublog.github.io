@@ -11,7 +11,6 @@ import {
 	collectMobileTocItems,
 	createHeadingScrollSpy,
 	isHomePagePath,
-	registerTocSwupReinit,
 	scrollToTocHeading,
 } from "../utils/toc-utils";
 
@@ -33,7 +32,6 @@ let postItems: Array<{
 let activeId = "";
 let observer: IntersectionObserver;
 let isHomePage = false;
-let unregisterSwup: (() => void) | undefined;
 
 const togglePanel = async () => {
 	await panelManager.togglePanel("mobile-toc-panel");
@@ -86,14 +84,15 @@ const init = () => {
 
 onMount(() => {
 	const timeoutId = window.setTimeout(init, 100);
-	unregisterSwup = registerTocSwupReinit(init);
+	const onPageLoad = () => window.setTimeout(init, 0);
+	document.addEventListener("astro:page-load", onPageLoad);
 
 	return () => {
 		window.clearTimeout(timeoutId);
+		document.removeEventListener("astro:page-load", onPageLoad);
 		if (observer) {
 			observer.disconnect();
 		}
-		unregisterSwup?.();
 	};
 });
 

@@ -1,269 +1,205 @@
 /**
- * 首屏布局稳定样式 — 由 head 阻塞脚本设置的 html data 属性驱动，
- * 避免 SSR 与 localStorage 不一致导致 CLS。
- * Banner / 主内容高度规则的唯一数据源。
+ * Layout geometry: banner, main panel, grid glide, sidebar sticky, TOC.
+ *
+ * Single source of truth for the Fuwari-style layout animation. The body's
+ * `is-home` class is flipped by `src/scripts/transitions.ts` at `visit:start`,
+ * and CSS does the rest with one 700ms transform on the banner and the grid.
  */
 
-/* 首屏首帧冻结 banner/top-row 过渡，layout-ready 后恢复 */
-html:not(.layout-ready) #banner-wrapper,
-html:not(.layout-ready) #top-row,
-html:not(.layout-ready) #main-grid {
-  transition: none !important;
+/* ── Base banner ──────────────────────────────────────────────────────── */
+#banner-wrapper {
+	position: absolute;
+	left: 0;
+	width: 100%;
+	z-index: 10;
+	overflow: hidden;
+	height: var(--banner-height-home, 65vh);
+	top: calc(-1 * var(--banner-height-extend, 30dvh));
+	transition:
+		transform 700ms cubic-bezier(0.4, 0, 0.2, 1),
+		opacity 300ms ease;
 }
 
-/* 主内容 top — desktop banner 重叠布局 */
-html[data-wallpaper-mode="banner"] .main-panel {
-  top: var(--banner-height, 35vh);
+#banner,
+#banner picture,
+#banner img {
+	display: block;
+	width: 100%;
+	height: 100%;
 }
 
-html[data-wallpaper-mode="none"] .main-panel {
-  top: calc(5.5rem + 1rem);
-  min-height: calc(100vh - 6.5rem);
+#banner img {
+	object-fit: cover;
 }
 
-/* mobile-main-no-banner 仅作用于移动端；桌面端非首页仍用 banner 重叠布局 (35vh) */
-@media (max-width: 1279px) {
-  html[data-wallpaper-mode="banner"] .main-panel.mobile-main-no-banner,
-  html[data-wallpaper-mode="none"] .main-panel.mobile-main-no-banner {
-    top: calc(5.5rem + 1rem) !important;
-    min-height: calc(100vh - 6.5rem) !important;
-  }
-
-  html[data-wallpaper-mode="banner"] #banner-wrapper.mobile-hide-banner {
-    height: 0 !important;
-    min-height: 0 !important;
-    overflow: hidden;
-    visibility: hidden;
-    pointer-events: none;
-  }
+body.no-banner-mode #banner-wrapper {
+	display: none;
 }
 
-/* ─── 页面布局滑动 ──────────────────────────────────────────────────────
-   content:replace 切换 is-home，与 Swup 在同一阶段启动的回顶滚动同步；
-   网格/banner 的 700ms 滑动与滚动同时发生，不再先让旧页面滑走。
-   #page-height-extend 在过渡期间撑高页面，避免新页更短时滚动位置
-   被截断而跳一下。 */
-
-/* Banner 基础高度（与 Layout.astro enable-banner 一致） */
-html[data-wallpaper-mode="banner"] #banner-wrapper {
-  display: block;
-  height: var(--banner-height-home, 65vh);
-  top: calc(-1 * var(--banner-height-extend, 30dvh));
-}
-
-html[data-wallpaper-mode="none"] #banner-wrapper {
-  display: none;
-}
-
-/* 桌面端 banner 模式主内容 + 首页 banner 重叠布局 */
+/* ── Desktop: home reveals 65vh, content pages show the 35vh strip ───── */
 @media (min-width: 1280px) {
-  html[data-wallpaper-mode="banner"] body.enable-banner .main-panel {
-    /* Same integer offset as the banner/grid transform. Using 35vh here
-       while the transform uses a 4px-rounded pixel value leaves a 1-4px
-       sliver where the grid pokes over the banner on non-round viewports. */
-    top: calc(var(--banner-height-home, 65vh) - var(--banner-height-extend, 30dvh)) !important;
-  }
+	html[data-wallpaper-mode="banner"] body.enable-banner #banner-wrapper {
+		transform: translateY(0);
+	}
 
-  html[data-wallpaper-mode="banner"] #top-row {
-    height: calc(var(--banner-height-home, 65vh) - 4.5rem);
-    min-height: calc(var(--banner-height-home, 65vh) - 4.5rem);
-  }
+	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
+		#banner-wrapper {
+		transform: translateY(var(--banner-height-extend, 30dvh));
+	}
 
-  html[data-wallpaper-mode="banner"] body.enable-banner #banner-wrapper {
-    transform: translateY(0);
-  }
+	html[data-wallpaper-mode="banner"] body.enable-banner .main-panel {
+		top: var(--banner-height, 35vh);
+	}
 
-  html[data-wallpaper-mode="banner"] body.enable-banner.is-home #banner-wrapper,
-  html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #banner-wrapper {
-    transform: translateY(var(--banner-height-extend, 30dvh));
-  }
+	html[data-wallpaper-mode="banner"] #top-row {
+		height: calc(var(--banner-height-home, 65vh) - 4.5rem);
+		min-height: calc(var(--banner-height-home, 65vh) - 4.5rem);
+	}
 
-  html[data-wallpaper-mode="banner"] body.enable-banner #main-grid {
-    transform: translateY(0);
-  }
+	html[data-wallpaper-mode="banner"] body.enable-banner #main-grid {
+		transform: translateY(0);
+	}
 
-  html[data-wallpaper-mode="banner"] body.enable-banner.is-home #main-grid,
-  html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #main-grid {
-    transform: translateY(var(--banner-height-extend, 30dvh));
-  }
+	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
+		#main-grid {
+		transform: translateY(var(--banner-height-extend, 30dvh));
+	}
 
-  #sidebar-sticky {
-    top: 1rem;
-  }
-  html[data-wallpaper-mode="banner"] body.enable-banner.is-home #sidebar-sticky,
-  html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #sidebar-sticky {
-    top: calc(1rem - var(--banner-height-extend, 30dvh));
-  }
-  #right-sidebar-sticky {
-    top: 1rem;
-  }
-  html[data-wallpaper-mode="banner"] body.enable-banner.is-home #right-sidebar-sticky,
-  html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #right-sidebar-sticky {
-    top: calc(1rem - var(--banner-height-extend, 30dvh));
-  }
+	#sidebar-sticky,
+	#right-sidebar-sticky {
+		top: 1rem;
+	}
+
+	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
+		#sidebar-sticky,
+	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
+		#right-sidebar-sticky {
+		top: calc(1rem - var(--banner-height-extend, 30dvh));
+	}
 }
 
-/* 无壁纸：主内容区与 navbar 保留间距 */
+/* ── No banner: content starts right under the navbar ─────────────────── */
+html[data-wallpaper-mode="none"] .main-panel {
+	top: calc(5.5rem + 1rem);
+	min-height: calc(100vh - 6.5rem);
+}
+
 html[data-wallpaper-mode="none"] #main-grid {
-  padding-top: 1rem;
+	padding-top: 1rem;
 }
 
-/* 移动端禁用桌面首页 banner 延伸位移，避免顶部留白 */
+/* ── Mobile: full-height banner on home, hidden on content pages ──────── */
+:root {
+	--mobile-banner-height: max(70vh, 450px);
+}
+
 @media (max-width: 1279px) {
-  html[data-wallpaper-mode="banner"] #banner-wrapper {
-    top: 0;
-    transform: none;
-  }
+	html[data-wallpaper-mode="banner"] #banner-wrapper {
+		top: 0;
+		height: var(--mobile-banner-height);
+		transform: none;
+	}
 
-  html[data-wallpaper-mode="banner"] #banner-wrapper.mobile-hide-banner {
-    transform: translate3d(0, -100%, 0);
-    opacity: 0;
-    pointer-events: none;
-  }
+	html[data-wallpaper-mode="banner"] .main-panel {
+		top: var(--mobile-banner-height);
+	}
 
-  html[data-wallpaper-mode="banner"] body.enable-banner.is-home #banner-wrapper:not(.mobile-hide-banner),
-  html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #banner-wrapper:not(.mobile-hide-banner) {
-    transform: none !important;
-  }
+	html[data-wallpaper-mode="banner"] body.enable-banner #main-grid {
+		transform: none !important;
+	}
 
-  html[data-wallpaper-mode="banner"] body.enable-banner.is-home #main-grid,
-  html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #main-grid {
-    transform: none !important;
-  }
+	html[data-wallpaper-mode="banner"] #banner-wrapper.mobile-hide-banner {
+		transform: translateY(-100%);
+		opacity: 0;
+		pointer-events: none;
+	}
 
+	.main-panel.mobile-main-no-banner {
+		top: calc(5.5rem + 1rem) !important;
+		min-height: calc(100vh - 6.5rem);
+	}
 }
 
-/* 小屏手机 (320px - 479px) */
-@media (max-width: 479px) {
-  html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
-    height: 70vh;
-    min-height: 450px;
-    max-height: none;
-    top: 0;
-  }
-
-  html[data-wallpaper-mode="banner"] .main-panel:not(.mobile-main-no-banner) {
-    top: 70vh;
-    min-height: calc(100vh - 70vh);
-  }
-}
-
-/* 大屏手机 (480px - 767px) */
 @media (min-width: 480px) and (max-width: 767px) {
-  html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
-    height: 75vh;
-    min-height: 500px;
-    max-height: none;
-    top: 0;
-  }
-
-  html[data-wallpaper-mode="banner"] .main-panel:not(.mobile-main-no-banner) {
-    top: 75vh;
-    min-height: calc(100vh - 75vh);
-  }
+	:root {
+		--mobile-banner-height: max(75vh, 500px);
+	}
 }
 
-/* 平板 (768px - 1279px) */
 @media (min-width: 768px) and (max-width: 1279px) {
-  html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
-    height: 70vh;
-    min-height: 500px;
-    top: 0;
-  }
-
-  html[data-wallpaper-mode="banner"] .main-panel:not(.mobile-main-no-banner) {
-    top: 70vh;
-    min-height: calc(100vh - 70vh);
-  }
+	:root {
+		--mobile-banner-height: max(70vh, 500px);
+	}
 }
 
-/* 移动端横屏 */
 @media (max-width: 1279px) and (orientation: landscape) {
-  html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
-    top: 0;
-    height: 60vh;
-  }
-
-  html[data-wallpaper-mode="banner"] .main-panel:not(.mobile-main-no-banner) {
-    top: 60vh;
-    min-height: calc(100vh - 60vh);
-  }
+	:root {
+		--mobile-banner-height: max(60vh, 300px);
+	}
 }
 
-/* 极小高度屏幕 */
 @media (max-height: 500px) {
-  html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
-    height: 85vh;
-    min-height: 350px;
-  }
-
-  html[data-wallpaper-mode="banner"] .main-panel:not(.mobile-main-no-banner) {
-    top: 85vh;
-    min-height: calc(100vh - 85vh);
-  }
+	:root {
+		--mobile-banner-height: max(85vh, 350px);
+	}
 }
 
 @media (min-height: 501px) and (max-height: 600px) {
-  html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
-    height: 80vh;
-    min-height: 400px;
-  }
-
-  html[data-wallpaper-mode="banner"] .main-panel:not(.mobile-main-no-banner) {
-    top: 80vh;
-    min-height: calc(100vh - 80vh);
-  }
+	:root {
+		--mobile-banner-height: max(80vh, 400px);
+	}
 }
 
 @media (min-height: 601px) and (max-height: 700px) {
-  html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
-    height: 75vh;
-    min-height: 450px;
-  }
-
-  html[data-wallpaper-mode="banner"] .main-panel:not(.mobile-main-no-banner) {
-    top: 75vh;
-    min-height: calc(100vh - 75vh);
-  }
+	:root {
+		--mobile-banner-height: max(75vh, 450px);
+	}
 }
 
 @media (orientation: landscape) and (max-height: 500px) {
-  html[data-wallpaper-mode="banner"] #banner-wrapper:not(.mobile-hide-banner) {
-    height: 90vh;
-    min-height: 300px;
-  }
-
-  html[data-wallpaper-mode="banner"] .main-panel:not(.mobile-main-no-banner) {
-    top: 90vh;
-    min-height: calc(100vh - 90vh);
-  }
+	:root {
+		--mobile-banner-height: max(90vh, 300px);
+	}
 }
 
-/* Grid 模式侧栏 — 替代 JS 首屏 classList 改写 */
+/* ── TOC scroll container ─────────────────────────────────────────────── */
+#toc-wrapper {
+	right: calc(-1 * var(--toc-width));
+}
+
+#toc-inner-wrapper {
+	-webkit-overflow-scrolling: touch;
+	overscroll-behavior: contain;
+	scrollbar-width: none;
+}
+
+#toc-inner-wrapper::-webkit-scrollbar {
+	display: none;
+}
+
+/* ── Grid post-list mode (config-driven, no runtime toggling) ─────────── */
 html[data-post-list-layout="grid"] .right-sidebar-container {
-  display: none !important;
+	display: none !important;
 }
 
-/* 平板设备 Grid 模式 */
 @media (min-width: 768px) and (max-width: 1279px) {
-  html[data-post-list-layout="grid"] #main-grid {
-    grid-template-columns: 1fr !important;
-    grid-template-rows: auto 1fr auto !important;
-  }
+	html[data-post-list-layout="grid"] #main-grid {
+		grid-template-columns: 1fr !important;
+		grid-template-rows: auto 1fr auto !important;
+	}
 
-  html[data-post-list-layout="grid"] #main-grid #swup-container {
-    grid-column: 1 / 2;
-    grid-row: 1 / 2;
-  }
+	html[data-post-list-layout="grid"] #main-grid #swup-container {
+		grid-column: 1 / 2;
+		grid-row: 1 / 2;
+	}
 }
 
-/* 桌面设备 Grid 模式 */
 @media (min-width: 1280px) {
-  html[data-post-list-layout="grid"] #main-grid {
-    grid-template-columns: 17.5rem 1fr !important;
-  }
+	html[data-post-list-layout="grid"] #main-grid {
+		grid-template-columns: 17.5rem 1fr !important;
+	}
 
-  html[data-post-list-layout="grid"] #main-grid #swup-container {
-    grid-column: 2 / 3;
-  }
+	html[data-post-list-layout="grid"] #main-grid #swup-container {
+		grid-column: 2 / 3;
+	}
 }

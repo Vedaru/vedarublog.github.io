@@ -7,7 +7,6 @@ import Navbar from "@components/nav/Navbar.astro";
 import SideBar from "@components/widget/SideBar.astro";
 import BannerWrapper from "@components/banner/BannerWrapper.astro";
 import type { MarkdownHeading } from "astro";
-import IconifyLoader from "../components/misc/IconifyLoader.astro";
 import TOC from "../components/widget/TOC.astro";
 import {
 	siteConfig,
@@ -68,7 +67,7 @@ const shouldPreloadMobileBanner = isHomePage && Boolean(mobileBannerResponsive);
 const bannerObjectPosition = siteConfig.banner.position || "center";
 const mobileBannerObjectPosition =
 	siteConfig.banner.mobilePosition || "left center";
-// 手机端非首页不显示banner的CSS类
+// 手机端非首页不显示 banner（只在 content:replace 之后切换，避免旧页面跳动）
 const mobileNonHomeBannerClass = !isHomePage ? "mobile-hide-banner" : "";
 
 // 检查左侧边栏是否有组件
@@ -108,6 +107,8 @@ const tabletShowRightSidebar = false; // 平板端不再有独立的右侧栏，
 const tabletAnySidebar = tabletShowLeftSidebar;
 
 const defaultPostListLayout = siteConfig.postListLayout?.defaultMode || "list";
+const showSidebarTOC =
+	siteConfig.toc.enable && isSidebarTOC && headings.length > 0;
 
 // 动态网格布局类名 - 根据侧边栏模式和是否有组件调整列宽
 let desktopGridCols = "lg:grid-cols-1";
@@ -189,7 +190,7 @@ const mainContentClass = `
 <style
 	slot="head"
 	is:inline
-	set:html={`@media (max-width:767px){#banner{object-position:${mobileBannerObjectPosition}!important;-o-object-position:${mobileBannerObjectPosition}!important}}`}
+	set:html={`@media (max-width:767px){#banner img{object-position:${mobileBannerObjectPosition}!important;-o-object-position:${mobileBannerObjectPosition}!important}}`}
 ></style>
 {shouldPreloadMobileBanner && mobileBannerResponsive && (
 	<link
@@ -203,24 +204,10 @@ const mainContentClass = `
 	/>
 )}
 
-<script type="application/json" id="main-grid-swup-config" set:html={JSON.stringify({
-		navbarTransparentMode: siteConfig.banner?.navbar?.transparentMode || "semi",
-		defaultWallpaperMode: siteConfig.wallpaperMode.defaultMode,
-		defaultPostListLayout: siteConfig.postListLayout?.defaultMode || "list",
-	})} />
-<script>
-	import { initMainGridSwup } from "../scripts/widgets/main-grid-swup";
-	const el = document.getElementById("main-grid-swup-config");
-	if (el) initMainGridSwup(JSON.parse(el.textContent || "{}"));
-</script>
-
-<!-- 全局图标加载器 -->
-<IconifyLoader />
-
 <!-- Navbar -->
 <slot slot="head" name="head"></slot>
-<div id="top-row" class="z-50 pointer-events-none relative transition-[opacity,transform] duration-700 max-w-[var(--page-width)] px-0 md:px-4 mx-auto" class:list={[""]}>
-    <div id="navbar-wrapper" class="pointer-events-auto sticky top-0 transition-[opacity,background-color,box-shadow] duration-300">
+<div id="top-row" class="z-50 pointer-events-none relative max-w-[var(--page-width)] px-0 md:px-4 mx-auto" class:list={[""]}>
+    <div id="navbar-wrapper" class="pointer-events-auto sticky top-0 transition-[opacity,transform] duration-300">
         <Navbar></Navbar>
     </div>
 </div>
@@ -278,41 +265,33 @@ const mainContentClass = `
     </div>
 </div>
 
-<!-- 侧边栏TOC模式 -->
-{siteConfig.toc.enable && isSidebarTOC && (
-    <div class="absolute w-full z-0 hidden 2xl:block">
-        <div class="relative max-w-[var(--page-width)] mx-auto">
-            <div id="toc-wrapper" class:list={["hidden lg:block transition absolute top-0 w-[var(--toc-width)] items-center",
-                "-right-[var(--toc-width)]",
-                {"toc-hide": siteConfig.wallpaperMode.defaultMode === "banner"}]}
-            >
-                <div id="toc-inner-wrapper" class="fixed top-14 w-[var(--toc-width)] max-h-[calc(100vh_-_10rem)] overflow-hidden">
-                    <div id="toc-container" class="w-full transition-swup-fade">
-                        <TOC headings={headings}></TOC>
-                    </div>
+<!-- 侧边栏 TOC。`#toc` 是 Swup 容器，永远位于同一位置，
+     换页时由 Swup 整体替换，自定义元素随之重新升级。 -->
+<div class:list={[
+    "absolute w-full z-0 hidden 2xl:block",
+    !isSidebarTOC && "!hidden",
+]}>
+    <div class="relative max-w-[var(--page-width)] mx-auto">
+        <div id="toc-wrapper" class:list={["hidden lg:block transition absolute top-0 w-[var(--toc-width)] items-center",
+            "-right-[var(--toc-width)]",
+            {"toc-hide": siteConfig.wallpaperMode.defaultMode === "banner"}]}
+        >
+            <div id="toc-inner-wrapper" class="fixed top-14 w-[var(--toc-width)] max-h-[calc(100vh_-_10rem)] overflow-y-auto hide-scrollbar">
+                <div id="toc" class="w-full transition-swup-fade">
+                    {showSidebarTOC && <TOC headings={headings}></TOC>}
                 </div>
             </div>
         </div>
     </div>
-)}
-
-<!-- 保留此元素以确保Swup正常工作 -->
-{(!siteConfig.toc.enable || isFloatTOC) && <div id="toc-container" class="hidden"></div>}
+</div>
 </Layout>
 
 <style>
-/* 当没有 banner 时，主内容区域移到顶部 */
-body.no-banner-mode .absolute.w-full.z-30 {
-    top: calc(5.5rem + 1rem) !important;
-}
-
 /* TOC 垂直对齐优化 */
 body.no-banner-mode #toc-inner-wrapper {
     top: 5.5rem !important;
     max-height: calc(100vh - 8rem) !important;
 }
-
-/* 桌面端 banner 模式下的主内容位置 — 见 layout-stable.css */
 
 /* 移动端无侧边栏布局优化 */
 @media (max-width: 767px) {
@@ -374,31 +353,6 @@ body.no-banner-mode #toc-inner-wrapper {
     }
 }
 
-/* 移动端图片优化：object-position 由 head 内 is:inline 按
-   config.mobilePosition 注入。 */
-
-/* #banner-wrapper 定位规则见 layout-stable.css（BannerWrapper 组件化后须用全局样式） */
-
-/* 手机端非首页：主内容区域位置（banner 隐藏动画见 layout-stable.css） */
-@media (max-width: 1279px) {
-    .absolute.w-full.z-30.mobile-main-no-banner {
-        top: calc(5.5rem + 1rem) !important;
-        min-height: calc(100vh - 6.5rem) !important;
-    }
-}
-
-/* 移动端导航栏与banner的协调 */
-@media (max-width: 1279px) {
-    #navbar-wrapper {
-        /* 移除覆盖样式，让Navbar.astro的圆角和半透明效果生效 */
-    }
-    
-    /* 暗色主题下的导航栏 */
-    :root.dark #navbar-wrapper {
-        /* 移除覆盖样式，让Navbar.astro的圆角和半透明效果生效 */
-    }
-}
-
 /* 移动端banner性能优化 */
 @media (max-width: 1279px) {
     .banner-container {
@@ -432,24 +386,8 @@ body.no-banner-mode #toc-inner-wrapper {
     }
 }
 
-/* 当banner被禁用时的布局样式 */
-.no-banner-layout {
-    top: 5.5rem !important;
-    min-height: calc(100vh - 5.5rem) !important;
-}
-
-/* Grid 模式下调整主网格布局 */
-/* #main-grid 与 #banner-wrapper 的 transform 各自带 700ms 过渡
-   （组件 class，与上游 Fuwari 一致）。这里不要再为 #main-grid
-   自身的 transform 写额外的 transition / animation——会与原本的
-   过渡叠加引起接缝抖动。
-
-   data-layout-mode 变化由下方 [data-layout-mode="grid"] 选择器只切换
-   grid-template-columns（布局结构），不触碰 transform。 */
-
-#main-grid[data-layout-mode="grid"] {
-    /* 在桌面端只显示左侧边栏和主内容 */
-}
+/* Grid 模式只切换 grid-template-columns，不触碰 transform。
+   真正的布局规则统一在 layout-stable.css。 */
 
 /* 平板设备Grid模式：使用单列布局，和手机端保持一致 */
 @media (min-width: 768px) and (max-width: 1279px) {
@@ -472,44 +410,6 @@ body.no-banner-mode #toc-inner-wrapper {
     
     #main-grid[data-layout-mode="grid"] #swup-container {
         grid-column: 2 / 3;
-    }
-}
-
-/* 确保大屏桌面设备Grid模式配置 */
-@media (min-width: 1280px) {
-    #main-grid[data-layout-mode="grid"] {
-        grid-template-columns: 17.5rem 1fr !important;
-    }
-    
-    #main-grid[data-layout-mode="grid"] #swup-container {
-        grid-column: 2 / 3;
-    }
-}
-
-/* 移动端当banner被禁用时的布局样式 */
-@media (max-width: 1279px) {
-    .absolute.w-full.z-30.no-banner-layout {
-        top: 5.5rem !important;
-        min-height: calc(100vh - 5.5rem) !important;
-        transition: none !important; /* 移除过渡动画，立即应用位置 */
-    }
-}
-
-/* 小屏手机当banner被禁用时的布局样式 */
-@media (max-width: 479px) {
-    .absolute.w-full.z-30.no-banner-layout {
-        top: 5.5rem !important;
-        min-height: calc(100vh - 5.5rem) !important;
-        transition: none !important;
-    }
-}
-
-/* 平板设备当banner被禁用时的布局样式 */
-@media (min-width: 768px) and (max-width: 1279px) {
-    .absolute.w-full.z-30.no-banner-layout {
-        top: 5.5rem !important;
-        min-height: calc(100vh - 5.5rem) !important;
-        transition: none !important;
     }
 }
 

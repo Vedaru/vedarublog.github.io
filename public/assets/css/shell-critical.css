@@ -1,7 +1,7 @@
 /**
- * Shell 关键样式 — 静态文件、head 末尾加载，优先级高于 /_astro/*.css。
- * Swup 换页 / 切壁纸 / 切布局 / 切主题时侧栏与 navbar 仍在 #swup-container 外，
- * 必须保证 .card-base 背景不被 transition-colors 或外链 CSS 卸载打断。
+ * Shell critical styles — inlined in <head> so the first paint already has the
+ * page/card colours and the navbar surface. Keep this file small: every byte
+ * here is blocking HTML.
  */
 
 :root {
@@ -24,160 +24,9 @@ body {
 .card-base {
 	overflow: hidden;
 	border-radius: var(--radius-large);
-	background-color: var(--card-bg) !important;
-	/* 禁止背景色过渡，避免切换时经过透明态出现线框 */
-	transition-property: opacity, transform, box-shadow, filter, color !important;
+	background-color: var(--card-bg);
 }
 
-/* semifull 由下方规则 + JS .scrolled 控制，勿强制 card-bg */
-#navbar:not([data-transparent-mode="semifull"]) > div {
-	background-color: var(--card-bg) !important;
-}
-
-/* --- semifull 动态透明（须 !important 才能压过上方 shell 规则）--- */
-body:has(#banner-wrapper)
-	#navbar[data-transparent-mode="semifull"]:not(.scrolled):not([data-is-home="true"])
-	> div {
-	background: transparent !important;
-	background-color: transparent !important;
-	box-shadow: none !important;
-	border-color: transparent !important;
-	backdrop-filter: none !important;
-	-webkit-backdrop-filter: none !important;
-}
-
-/* 首页 semifull：由 JS 写入 --semifull-fade (0~1) 驱动渐变 */
-body:has(#banner-wrapper)
-	#navbar[data-transparent-mode="semifull"][data-is-home="true"]
-	> div {
-	--sf: var(--semifull-fade, 0);
-	background: rgba(255, 255, 255, calc(0.55 * var(--sf))) !important;
-	background-color: rgba(255, 255, 255, calc(0.55 * var(--sf))) !important;
-	border: 1px solid rgba(255, 255, 255, calc(0.55 * var(--sf))) !important;
-	box-shadow: 0 4px 16px rgba(0, 0, 0, calc(0.1 * var(--sf))) !important;
-	/* 这里刻意不加 backdrop-filter：--semifull-fade 随滚动逐帧变化，
-	   写在这里等于每帧重算一次 20px 模糊；导航栏横跨整个视口，是移动端
-	   滚动/过渡不如桌面顺滑的主要原因（上游 Fuwari 的导航栏根本没有 blur）。
-	   动态模糊只在桌面端保留，见下方 @media (min-width: 1280px)。 */
-}
-
-:root.dark
-	body:has(#banner-wrapper)
-	#navbar[data-transparent-mode="semifull"][data-is-home="true"]
-	> div {
-	background: rgba(0, 0, 0, calc(0.55 * var(--sf))) !important;
-	background-color: rgba(0, 0, 0, calc(0.55 * var(--sf))) !important;
-	border: 1px solid rgba(0, 0, 0, calc(0.55 * var(--sf))) !important;
-	box-shadow: 0 4px 16px rgba(0, 0, 0, calc(0.2 * var(--sf))) !important;
-}
-
-body:has(#banner-wrapper)
-	#navbar[data-transparent-mode="semifull"][data-is-home="true"].scrolled {
-	--semifull-fade: 1;
-}
-
-@media (max-width: 1279px) {
-	body:has(#banner-wrapper)
-		#navbar[data-transparent-mode="semifull"]:not(.scrolled):not([data-is-home="true"])
-		> div {
-		background: var(--card-bg) !important;
-		background-color: var(--card-bg) !important;
-	}
-}
-
-@media (min-width: 1280px) {
-	/* Keep the translucent background, but no backdrop-filter: the banner
-	   translates behind the navbar, and recomputing a full-width blur every
-	   frame is what makes the 700ms banner transition stutter. */
-	body:has(#banner-wrapper)
-		#navbar[data-transparent-mode="semifull"].scrolled:not([data-is-home="true"])
-		> div {
-		background: rgba(255, 255, 255, 0.55) !important;
-		background-color: rgba(255, 255, 255, 0.55) !important;
-		border: 1px solid rgba(255, 255, 255, 0.55) !important;
-		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
-	}
-
-	:root.dark
-		body:has(#banner-wrapper)
-		#navbar[data-transparent-mode="semifull"].scrolled:not([data-is-home="true"])
-		> div {
-		background: rgba(0, 0, 0, 0.55) !important;
-		background-color: rgba(0, 0, 0, 0.55) !important;
-		border: 1px solid rgba(0, 0, 0, 0.55) !important;
-		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
-	}
-}
-
-/* 界面变化期间锁定 shell 背景 */
-html.is-changing .card-base,
-html.is-animating .card-base,
-html.is-leaving .card-base,
-html.is-theme-transitioning .card-base {
-	background-color: var(--card-bg) !important;
-	transition: none !important;
-}
-
-html.is-changing #navbar:not([data-transparent-mode="semifull"]) > div,
-html.is-animating #navbar:not([data-transparent-mode="semifull"]) > div,
-html.is-theme-transitioning #navbar:not([data-transparent-mode="semifull"]) > div {
-	background-color: var(--card-bg) !important;
-	transition: none !important;
-}
-
-html.is-changing #navbar[data-transparent-mode="semifull"] > div,
-html.is-animating #navbar[data-transparent-mode="semifull"] > div,
-html.is-theme-transitioning #navbar[data-transparent-mode="semifull"] > div {
-	transition: none !important;
-}
-
-@media (max-width: 1279px) {
-	html.is-changing #swup-container,
-	html.is-animating #swup-container {
-		contain: none !important;
-	}
-}
-
-/* The banner moves behind the navbar during page transitions. Recomputing
-   its blur every frame is a compositor stall; Fuwari's navbar has no blur,
-   so drop it only for the duration of the change. This selector has to beat
-   the desktop semifull blur rule above, including its !important. */
-html.is-changing body:has(#banner-wrapper) #navbar[data-transparent-mode] > div,
-html.is-animating body:has(#banner-wrapper) #navbar[data-transparent-mode] > div,
-html.is-leaving body:has(#banner-wrapper) #navbar[data-transparent-mode] > div {
-	backdrop-filter: none !important;
-	-webkit-backdrop-filter: none !important;
-}
-
-/* The home/post swap changes data-is-home and .scrolled in one frame.
-   Without a transition the solid navbar snaps to transparent (or back). */
-html.is-changing body:has(#banner-wrapper) #navbar[data-transparent-mode][data-is-home] > div,
-html.is-animating body:has(#banner-wrapper) #navbar[data-transparent-mode][data-is-home] > div,
-html.is-layout-sliding body:has(#banner-wrapper) #navbar[data-transparent-mode][data-is-home] > div {
-	transition:
-		background-color 300ms ease,
-		border-color 300ms ease,
-		box-shadow 300ms ease !important;
-}
-
-/* Fuwari's navbar is a solid card at all times; its home transparency is a
-   local extension that kept snapping during page changes. Keep the card
-   background stable instead of chasing data-is-home/.scrolled every visit. */
-html body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"][data-is-home] > div,
-html body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"] > div {
-	background: var(--card-bg) !important;
-	background-color: var(--card-bg) !important;
-	border-color: transparent !important;
-	box-shadow: none !important;
-	backdrop-filter: none !important;
-	-webkit-backdrop-filter: none !important;
-}
-
-/* Fixed blur surfaces sit above the page while it slides. Recomputing those
-   blurs every frame is a large compositor cost, and Fuwari has none of them. */
-html.is-layout-sliding .orb-player,
-html.is-layout-sliding .mobile-toc-panel,
-html.is-layout-sliding .float-panel {
-	backdrop-filter: none !important;
-	-webkit-backdrop-filter: none !important;
+#navbar > div {
+	background-color: var(--card-bg);
 }

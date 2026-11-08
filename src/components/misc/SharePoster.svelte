@@ -51,20 +51,7 @@ onMount(() => {
 		idle(resolveThemeColor);
 	};
 
-	if (
-		document.documentElement.classList.contains("is-changing") ||
-		document.documentElement.classList.contains("is-animating")
-	) {
-		if (window.__onSwupPageIdlePhase) {
-			window.__onSwupPageIdlePhase(scheduleResolve);
-		} else {
-			document.addEventListener("swup:transition-ready", scheduleResolve, {
-				once: true,
-			});
-		}
-	} else {
-		scheduleResolve();
-	}
+	scheduleResolve();
 });
 
 async function loadImage(src: string): Promise<HTMLImageElement | null> {

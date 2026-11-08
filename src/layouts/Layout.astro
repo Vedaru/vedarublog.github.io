@@ -34,7 +34,6 @@ import playlistJson from "../../public/assets/music/playlist.json";
 // 副作用被编译进包；该 glob 收窄为图片扩展名后须显式引入。
 import "../styles/variables.styl";
 import "../styles/main.css";
-import "../styles/wallpaper-navbar-transparent.css";
 import "../styles/panel-animations.css";
 
 const shellCriticalCss = readFileSync(
@@ -447,45 +446,19 @@ if (siteConfig.font) {
 			<template id="umami-scripts-tpl" set:html={umamiScripts} />
 		)}
 
-		<script>
-			import "../scripts/layout-critical";
-		</script>
-		<script>
-			import "../scripts/layout-deferred";
-		</script>
-
 	</head>
 	<body
 		class="min-h-screen"
-		class:list={[{ "lg:is-home": isHomePage, "is-home": isHomePage }]}
+		class:list={[
+			{
+				"lg:is-home": isHomePage,
+				"is-home": isHomePage,
+				"enable-banner": siteConfig.wallpaperMode.defaultMode === "banner",
+				"no-banner-mode": siteConfig.wallpaperMode.defaultMode === "none",
+			},
+		]}
 	>
 		<div class="doodle-backdrop" aria-hidden="true"></div>
-		<script is:inline>
-			(function () {
-				var mode =
-					document.documentElement.getAttribute(
-						"data-wallpaper-mode",
-					) || "banner";
-				var body = document.body;
-				body.classList.remove(
-					"enable-banner",
-					"no-banner-mode",
-				);
-				switch (mode) {
-					case "banner":
-						body.classList.add("enable-banner");
-						break;
-					case "none":
-						body.classList.add("no-banner-mode");
-						break;
-				}
-				requestAnimationFrame(function () {
-					requestAnimationFrame(function () {
-						document.documentElement.classList.add("layout-ready");
-					});
-				});
-			})();
-		</script>
 		<!-- 页面顶部渐变高光效果 - 只在full和semifull模式下显示 -->
 		{shouldShowTopHighlight && <div class="top-gradient-highlight" />}
 
@@ -511,11 +484,10 @@ if (siteConfig.font) {
 </html>
 
 <script>
-	import { initThemeBootstrap } from "../scripts/theme-bootstrap";
-	import { initSwupLifecycle } from "../scripts/swup-lifecycle";
-	import { initNavbarScroll } from "../scripts/navbar-scroll";
+	import { initTransitions } from "../scripts/transitions";
+	import { initEnhancements } from "../scripts/page-enhancements";
+	import "../scripts/toc-element";
 
-	initThemeBootstrap();
-	initSwupLifecycle();
-	initNavbarScroll();
+	initTransitions();
+	initEnhancements();
 </script>

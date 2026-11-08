@@ -73,7 +73,9 @@ export default defineConfig({
 		swup({
 			theme: false,
 			animationClass: "transition-swup-",
-			containers: ["main"],
+			// 与 Fuwari 相同：只替换内容区和侧边栏 TOC。TOC 是静态渲染的
+			// 自定义元素，换页后由浏览器自动升级，无需运行时重建。
+			containers: ["main", "#toc"],
 			smoothScrolling: true,
 			cache: true,
 			preload: true,

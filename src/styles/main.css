@@ -1,7 +1,6 @@
 /* 导入动画样式 */
 @import "./transition.css";
 @import "./doodle-background.css";
-@import "./banner-responsive.css";
 @import "./mobile-fixes.css";
 @import "./layout-stable.css";
 /* 导入渐变按钮样式 */
@@ -46,27 +45,6 @@ body {
 
 @tailwind components;
 @layer components {
-  @media (min-width: 1280px) {
-    .enable-banner.is-home #banner-wrapper {
-      @apply h-[var(--banner-height-home)];
-    }
-    .enable-banner #banner-wrapper {
-      @apply h-[var(--banner-height-home)];
-    }
-    .enable-banner.is-home #banner {
-      @apply h-[var(--banner-height-home)];
-      transform: none;
-    }
-    .enable-banner #banner {
-      @apply h-[var(--banner-height-home)];
-      transform: none;
-    }
-    /* #main-grid 与 #banner-wrapper 的 transform 各自 transition（700ms），
-       与上游 Fuwari 一致。详见 layout-stable.css。 */
-    .enable-banner #top-row {
-      @apply h-[calc(var(--banner-height-home)_-_4.5rem)];
-    }
-  }
   .navbar-hidden {
     @apply opacity-0 -translate-y-16;
   }
@@ -170,15 +148,6 @@ body::-webkit-scrollbar {
     opacity: 1;
   }
 
-  /* 确保边框和分隔线元素在主题切换时有更明确的过渡时长 */
-  .transition,
-  [class*="border"],
-  [class*="transition"] {
-    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 0.15s;
-  }
-
   /* 主题过渡保护类 - 仅在非 View Transitions 模式下使用 */
   /* 当使用 View Transitions API 时，浏览器会自动处理过渡，不需要禁用 transition */
   .is-theme-transitioning:not(.use-view-transition) *,
@@ -256,19 +225,6 @@ body::-webkit-scrollbar {
     @apply rounded-[var(--radius-large)] overflow-hidden bg-[var(--card-bg-transparent)] backdrop-blur-sm transition-colors duration-150;
   }
 
-  /* 仅对需要主题色过渡的文本元素添加 transition，减少 INP 影响 */
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6,
-  p,
-  a,
-  span,
-  li {
-    @apply transition-colors duration-150;
-  }
   /* TOC 锚点导航偏移量：为原生 scrollIntoView 留出 navbar 空间 */
   h1[id],
   h2[id],
@@ -335,8 +291,7 @@ body::-webkit-scrollbar {
         hover:decoration-[var(--link-hover)] active:decoration-[var(--link-active)] underline-offset-[0.25rem];
   }
 
-  .toc-hide,
-  .toc-not-ready {
+  .toc-hide {
     @apply opacity-0 pointer-events-none;
   }
 
