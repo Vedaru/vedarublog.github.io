@@ -2,8 +2,9 @@
  * Layout geometry: banner, main panel, grid glide, sidebar sticky, TOC.
  *
  * Single source of truth for the Fuwari-style layout animation. The body's
- * `is-home` class is flipped by `src/scripts/transitions.ts` at `visit:start`,
- * and CSS does the rest with one 700ms transform on the banner and the grid.
+ * `is-home` class is flipped by `src/scripts/transitions.ts` from the scroll
+ * plugin's `scroll:end`, after the new scroll position is committed, and CSS
+ * does the rest with one 700ms transform on the banner and the grid.
  */
 
 /* ── Base banner ──────────────────────────────────────────────────────── */
@@ -21,7 +22,6 @@
 }
 
 #banner,
-#banner picture,
 #banner img {
 	display: block;
 	width: 100%;
