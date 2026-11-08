@@ -471,10 +471,6 @@ if (siteConfig.font) {
 		<ConfigCarrier />
 		<slot />
 
-		<!-- Fuwari keeps the page tall during the visit so the scroll reset
-		     cannot clamp against a shorter incoming page. -->
-		<div id="page-height-extend" class="hidden h-[300vh]"></div>
-
 		<!-- Music Player - 仅在启用时加载 -->
 		{musicPlayerConfig.enable && (
 			<MusicPlayer client:visible initialSong={musicInitialSong} locale={Astro.currentLocale} />
@@ -492,6 +488,7 @@ if (siteConfig.font) {
 <script>
 	import { initTransitions } from "../scripts/transitions";
 	import { initEnhancements } from "../scripts/page-enhancements";
+	import "../scripts/scroll-plugin";
 	import "../scripts/toc-element";
 
 	initTransitions();

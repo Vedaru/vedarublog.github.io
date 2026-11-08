@@ -38,24 +38,39 @@ click
   → visit:start
       body.is-home toggled
       #banner-wrapper and #main-grid start 700ms transform
-      #page-height-extend shown
-  → content fade out (200ms)
+      sticky sidebar top frozen for the visit
+  → content fade out (200ms) while the old page stays at its scroll position
   → content:replace (main + #toc)
       TOC is already server-rendered; custom element re-upgrades
-  → smooth scroll to top
+  → smooth scroll to top (Fuwari's scroll plugin, after the swap)
   → content fade in (200ms)
   → animation:in:end
-      wait for the grid transformend event (or 900ms fallback)
+      wait for the grid transform end event (or 900ms fallback)
       then requestIdleCallback → fancybox / mermaid / fonts / comments
-  → visit:end + 200ms
-      hide #page-height-extend
+  → scroll:end
+      release the sticky sidebar top
 ```
+
+The old page is deliberately not scrolled during its fade-out. Starting the
+reset at `visit:start` made the outgoing content slide while it faded, then
+the incoming content replaced it mid-scroll: that was the "interrupted"
+transition. Swup's scroll plugin now starts the reset from `content:scroll`,
+after the swap, exactly like Fuwari.
+
+There is no `#page-height-extend` tail. A 300vh tail kept the old scroll
+position alive, but on a tall viewport it also gave the page thousands of
+pixels of empty scrollable space below the footer. Instead the browser clamps
+the scroll position at `content:replace`, while both the outgoing and incoming
+containers are at opacity 0, then the reset animates from the new page's
+natural maximum. The clamp is invisible and the document always ends at the
+real footer.
 
 Key files:
 
 | File | Responsibility |
 | --- | --- |
 | `src/scripts/transitions.ts` | All Swup hooks, body layout class, scroll chrome |
+| `src/scripts/scroll-plugin.ts` | Swup scroll plugin with Fuwari's timing |
 | `src/scripts/page-enhancements.ts` | Idle-time enhancement loading |
 | `src/scripts/runtime/after-transition.ts` | Wait for the 700ms transform |
 | `src/scripts/toc-element.ts` | TOC custom element (observers only) |
@@ -68,6 +83,12 @@ Rules for future changes:
 
 - Do not add layout timers that re-apply the home class. Flip it once at
   `visit:start`.
+- Do not start the scroll reset at `visit:start`. It belongs after
+  `content:replace`; the outgoing page must finish its fade before the page
+  moves.
+- Do not re-introduce a tall spacer to "protect" the scroll position. The
+  clamp happens while the content is invisible; a spacer becomes a scrollable
+  blank region and makes the page look endless.
 - Do not load third-party scripts during a visit. Use
   `scheduleEnhancements()` or an `IntersectionObserver`.
 - Do not animate layout properties (`top`, `height`, `width`) inside

@@ -55,15 +55,6 @@ body.no-banner-mode #banner-wrapper {
 
 /* ── Desktop: home reveals 65vh, content pages show the 35vh strip ───── */
 @media (min-width: 1280px) {
-	/* The last 4px of the banner sit *under* the grid instead of ending
-	   exactly on its edge. Two independently composited layers can round a
-	   shared edge to different pixels for a frame, which shows up as a
-	   hairline flicker. The grid paints over the extra strip, so this is
-	   invisible and the visible edge stays where the content starts. */
-	html[data-wallpaper-mode="banner"] body.enable-banner #banner-wrapper {
-		height: calc(var(--banner-height-home, 65vh) + 4px);
-	}
-
 	html[data-wallpaper-mode="banner"] body.enable-banner #banner-wrapper {
 		transform: translate3d(0, 0, 0);
 	}
