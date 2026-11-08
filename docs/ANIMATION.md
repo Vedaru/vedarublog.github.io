@@ -57,6 +57,12 @@ the incoming content replaced it mid-scroll: that was the "interrupted"
 transition. Swup's scroll plugin now starts the reset from `content:scroll`,
 after the swap, exactly like Fuwari.
 
+The document height is held at its outgoing value for the 200ms fade-out
+only. The grid transform moves the visual bottom of the old content upwards;
+without the hold, the browser sees a shorter scroll range and clamps the old
+page while it is still fading. The hold is released at `content:replace`, not
+after the visit, so it can never become a scrollable tail.
+
 There is no `#page-height-extend` tail. A 300vh tail kept the old scroll
 position alive, but on a tall viewport it also gave the page thousands of
 pixels of empty scrollable space below the footer. Instead the browser clamps
