@@ -72,6 +72,12 @@ Rules for future changes:
   `scheduleEnhancements()` or an `IntersectionObserver`.
 - Do not animate layout properties (`top`, `height`, `width`) inside
   `#main-grid` while the grid is transformed.
-- Do not use `backdrop-filter` on the navbar. It forces a full-width blur
-  recompute while the banner slides behind it.
+- Keep the grid's `top` derived from
+  `calc(var(--banner-height-home) - var(--banner-height-extend))`, never a
+  separate `35vh`. The extend variable is rounded to a 4px grid, so `35vh`
+  drifts by 1-4px and the seam becomes visible.
+- `backdrop-filter` on the navbar is allowed only when the page is idle
+  (`html:not(.is-changing):not(.is-animating)`) and on desktop. The navbar
+  transparency itself is CSS-only in `src/styles/navbar.css`; the transition
+  script only toggles `data-is-home`, `.scrolled` and `--semifull-fade`.
 - New heavy features belong in `page-enhancements.ts`, not in `Layout.astro`.

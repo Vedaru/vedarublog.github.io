@@ -48,7 +48,13 @@ body.no-banner-mode #banner-wrapper {
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner .main-panel {
-		top: var(--banner-height, 35vh);
+		/* --banner-height-extend is rounded to a 4px grid, so 65vh - 30vh
+		   is not the same pixel as the banner's real bottom edge. Use the
+		   same values the transform uses, or a 1-4px sliver appears. */
+		top: calc(
+			var(--banner-height-home, 65vh) -
+				var(--banner-height-extend, 30dvh)
+		);
 	}
 
 	html[data-wallpaper-mode="banner"] #top-row {

@@ -1,5 +1,6 @@
 /* 导入动画样式 */
 @import "./transition.css";
+@import "./navbar.css";
 @import "./doodle-background.css";
 @import "./mobile-fixes.css";
 @import "./layout-stable.css";

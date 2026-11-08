@@ -34,6 +34,10 @@ function isHomeVisit(visit: Visit): boolean {
 function setHomeLayout(isHome: boolean): void {
 	document.body.classList.toggle("is-home", isHome);
 	document.body.classList.toggle("lg:is-home", isHome);
+	document.getElementById("navbar")?.setAttribute(
+		"data-is-home",
+		String(isHome),
+	);
 }
 
 /**
@@ -66,6 +70,40 @@ function getScrollY(): number {
 	);
 }
 
+let lastSemifullFade = "";
+
+/**
+ * `semi` / `full`: transparent only at the top of the home page.
+ * `semifull`: fully transparent at the top, fading to translucent as the
+ * first 50px are scrolled. Everywhere else the navbar is the solid card.
+ */
+function updateNavbarChrome(scrollY: number): void {
+	const navbar = document.getElementById("navbar");
+	if (!navbar) return;
+
+	const bannerEnabled = document.body.classList.contains("enable-banner");
+	const isHome = navbar.getAttribute("data-is-home") === "true";
+	const mode = navbar.getAttribute("data-transparent-mode");
+	const scrolled = !bannerEnabled || !isHome || scrollY >= 50;
+
+	navbar.classList.toggle("scrolled", scrolled);
+
+	if (mode !== "semifull") {
+		if (lastSemifullFade !== "") {
+			navbar.style.removeProperty("--semifull-fade");
+			lastSemifullFade = "";
+		}
+		return;
+	}
+
+	const fade = String(
+		isHome && bannerEnabled ? Math.min(1, scrollY / 50) : 1,
+	);
+	if (fade === lastSemifullFade) return;
+	lastSemifullFade = fade;
+	navbar.style.setProperty("--semifull-fade", fade);
+}
+
 function updateScrollChrome(): void {
 	const scrollY = getScrollY();
 	const bannerEnabled = document.body.classList.contains("enable-banner");
@@ -74,6 +112,8 @@ function updateScrollChrome(): void {
 	document
 		.getElementById("back-to-top-btn")
 		?.classList.toggle("hide", scrollY <= bannerHeight);
+
+	updateNavbarChrome(scrollY);
 
 	if (!bannerEnabled) return;
 
