@@ -10,6 +10,7 @@
 		"dev": "astro dev",
 		"start": "astro dev",
 		"check": "astro check",
+		"test:chat": "node --test tests/chat-component.test.mjs",
 		"update-anime": "node scripts/update-bangumi.mjs",
 		"build": "astro build && node scripts/build-search-pages.mjs && node scripts/compress-fonts.js",
 		"reencode-music": "node scripts/reencode-music.mjs",
