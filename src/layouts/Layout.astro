@@ -492,6 +492,9 @@ if (siteConfig.font) {
 		<ConfigCarrier />
 		<slot />
 
+		<!-- Keep the page tall while Swup animates the scroll to the top. -->
+		<div id="page-height-extend" class="hidden h-[300vh]"></div>
+
 		<!-- Music Player - 仅在启用时加载 -->
 		{musicPlayerConfig.enable && (
 			<MusicPlayer client:visible initialSong={musicInitialSong} locale={Astro.currentLocale} />

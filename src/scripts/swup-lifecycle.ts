@@ -104,8 +104,9 @@ function runPageLayout() {
 }
 
 /**
- * Apply the target layout after content:replace. The CSS transition on
- * #main-grid / #banner-wrapper does the slide; this only flips the state.
+ * Flip the target layout. Called at visit:start so the grid/banner slide runs
+ * alongside Swup's scroll animation, then again after content:replace for the
+ * new DOM. The CSS transition does the movement; this only flips the state.
  */
 function applyTargetLayout(visit: { to: { url: string } }) {
 	const isHomePage = isMainHomePage(pathFromUrl(visit.to.url));
@@ -146,37 +147,25 @@ function syncThemeFromStorage() {
 	});
 }
 
-let layoutApplyGeneration = 0;
 let postTransitionTimer: number | null = null;
+let pageHeightTimer: number | null = null;
 
-/**
- * Scroll the current page to the top before Swup starts. Doing it after the
- * grid transform begins makes the sticky sidebar travel with the scroll.
- * Native smooth scroll with a short cap replaces the old JS tween runtime.
- */
-function resetScrollBeforeVisit(): Promise<void> {
-	const scroller = document.scrollingElement || document.documentElement;
-	if (scroller.scrollTop <= 0) return Promise.resolve();
-
-	if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-		scroller.scrollTop = 0;
-		return Promise.resolve();
+function setPageHeightExtend(visible: boolean) {
+	if (pageHeightTimer !== null) {
+		window.clearTimeout(pageHeightTimer);
+		pageHeightTimer = null;
 	}
+	document
+		.getElementById("page-height-extend")
+		?.classList.toggle("hidden", !visible);
+}
 
-	return new Promise((resolve) => {
-		let done = false;
-		const finish = () => {
-			if (done) return;
-			done = true;
-			window.removeEventListener("scrollend", finish);
-			scroller.scrollTop = 0;
-			resolve();
-		};
-
-		window.addEventListener("scrollend", finish, { once: true });
-		window.setTimeout(finish, 450);
-		window.scrollTo({ top: 0, behavior: "smooth" });
-	});
+function collapsePageHeightAfterVisit() {
+	if (pageHeightTimer !== null) window.clearTimeout(pageHeightTimer);
+	pageHeightTimer = window.setTimeout(() => {
+		pageHeightTimer = null;
+		setPageHeightExtend(false);
+	}, 200);
 }
 
 function schedulePostTransition() {
@@ -252,8 +241,9 @@ function setup() {
 
 	window.swup?.hooks.on(
 		"visit:start",
-		async () => {
-			await resetScrollBeforeVisit();
+		(visit: { to: { url: string } }) => {
+			applyTargetLayout(visit);
+			setPageHeightExtend(true);
 			resetSwupIdle();
 			if (postTransitionTimer !== null) {
 				window.clearTimeout(postTransitionTimer);
@@ -279,16 +269,8 @@ function setup() {
 				"--content-delay",
 				"0ms",
 			);
-			// Let the new DOM paint once before flipping the layout state.
-			// The transform then runs on the incoming page only.
-			const generation = ++layoutApplyGeneration;
-			requestAnimationFrame(() => {
-				requestAnimationFrame(() => {
-					if (generation !== layoutApplyGeneration) return;
-					applyTargetLayout(visit);
-					window.__applyVisitBannerLayout?.(visit);
-				});
-			});
+			applyTargetLayout(visit);
+			window.__applyVisitBannerLayout?.(visit);
 			attachStylesheetErrorGuard();
 		},
 	);
@@ -310,6 +292,7 @@ function setup() {
 
 	window.swup?.hooks.on("visit:end", () => {
 		schedulePostTransition();
+		collapsePageHeightAfterVisit();
 	});
 
 	requestAnimationFrame(runPageLayout);
