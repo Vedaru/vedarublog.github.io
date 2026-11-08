@@ -91,27 +91,6 @@ function releaseStickySidebarTop(): void {
 	}
 }
 
-// ── Native smooth scroll ───────────────────────────────────────────────────
-function scrollToHash(hash: string | undefined): boolean {
-	if (!hash) return false;
-	const id = decodeURIComponent(hash.replace(/^#/, ""));
-	const element = id ? document.getElementById(id) : null;
-	if (!element) return false;
-	element.scrollIntoView({
-		behavior: reduceMotion() ? "auto" : "smooth",
-		block: "start",
-	});
-	return true;
-}
-
-function scrollToTop(): void {
-	window.scrollTo({
-		top: 0,
-		left: 0,
-		behavior: reduceMotion() ? "auto" : "smooth",
-	});
-}
-
 // ── Scroll-driven chrome ───────────────────────────────────────────────────
 function getScrollY(): number {
 	return (
@@ -208,11 +187,11 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 
 	swup.hooks.on("visit:start", (visit: Visit) => {
 		cancelEnhancements();
-		// Start the reset before any class/layout change. The absolutely
-		// positioned main panel can otherwise collapse for a frame and let the
-		// browser clamp the scroll to a few hundred pixels, which is the jump
-		// seen on the sticky sidebar during a scrolled visit.
-		scrollToTop();
+		// Start the reset before any class/layout change. Swup's scroller has
+		// a fast initial velocity, so the page moves out of the sticky range
+		// before the grid transform can carry the sidebar upwards.
+		if (reduceMotion()) window.scrollTo(0, 0);
+		else window.swup?.scrollTo?.(0, true);
 		// Capture the old top before setHomeLayout flips the body class.
 		freezeStickySidebarTop();
 		setPageHeightExtend(true);
@@ -234,25 +213,6 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		window.setTimeout(() => setPageHeightExtend(false), 200);
 	});
 
-	// Swup's scroll plugin is disabled (see astro.config.mjs). Reimplement the
-	// three scroll hooks with the browser's compositor smooth scrolling.
-	swup.hooks.replace(
-		"content:scroll",
-		(visit: Visit & { to: { hash?: string }; scroll?: { reset?: boolean } }) => {
-			if (visit.scroll?.reset === false) return;
-			if (!scrollToHash(visit.to.hash)) scrollToTop();
-		},
-	);
-	swup.hooks.replace(
-		"scroll:anchor",
-		(_visit: unknown, context: { hash?: string }) => {
-			return scrollToHash(context?.hash);
-		},
-	);
-	swup.hooks.replace("scroll:top", () => {
-		scrollToTop();
-		return true;
-	});
 }
 
 /** Back-to-top is a plain native smooth scroll, like Fuwari. */
