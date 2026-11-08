@@ -19,9 +19,19 @@ function mountSlowScroll(): boolean {
 		return true;
 	}
 	mounted = true;
+	const reduceMotion = window.matchMedia(
+		"(prefers-reduced-motion: reduce)",
+	).matches;
 
 	swup.use(
 		new SwupScrollPlugin({
+			// Swup's scroll animation is JavaScript, so the reduced-motion
+			// CSS does not stop it. Disable it explicitly for those users.
+			animateScroll: {
+				betweenPages: !reduceMotion,
+				samePageWithHash: !reduceMotion,
+				samePage: !reduceMotion,
+			},
 			// Fuwari's timing. The scroll now starts after the swap (the old
 			// page no longer moves during its fade-out), so it can stay quick
 			// without looking interrupted.
