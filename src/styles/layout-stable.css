@@ -7,8 +7,7 @@
 /* 首屏首帧冻结 banner/top-row 过渡，layout-ready 后恢复 */
 html:not(.layout-ready) #banner-wrapper,
 html:not(.layout-ready) #top-row,
-html:not(.layout-ready) #main-grid,
-html:not(.layout-ready) .banner-breathe-wrap {
+html:not(.layout-ready) #main-grid {
   transition: none !important;
 }
 
@@ -50,15 +49,10 @@ html[data-wallpaper-mode="banner"] #banner-wrapper {
   display: block;
   height: var(--banner-height-home, 65vh);
   top: calc(-1 * var(--banner-height-extend, 30dvh));
-  will-change: transform;
 }
 
 html[data-wallpaper-mode="none"] #banner-wrapper {
   display: none;
-}
-
-html[data-wallpaper-mode="banner"] #banner {
-  will-change: transform;
 }
 
 /* 桌面端 banner 模式主内容 + 首页 banner 重叠布局 */

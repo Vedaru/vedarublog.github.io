@@ -87,19 +87,12 @@ body:has(#banner-wrapper)
 }
 
 @media (min-width: 1280px) {
-	/* 桌面端保留跟随滚动渐变的毛玻璃 */
-	body:has(#banner-wrapper)
-		#navbar[data-transparent-mode="semifull"][data-is-home="true"]
-		> div {
-		backdrop-filter: blur(calc(20px * var(--sf))) !important;
-		-webkit-backdrop-filter: blur(calc(20px * var(--sf))) !important;
-	}
-
+	/* Keep the translucent background, but no backdrop-filter: the banner
+	   translates behind the navbar, and recomputing a full-width blur every
+	   frame is what makes the 700ms banner transition stutter. */
 	body:has(#banner-wrapper)
 		#navbar[data-transparent-mode="semifull"].scrolled:not([data-is-home="true"])
 		> div {
-		backdrop-filter: blur(20px) !important;
-		-webkit-backdrop-filter: blur(20px) !important;
 		background: rgba(255, 255, 255, 0.55) !important;
 		background-color: rgba(255, 255, 255, 0.55) !important;
 		border: 1px solid rgba(255, 255, 255, 0.55) !important;
@@ -139,19 +132,20 @@ html.is-theme-transitioning #navbar[data-transparent-mode="semifull"] > div {
 	transition: none !important;
 }
 
-/* The banner moves behind the navbar during page transitions. Recomputing
-   its blur every frame is a compositor stall; Fuwari's navbar has no blur,
-   so drop it only for the duration of the change. */
-html.is-changing #navbar > div,
-html.is-animating #navbar > div,
-html.is-leaving #navbar > div {
-	backdrop-filter: none !important;
-	-webkit-backdrop-filter: none !important;
-}
-
 @media (max-width: 1279px) {
 	html.is-changing #swup-container,
 	html.is-animating #swup-container {
 		contain: none !important;
 	}
+}
+
+/* The banner moves behind the navbar during page transitions. Recomputing
+   its blur every frame is a compositor stall; Fuwari's navbar has no blur,
+   so drop it only for the duration of the change. This selector has to beat
+   the desktop semifull blur rule above, including its !important. */
+html.is-changing body:has(#banner-wrapper) #navbar[data-transparent-mode] > div,
+html.is-animating body:has(#banner-wrapper) #navbar[data-transparent-mode] > div,
+html.is-leaving body:has(#banner-wrapper) #navbar[data-transparent-mode] > div {
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
 }
