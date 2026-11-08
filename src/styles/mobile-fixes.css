@@ -274,19 +274,9 @@ body:has(#banner-wrapper) #navbar[data-transparent-mode="semifull"][data-is-home
  * 移动端页面/壁纸/布局切换时的溢出修复
  */
 
-html.is-smooth-scrolling #navbar-wrapper,
-html.is-smooth-scrolling #navbar > div {
-  transition: none !important;
-}
-
 html.is-manual-scroll-syncing #navbar-wrapper,
 html.is-manual-scroll-syncing #navbar > div {
   transition: none !important;
-}
-
-html.is-smooth-scrolling #navbar-wrapper.navbar-hidden {
-  opacity: 1 !important;
-  transform: none !important;
 }
 
 @media (max-width: 1279px) {

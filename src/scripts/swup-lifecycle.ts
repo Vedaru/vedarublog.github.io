@@ -11,11 +11,11 @@ import {
 	initCustomScrollbar,
 	initFancybox,
 } from "./theme-bootstrap";
-import { easeInOutCubic } from "./runtime/animation/easing";
+import { resetSwupIdle, runSwupIdle } from "./runtime/swup-idle";
 
 const DYNAMIC_STYLE_PATTERN =
 	/\/_astro\/.*(fancybox|katex|jetbrains|fancybox-custom)/i;
-const LAYOUT_SLIDE_MS = 700;
+const POST_TRANSITION_MS = 700;
 const bannerEnabled = !!document.getElementById("banner-wrapper");
 
 function removeViteInjectedStyles() {
@@ -27,36 +27,6 @@ function removeViteInjectedStyles() {
 				link.remove();
 			}
 		});
-}
-
-function invalidateSwupCacheIfStale() {
-	const buildId = document
-		.querySelector('meta[name="site-build-id"]')
-		?.getAttribute("content");
-	if (!buildId || !window.swup?.cache?.clear) return;
-
-	const storageKey = "vedaru-swup-build-id";
-	const previous = sessionStorage.getItem(storageKey);
-	if (previous && previous !== buildId) {
-		window.swup.cache.clear();
-	}
-	sessionStorage.setItem(storageKey, buildId);
-}
-
-const MAX_SWUP_CACHE_ENTRIES = 10;
-
-function evictSwupCacheIfOversized() {
-	if (
-		typeof window.swup?.cache?.all !== "function" ||
-		typeof window.swup?.cache?.delete !== "function"
-	)
-		return;
-	const cached = Object.keys(window.swup.cache.all());
-	if (cached.length > MAX_SWUP_CACHE_ENTRIES) {
-		cached
-			.slice(0, cached.length - MAX_SWUP_CACHE_ENTRIES)
-			.forEach((url) => window.swup?.cache?.delete(url));
-	}
 }
 
 function attachStylesheetErrorGuard() {
@@ -79,11 +49,7 @@ function attachStylesheetErrorGuard() {
 		});
 }
 
-/**
- * Everything here is deliberately non-critical. The page transition includes
- * a 700ms grid/banner slide; running TOC/widget work before it finishes is
- * what made the motion stutter.
- */
+/** Non-critical work waits for the CSS grid/banner slide to settle. */
 function runDeferredInit() {
 	window.__scheduleSwupIdleWork?.(() => {
 		void initFancybox();
@@ -137,54 +103,12 @@ function runPageLayout() {
 	}
 }
 
-let layoutSlideTimer: ReturnType<typeof setTimeout> | null = null;
-let layoutApplyGeneration = 0;
-
-function endLayoutSlide() {
-	const html = document.documentElement;
-	html.classList.remove("is-layout-sliding");
-	if (layoutSlideTimer !== null) {
-		clearTimeout(layoutSlideTimer);
-		layoutSlideTimer = null;
-		document.dispatchEvent(new CustomEvent("vedaru:layout-settled"));
-	}
-}
-
-function beginLayoutSlide() {
-	const html = document.documentElement;
-	if (layoutSlideTimer !== null) clearTimeout(layoutSlideTimer);
-	html.classList.add("is-layout-sliding");
-
-	// Reading a CSS variable here forces a full style recalculation of the
-	// freshly inserted page right before the transform starts. Match the CSS
-	// duration in JS instead so both mutations batch into the next frame.
-	const duration = window.matchMedia("(prefers-reduced-motion: reduce)")
-		.matches
-		? 0
-		: LAYOUT_SLIDE_MS;
-	layoutSlideTimer = setTimeout(endLayoutSlide, duration + 100);
-}
-
 /**
- * Apply the target layout after content:replace. Only the incoming DOM is
- * transformed; the outgoing page (often a very tall article) is never dragged
- * around as a giant compositor layer, which is what made the grid stutter.
+ * Apply the target layout after content:replace. The CSS transition on
+ * #main-grid / #banner-wrapper does the slide; this only flips the state.
  */
-function applyTargetLayout(visit: {
-	to: { url: string };
-	from?: { url?: string };
-}) {
+function applyTargetLayout(visit: { to: { url: string } }) {
 	const isHomePage = isMainHomePage(pathFromUrl(visit.to.url));
-	const fromUrl = visit.from?.url;
-	const fromHome = fromUrl
-		? isMainHomePage(pathFromUrl(fromUrl))
-		: document.body.classList.contains("is-home");
-
-	if (fromHome !== isHomePage) {
-		beginLayoutSlide();
-	} else {
-		endLayoutSlide();
-	}
 
 	window.__applyVisitBodyLayout?.(visit);
 
@@ -222,8 +146,27 @@ function syncThemeFromStorage() {
 	});
 }
 
+let layoutApplyGeneration = 0;
+let postTransitionTimer: number | null = null;
+
+function schedulePostTransition() {
+	if (postTransitionTimer !== null) {
+		window.clearTimeout(postTransitionTimer);
+	}
+	const delay = window.matchMedia("(prefers-reduced-motion: reduce)")
+		.matches
+		? 0
+		: POST_TRANSITION_MS;
+	postTransitionTimer = window.setTimeout(() => {
+		postTransitionTimer = null;
+		runPageLayout();
+		runDeferredInit();
+		runSwupIdle();
+		document.getElementById("toc-wrapper")?.classList.remove("toc-not-ready");
+	}, delay);
+}
+
 function setup() {
-	invalidateSwupCacheIfStale();
 	attachStylesheetErrorGuard();
 
 	// Block a second navigation while one is already running.
@@ -233,8 +176,7 @@ function setup() {
 			const html = document.documentElement;
 			if (
 				html.classList.contains("is-changing") ||
-				html.classList.contains("is-animating") ||
-				!!window.__smoothScrollActive
+				html.classList.contains("is-animating")
 			) {
 				context?.event?.preventDefault();
 				context?.event?.stopPropagation();
@@ -280,24 +222,13 @@ function setup() {
 
 	window.swup?.hooks.on(
 		"visit:start",
-		async () => {
-			const scrollY =
-				window.scrollY || document.documentElement.scrollTop || 0;
-			if (scrollY <= 80) return;
-			// Do the scroll while the current page is static. Otherwise the
-			// sidebar's sticky top transition and the page scroll run at the
-			// same time and the cards visibly slide down the screen.
-			await (window.__smoothScrollToTop?.(
-				500,
-				easeInOutCubic,
-			) ?? Promise.resolve());
-		},
-		{ before: true, priority: -200 },
-	);
+		() => {
+			resetSwupIdle();
+			if (postTransitionTimer !== null) {
+				window.clearTimeout(postTransitionTimer);
+				postTransitionTimer = null;
+			}
 
-	window.swup?.hooks.on(
-		"visit:start",
-		(visit: { to: { url: string }; from?: { url?: string } }) => {
 			cleanupFancybox();
 			document.documentElement.style.setProperty(
 				"--content-delay",
@@ -312,14 +243,13 @@ function setup() {
 
 	window.swup?.hooks.on(
 		"content:replace",
-		(visit: { to: { url: string }; from?: { url?: string } }) => {
+		(visit: { to: { url: string } }) => {
 			document.documentElement.style.setProperty(
 				"--content-delay",
 				"0ms",
 			);
-			// Let the replacement finish its style/layout work and paint once
-			// before starting the transform. Otherwise the slide's first frames
-			// compete with the incoming page's DOM and style recalculation.
+			// Let the new DOM paint once before flipping the layout state.
+			// The transform then runs on the incoming page only.
 			const generation = ++layoutApplyGeneration;
 			requestAnimationFrame(() => {
 				requestAnimationFrame(() => {
@@ -348,18 +278,7 @@ function setup() {
 	});
 
 	window.swup?.hooks.on("visit:end", () => {
-		evictSwupCacheIfOversized();
-		setTimeout(() => {
-			document.getElementById("toc-wrapper")?.classList.remove(
-				"toc-not-ready",
-			);
-		}, 200);
-	});
-
-	// Post-transition work waits for the layout slide (if any) to finish.
-	document.addEventListener("swup:transition-ready", () => {
-		runPageLayout();
-		runDeferredInit();
+		schedulePostTransition();
 	});
 
 	requestAnimationFrame(runPageLayout);

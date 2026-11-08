@@ -53,27 +53,7 @@ declare global {
 			_softResumeUntil?: number;
 		};
 		__PIO_RESET_ANIMATION_DELTA?: () => void;
-		__smoothScrollActive?: boolean;
-		__smoothScrollBootstrapped?: boolean;
-		__cancelSmoothScroll?: () => void;
-		__smoothScrollToY?: (
-			targetY: number,
-			duration?: number,
-			easingFn?: (t: number) => number,
-			onProgress?: (progress: number, scrollY: number) => void,
-		) => Promise<void>;
-		__smoothScrollToTop?: (
-			duration?: number,
-			easingFn?: (t: number) => number,
-			onProgress?: (progress: number, scrollY: number) => void,
-		) => Promise<void>;
-		__smoothScrollToElement?: (
-			element: Element | null,
-			offset?: number,
-			duration?: number,
-		) => Promise<void>;
 		tocClickTimestamp?: number;
-		__swupPerfBootstrapped?: boolean;
 		__onSwupPageIdlePhase?: (fn: () => void) => void;
 		__scheduleSwupIdleWork?: (fn: () => void) => void;
 		__wallpaperSwitchTimer?: number;

@@ -48,7 +48,6 @@ class TableOfContents extends HTMLElement {
     cachedTocScrollTop = 0;
     cachedTocScrollHeight = 0;
     tocScrollHandler: ((() => void) | null) = null;
-    smoothScrollEndRaf = 0;
     navbarHeight = 80;
 
     resolveTocSection = (heading: HTMLElement): HTMLElement => {
@@ -89,26 +88,6 @@ class TableOfContents extends HTMLElement {
         });
     }
 
-    isSmoothScrollActive = (): boolean => {
-        return (
-            !!window.__smoothScrollActive ||
-            document.documentElement.classList.contains("is-smooth-scrolling")
-        );
-    };
-
-    scheduleSmoothScrollEndUpdate = () => {
-        if (this.smoothScrollEndRaf) return;
-        const waitForScrollEnd = () => {
-            if (this.isSmoothScrollActive()) {
-                this.smoothScrollEndRaf = requestAnimationFrame(waitForScrollEnd);
-                return;
-            }
-            this.smoothScrollEndRaf = 0;
-            this.updateSync();
-        };
-        this.smoothScrollEndRaf = requestAnimationFrame(waitForScrollEnd);
-    };
-
     markVisibleSection = (entries: IntersectionObserverEntry[]) => {
         if (shouldSkipTocLayoutWork()) {
             return;
@@ -137,13 +116,7 @@ class TableOfContents extends HTMLElement {
             this.fallback();
         }
 
-        // 页面平滑滚动期间不执行 layout 密集型更新（避免 forced reflow），
-        // 改为调度滚动结束后的延迟更新
-        if (this.isSmoothScrollActive()) {
-            this.scheduleSmoothScrollEndUpdate();
-        } else {
-            this.updateSync();
-        }
+        this.updateSync();
     };
 
     observeSections = () => {
@@ -211,9 +184,6 @@ class TableOfContents extends HTMLElement {
         const scrollContainer = this.scrollContainer || this.tocEl;
         if (this.anchorNavTarget || !this.tocEl || !scrollContainer) return;
 
-        // 页面平滑滚动期间跳过 TOC 内部滚动，避免与页面滚动冲突导致 forced reflow
-        if (this.isSmoothScrollActive()) return;
-
         const activeEntries = this.tocEntries.filter((entry) =>
             entry.classList.contains(this.visibleClass),
         );
@@ -263,8 +233,6 @@ class TableOfContents extends HTMLElement {
     };
 
     fallback = () => {
-        // 平滑滚动期间跳过 fallback，避免 getBoundingClientRect 导致 forced reflow
-        if (this.isSmoothScrollActive()) return;
         if (!this.sections.length) return;
 
         const innerHeight = window.innerHeight;
@@ -334,9 +302,7 @@ class TableOfContents extends HTMLElement {
 
     teardown() {
         if (this.updateRaf) cancelAnimationFrame(this.updateRaf);
-        if (this.smoothScrollEndRaf) cancelAnimationFrame(this.smoothScrollEndRaf);
         this.updateRaf = 0;
-        this.smoothScrollEndRaf = 0;
 
         this.sections.forEach((section) => {
             if (section) this.observer.unobserve(section);

@@ -1,7 +1,6 @@
 import "./runtime/scroll-sync";
 import "./runtime/shell-bootstrap";
-import "./runtime/smooth-scroll";
-import "./runtime/swup-transition-performance";
+import "./runtime/swup-idle";
 import { initThemeCriticalDeferred } from "./runtime/theme-critical-deferred";
 
 initThemeCriticalDeferred();

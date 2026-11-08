@@ -6,8 +6,7 @@ function shouldSkipNavbarScrollSync() {
 	const html = document.documentElement;
 	return (
 		html.classList.contains("is-changing") ||
-		html.classList.contains("is-animating") ||
-		!!window.__smoothScrollActive
+		html.classList.contains("is-animating")
 	);
 }
 
@@ -114,7 +113,11 @@ export function initNavbarScroll() {
 				const targetEl = document.querySelector(targetId);
 				if (targetEl) {
 					e.preventDefault();
-					void window.__smoothScrollToElement?.(targetEl, 80, 650);
+					const top =
+						targetEl.getBoundingClientRect().top +
+						window.scrollY -
+						80;
+					window.scrollTo({ top, behavior: "smooth" });
 					history.pushState(null, "", targetId);
 				}
 			}

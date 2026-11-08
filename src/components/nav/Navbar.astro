@@ -199,7 +199,6 @@ function initSemifullScrollDetection(initialScrollTop?: number) {
     
     function updateNavbarState(scrollTop: number) {
         if (
-            window.__smoothScrollActive ||
             document.documentElement.classList.contains('is-manual-scroll-syncing')
         ) {
             return;

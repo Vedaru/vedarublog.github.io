@@ -266,8 +266,7 @@ function isPageTransitioning() {
 	const html = document.documentElement;
 	return (
 		html.classList.contains("is-changing") ||
-		html.classList.contains("is-animating") ||
-		html.classList.contains("is-layout-sliding")
+		html.classList.contains("is-animating")
 	);
 }
 
