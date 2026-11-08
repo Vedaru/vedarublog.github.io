@@ -1,8 +1,8 @@
 /**
- * Mount Swup's scroll plugin ourselves so the reset starts after the content
- * swap (the plugin's `content:scroll` hook) with Fuwari's physics. The
- * integration is configured with `smoothScrolling: false`, so this is the only
- * scroll plugin on the instance.
+ * Mount Swup's scroll plugin ourselves so the between-page position is
+ * committed immediately, while same-page anchors keep a smooth scroll.
+ * The integration is configured with `smoothScrolling: false`, so this is the
+ * only scroll plugin on the instance.
  */
 import SwupScrollPlugin from "@swup/astro/client/SwupScrollPlugin";
 
@@ -28,13 +28,14 @@ function mountSlowScroll(): boolean {
 			// Swup's scroll animation is JavaScript, so the reduced-motion
 			// CSS does not stop it. Disable it explicitly for those users.
 			animateScroll: {
-				betweenPages: !reduceMotion,
+				// A between-page scroll tween would run at the same time as
+				// the banner/grid transform. Commit that position instead;
+				// the transform is the only motion during a page change.
+				betweenPages: false,
 				samePageWithHash: !reduceMotion,
 				samePage: !reduceMotion,
 			},
-			// Fuwari's timing. The scroll now starts after the swap (the old
-			// page no longer moves during its fade-out), so it can stay quick
-			// without looking interrupted.
+			// Only used by same-page anchors now.
 			scrollFriction: 0.3,
 			scrollAcceleration: 0.04,
 		}),

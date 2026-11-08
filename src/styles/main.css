@@ -42,6 +42,8 @@
 html,
 body {
   font-family: var(--font-sans, "ZenMaruGothic-Medium", "Microsoft YaHei Web", system-ui, sans-serif);
+  /* Do not let wheel/touch input scroll past the real document boundary. */
+  overscroll-behavior-y: none;
 }
 
 @tailwind components;

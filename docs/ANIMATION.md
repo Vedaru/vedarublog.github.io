@@ -18,6 +18,11 @@ Fuwari's transition is not a special animation library. It is three decisions:
    a custom element waits for the content entrance animation. No comments,
    diagrams, lightboxes or analytics are loaded during the transition.
 
+This site keeps Fuwari's 200ms fade and 700ms banner/grid transform, but does
+not let the between-page scroll run at the same time. Fuwari can overlap those
+two motions; here the scroll position is committed first and the transform is
+the only motion the user sees.
+
 ## What this site did instead
 
 Measured with Chrome for Testing at 4x CPU throttle (a mid-range phone):
@@ -36,47 +41,46 @@ Measured with Chrome for Testing at 4x CPU throttle (a mid-range phone):
 ```
 click
   → visit:start
-      body.is-home toggled
-      #banner-wrapper and #main-grid start 700ms transform
-      sticky sidebar top frozen for the visit
-  → content fade out (200ms) while the old page stays at its scroll position
+      content fade out begins
+      outgoing layout and scroll position stay exactly where they are
   → content:replace (main + #toc)
-      TOC is already server-rendered; custom element re-upgrades
-  → smooth scroll to top (Fuwari's scroll plugin, after the swap)
-  → content fade in (200ms)
-  → animation:in:end
-      wait for the grid transform end event (or 900ms fallback)
-      then requestIdleCallback → fancybox / mermaid / fonts / comments
+      new markup is in the DOM, still under the outgoing body layout
+      TOC re-upgrades automatically
+  → content:scroll
+      the target scroll position is committed immediately
+      (between-page scroll animation is disabled, not delayed)
   → scroll:end
-      release the sticky sidebar top
+      apply the target body layout, once, here
+      #banner-wrapper and #main-grid start their single 700ms transform
+  → animation:in:start / animation:in:end
+      new content fades in while the transform is the only motion
+  → after the transform
+      requestIdleCallback → fancybox / mermaid / fonts / comments
 ```
 
-The old page is deliberately not scrolled during its fade-out. Starting the
-reset at `visit:start` made the outgoing content slide while it faded, then
-the incoming content replaced it mid-scroll: that was the "interrupted"
-transition. Swup's scroll plugin now starts the reset from `content:scroll`,
-after the swap, exactly like Fuwari.
+The order is deliberate: **replace → commit scroll → apply layout → slide**.
+Starting the reset at `visit:start` made the outgoing content slide while it
+faded, then the incoming content replaced it mid-scroll. Applying the layout
+at `visit:start` started the transform before the scroll was committed, so
+the two motions competed. Now the outgoing page fades in place, the incoming
+page starts at the target scroll position, and the 700ms transform carries it
+from the outgoing layout to the new one.
 
-The document height is held at its outgoing value for the 200ms fade-out
-only. The grid transform moves the visual bottom of the old content upwards;
-without the hold, the browser sees a shorter scroll range and clamps the old
-page while it is still fading. The hold is released at `content:replace`, not
-after the visit, so it can never become a scrollable tail.
-
-There is no `#page-height-extend` tail. A 300vh tail kept the old scroll
-position alive, but on a tall viewport it also gave the page thousands of
-pixels of empty scrollable space below the footer. Instead the browser clamps
-the scroll position at `content:replace`, while both the outgoing and incoming
-containers are at opacity 0, then the reset animates from the new page's
-natural maximum. The clamp is invisible and the document always ends at the
-real footer.
+If the incoming page is shorter, the browser clamps the scroll position at
+`content:replace` while the new container is still at opacity 0, then the
+next frame commits the target scroll. There is no visible jump. There is also
+no `#page-height-extend`: a 300vh tail kept the old scroll alive but added
+thousands of pixels of blank scroll below the footer on a tall viewport, then
+the browser snapped back when the tail was removed. `overscroll-behavior-y:
+none` on `html, body` keeps wheel and touch input from moving past the real
+document boundary.
 
 Key files:
 
 | File | Responsibility |
 | --- | --- |
 | `src/scripts/transitions.ts` | All Swup hooks, body layout class, scroll chrome |
-| `src/scripts/scroll-plugin.ts` | Swup scroll plugin with Fuwari's timing |
+| `src/scripts/scroll-plugin.ts` | Instant between-page scroll, smooth same-page anchors |
 | `src/scripts/page-enhancements.ts` | Idle-time enhancement loading |
 | `src/scripts/runtime/after-transition.ts` | Wait for the 700ms transform |
 | `src/scripts/toc-element.ts` | TOC custom element (observers only) |
@@ -87,12 +91,11 @@ Key files:
 
 Rules for future changes:
 
-- Do not add layout timers that re-apply the home class. Flip it once at
-  `visit:start`.
-- Do not start the scroll reset at `visit:start`. It belongs after
-  `content:replace`; the outgoing page must finish its fade before the page
-  moves.
-- Do not re-introduce a tall spacer to "protect" the scroll position. The
+- Do not flip the body's home class at `visit:start`. It starts the 700ms
+  transform before the scroll is committed. Apply it from `scroll:end`.
+- Do not animate the between-page scroll. Same-page anchors may still use the
+  smooth scroll.
+- Do not re-introduce a page-height spacer or a timer that removes it. The
   clamp happens while the content is invisible; a spacer becomes a scrollable
   blank region and makes the page look endless.
 - Do not load third-party scripts during a visit. Use

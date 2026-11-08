@@ -1,17 +1,17 @@
 /**
- * Fuwari-style page transitions.
+ * Fuwari-style page transitions, sequenced so only one thing moves at a time.
  *
- * The whole motion model is:
- *   1. `visit:start` (link click) flips the body's home class, which starts the
- *      700ms banner/grid transform on the compositor.
- *   2. Swup fades `main` out (200ms), swaps it, and smooth-scrolls to the top.
- *   3. The transform is still running through the swap, so the movement reads
- *      as one continuous glide instead of "fade, then slide".
- *   4. After the content fade, optional widgets boot once the transform ends.
+ *   1. `visit:start` only starts the fade-out. The outgoing page keeps its
+ *      layout and scroll position.
+ *   2. `content:replace` swaps the containers. The scroll plugin commits the
+ *      new scroll position immediately: between-page scroll is not animated.
+ *   3. `scroll:end` applies the target layout. Flipping the body's home class
+ *      here starts the single 700ms banner/grid transform, with the page
+ *      already at its final scroll position.
+ *   4. Swup fades the new content in while that transform runs.
  *
- * There is intentionally no layout timer, no transition-ready pub/sub, no
- * per-visit navbar/theme re-sync and no second navigation block. Swup owns the
- * visit; this file only flips classes that CSS already knows how to animate.
+ * There is no competing scroll tween, no page-height spacer and no layout
+ * timer. The only ordering primitive is the plugin's `scroll:end`.
  */
 import { BANNER_HEIGHT, BANNER_HEIGHT_HOME } from "@constants";
 import { isMainHomePage, pathFromUrl } from "../utils/route-utils";
@@ -42,9 +42,9 @@ function setHomeLayout(isHome: boolean): void {
 }
 
 /**
- * Mobile hides the banner on content pages. Do it after the swap: the top
- * offset is a layout property, so flipping it while the outgoing page is
- * still visible would make that page jump.
+ * Mobile hides the banner on content pages. Apply it with the rest of the
+ * target layout after the scroll commit, while the incoming content is still
+ * invisible.
  */
 function setBannerVisibility(isHome: boolean): void {
 	// Desktop does not hide the banner on content pages. Skipping the class
@@ -57,45 +57,6 @@ function setBannerVisibility(isHome: boolean): void {
 	document
 		.querySelector<HTMLElement>(".main-panel")
 		?.classList.toggle("mobile-main-no-banner", !isHome);
-}
-
-const STICKY_SIDEBAR_IDS = ["sidebar-sticky", "right-sidebar-sticky"];
-
-/**
- * Home and content pages put the sticky columns at different `top` values.
- * Changing that value while the old page is still on screen makes the
- * sidebar jump by the banner offset. Freeze the current computed top for the
- * visit; once the reset has carried the page back to the top the column is
- * unstuck, so releasing it cannot move anything.
- */
-function freezeStickySidebarTop(): void {
-	for (const id of STICKY_SIDEBAR_IDS) {
-		const el = document.getElementById(id);
-		if (!el) continue;
-		el.style.top = getComputedStyle(el).top;
-	}
-}
-
-function releaseStickySidebarTop(): void {
-	for (const id of STICKY_SIDEBAR_IDS) {
-		document.getElementById(id)?.style.removeProperty("top");
-	}
-}
-
-/**
- * The outgoing grid transform moves the visual bottom of the old content up.
- * When the page is scrolled to that bottom, the browser sees a shorter scroll
- * range and clamps the scroll while the content is still fading. Hold the
- * document at its current height for the fade-out only; it is released at
- * `content:replace`, where any clamp happens while the new container is
- * still invisible.
- */
-function freezePageHeight(): void {
-	document.body.style.minHeight = `${document.documentElement.scrollHeight}px`;
-}
-
-function releasePageHeight(): void {
-	document.body.style.removeProperty("min-height");
 }
 
 // ── Scroll-driven chrome ───────────────────────────────────────────────────
@@ -176,50 +137,31 @@ function onScroll(): void {
 	scrollScheduled = true;
 	requestAnimationFrame(() => {
 		scrollScheduled = false;
-		releaseStickyAtTop();
 		updateScrollChrome();
 	});
 }
 
 // ── Swup hooks ─────────────────────────────────────────────────────────────
 let hooksRegistered = false;
-let awaitingScrollReset = false;
-let contentReplaced = false;
-let scrollFallbackTimer: number | null = null;
-let releaseStickyOnTop = false;
+let pendingLayout: boolean | null = null;
+let popstateVisit = false;
+
+function applyLayout(isHome: boolean): void {
+	setHomeLayout(isHome);
+	setBannerVisibility(isHome);
+	updateScrollChrome();
+}
 
 /**
- * If the user interrupts the reset (wheel/touch), the scroll ends away from
- * the top. Keep the frozen inline top until they return to the top instead of
- * snapping the sticky column by the banner offset at an arbitrary position.
+ * Apply the incoming page's layout after its scroll position has been
+ * committed. The body-class flip starts the banner/grid transform; there is
+ * no scroll animation running at the same time.
  */
-function releaseStickyAtTop(): void {
-	if (!releaseStickyOnTop || window.scrollY > 1) return;
-	releaseStickyOnTop = false;
-	releaseStickySidebarTop();
-}
-
-function finishScrollReset(): void {
-	if (!awaitingScrollReset) return;
-	awaitingScrollReset = false;
-	if (scrollFallbackTimer !== null) {
-		window.clearTimeout(scrollFallbackTimer);
-		scrollFallbackTimer = null;
-	}
-	releasePageHeight();
-	if (window.scrollY <= 1) releaseStickySidebarTop();
-	else releaseStickyOnTop = true;
-}
-
-function startScrollFallback(): void {
-	if (!awaitingScrollReset || scrollFallbackTimer !== null) return;
-	scrollFallbackTimer = window.setTimeout(() => {
-		scrollFallbackTimer = null;
-		// The plugin normally drives the reset and fires `scroll:end`. If it
-		// never does (for example because it failed to mount), release the
-		// frozen sidebar without leaving it stuck forever.
-		finishScrollReset();
-	}, 4000);
+function commitPendingLayout(): void {
+	if (pendingLayout === null) return;
+	const isHome = pendingLayout;
+	pendingLayout = null;
+	applyLayout(isHome);
 }
 
 function setup(swup: NonNullable<Window["swup"]>): void {
@@ -233,66 +175,35 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 
 	swup.hooks.on("visit:start", (visit: Visit) => {
 		cancelEnhancements();
-		contentReplaced = false;
-		if (scrollFallbackTimer !== null) {
-			window.clearTimeout(scrollFallbackTimer);
-			scrollFallbackTimer = null;
-		}
-		const isPopstate = visit.history?.popstate === true;
-		// History visits restore the browser's own scroll position. There is
-		// no reset to wait for and the incoming page is the one we came from,
-		// so it is already tall enough for that position.
-		const needsScrollReset = !isPopstate && window.scrollY > 1;
-		awaitingScrollReset = needsScrollReset;
-		if (needsScrollReset) freezePageHeight();
-		else releasePageHeight();
-		// Drop any inline top left by an interrupted visit, then freeze the
-		// current page's top before the body class flips to the new layout.
-		releaseStickyOnTop = false;
-		releaseStickySidebarTop();
-		if (!isPopstate) freezeStickySidebarTop();
-		setHomeLayout(isHomeVisit(visit));
+		popstateVisit = visit.history?.popstate === true;
+		// Keep the outgoing layout until the new content is in and the scroll
+		// plugin has committed the target scroll position. `scroll:end` then
+		// applies the layout and starts the one transform.
+		pendingLayout = isHomeVisit(visit);
 		HTML.style.setProperty("--content-delay", "0ms");
 		updateScrollChrome();
 	});
 
-	swup.hooks.on("content:replace", (visit: Visit) => {
-		contentReplaced = true;
-		// The outgoing content is at opacity 0 here. Let the browser clamp
-		// against the incoming page while it is invisible; the scroll plugin
-		// then starts from that natural position.
-		releasePageHeight();
-		setBannerVisibility(isHomeVisit(visit));
-		// The scroll plugin starts the reset after this hook (content:scroll).
-		// Start the safety timer here, not at click time: a slow network can
-		// otherwise exhaust it before the new page is even in the DOM.
-		startScrollFallback();
+	swup.hooks.on("content:replace", () => {
+		// History visits have no between-page scroll commit (the browser
+		// restores the position itself), so apply their layout immediately.
+		if (popstateVisit) commitPendingLayout();
 	});
+
+	swup.hooks.on("animation:in:start", commitPendingLayout);
 
 	swup.hooks.on("animation:in:end", () => {
 		scheduleEnhancements();
 	});
 
-	swup.hooks.on("visit:end", () => {
-		// The reset can still be running here. If it has already finished
-		// (or was never needed), release the frozen sticky top now. Otherwise
-		// `swup:scroll:end` owns the release.
-		if (awaitingScrollReset && window.scrollY <= 1) finishScrollReset();
-		if (!awaitingScrollReset) {
-			if (window.scrollY <= 1) releaseStickySidebarTop();
-			else releaseStickyOnTop = true;
-			releasePageHeight();
-		}
-	});
+	swup.hooks.on("visit:end", commitPendingLayout);
 
 }
 
-// The plugin dispatches `scroll:end` when scrl finishes or is cancelled.
-document.addEventListener("swup:scroll:end", () => {
-	// Ignore a late event from a previous visit until the new page has been
-	// swapped in and the new reset can actually have started.
-	if (contentReplaced) finishScrollReset();
-});
+// The plugin dispatches `scroll:end` after committing the between-page
+// position. With `animateScroll.betweenPages = false` this is the same frame
+// as the swap, before the new content fades in.
+document.addEventListener("swup:scroll:end", commitPendingLayout);
 
 /** Back-to-top is a plain native smooth scroll, like Fuwari. */
 function setupBackToTop(): void {
@@ -332,7 +243,6 @@ export function initTransitions(): void {
 	);
 
 	updateScrollChrome();
-	releaseStickySidebarTop();
 	setBannerVisibility(document.body.classList.contains("is-home"));
 
 	if (window.swup?.hooks) {
