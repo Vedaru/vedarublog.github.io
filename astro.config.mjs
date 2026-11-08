@@ -76,7 +76,11 @@ export default defineConfig({
 			// 与 Fuwari 相同：只替换内容区和侧边栏 TOC。TOC 是静态渲染的
 			// 自定义元素，换页后由浏览器自动升级，无需运行时重建。
 			containers: ["main", "#toc"],
-			smoothScrolling: true,
+			// Swup's smooth scrolling is a main-thread rAF tween. When the
+			// content swap blocks the main thread the tween skips ahead, which
+			// is what made the sticky sidebar and the banner jump. Use native
+			// smooth scrolling from transitions.ts instead.
+			smoothScrolling: false,
 			cache: true,
 			preload: true,
 			accessibility: true,

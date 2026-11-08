@@ -26,6 +26,8 @@ interface Visit {
 }
 
 const HTML = document.documentElement;
+const reduceMotion = () =>
+	window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function isHomeVisit(visit: Visit): boolean {
 	return isMainHomePage(pathFromUrl(visit.to.url));
@@ -62,6 +64,52 @@ function setPageHeightExtend(visible: boolean): void {
 	document
 		.getElementById("page-height-extend")
 		?.classList.toggle("hidden", !visible);
+}
+
+const STICKY_SIDEBAR_IDS = ["sidebar-sticky", "right-sidebar-sticky"];
+
+/**
+ * The home and content layouts put the sticky columns at different `top`
+ * values. Changing that value while the grid is moving makes the browser
+ * animate a layout property, which is the sidebar jitter. Freeze the current
+ * computed top for the duration of the visit instead; the column then moves
+ * with the grid as one composited surface. At `visit:end` the scroll is back
+ * at the top, the column is unstuck, so releasing the inline value cannot
+ * cause a visible jump.
+ */
+function freezeStickySidebarTop(): void {
+	for (const id of STICKY_SIDEBAR_IDS) {
+		const el = document.getElementById(id);
+		if (!el) continue;
+		el.style.top = getComputedStyle(el).top;
+	}
+}
+
+function releaseStickySidebarTop(): void {
+	for (const id of STICKY_SIDEBAR_IDS) {
+		document.getElementById(id)?.style.removeProperty("top");
+	}
+}
+
+// ── Native smooth scroll ───────────────────────────────────────────────────
+function scrollToHash(hash: string | undefined): boolean {
+	if (!hash) return false;
+	const id = decodeURIComponent(hash.replace(/^#/, ""));
+	const element = id ? document.getElementById(id) : null;
+	if (!element) return false;
+	element.scrollIntoView({
+		behavior: reduceMotion() ? "auto" : "smooth",
+		block: "start",
+	});
+	return true;
+}
+
+function scrollToTop(): void {
+	window.scrollTo({
+		top: 0,
+		left: 0,
+		behavior: reduceMotion() ? "auto" : "smooth",
+	});
 }
 
 // ── Scroll-driven chrome ───────────────────────────────────────────────────
@@ -160,6 +208,13 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 
 	swup.hooks.on("visit:start", (visit: Visit) => {
 		cancelEnhancements();
+		// Start the reset before any class/layout change. The absolutely
+		// positioned main panel can otherwise collapse for a frame and let the
+		// browser clamp the scroll to a few hundred pixels, which is the jump
+		// seen on the sticky sidebar during a scrolled visit.
+		scrollToTop();
+		// Capture the old top before setHomeLayout flips the body class.
+		freezeStickySidebarTop();
 		setPageHeightExtend(true);
 		setHomeLayout(isHomeVisit(visit));
 		HTML.style.setProperty("--content-delay", "0ms");
@@ -175,7 +230,28 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 	});
 
 	swup.hooks.on("visit:end", () => {
+		releaseStickySidebarTop();
 		window.setTimeout(() => setPageHeightExtend(false), 200);
+	});
+
+	// Swup's scroll plugin is disabled (see astro.config.mjs). Reimplement the
+	// three scroll hooks with the browser's compositor smooth scrolling.
+	swup.hooks.replace(
+		"content:scroll",
+		(visit: Visit & { to: { hash?: string }; scroll?: { reset?: boolean } }) => {
+			if (visit.scroll?.reset === false) return;
+			if (!scrollToHash(visit.to.hash)) scrollToTop();
+		},
+	);
+	swup.hooks.replace(
+		"scroll:anchor",
+		(_visit: unknown, context: { hash?: string }) => {
+			return scrollToHash(context?.hash);
+		},
+	);
+	swup.hooks.replace("scroll:top", () => {
+		scrollToTop();
+		return true;
 	});
 }
 
@@ -217,6 +293,7 @@ export function initTransitions(): void {
 	);
 
 	updateScrollChrome();
+	releaseStickySidebarTop();
 	setBannerVisibility(document.body.classList.contains("is-home"));
 
 	if (window.swup?.hooks) {
