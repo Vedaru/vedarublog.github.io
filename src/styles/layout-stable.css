@@ -50,10 +50,15 @@ html[data-wallpaper-mode="banner"] #banner-wrapper {
   display: block;
   height: var(--banner-height-home, 65vh);
   top: calc(-1 * var(--banner-height-extend, 30dvh));
+  will-change: transform;
 }
 
 html[data-wallpaper-mode="none"] #banner-wrapper {
   display: none;
+}
+
+html[data-wallpaper-mode="banner"] #banner {
+  will-change: transform;
 }
 
 /* 桌面端 banner 模式主内容 + 首页 banner 重叠布局 */

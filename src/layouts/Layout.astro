@@ -136,9 +136,12 @@ const alternateLinks = dualLocale
 // src/scripts/language-mode.ts。
 
 const bannerOffsetByPosition = {
-	top: `${BANNER_HEIGHT_EXTEND}vh`,
-	center: `${BANNER_HEIGHT_EXTEND / 2}vh`,
-	bottom: "0",
+	// Use the same rounded pixel variable as the banner/grid transform.
+	// Mixing vh here and px there makes the image land on different
+	// subpixels every frame and reads as jitter.
+	top: "var(--banner-height-extend, 30dvh)",
+	center: "calc(var(--banner-height-extend, 30dvh) / 2)",
+	bottom: "0px",
 };
 const bannerOffset =
 	bannerOffsetByPosition[siteConfig.banner.position || "center"];
