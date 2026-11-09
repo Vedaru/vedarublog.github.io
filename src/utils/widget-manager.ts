@@ -8,7 +8,7 @@ import type {
  * 组件管理器类
  * 负责管理侧边栏组件的动态加载、排序和渲染
  */
-export class WidgetManager {
+class WidgetManager {
 	private config: SidebarLayoutConfig;
 
 	constructor(config: SidebarLayoutConfig = sidebarLayoutConfig) {

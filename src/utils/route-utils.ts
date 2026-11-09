@@ -7,7 +7,7 @@
 import { getLocaleFromPath, stripLocalePrefix } from "@i18n/locales";
 
 /** 标准化路径：去首尾斜杠并转小写 */
-export function normalizePath(path: string): string {
+function normalizePath(path: string): string {
 	return (path || "").replace(/^\/|\/$/g, "").toLowerCase();
 }
 
@@ -28,7 +28,7 @@ export function isMainHomePage(pathname: string): boolean {
 }
 
 /** 解析分页首页页码；非首页路径返回 null */
-export function resolveHomePageIndex(path: string): number | null {
+function resolveHomePageIndex(path: string): number | null {
 	const normalized = normalizePath(canonicalPath(path));
 	if (normalized === "") return 1;
 	if (/^\d+$/.test(normalized)) {
@@ -51,19 +51,6 @@ function parseUrl(url: string): URL | null {
 /** 从 URL 字符串提取 pathname */
 export function pathFromUrl(url: string): string {
 	return parseUrl(url)?.pathname ?? (url || "");
-}
-
-/** 比较两条路径是否指向同一页面（含分页首页；不同语言的同页不算同一页） */
-export function pathsEqual(path1: string, path2: string): boolean {
-	if (getLocaleFromPath(path1) !== getLocaleFromPath(path2)) {
-		return false;
-	}
-	const page1 = resolveHomePageIndex(path1);
-	const page2 = resolveHomePageIndex(path2);
-	if (page1 !== null && page2 !== null) {
-		return page1 === page2;
-	}
-	return normalizePath(path1) === normalizePath(path2);
 }
 
 /** 获取当前页面路径（浏览器环境） */

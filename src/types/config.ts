@@ -238,10 +238,6 @@ type TwikooConfig = {
 
 export type LIGHT_DARK_MODE = typeof LIGHT_MODE | typeof DARK_MODE;
 
-export type ExpressiveCodeConfig = {
-	theme: string;
-};
-
 export type AnnouncementConfig = {
 	// enable属性已移除，现在通过sidebarLayoutConfig统一控制
 	title?: string; // 公告栏标题

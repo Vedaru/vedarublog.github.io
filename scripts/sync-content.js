@@ -9,10 +9,12 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, "..");
 
 loadEnv();
-console.log("Loaded .env configuration file\n");
 
 // 从环境变量读取配置
-const ENABLE_CONTENT_SYNC = process.env.ENABLE_CONTENT_SYNC !== "false"; // 默认启用
+// 默认关闭：本站内容就在 src/content 里，没有独立内容仓库。只有显式设置
+// ENABLE_CONTENT_SYNC=true 才去 clone/pull；否则每次 predev/prebuild 都会白跑一遍
+// 并打印「目录不存在 / 未设置 CONTENT_REPO_URL」，把构建日志淹掉。
+const ENABLE_CONTENT_SYNC = process.env.ENABLE_CONTENT_SYNC === "true";
 const CONTENT_REPO_URL = process.env.CONTENT_REPO_URL || "";
 const CONTENT_DIR = process.env.CONTENT_DIR || path.join(rootDir, "content");
 
@@ -20,13 +22,6 @@ console.log("Starting content synchronization...\n");
 
 // 检查是否启用内容分离
 if (!ENABLE_CONTENT_SYNC) {
-	console.log("Content separation is disabled (ENABLE_CONTENT_SYNC=false)");
-	console.log(
-		"Tip: Local content will be used, will not sync from remote repository",
-	);
-	console.log("     To enable content separation feature, set in .env:");
-	console.log("     ENABLE_CONTENT_SYNC=true");
-	console.log("     CONTENT_REPO_URL=<your-repo-url>\n");
 	process.exit(0);
 }
 

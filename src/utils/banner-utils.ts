@@ -30,34 +30,6 @@ export function toBannerSrcList(src: string | string[] | undefined): string[] {
 			: [];
 }
 
-/** 获取默认 banner 图片 URL（用于 OG/meta） */
-export function getDefaultBannerUrl(): string {
-	const src = siteConfig.banner.src;
-	if (typeof src === "string") {
-		return src;
-	}
-	if (Array.isArray(src)) {
-		return src[0] || "";
-	}
-	if (isBannerSrcObject(src)) {
-		const desktopSrc = src.desktop;
-		const mobileSrc = src.mobile;
-		if (typeof desktopSrc === "string") {
-			return desktopSrc;
-		}
-		if (Array.isArray(desktopSrc) && desktopSrc.length > 0) {
-			return desktopSrc[0];
-		}
-		if (typeof mobileSrc === "string") {
-			return mobileSrc;
-		}
-		if (Array.isArray(mobileSrc) && mobileSrc.length > 0) {
-			return mobileSrc[0];
-		}
-	}
-	return "";
-}
-
 /** 获取 banner 图片 */
 export function getBannerImages(): BannerImages {
 	const bannerSrc = siteConfig.banner.src;

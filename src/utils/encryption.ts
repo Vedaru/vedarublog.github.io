@@ -12,7 +12,7 @@ export interface PasswordProtectionMessages {
 	decryptRetry: string;
 }
 
-export async function loadCryptoLibraries(): Promise<void> {
+async function loadCryptoLibraries(): Promise<void> {
 	if (typeof CryptoJS !== "undefined") return;
 
 	await new Promise<void>((resolve, reject) => {
@@ -24,7 +24,7 @@ export async function loadCryptoLibraries(): Promise<void> {
 	});
 }
 
-export function decryptEncryptedContent(
+function decryptEncryptedContent(
 	encryptedContent: string,
 	password: string,
 ): { ok: true; content: string } | { ok: false; reason: "invalid" | "empty" } {
@@ -41,7 +41,7 @@ export function decryptEncryptedContent(
 	};
 }
 
-export async function executeScriptsInContainer(
+async function executeScriptsInContainer(
 	container: HTMLElement,
 ): Promise<void> {
 	const scripts = container.querySelectorAll("script");
@@ -64,7 +64,7 @@ export async function executeScriptsInContainer(
 	await Promise.all(scriptPromises);
 }
 
-export async function runPostDecryptHandlers(
+async function runPostDecryptHandlers(
 	contentDiv: HTMLElement,
 ): Promise<void> {
 	if (window.hljs) {
@@ -113,7 +113,7 @@ export async function runPostDecryptHandlers(
 	}
 }
 
-export function revealDecryptedContent(contentDiv: HTMLElement): void {
+function revealDecryptedContent(contentDiv: HTMLElement): void {
 	const shareComponent = document.getElementById("share-component");
 	const licenseComponent = document.getElementById("license-component");
 	if (shareComponent) {

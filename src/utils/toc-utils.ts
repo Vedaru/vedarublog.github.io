@@ -53,12 +53,12 @@ export function getTocConfig(): TocConfig {
 }
 
 /** 清理标题文本末尾的 Markdown 井号 */
-export function cleanHeadingText(text: string): string {
+function cleanHeadingText(text: string): string {
 	return text.replace(/#+\s*$/, "");
 }
 
 /** 是否为文章等需要显示 TOC 的页面 */
-export function isPostPagePath(pathname?: string): boolean {
+function isPostPagePath(pathname?: string): boolean {
 	const path = pathname ?? getCurrentPath();
 	return (
 		path.includes("/posts/") ||
@@ -70,7 +70,7 @@ export function isPostPagePath(pathname?: string): boolean {
 export { isHomePagePath };
 
 /** 从 DOM 收集带 id 的标题 */
-export function collectHeadingsFromDocument(
+function collectHeadingsFromDocument(
 	container?: Element | Document | null,
 ): TocHeading[] {
 	let root: Element | Document = container ?? document;
@@ -97,7 +97,7 @@ export function collectHeadingsFromDocument(
 }
 
 /** 获取一级标题徽章文本 */
-export function getPrimaryBadgeText(
+function getPrimaryBadgeText(
 	index: number,
 	useJapaneseBadge: boolean,
 ): string {

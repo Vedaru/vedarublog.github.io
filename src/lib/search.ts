@@ -28,7 +28,7 @@ const EXCERPT_LENGTH = 140;
 const EXCERPT_MARGIN = 30;
 
 /** CJK 逐字加二元组，拉丁文按词（小写、去掉首尾标点） */
-export function tokenize(text: string): string[] {
+function tokenize(text: string): string[] {
 	const tokens: string[] = [];
 	let i = 0;
 
@@ -61,7 +61,7 @@ export function tokenize(text: string): string[] {
 	return tokens;
 }
 
-export function escapeHtml(text: string): string {
+function escapeHtml(text: string): string {
 	return text
 		.replace(/&/g, "&amp;")
 		.replace(/</g, "&lt;")

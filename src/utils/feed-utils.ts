@@ -95,7 +95,7 @@ export async function renderPostContent(
 	});
 }
 
-export function escapeXml(value: string): string {
+function escapeXml(value: string): string {
 	return value
 		.replace(/&/g, "&amp;")
 		.replace(/</g, "&lt;")
