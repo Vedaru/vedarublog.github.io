@@ -1,0 +1,50 @@
+---
+/**
+ * 英文文章的 permalink 路由（/en/<permalink>/）。
+ *
+ * 与中文的 zh/[permalink].astro 对称：页面渲染复用 PostDetailPage。
+ * 之前只有中文侧有这条路由，而 getPostUrl() 对英文文章同样返回
+ * /en/<permalink>/，所以英文文章一旦写 permalink 就是一个 404。
+ */
+import type { CollectionEntry } from "astro:content";
+import PostDetailPage from "@components/pages/PostDetailPage.astro";
+import { getSortedPosts } from "@utils/content-utils";
+import {
+	generatePermalinkSlug,
+	hasCustomPermalink,
+	initPostIdMap,
+} from "@utils/permalink-utils";
+import { permalinkConfig } from "@/config";
+
+export async function getStaticPaths() {
+	const blogEntries = await getSortedPosts("en");
+	initPostIdMap(blogEntries, "en");
+
+	const paths: {
+		params: { permalink: string };
+		props: { entry: CollectionEntry<"posts"> };
+	}[] = [];
+
+	for (const entry of blogEntries) {
+		let permalink: string | null = null;
+
+		if (hasCustomPermalink(entry)) {
+			permalink = entry.data
+				.permalink!.replace(/^\/+/, "")
+				.replace(/\/+$/, "");
+		} else if (permalinkConfig.enable) {
+			permalink = generatePermalinkSlug(entry);
+		}
+
+		if (permalink) {
+			paths.push({ params: { permalink }, props: { entry } });
+		}
+	}
+
+	return paths;
+}
+
+const { entry } = Astro.props;
+---
+
+<PostDetailPage entry={entry} />

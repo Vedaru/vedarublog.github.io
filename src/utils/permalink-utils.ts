@@ -1,20 +1,43 @@
 import type { CollectionEntry } from "astro:content";
+import { defaultLocale, type Locale } from "@i18n/locales";
 import { permalinkConfig } from "../config";
 import { removeFileExtension } from "./url-utils";
 
-// 文章 ID 映射缓存（用于存储按时间排序后的文章序号）
-let postIdMap: Map<string, number> | null = null;
+/**
+ * 文章 ID 映射缓存（用于存储按时间排序后的文章序号）。
+ *
+ * 按语言分开存：中英两套文章各自从 1 开始编号。之前是一张全局表，先被
+ * 哪种语言初始化就锁定成那套顺序，于是英文文章的 %post_id% 会沿用中文编号。
+ */
+const postIdMaps = new Map<string, Map<string, number>>();
+
+/** 从 content collection id 推断语言（与 content-utils 的 postLocale 一致） */
+function localeOfPostId(id: string): Locale {
+	return /\.en$/.test(removeFileExtension(id)) ? "en" : defaultLocale;
+}
+
+function mapFor(locale: Locale): Map<string, number> {
+	let map = postIdMaps.get(locale);
+	if (!map) {
+		map = new Map();
+		postIdMaps.set(locale, map);
+	}
+	return map;
+}
 
 /**
  * 初始化文章 ID 映射
  * 按发布时间升序排列（最早的文章 id = 1），草稿文章不参与计算
- * @param posts 所有非草稿文章
+ * @param posts 同一语言的全部非草稿文章
+ * @param locale 语言；省略时按第一篇的 id 推断
  */
 export function initPostIdMap(
 	posts: CollectionEntry<"posts">[],
+	locale: Locale = localeOfPostId(posts[0]?.id ?? ""),
 ): Map<string, number> {
-	if (postIdMap) {
-		return postIdMap;
+	const map = mapFor(locale);
+	if (map.size > 0) {
+		return map;
 	}
 
 	// 按发布时间升序排序（最早的在前）
@@ -22,13 +45,12 @@ export function initPostIdMap(
 		(a, b) => a.data.published.getTime() - b.data.published.getTime(),
 	);
 
-	postIdMap = new Map();
 	sortedPosts.forEach((post, index) => {
 		// id 从 1 开始
-		postIdMap!.set(post.id, index + 1);
+		map.set(post.id, index + 1);
 	});
 
-	return postIdMap;
+	return map;
 }
 
 /**
@@ -37,12 +59,13 @@ export function initPostIdMap(
  * @returns 文章序号，如果未初始化则返回 0
  */
 function getPostNumericId(postId: string): number {
-	if (!postIdMap) {
+	const map = postIdMaps.get(localeOfPostId(postId));
+	if (!map || map.size === 0) {
 		// 在客户端或未初始化时返回 0，使用默认 slug
 		console.warn("Post ID map not initialized. Returning 0 for post_id.");
 		return 0;
 	}
-	return postIdMap.get(postId) ?? 0;
+	return map.get(postId) ?? 0;
 }
 
 /**

@@ -24,10 +24,16 @@ export async function getStaticPaths() {
 		// 用 postSlug 去掉 .zh 后缀，否则路由会变成 /zh/posts/x.zh/
 		const defaultSlug = postSlug(entry);
 
-		paths.push({ params: { slug: defaultSlug }, props: { entry } });
+		// 有自定义 permalink（或启用了全局 permalink）的文章只应存在于
+		// /zh/<permalink>/，由 [permalink].astro 生成。这里再生成一份
+		// /zh/posts/<slug>/ 会让同一篇文章有两个可索引地址。
+		const usesPermalink = hasCustomPermalink(entry) || permalinkConfig.enable;
+		if (!usesPermalink) {
+			paths.push({ params: { slug: defaultSlug }, props: { entry } });
+		}
 
 		// 仅在未启用 permalink（自定义或全局）时，才为 alias 创建路径
-		if (!hasCustomPermalink(entry) && !permalinkConfig.enable && entry.data.alias) {
+		if (!usesPermalink && entry.data.alias) {
 			let alias = entry.data.alias.replace(/^\/+/, "").replace(/\/+$/, "");
 			if (alias.startsWith("posts/")) alias = alias.replace(/^posts\//, "");
 			paths.push({ params: { slug: alias }, props: { entry } });

@@ -7,17 +7,22 @@
  */
 import PostDetailPage from "@components/pages/PostDetailPage.astro";
 import { getSortedPosts, postSlug } from "@utils/content-utils";
-import { initPostIdMap } from "@utils/permalink-utils";
+import { hasCustomPermalink, initPostIdMap } from "@utils/permalink-utils";
+import { permalinkConfig } from "@/config";
 
 export async function getStaticPaths() {
 	const posts = await getSortedPosts("en");
 
-	initPostIdMap(posts);
+	initPostIdMap(posts, "en");
 
-	return posts.map((entry) => ({
-		params: { slug: postSlug(entry) },
-		props: { entry },
-	}));
+	// 与中文路由一致：带 permalink 的文章只由 /en/[permalink].astro 生成，
+	// 否则同一篇文章会有 /en/posts/<slug>/ 和 /en/<permalink>/ 两个地址。
+	return posts
+		.filter((entry) => !hasCustomPermalink(entry) && !permalinkConfig.enable)
+		.map((entry) => ({
+			params: { slug: postSlug(entry) },
+			props: { entry },
+		}));
 }
 
 const { entry } = Astro.props;
