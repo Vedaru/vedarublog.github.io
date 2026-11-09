@@ -74,12 +74,6 @@
   contain-intrinsic-size: auto 300px;
 }
 
-/* Just-swapped content: resolving content-visibility inside the swap itself
-   costs one ~700ms layout on a code-heavy post. Lay these out normally for
-   the settle, then hand them back to the deferral. */
-.is-swap-in .expressive-code {
-  content-visibility: visible;
-}
 
 .expressive-code.collapsible .frame {
   transition: background-color 0.2s ease;

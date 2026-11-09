@@ -174,7 +174,6 @@ function stopLayoutMove(): void {
 function settle(): void {
 	stopLayoutMove();
 	knownScrollY = null;
-	document.getElementById("swup-container")?.classList.remove("is-swap-in");
 	document
 		.getElementById("toc-wrapper")
 		?.classList.remove("is-toc-deferred");
@@ -362,11 +361,6 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 
 	swup.hooks.on("content:replace", (visit: Visit) => {
 		const isHome = isHomeVisit(visit);
-		// Let the incoming code blocks lay out normally for one settle instead
-		// of resolving content-visibility inside the swap: with CV on, that
-		// swap costs a single ~700ms layout (measured), with it off the same
-		// work spreads across frames. CV comes back in settle().
-		document.getElementById("swup-container")?.classList.add("is-swap-in");
 		// Give the freshly inserted code blocks their real size before the
 		// first layout, so the document does not keep growing under the reader.
 		primeCodeBlockSizes();
