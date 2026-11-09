@@ -17,6 +17,7 @@ import {
 	getBannerResponsive,
 	toBannerSrcList,
 } from "../utils/banner-utils";
+import { getBannerPlaceholder } from "../utils/banner-placeholder";
 import { isMainHomePage } from "../utils/route-utils";
 import { url } from "../utils/url-utils";
 import Layout from "./Layout.astro";
@@ -50,6 +51,7 @@ const singleMobileBanner = mobileBannerList[0];
 const desktopBannerResponsive = getBannerResponsive(singleDesktopBanner);
 const mobileBannerResponsive =
 	getBannerResponsive(singleMobileBanner) ?? desktopBannerResponsive;
+const bannerPlaceholder = await getBannerPlaceholder(singleDesktopBanner);
 
 const {
 	title,
@@ -217,6 +219,7 @@ const mainContentClass = `
 	desktopBannerResponsive={desktopBannerResponsive}
 	mobileBannerResponsive={mobileBannerResponsive}
 	bannerObjectPosition={bannerObjectPosition}
+	placeholder={bannerPlaceholder}
 />
 
 <!-- Main content -->
