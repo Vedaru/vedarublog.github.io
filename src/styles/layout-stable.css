@@ -57,6 +57,17 @@
 	transition: transform var(--layout-slide-duration)
 		cubic-bezier(0.4, 0, 0.2, 1);
 	backface-visibility: hidden;
+}
+/*
+ * Promote only while a slide is running. A permanent will-change (together
+ * with the translateY(0) content pages carried) kept the whole multi-thousand
+ * pixel document alive as a composited layer: entering a long post then cost
+ * ~600ms just to paint that layer the first time, and text lost subpixel
+ * antialiasing for the entire session.
+ */
+html.is-layout-moving #banner-wrapper,
+html.is-layout-moving #banner,
+html.is-layout-moving #main-grid {
 	will-change: transform;
 }
 
@@ -99,7 +110,7 @@ body.no-banner-mode #banner-wrapper {
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner #main-grid {
-		transform: translateY(0);
+		transform: none;
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home

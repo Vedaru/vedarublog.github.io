@@ -15,6 +15,12 @@ html.is-animating .transition-swup-fade {
  */
 html.is-layout-moving.is-animating .transition-swup-fade {
 	transition-duration: var(--layout-slide-duration);
+	/*
+	 * The grid and the banner are already sliding; a second translate here
+	 * makes the content slip ~1rem against that slide, which reads as two
+	 * animations pulling the same card in different directions.
+	 */
+	transform: none;
 }
 /*
  * Non-slide visits: the scroll tween owns the outgoing page until it reaches

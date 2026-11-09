@@ -156,6 +156,8 @@ let layoutMovePromise: Promise<void> | null = null;
 let contentDelayCleared = false;
 
 const LAYOUT_FALLBACK_MS = 900;
+/** Must match --layout-slide-duration in layout-stable.css. */
+const LAYOUT_SLIDE_MS = 700;
 
 function stopLayoutMove(): void {
 	layoutMovePromise = null;
@@ -172,6 +174,7 @@ function stopLayoutMove(): void {
 function settle(): void {
 	stopLayoutMove();
 	knownScrollY = null;
+	document.getElementById("swup-container")?.classList.remove("is-swap-in");
 	document
 		.getElementById("toc-wrapper")
 		?.classList.remove("is-toc-deferred");
@@ -215,9 +218,12 @@ function cancelScrollTween(): void {
  * 不用 Swup scroll 插件的补间：它是指数衰减，前几帧就走完约 90%，之后以
  * 每帧 1–2px 再爬一秒多。换页在 700ms 就完成了，剩下这段爬行发生在已经
  * 淡入的新内容下面，看起来就是「结尾在抖」。这里用固定终点的 ease-out，
- * 时长随距离在 320–700ms 之间，在滑动结束前落到 0，且末速度为零。
+ * 时长随距离在 320–700ms 之间，且末速度为零。
+ *
+ * `lockTo` 用于布局滑动：栅格和横幅都按 700ms 的时基移动，滚动若先结束，
+ * 最后那段时间页面会被布局继续推向反方向，看起来就是两个动画互相拽。
  */
-function startScrollToTop(): number {
+function startScrollToTop(lockTo = 0): number {
 	cancelScrollTween();
 	const startY = getScrollY();
 	if (startY <= 1) return 0;
@@ -226,7 +232,10 @@ function startScrollToTop(): number {
 		return 0;
 	}
 
-	const DURATION = Math.min(700, Math.max(320, 320 + startY * 0.1));
+	const DURATION =
+		lockTo > 0
+			? lockTo
+			: Math.min(700, Math.max(320, 320 + startY * 0.1));
 	// The rAF timestamp is the start of the frame, which can be earlier than the
 	// moment the tween was scheduled. Reading the clock here would make the first
 	// frame a negative progress - the page would lurch the wrong way before
@@ -300,7 +309,9 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		// frame.
 		let tweenDuration = 0;
 		if (!isPopstate && !visit.to.hash && scrollY > 1) {
-			tweenDuration = startScrollToTop();
+			tweenDuration = startScrollToTop(
+				layoutSlides ? LAYOUT_SLIDE_MS : 0,
+			);
 			// 上面的补间已经接管滚动，别让插件在 content:scroll 再跑一遍。
 			if (visit.scroll) visit.scroll.reset = false;
 			scrollY = 0;
@@ -351,6 +362,11 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 
 	swup.hooks.on("content:replace", (visit: Visit) => {
 		const isHome = isHomeVisit(visit);
+		// Let the incoming code blocks lay out normally for one settle instead
+		// of resolving content-visibility inside the swap: with CV on, that
+		// swap costs a single ~700ms layout (measured), with it off the same
+		// work spreads across frames. CV comes back in settle().
+		document.getElementById("swup-container")?.classList.add("is-swap-in");
 		// Give the freshly inserted code blocks their real size before the
 		// first layout, so the document does not keep growing under the reader.
 		primeCodeBlockSizes();
