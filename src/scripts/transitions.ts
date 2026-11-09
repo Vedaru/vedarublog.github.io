@@ -106,8 +106,7 @@ function updateNavbarChrome(scrollY: number): void {
 	navbar.style.setProperty("--semifull-fade", fade);
 }
 
-function updateScrollChrome(): void {
-	const scrollY = getScrollY();
+function updateScrollChrome(scrollY = getScrollY()): void {
 	const bannerEnabled = document.body.classList.contains("enable-banner");
 	const bannerHeight = window.innerHeight * (BANNER_HEIGHT / 100);
 
@@ -146,11 +145,10 @@ function onScroll(): void {
 
 // ── Swup hooks ─────────────────────────────────────────────────────────────
 let hooksRegistered = false;
-let layoutMoveId = 0;
+let knownScrollY: number | null = null;
 let layoutMovePromise: Promise<void> | null = null;
 
 function stopLayoutMove(): void {
-	layoutMoveId++;
 	layoutMovePromise = null;
 	HTML.classList.remove("is-layout-moving");
 }
@@ -162,14 +160,12 @@ function startLayoutMove(): void {
 	if (!grid) return;
 
 	layoutMovePromise = new Promise<void>((resolve) => {
-		const id = layoutMoveId;
 		const onEnd = (event: TransitionEvent) => {
 			if (event.target !== grid || event.propertyName !== "transform") {
 				return;
 			}
 			grid.removeEventListener("transitionend", onEnd);
 			resolve();
-			if (id === layoutMoveId) stopLayoutMove();
 		};
 		grid.addEventListener("transitionend", onEnd);
 	});
@@ -226,6 +222,7 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		}
 
 		if (!isPopstate && layoutSlides) {
+			knownScrollY = window.scrollY;
 			if (window.scrollY <= 1 && !visit.to.hash && visit.scroll) {
 				// The pre-scroll already reset the position. Skip the
 				// plugin's redundant content-scroll pass, which otherwise
@@ -233,35 +230,23 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 				visit.scroll.reset = false;
 			}
 		}
+		if (!layoutSlides || isPopstate) knownScrollY = null;
 
+		setBodyHome(isHome);
 		HTML.style.setProperty("--content-delay", "0ms");
 	}, { priority: 10 });
 
 	swup.hooks.on("content:replace", (visit: Visit) => {
 		const isHome = isHomeVisit(visit);
-		// Mobile banner visibility is a layout property. Apply it now, with
-		// the incoming content still invisible, not with the slide.
+		// Mobile banner visibility is a layout property. Apply it before the
+		// incoming fade starts, after the outgoing slide has finished.
 		setBannerVisibility(isHome);
-		const moving = HTML.classList.contains("is-layout-moving");
-		const grid = document.getElementById("main-grid");
-		if (moving) {
-			// Flush the incoming layout while it is invisible, before the
-			// class flip starts the 700ms transform.
-			grid?.getBoundingClientRect();
-		}
-		// Start the incoming fade immediately; the layout is already known.
-		// Swup's later animation:in:start removal becomes a no-op.
-		HTML.classList.remove("is-animating");
-		// The content has already been laid out, so reading scrollTop here
-		// is cheap.
-		setBodyHome(isHome);
 		setNavbarHome(isHome);
-		updateScrollChrome();
-		if (moving) {
-			// Flush the class flip so its style recalc happens before the
-			// first transform frame.
-			grid?.getBoundingClientRect();
-		}
+		updateScrollChrome(knownScrollY ?? getScrollY());
+		knownScrollY = null;
+		// The outgoing fade has the same duration as the transform, so the
+		// slide is over by the time Swup replaces the content.
+		stopLayoutMove();
 	});
 
 	swup.hooks.on("animation:in:await", () => {

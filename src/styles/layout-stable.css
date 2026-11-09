@@ -4,8 +4,12 @@
  * Single source of truth for the Fuwari-style layout animation. The body's
  * `is-home` class is flipped by `src/scripts/transitions.ts` at `visit:start`,
  * while the outgoing page is still visible, and CSS does the rest with one
- * 700ms transform on the banner and grid plus the sidebars' top compensation.
+ * transform on the banner and grid plus the sidebars' top compensation.
  */
+
+:root {
+	--layout-slide-duration: 700ms;
+}
 
 /* ── Base banner ──────────────────────────────────────────────────────── */
 #banner-wrapper {
@@ -38,7 +42,8 @@
 #banner-wrapper,
 #banner,
 #main-grid {
-	transition: transform 700ms cubic-bezier(0.4, 0, 0.2, 1);
+	transition: transform var(--layout-slide-duration)
+		cubic-bezier(0.4, 0, 0.2, 1);
 	backface-visibility: hidden;
 	will-change: transform;
 }
@@ -94,7 +99,8 @@ body.no-banner-mode #banner-wrapper {
 	#right-sidebar-sticky {
 		position: sticky;
 		top: 1rem;
-		transition: top 700ms cubic-bezier(0.4, 0, 0.2, 1);
+		transition: top var(--layout-slide-duration)
+			cubic-bezier(0.4, 0, 0.2, 1);
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home

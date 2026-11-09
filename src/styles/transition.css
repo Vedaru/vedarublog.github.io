@@ -8,6 +8,14 @@ html.is-animating .transition-swup-fade {
 	opacity: 0;
 	transform: translateY(1rem);
 }
+/*
+ * The layout slide lasts 700ms. Keep the old content fading for the whole
+ * slide so the incoming document is not styled or laid out until the
+ * banner and grid have finished moving.
+ */
+html.is-layout-moving.is-animating .transition-swup-fade {
+	transition-duration: var(--layout-slide-duration);
+}
 
 /* Fade-in animations for components */
 @keyframes fade-in-up {
@@ -61,10 +69,6 @@ html.is-animating .transition-swup-fade {
 }
 #swup-container {
 	outline: none;
-	/* The main column is the only subtree whose contents change on a visit.
-	   Paint containment keeps that invalidation from re-rastering the whole
-	   transformed grid layer while the banner is gliding. */
-	contain: paint;
 }
 #content-wrapper {
 	animation-delay: var(--content-delay);
