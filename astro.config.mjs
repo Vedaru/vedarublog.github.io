@@ -244,7 +244,9 @@ export default defineConfig({
 			// 全站单 CSS：Swup updateHead 换页时不卸载侧栏/shell 仍依赖的样式，避免切页线框 FOUC
 			cssCodeSplit: false,
 			// 静态资源处理优化，防止小图片转 base64 导致 HTML 体积过大（可选，根据需要调整）
-			assetsInlineLimit: 4096,
+			// 例外：doodle 平铺图随样式表内联，去掉一次请求和首帧的空背景。
+			assetsInlineLimit: (filePath) =>
+				filePath.endsWith("doodle.svg") ? true : undefined,
 			// 减少 modulepreload 与 script 的 credentials mode 不一致警告
 			modulePreload: { polyfill: false },
 

@@ -6,6 +6,7 @@ import RightSideBar from "@components/layout/RightSideBar.astro";
 import Navbar from "@components/nav/Navbar.astro";
 import SideBar from "@components/widget/SideBar.astro";
 import BannerWrapper from "@components/banner/BannerWrapper.astro";
+import { inlinePublicAsset } from "../utils/inline-asset";
 import type { MarkdownHeading } from "astro";
 import TOC from "../components/widget/TOC.astro";
 import {
@@ -51,6 +52,10 @@ const desktopBannerResponsive = getBannerResponsive(singleDesktopBanner);
 const mobileBannerResponsive =
 	getBannerResponsive(singleMobileBanner) ?? desktopBannerResponsive;
 const bannerPlaceholder = await getBannerPlaceholder(singleDesktopBanner);
+// The banner is the one image the first paint waits for. Inline it so a hard
+// refresh paints it with the document instead of swapping the blurred
+// placeholder for the webp a few frames later.
+const inlineBanner = inlinePublicAsset(desktopBannerResponsive?.w1280);
 
 const {
 	title,
@@ -112,7 +117,7 @@ const showSidebarTOC =
 
 <Layout title={title} description={description} lang={lang} setOGTypeArticle={setOGTypeArticle} dualLocale={dualLocale}>
 
-{shouldPreloadDesktopBanner && desktopBannerResponsive && (
+{shouldPreloadDesktopBanner && desktopBannerResponsive && !inlineBanner && (
 	<link
 		slot="head"
 		rel="preload"
@@ -128,7 +133,7 @@ const showSidebarTOC =
 	is:inline
 	set:html={`@media (max-width:767px){#banner img{object-position:${mobileBannerObjectPosition}!important;-o-object-position:${mobileBannerObjectPosition}!important}}`}
 ></style>
-{shouldPreloadMobileBanner && mobileBannerResponsive && (
+{shouldPreloadMobileBanner && mobileBannerResponsive && !inlineBanner && (
 	<link
 		slot="head"
 		rel="preload"
@@ -154,6 +159,7 @@ const showSidebarTOC =
 	mobileBannerResponsive={mobileBannerResponsive}
 	bannerObjectPosition={bannerObjectPosition}
 	placeholder={bannerPlaceholder}
+	inlineSrc={inlineBanner}
 />
 
 <!-- Main content -->

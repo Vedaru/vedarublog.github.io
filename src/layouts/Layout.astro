@@ -488,41 +488,25 @@ if (siteConfig.font) {
 <!-- Easter egg: type "holo" on any page -->
 <TerminalEasterEgg client:only="svelte" />
 
-<!-- A hard refresh paints the page before the banner image and the doodle
-     mask arrive, so both used to pop in. The `js` class (set in <head>)
-     hides them from the first paint; this fades them in once decodable. -->
+<!-- The banner is inlined as a data: URI, so it is parsed with the document.
+     Only a fallback (no inline) needs the placeholder fade. -->
 <script is:inline>
 	(() => {
-		const revealAll = () => {
-			document.querySelector("#banner img")?.classList.add("is-banner-ready");
-			document.documentElement.classList.add("doodle-ready");
-		};
-		try {
-			const banner = document.querySelector("#banner img");
-			const showBanner = () => banner && banner.classList.add("is-banner-ready");
-			if (banner) {
-				const decoded = () =>
-					banner.decode ? banner.decode().then(showBanner, showBanner) : showBanner();
-				if (banner.complete && banner.naturalWidth > 0) decoded();
-				else banner.addEventListener("load", decoded, { once: true });
-				banner.addEventListener("error", showBanner, { once: true });
-				setTimeout(showBanner, 1500);
-			}
-
-			const backdrop = document.querySelector(".doodle-backdrop");
-			const mask = backdrop && getComputedStyle(backdrop).maskImage;
-			const match = mask && /url\(["']?(.*?)["']?\)/.exec(mask);
-			const showDoodle = () => document.documentElement.classList.add("doodle-ready");
-			if (!match) return showDoodle();
-			const probe = new Image();
-			probe.onload = probe.onerror = showDoodle;
-			probe.src = match[1];
-			setTimeout(showDoodle, 1500);
-		} catch {
-			// Never leave the banner or the backdrop hidden because of a
-			// browser quirk in the probe above.
-			revealAll();
+		const banner = document.querySelector("#banner img");
+		if (!banner) return;
+		const show = () => banner.classList.add("is-banner-ready");
+		if (banner.getAttribute("src")?.startsWith("data:")) {
+			// Nothing to wait for: reveal without fading over the placeholder.
+			banner.style.transition = "none";
+			show();
+			return;
 		}
+		const decoded = () =>
+			banner.decode ? banner.decode().then(show, show) : show();
+		if (banner.complete && banner.naturalWidth > 0) decoded();
+		else banner.addEventListener("load", decoded, { once: true });
+		banner.addEventListener("error", show, { once: true });
+		setTimeout(show, 1500);
 	})();
 </script>
 
