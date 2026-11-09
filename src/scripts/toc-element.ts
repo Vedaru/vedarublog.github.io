@@ -67,25 +67,28 @@ class TableOfContents extends HTMLElement {
 			i--;
 		}
 
+		const indicator = this.activeIndicator;
+		if (!indicator) return;
+
 		if (min > max) {
-			this.activeIndicator?.setAttribute("style", "opacity: 0");
+			// Keep the last position while fading out: resetting the transform
+			// here would make the next highlight slide in from the top.
+			indicator.style.opacity = "0";
 			return;
 		}
 
-		const parentOffset = this.tocEl?.getBoundingClientRect().top || 0;
-		const scrollOffset = this.tocEl?.scrollTop || 0;
-		const top =
-			this.tocEntries[min].getBoundingClientRect().top -
-			parentOffset +
-			scrollOffset;
-		const bottom =
-			this.tocEntries[max].getBoundingClientRect().bottom -
-			parentOffset +
-			scrollOffset;
-		this.activeIndicator?.setAttribute(
-			"style",
-			`transform: translateY(${Math.floor(top)}px); height: ${Math.ceil(bottom - top)}px`,
-		);
+		// The indicator is an absolutely positioned child of <table-of-contents>,
+		// while the entries live in the scrolling #toc-inner-wrapper. Measuring
+		// against the wrapper (and adding its scrollTop) put the indicator below
+		// the list as soon as the TOC scrolled. Measure against the indicator's
+		// own containing block instead - the rect already includes the scroll.
+		const origin = indicator.parentElement?.getBoundingClientRect().top ?? 0;
+		const top = this.tocEntries[min].getBoundingClientRect().top - origin;
+		const bottom = this.tocEntries[max].getBoundingClientRect().bottom - origin;
+
+		indicator.style.opacity = "1";
+		indicator.style.transform = `translateY(${Math.floor(top)}px)`;
+		indicator.style.height = `${Math.ceil(bottom - top)}px`;
 	};
 
 	scrollToActiveHeading = () => {
