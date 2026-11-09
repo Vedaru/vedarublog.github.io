@@ -20,8 +20,10 @@
  */
 import { BANNER_HEIGHT, BANNER_HEIGHT_HOME } from "@constants";
 import { isMainHomePage, pathFromUrl } from "../utils/route-utils";
+import { setScrollTweening } from "./runtime/motion-state";
 import {
 	cancelEnhancements,
+	primeCodeBlockSizes,
 	scheduleEnhancements,
 } from "./page-enhancements";
 import "./runtime/comment-boot";
@@ -201,22 +203,6 @@ function startLayoutMove(): void {
 /** 换页时的滚动动画句柄（同一时间只允许一个）。 */
 let scrollTweenFrame = 0;
 
-/**
- * Marks the document while the scroll tween owns the scroll position.
- *
- * Reading layout during that window is what turns a scroll into a full reflow
- * of a just-replaced, several-thousand-pixel document: the TOC measures a
- * heading on every intersection change and then scrolls its own list, so a
- * fast scroll-to-top used to cost >1s of Layout. Consumers (the TOC) skip
- * their measurements while this is set and run once when it fires.
- */
-function setScrollTweening(on: boolean): void {
-	const root = document.documentElement;
-	if (root.classList.contains("is-scroll-tweening") === on) return;
-	root.classList.toggle("is-scroll-tweening", on);
-	if (!on) window.dispatchEvent(new Event("scroll-tween:end"));
-}
-
 function cancelScrollTween(): void {
 	if (scrollTweenFrame) cancelAnimationFrame(scrollTweenFrame);
 	scrollTweenFrame = 0;
@@ -365,6 +351,9 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 
 	swup.hooks.on("content:replace", (visit: Visit) => {
 		const isHome = isHomeVisit(visit);
+		// Give the freshly inserted code blocks their real size before the
+		// first layout, so the document does not keep growing under the reader.
+		primeCodeBlockSizes();
 		// Mobile banner visibility is a layout property. Apply it before the
 		// incoming fade starts, after the outgoing slide has finished.
 		setBannerVisibility(isHome);

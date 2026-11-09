@@ -151,8 +151,30 @@ function observeMermaid(): void {
 	diagrams.forEach((diagram) => mermaidObserver!.observe(diagram));
 }
 
+/**
+ * Expressive Code blocks are `content-visibility: auto` with a 300px size
+ * estimate. On a code-heavy post the real heights differ by hundreds of
+ * pixels, so the document keeps growing while blocks render: a TOC jump
+ * computed from the estimates lands past its heading (measured 411px on the
+ * nvim post) and every correction is another full reflow. Count the lines and
+ * give each block an accurate size before the first layout.
+ */
+export function primeCodeBlockSizes(): void {
+	const blocks = document.querySelectorAll<HTMLElement>(".expressive-code");
+	if (blocks.length === 0) return;
+	const sample = document.querySelector<HTMLElement>(".ec-line");
+	const measured = sample ? Number.parseFloat(getComputedStyle(sample).lineHeight) : Number.NaN;
+	const perLine = Number.isFinite(measured) && measured > 0 ? measured : 24;
+	for (const block of blocks) {
+		const lines = block.querySelectorAll(".ec-line").length;
+		if (lines === 0) continue;
+		block.style.containIntrinsicSize = `auto ${Math.round(56 + lines * perLine)}px`;
+	}
+}
+
 // ── Boot ───────────────────────────────────────────────────────────────────
 function bootEnhancements(token: number): void {
+	primeCodeBlockSizes();
 	void initFancybox();
 	loadKatexCss();
 	loadCodeFont();

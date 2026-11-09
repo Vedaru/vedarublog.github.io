@@ -6,6 +6,7 @@
  * wire observers to the new headings; it never builds HTML.
  */
 import { runAfterLayoutSettled } from "./runtime/after-transition";
+import { isScrollTweening, onScrollTweenEnd } from "./runtime/motion-state";
 
 class TableOfContents extends HTMLElement {
 	tocEl: HTMLElement | null = null;
@@ -20,6 +21,7 @@ class TableOfContents extends HTMLElement {
 	activeIndicator: HTMLElement | null = null;
 	indicatorFrame = 0;
 	pendingUpdate = false;
+	stopTweenListener: (() => void) | null = null;
 	initialized = false;
 
 	constructor() {
@@ -111,7 +113,7 @@ class TableOfContents extends HTMLElement {
 		if (this.indicatorFrame) return;
 		this.indicatorFrame = requestAnimationFrame(() => {
 			this.indicatorFrame = 0;
-			if (document.documentElement.classList.contains("is-scroll-tweening")) {
+			if (isScrollTweening()) {
 				this.pendingUpdate = true;
 				return;
 			}
@@ -146,7 +148,7 @@ class TableOfContents extends HTMLElement {
 			// forces a reflow of the freshly swapped document - on a long post
 			// that was more than a second of Layout for a 400ms animation. Skip,
 			// then run one pass when the tween ends.
-			if (document.documentElement.classList.contains("is-scroll-tweening")) {
+			if (isScrollTweening()) {
 				this.pendingUpdate = true;
 				return;
 			}
@@ -207,7 +209,7 @@ class TableOfContents extends HTMLElement {
 		this.tocEl.addEventListener("scroll", this.handleTocScroll, {
 			passive: true,
 		});
-		window.addEventListener("scroll-tween:end", this.flushPendingUpdate);
+		this.stopTweenListener = onScrollTweenEnd(this.flushPendingUpdate);
 
 		this.activeIndicator = this.querySelector("#active-indicator");
 		this.tocEntries = Array.from(
@@ -249,7 +251,8 @@ class TableOfContents extends HTMLElement {
 		this.observer.disconnect();
 		this.tocEl?.removeEventListener("click", this.handleAnchorClick);
 		this.tocEl?.removeEventListener("scroll", this.handleTocScroll);
-		window.removeEventListener("scroll-tween:end", this.flushPendingUpdate);
+		this.stopTweenListener?.();
+		this.stopTweenListener = null;
 		if (this.indicatorFrame) cancelAnimationFrame(this.indicatorFrame);
 	}
 }
