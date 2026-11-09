@@ -31,6 +31,18 @@
 
 #banner img {
 	object-fit: cover;
+	/* On a hard refresh the wrapper's blurred placeholder paints with the
+	   document and the real image lands a frame or two later. Fade it in over
+	   the placeholder instead of popping. Without JS it stays visible. */
+	transition: opacity 400ms ease;
+}
+
+.js #banner img {
+	opacity: 0;
+}
+
+.js #banner img.is-banner-ready {
+	opacity: 1;
 }
 
 /* The banner is two layers in Fuwari: the wrapper slides the whole image,
