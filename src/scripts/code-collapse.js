@@ -1,10 +1,14 @@
 class CodeBlockCollapser {
 	constructor() {
 		this.processedBlocks = new WeakSet();
-		this.observer = null;
 		this.isThemeChanging = false;
 		this.debug = false; // 设置为 true 启用调试日志
-		this.init();
+		this.observer =
+			"IntersectionObserver" in window
+				? new IntersectionObserver(this.handleIntersection, {
+						rootMargin: "200px 0px",
+					})
+				: null;
 	}
 
 	log(...args) {
@@ -13,23 +17,8 @@ class CodeBlockCollapser {
 		}
 	}
 
-	init() {
-		this.log("Initializing...");
-		if (document.readyState === "loading") {
-			document.addEventListener("DOMContentLoaded", () => {
-				this.log("DOMContentLoaded - setting up code blocks");
-				this.setupCodeBlocks();
-			});
-		} else {
-			this.log("Document already loaded - setting up code blocks");
-			this.setupCodeBlocks();
-		}
-		this.observePageChanges();
-		this.setupThemeChangeListener();
-	}
-
 	setupThemeChangeListener() {
-		// 监听主题切换，在切换期间暂停 observer 和优化性能
+		// 监听主题切换，在切换期间暂停过渡以避免额外重绘
 		const themeObserver = new MutationObserver((mutations) => {
 			for (const mutation of mutations) {
 				if (
@@ -44,11 +33,6 @@ class CodeBlockCollapser {
 
 					if (isTransitioning && !this.isThemeChanging) {
 						this.isThemeChanging = true;
-
-						// 断开 observer 以避免在主题切换时进行不必要的检查
-						if (this.observer) {
-							this.observer.disconnect();
-						}
 
 						// 性能优化：临时禁用代码块的动画和过渡
 						document
@@ -67,11 +51,6 @@ class CodeBlockCollapser {
 								.forEach((block) => {
 									block.style.transition = "";
 								});
-
-							// 重新连接 observer
-							setTimeout(() => {
-								this.observePageChanges();
-							}, 50);
 						});
 					}
 					break;
@@ -85,20 +64,28 @@ class CodeBlockCollapser {
 		});
 	}
 
-	setupCodeBlocks() {
-		requestAnimationFrame(() => {
-			const codeBlocks = document.querySelectorAll(".expressive-code");
-			this.log(`Found ${codeBlocks.length} code blocks to process`);
+	handleIntersection = (entries) => {
+		for (const entry of entries) {
+			if (!entry.isIntersecting) continue;
+			this.observer?.unobserve(entry.target);
+			if (this.processedBlocks.has(entry.target)) continue;
+			this.enhanceCodeBlock(entry.target);
+			this.processedBlocks.add(entry.target);
+		}
+	};
 
-			codeBlocks.forEach((codeBlock, index) => {
-				if (!this.processedBlocks.has(codeBlock)) {
-					this.log(`Enhancing code block ${index + 1}`);
-					this.enhanceCodeBlock(codeBlock);
-					this.processedBlocks.add(codeBlock);
-				} else {
-					this.log(`Code block ${index + 1} already processed`);
-				}
-			});
+	setupCodeBlocks() {
+		const codeBlocks = document.querySelectorAll(".expressive-code");
+		this.log(`Found ${codeBlocks.length} code blocks to process`);
+
+		codeBlocks.forEach((codeBlock) => {
+			if (this.processedBlocks.has(codeBlock)) return;
+			if (this.observer) {
+				this.observer.observe(codeBlock);
+			} else {
+				this.enhanceCodeBlock(codeBlock);
+				this.processedBlocks.add(codeBlock);
+			}
 		});
 	}
 
@@ -128,7 +115,9 @@ class CodeBlockCollapser {
 		button.className = "collapse-toggle-btn";
 		button.type = "button";
 		// 页面语言只有一个来源：<html data-locale>（由 Layout 按 URL 写入）
-		const isZh = (document.documentElement.dataset.locale || "zh").startsWith("zh");
+		const isZh = (
+			document.documentElement.dataset.locale || "zh"
+		).startsWith("zh");
 		button.setAttribute(
 			"aria-label",
 			isZh ? "折叠/展开代码块" : "Collapse or expand code block",
@@ -180,66 +169,9 @@ class CodeBlockCollapser {
 		document.dispatchEvent(event);
 	}
 
-	observePageChanges() {
-		// 如果正在主题切换，不要重新连接
-		if (this.isThemeChanging) return;
-
-		// 断开现有的 observer
-		if (this.observer) {
-			this.observer.disconnect();
-		}
-
-		let debounceTimer = null;
-
-		this.observer = new MutationObserver((mutations) => {
-			// 如果正在主题切换，忽略所有变化
-			if (this.isThemeChanging) return;
-
-			let shouldReinit = false;
-
-			// 外层循环：遍历所有变动
-			for (const mutation of mutations) {
-				if (
-					mutation.type === "childList" &&
-					mutation.addedNodes.length > 0
-				) {
-					// 内层循环：遍历新增节点
-					for (const node of mutation.addedNodes) {
-						// 只检查元素节点 (nodeType 1)
-						if (node.nodeType === Node.ELEMENT_NODE) {
-							if (
-								node.classList.contains("expressive-code") ||
-								(node.getElementsByClassName &&
-									node.getElementsByClassName(
-										"expressive-code",
-									).length > 0)
-							) {
-								shouldReinit = true;
-								break;
-							}
-						}
-					}
-				}
-				if (shouldReinit) break;
-			}
-
-			if (shouldReinit) {
-				clearTimeout(debounceTimer);
-				debounceTimer = setTimeout(() => this.setupCodeBlocks(), 30);
-			}
-		});
-
-		this.observer.observe(document.body, {
-			childList: true,
-			subtree: true,
-		});
-	}
-
 	destroy() {
-		if (this.observer) {
-			this.observer.disconnect();
-			this.observer = null;
-		}
+		this.observer?.disconnect();
+		this.observer = null;
 		this.processedBlocks = new WeakSet();
 	}
 
@@ -268,67 +200,16 @@ const codeBlockCollapser = new CodeBlockCollapser();
 window.CodeBlockCollapser = CodeBlockCollapser;
 window.codeBlockCollapser = codeBlockCollapser;
 
-// 设置 Swup 钩子的函数
-let swupHooksRegistered = false;
+let initialized = false;
 
-function setupSwupHooks() {
-	if (swupHooksRegistered) return true;
-	if (window.swup) {
-		swupHooksRegistered = true;
-		codeBlockCollapser.log("Setting up Swup hooks");
-
-		// 监听 page:view 事件
-		window.swup.hooks.on("page:view", () => {
-			codeBlockCollapser.log(
-				"Swup page:view event - reinitializing code blocks",
-			);
-			// 页面切换后重置 processedBlocks，确保新页面的代码块被处理
-			codeBlockCollapser.processedBlocks = new WeakSet();
-			setTimeout(() => {
-				codeBlockCollapser.setupCodeBlocks();
-			}, 100);
-		});
-
-		// 监听 content:replace 事件（更早触发）
-		window.swup.hooks.on("content:replace", () => {
-			codeBlockCollapser.log(
-				"Swup content:replace event - preparing for reinitialization",
-			);
-			// 内容替换时也重置，确保不会因为缓存而跳过处理
-			codeBlockCollapser.processedBlocks = new WeakSet();
-			setTimeout(() => {
-				codeBlockCollapser.setupCodeBlocks();
-			}, 50);
-		});
-
-		return true;
+/**
+ * Enhance the current page's code blocks. `page-enhancements` owns the
+ * lifecycle and calls this once per page, after the layout has settled.
+ */
+export function initCodeBlocks() {
+	if (!initialized) {
+		initialized = true;
+		codeBlockCollapser.setupThemeChangeListener();
 	}
-	return false;
+	codeBlockCollapser.setupCodeBlocks();
 }
-
-// 尝试立即设置 Swup 钩子
-if (!setupSwupHooks()) {
-	// 如果 Swup 尚未初始化，等待它加载
-	codeBlockCollapser.log("Swup not ready, waiting for initialization");
-
-	// 监听 swup:enable 事件
-	document.addEventListener("swup:enable", () => {
-		codeBlockCollapser.log("Swup enabled, setting up hooks");
-		setupSwupHooks();
-	});
-
-	// 额外的延迟重试机制，确保捕获到 Swup
-	const retryInterval = setInterval(() => {
-		if (setupSwupHooks()) {
-			codeBlockCollapser.log("Swup hooks set up successfully via retry");
-			clearInterval(retryInterval);
-		}
-	}, 100);
-
-	// 最多重试 20 次（2 秒）
-	setTimeout(() => {
-		clearInterval(retryInterval);
-	}, 2000);
-}
-
-export {};

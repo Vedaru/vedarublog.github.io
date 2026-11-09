@@ -152,7 +152,7 @@ function observeMermaid(): void {
 }
 
 // ── Boot ───────────────────────────────────────────────────────────────────
-function bootEnhancements(): void {
+function bootEnhancements(token: number): void {
 	void initFancybox();
 	loadKatexCss();
 	loadCodeFont();
@@ -162,7 +162,9 @@ function bootEnhancements(): void {
 		void import("./runtime/last-modified");
 	}
 	if (document.querySelector(".expressive-code")) {
-		void import("./code-collapse.js");
+		void import("./code-collapse.js").then(({ initCodeBlocks }) => {
+			if (token === generation) initCodeBlocks();
+		});
 	}
 	if (document.getElementById("umami-scripts-tpl")) {
 		void import("./runtime/analytics-scheduler");
@@ -174,7 +176,7 @@ export function scheduleEnhancements(): void {
 	runAfterLayoutSettled(() => {
 		if (token !== generation) return;
 		const run = () => {
-			if (token === generation) bootEnhancements();
+			if (token === generation) bootEnhancements(token);
 		};
 		if ("requestIdleCallback" in window) {
 			requestIdleCallback(run, { timeout: 2500 });
