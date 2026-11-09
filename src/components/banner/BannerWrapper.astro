@@ -14,8 +14,6 @@ interface Props {
 	mobileBannerResponsive: BannerResponsive;
 	bannerObjectPosition: string;
 	placeholder?: string;
-	/** data: URI for the banner, so the first paint has the real image. */
-	inlineSrc?: string | null;
 }
 
 const {
@@ -24,7 +22,6 @@ const {
 	mobileBannerResponsive,
 	bannerObjectPosition,
 	placeholder,
-	inlineSrc,
 }: Props = Astro.props;
 ---
 
@@ -39,9 +36,9 @@ const {
             <img
                 alt="Banner image of the blog"
                 class="object-cover w-full h-full"
-                src={inlineSrc ?? url(desktopBannerResponsive.full)}
-                srcset={inlineSrc ? undefined : `${url((mobileBannerResponsive ?? desktopBannerResponsive).w768)} 768w, ${url(desktopBannerResponsive.w1280)} 1280w, ${url(desktopBannerResponsive.full)} 1920w, ${url(desktopBannerResponsive.w2560)} 2560w`}
-                sizes={inlineSrc ? undefined : "100vw"}
+                src={url(desktopBannerResponsive.full)}
+                srcset={`${url((mobileBannerResponsive ?? desktopBannerResponsive).w768)} 768w, ${url(desktopBannerResponsive.w1280)} 1280w, ${url(desktopBannerResponsive.full)} 1920w, ${url(desktopBannerResponsive.w2560)} 2560w`}
+                sizes="100vw"
                 width={1920}
                 height={1097}
                 style={`object-position: ${bannerObjectPosition}`}

@@ -20,9 +20,9 @@ export function getBannerPlaceholder(
 	if (cached) return cached;
 
 	const promise = sharp(file)
-		.resize(32, 20, { fit: "inside" })
-		.blur(3)
-		.webp({ quality: 50 })
+		.resize(96, 60, { fit: "inside" })
+		.blur(2)
+		.webp({ quality: 45 })
 		.toBuffer()
 		.then((buffer) => `data:image/webp;base64,${buffer.toString("base64")}`)
 		.catch(() => undefined);
