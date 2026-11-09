@@ -61,6 +61,12 @@ begins on the outgoing page and runs continuously through the fade and the
 swap. The only other motion is the 200ms content fade: the between-page
 scroll is committed instantly, so it never competes with the transform.
 
+On desktop, `html.is-layout-sliding` takes both sticky columns out of sticky
+positioning for the duration of the transform, so they travel with
+`#main-grid` instead of staying pinned to the viewport. The class is removed
+on the grid's `transitionend`, restoring normal sticky behavior without a
+timer.
+
 There is no `#page-height-extend`. A 300vh tail kept the old scroll alive but
 added thousands of pixels of blank scroll below the footer on a tall
 viewport, then the browser snapped back when the tail was removed. The
@@ -99,6 +105,8 @@ Rules for future changes:
   `scheduleEnhancements()` or an `IntersectionObserver`.
 - Do not animate layout properties (`top`, `height`, `width`) inside
   `#main-grid` while the grid is transformed.
+- Do not leave the sticky sidebars pinned during a home/content layout slide.
+  The `is-layout-sliding` class exists so the grid owns that motion.
 - Keep the grid's `top` derived from
   `calc(var(--banner-height-home) - var(--banner-height-extend))`, never a
   separate `35vh`. The extend variable is rounded to a 4px grid, so `35vh`

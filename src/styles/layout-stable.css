@@ -115,6 +115,20 @@ body.no-banner-mode #banner-wrapper {
 		#right-sidebar-sticky {
 		top: calc(1rem - var(--banner-height-extend, 30dvh));
 	}
+
+	/* The grid owns the only sidebar motion during a page-layout slide.
+	   Sticky positioning would otherwise hold the sidebars in the viewport
+	   while their parent moves underneath them. */
+	html.is-layout-sliding[data-wallpaper-mode="banner"]
+		body.enable-banner
+		#sidebar-sticky,
+	html.is-layout-sliding[data-wallpaper-mode="banner"]
+		body.enable-banner
+		#right-sidebar-sticky {
+		position: static;
+		top: auto;
+		transition: none;
+	}
 }
 
 /* ── No banner: content starts right under the navbar ─────────────────── */
