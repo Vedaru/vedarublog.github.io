@@ -19,6 +19,7 @@ class TableOfContents extends HTMLElement {
 	active: boolean[] = [];
 	activeIndicator: HTMLElement | null = null;
 	indicatorFrame = 0;
+	pendingUpdate = false;
 	initialized = false;
 
 	constructor() {
@@ -110,6 +111,10 @@ class TableOfContents extends HTMLElement {
 		if (this.indicatorFrame) return;
 		this.indicatorFrame = requestAnimationFrame(() => {
 			this.indicatorFrame = 0;
+			if (document.documentElement.classList.contains("is-scroll-tweening")) {
+				this.pendingUpdate = true;
+				return;
+			}
 			this.positionIndicator();
 		});
 	};
@@ -137,9 +142,22 @@ class TableOfContents extends HTMLElement {
 
 	update = () => {
 		requestAnimationFrame(() => {
+			// While a scroll tween owns the scroll position, every measurement
+			// forces a reflow of the freshly swapped document - on a long post
+			// that was more than a second of Layout for a 400ms animation. Skip,
+			// then run one pass when the tween ends.
+			if (document.documentElement.classList.contains("is-scroll-tweening")) {
+				this.pendingUpdate = true;
+				return;
+			}
+			this.pendingUpdate = false;
 			this.toggleActiveHeading();
 			this.scrollToActiveHeading();
 		});
+	};
+
+	flushPendingUpdate = () => {
+		if (this.pendingUpdate) this.update();
 	};
 
 	fallback = () => {
@@ -189,6 +207,7 @@ class TableOfContents extends HTMLElement {
 		this.tocEl.addEventListener("scroll", this.handleTocScroll, {
 			passive: true,
 		});
+		window.addEventListener("scroll-tween:end", this.flushPendingUpdate);
 
 		this.activeIndicator = this.querySelector("#active-indicator");
 		this.tocEntries = Array.from(
@@ -230,6 +249,7 @@ class TableOfContents extends HTMLElement {
 		this.observer.disconnect();
 		this.tocEl?.removeEventListener("click", this.handleAnchorClick);
 		this.tocEl?.removeEventListener("scroll", this.handleTocScroll);
+		window.removeEventListener("scroll-tween:end", this.flushPendingUpdate);
 		if (this.indicatorFrame) cancelAnimationFrame(this.indicatorFrame);
 	}
 }

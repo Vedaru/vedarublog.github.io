@@ -201,9 +201,26 @@ function startLayoutMove(): void {
 /** 换页时的滚动动画句柄（同一时间只允许一个）。 */
 let scrollTweenFrame = 0;
 
+/**
+ * Marks the document while the scroll tween owns the scroll position.
+ *
+ * Reading layout during that window is what turns a scroll into a full reflow
+ * of a just-replaced, several-thousand-pixel document: the TOC measures a
+ * heading on every intersection change and then scrolls its own list, so a
+ * fast scroll-to-top used to cost >1s of Layout. Consumers (the TOC) skip
+ * their measurements while this is set and run once when it fires.
+ */
+function setScrollTweening(on: boolean): void {
+	const root = document.documentElement;
+	if (root.classList.contains("is-scroll-tweening") === on) return;
+	root.classList.toggle("is-scroll-tweening", on);
+	if (!on) window.dispatchEvent(new Event("scroll-tween:end"));
+}
+
 function cancelScrollTween(): void {
 	if (scrollTweenFrame) cancelAnimationFrame(scrollTweenFrame);
 	scrollTweenFrame = 0;
+	setScrollTweening(false);
 }
 
 /**
@@ -214,13 +231,13 @@ function cancelScrollTween(): void {
  * 淡入的新内容下面，看起来就是「结尾在抖」。这里用固定终点的 ease-out，
  * 时长随距离在 320–700ms 之间，在滑动结束前落到 0，且末速度为零。
  */
-function startScrollToTop(): void {
+function startScrollToTop(): number {
 	cancelScrollTween();
 	const startY = getScrollY();
-	if (startY <= 1) return;
+	if (startY <= 1) return 0;
 	if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
 		window.scrollTo(0, 0);
-		return;
+		return 0;
 	}
 
 	const DURATION = Math.min(700, Math.max(320, 320 + startY * 0.1));
@@ -235,9 +252,16 @@ function startScrollToTop(): void {
 		if (!started) started = now;
 		const progress = Math.min(1, Math.max(0, (now - started) / DURATION));
 		window.scrollTo(0, Math.round(startY * (1 - easeOutCubic(progress))));
-		scrollTweenFrame = progress < 1 ? requestAnimationFrame(step) : 0;
+		if (progress < 1) {
+			scrollTweenFrame = requestAnimationFrame(step);
+		} else {
+			scrollTweenFrame = 0;
+			setScrollTweening(false);
+		}
 	};
+	setScrollTweening(true);
 	scrollTweenFrame = requestAnimationFrame(step);
+	return DURATION;
 }
 
 function setup(swup: NonNullable<Window["swup"]>): void {
@@ -279,12 +303,25 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		let scrollY = getScrollY();
 		// 自己接管「滚回顶部」，普通换页也走这里：固定曲线、在新内容出现前
 		// 就落地。锚点链接交给插件的锚点滚动，前进/后退不动滚动位置。
+		// The outgoing content fades for exactly as long as the tween runs, so
+		// the swap lands on a page that is already at the top - scrolling
+		// through a document that is still inserting images costs a reflow per
+		// frame.
+		let tweenDuration = 0;
 		if (!isPopstate && !visit.to.hash && scrollY > 1) {
-			startScrollToTop();
+			tweenDuration = startScrollToTop();
 			// 上面的补间已经接管滚动，别让插件在 content:scroll 再跑一遍。
 			if (visit.scroll) visit.scroll.reset = false;
 			scrollY = 0;
 		}
+		// Scope the duration to the grid: writing to <html> would invalidate the
+		// whole document on the click path.
+		document
+			.getElementById("main-grid")
+			?.style.setProperty(
+				"--scroll-tween-duration",
+				`${tweenDuration || 200}ms`,
+			);
 
 		// Start the marker and the transform together, after the scroll has
 		// settled. The marker has to be present before the body flip so the

@@ -16,6 +16,16 @@ html.is-animating .transition-swup-fade {
 html.is-layout-moving.is-animating .transition-swup-fade {
 	transition-duration: var(--layout-slide-duration);
 }
+/*
+ * Non-slide visits: the scroll tween owns the outgoing page until it reaches
+ * the top. Fade for exactly that long so the swap happens at scroll 0 -
+ * replacing the content mid-scroll makes every later frame reflow a page that
+ * is still inserting images and diagrams (measured: 1.3s of Layout for a
+ * 400ms tween on a long post, and a visible freeze before the last jump).
+ */
+html.is-animating:not(.is-layout-moving) .transition-swup-fade {
+	transition-duration: var(--scroll-tween-duration, 200ms);
+}
 
 /* Fade-in animations for components */
 @keyframes fade-in-up {
