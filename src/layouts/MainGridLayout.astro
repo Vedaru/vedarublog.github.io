@@ -90,87 +90,23 @@ const hasTabletLeftSidebarComponents =
 	widgetManager.getComponentsByPosition("top", "left", "tablet").length > 0 ||
 	widgetManager.getComponentsByPosition("sticky", "left", "tablet").length > 0;
 
-// 检查侧边栏是否启用，动态调整网格布局
+// 栅格布局只由 #main-grid 上的 data-* 属性表达，列宽与各区域定位统一在
+// layout-stable.css 的「Main grid」一节定义。以前同一套布局在这个文件里拼
+// class 字符串、又在 <style> 里用 !important 覆盖，两处会互相打架。
 const mobileShowSidebar = hasMobileDrawerComponents;
 const tabletShowSidebar = hasTabletLeftSidebarComponents;
-const desktopShowSidebar = hasLeftSidebarComponents || hasRightSidebarComponents;
-
-// 桌面端侧边栏最终显示状态（考虑是否有组件）
-const desktopShowLeftSidebar = hasLeftSidebarComponents;
-const desktopShowRightSidebar = hasRightSidebarComponents;
-
-// 平板端侧边栏最终显示状态
-const tabletShowLeftSidebar = hasTabletLeftSidebarComponents;
-// 如果左侧有组件，则平板端不显示右侧侧栏；只有当左侧为空且右侧有组件时，才显示右侧侧栏（会被移到左侧）
-// 注意：现在 getComponentsByPosition("left", "tablet") 已经包含了这个逻辑
-const tabletShowRightSidebar = false; // 平板端不再有独立的右侧栏，如果右移左了，它就在 tabletShowLeftSidebar 中显示
-const tabletAnySidebar = tabletShowLeftSidebar;
+const desktopSides =
+	hasLeftSidebarComponents && hasRightSidebarComponents
+		? "both"
+		: hasLeftSidebarComponents
+			? "left"
+			: hasRightSidebarComponents
+				? "right"
+				: "none";
 
 const defaultPostListLayout = siteConfig.postListLayout?.defaultMode || "list";
 const showSidebarTOC =
 	siteConfig.toc.enable && isSidebarTOC && headings.length > 0;
-
-// 动态网格布局类名 - 根据侧边栏模式和是否有组件调整列宽
-let desktopGridCols = "lg:grid-cols-1";
-if (desktopShowLeftSidebar && desktopShowRightSidebar) {
-	desktopGridCols = "lg:grid-cols-[17.5rem_1fr_17.5rem]";
-} else if (desktopShowLeftSidebar) {
-	desktopGridCols = "lg:grid-cols-[17.5rem_1fr]";
-} else if (desktopShowRightSidebar) {
-	desktopGridCols = "lg:grid-cols-[1fr_17.5rem]";
-}
-
-const gridCols = `
-	${mobileShowSidebar ? "grid-cols-1" : "grid-cols-1"}
-	${tabletAnySidebar ? "md:grid-cols-[17.5rem_1fr]" : "md:grid-cols-1"}
-	${desktopGridCols}
-`
-	.trim()
-	.replace(/\s+/g, " ");
-
-// 侧边栏容器类名 - 始终在左侧
-const sidebarClass = `
-	onload-animation
-	${mobileShowSidebar && hasMobileDrawerComponents ? "block" : "hidden"}
-	${tabletShowLeftSidebar ? "md:block md:mb-4 md:max-w-[17.5rem]" : "md:hidden"}
-	${desktopShowLeftSidebar ? "lg:block lg:mb-4 lg:row-start-1 lg:row-end-2 lg:max-w-[17.5rem] lg:col-start-1 lg:col-end-2" : "lg:hidden"}
-`
-	.trim()
-	.replace(/\s+/g, " ");
-
-// 右侧边栏容器类名
-// 手机端：隐藏（手机端只通过 drawer 显示组件）
-// 平板端：根据简化逻辑显示（只有当左侧为空时才显示并移到左侧）
-// 桌面端：定位到网格最后一列（右侧）
-const rightSidebarClass = `
-	onload-animation
-	hidden
-	${tabletShowRightSidebar ? "md:block md:mb-4 md:max-w-[17.5rem]" : "md:hidden"}
-	${desktopShowRightSidebar ? `lg:block lg:mb-4 lg:row-start-1 lg:row-end-2 lg:max-w-[17.5rem] ${desktopShowLeftSidebar ? "lg:col-start-3 lg:col-end-4" : "lg:col-start-2 lg:col-end-3"} lg:col-span-1` : "lg:hidden"}
-`
-	.trim()
-	.replace(/\s+/g, " ");
-
-// 主内容区域类名 - 根据侧边栏模式调整grid-column
-// 平板设备和手机端：主内容在最上方row-1，侧边栏在下方
-// 桌面端：主内容和侧边栏并排显示
-let desktopMainPos = "lg:col-span-1";
-if (desktopShowLeftSidebar && desktopShowRightSidebar) {
-	desktopMainPos = "lg:col-start-2 lg:col-end-3";
-} else if (desktopShowLeftSidebar) {
-	desktopMainPos = "lg:col-start-2 lg:col-end-3";
-} else if (desktopShowRightSidebar) {
-	desktopMainPos = "lg:col-start-1 lg:col-end-2";
-}
-
-const mainContentClass = `
-	w-full
-	col-span-1 row-start-1 row-end-2
-	${tabletAnySidebar ? "md:col-start-2 md:col-end-3" : "md:col-start-1 md:col-end-2"}
-	${desktopShowSidebar ? desktopMainPos : "lg:col-span-1"}
-`
-	.trim()
-	.replace(/\s+/g, " ");
 
 ---
 
@@ -229,23 +165,25 @@ const mainContentClass = `
 >
     <!-- The pointer-events-none here prevent blocking the click event of the TOC -->
     <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto min-w-0 w-full">
-        <div id="main-grid" class={`w-full max-w-[var(--page-width)] min-w-0 left-0 right-0 grid ${gridCols} grid-rows-none md:grid-rows-[auto] mx-auto gap-4 px-2 md:px-4 ${!mobileShowSidebar || !hasMobileDrawerComponents ? 'mobile-no-sidebar' : ''} ${hasRightSidebarComponents ? 'mobile-both-sidebar' : ''}`}
+        <div id="main-grid" class="w-full max-w-[var(--page-width)] min-w-0 left-0 right-0 mx-auto gap-4 px-2 md:px-4"
              data-layout-mode={defaultPostListLayout}
+             data-sides={desktopSides}
+             data-mobile={mobileShowSidebar ? "true" : "false"}
         >
             {/* 侧边栏和主内容区域容器 */}
             <div class="contents">
-                {(mobileShowSidebar || tabletShowSidebar || desktopShowSidebar) && (
-                    <SideBar class={sidebarClass} headings={headings}></SideBar>
+                {(mobileShowSidebar || tabletShowSidebar || hasLeftSidebarComponents || hasRightSidebarComponents) && (
+                    <SideBar class="onload-animation" headings={headings}></SideBar>
                 )}
                 
                 {hasRightSidebarComponents && (
-                    <div class={`right-sidebar-container ${rightSidebarClass}`}>
+                    <div class="right-sidebar-container onload-animation">
                         <RightSideBar headings={headings}></RightSideBar>
                     </div>
                 )}
             </div>
 
-            <main id="swup-container" class={`${mainContentClass} transition-swup-fade min-w-0 overflow-hidden`}>
+            <main id="swup-container" class="w-full transition-swup-fade min-w-0 overflow-hidden">
                 <div class="sr-only" data-swup-a11y-title>{title || siteConfig.title}</div>
                 <div id="content-wrapper" class="onload-animation">
                     <!-- make id different from windows.swup global property -->
@@ -294,66 +232,6 @@ body.no-banner-mode #toc-inner-wrapper {
     max-height: calc(100vh - 8rem) !important;
 }
 
-/* 移动端无侧边栏布局优化 */
-@media (max-width: 767px) {
-    .mobile-no-sidebar {
-        display: block !important;
-        width: 100% !important;
-    }
-    
-    .mobile-no-sidebar main {
-        width: 100% !important;
-        max-width: 100% !important;
-        margin: 0 !important;
-        padding-left: 0 !important;
-        padding-right: 0 !important;
-    }
-    
-    .mobile-no-sidebar #content-wrapper {
-        width: 100% !important;
-        max-width: 100% !important;
-        margin: 0 !important;
-    }
-    
-    /* 修复双侧边栏模式在移动端的布局问题 */
-    .mobile-both-sidebar {
-        /* 确保在移动端使用单列布局 */
-        grid-template-columns: 1fr !important;
-        /* 确保左右padding对称 */
-        padding-left: 0.5rem !important;
-        padding-right: 0.5rem !important;
-    }
-    
-    /* 确保移动端主内容区域居中且全宽 */
-    .mobile-both-sidebar main {
-        grid-column: 1 / -1 !important;
-        width: 100% !important;
-        margin: 0 auto !important;
-    }
-    
-    /* 移动端footer也要居中 */
-    .mobile-both-sidebar .footer {
-        grid-column: 1 / -1 !important;
-    }
-}
-
-/* 平板设备双侧边栏布局优化 (768px - 1279px) */
-@media (min-width: 768px) and (max-width: 1279px) {
-    .mobile-both-sidebar {
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
-    }
-    
-    .mobile-both-sidebar main {
-        width: 100% !important;
-        margin: 0 auto !important;
-    }
-    
-    .mobile-both-sidebar .footer {
-        grid-column: 1 / -1 !important;
-    }
-}
-
 /* 移动端banner性能优化 */
 @media (max-width: 1279px) {
     .banner-container {
@@ -384,33 +262,6 @@ body.no-banner-mode #toc-inner-wrapper {
         
         /* 触摸优化 */
         pointer-events: none;
-    }
-}
-
-/* Grid 模式只切换 grid-template-columns，不触碰 transform。
-   真正的布局规则统一在 layout-stable.css。 */
-
-/* 平板设备Grid模式：使用单列布局，和手机端保持一致 */
-@media (min-width: 768px) and (max-width: 1279px) {
-    #main-grid[data-layout-mode="grid"] {
-        grid-template-columns: 1fr !important;
-        grid-template-rows: auto 1fr auto !important;
-    }
-    
-    #main-grid[data-layout-mode="grid"] #swup-container {
-        grid-column: 1 / 2;
-        grid-row: 1 / 2;
-    }
-}
-
-/* 桌面设备Grid模式：使用双列布局 */
-@media (min-width: 1280px) {
-    #main-grid[data-layout-mode="grid"] {
-        grid-template-columns: 17.5rem 1fr !important;
-    }
-    
-    #main-grid[data-layout-mode="grid"] #swup-container {
-        grid-column: 2 / 3;
     }
 }
 

@@ -211,6 +211,106 @@ html[data-wallpaper-mode="none"] #main-grid {
 	display: none;
 }
 
+/* ── Main grid ──────────────────────────────────────────────────────────
+   The single source of truth for the column tracks and where each region
+   sits. #main-grid carries three data attributes:
+     data-sides   both | left | right | none   (>= 1280px)
+     data-tablet  true | false                 (768-1279px, one sidebar)
+     data-mobile  true | false                 (drawer widgets render inline)
+   The sidebar containers carry no placement utilities of their own, and no
+   !important is needed to unpick them at a smaller breakpoint.
+   ---------------------------------------------------------------------- */
+
+#main-grid {
+	display: grid;
+	grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+#sidebar,
+.right-sidebar-container {
+	display: none;
+}
+
+#sidebar {
+	grid-column: 1 / -1;
+}
+
+#main-grid[data-mobile="true"] #sidebar {
+	display: block;
+}
+
+/* No drawer widgets: one plain block column, like the old .mobile-no-sidebar. */
+@media (max-width: 767px) {
+	#main-grid[data-mobile="false"] {
+		display: block;
+	}
+}
+
+#swup-container {
+	grid-column: 1 / -1;
+	grid-row: 1;
+}
+
+/* 1280 以下仍是单列。右侧有组件时沿用原来的 1rem 内边距（旧 .mobile-both-sidebar） */
+@media (min-width: 768px) and (max-width: 1279px) {
+	#main-grid[data-sides="right"],
+	#main-grid[data-sides="both"] {
+		padding-left: 1rem;
+		padding-right: 1rem;
+	}
+}
+
+@media (min-width: 1280px) {
+	#main-grid[data-sides="left"] {
+		grid-template-columns: 17.5rem 1fr;
+	}
+	#main-grid[data-sides="right"] {
+		grid-template-columns: 1fr 17.5rem;
+	}
+	#main-grid[data-sides="both"] {
+		grid-template-columns: 17.5rem 1fr 17.5rem;
+	}
+
+	#main-grid[data-sides="left"] #sidebar,
+	#main-grid[data-sides="both"] #sidebar {
+		display: block;
+		grid-column: 1;
+		grid-row: 1;
+		max-width: 17.5rem;
+		margin-bottom: 1rem;
+	}
+
+	#main-grid[data-sides="right"] #sidebar,
+	#main-grid[data-sides="none"] #sidebar {
+		display: none;
+	}
+
+	#main-grid[data-sides="left"] #swup-container,
+	#main-grid[data-sides="both"] #swup-container {
+		grid-column: 2;
+	}
+	#main-grid[data-sides="right"] #swup-container {
+		grid-column: 1;
+	}
+	#main-grid[data-sides="none"] #swup-container {
+		grid-column: 1 / -1;
+	}
+
+	#main-grid[data-sides="right"] .right-sidebar-container,
+	#main-grid[data-sides="both"] .right-sidebar-container {
+		display: block;
+		grid-row: 1;
+		max-width: 17.5rem;
+		margin-bottom: 1rem;
+	}
+	#main-grid[data-sides="right"] .right-sidebar-container {
+		grid-column: 2;
+	}
+	#main-grid[data-sides="both"] .right-sidebar-container {
+		grid-column: 3;
+	}
+}
+
 /* ── Grid post-list mode (config-driven, no runtime toggling) ─────────── */
 html[data-post-list-layout="grid"] .right-sidebar-container {
 	display: none !important;
