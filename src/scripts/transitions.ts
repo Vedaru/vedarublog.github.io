@@ -106,7 +106,8 @@ function updateNavbarChrome(scrollY: number): void {
 	navbar.style.setProperty("--semifull-fade", fade);
 }
 
-function updateScrollChrome(scrollY = getScrollY()): void {
+function updateScrollChrome(): void {
+	const scrollY = getScrollY();
 	const bannerEnabled = document.body.classList.contains("enable-banner");
 	const bannerHeight = window.innerHeight * (BANNER_HEIGHT / 100);
 
@@ -145,7 +146,34 @@ function onScroll(): void {
 
 // ── Swup hooks ─────────────────────────────────────────────────────────────
 let hooksRegistered = false;
-let knownScrollY: number | null = null;
+let layoutMoveId = 0;
+let layoutMovePromise: Promise<void> | null = null;
+
+function stopLayoutMove(): void {
+	layoutMoveId++;
+	layoutMovePromise = null;
+	HTML.classList.remove("is-layout-moving");
+}
+
+function startLayoutMove(): void {
+	stopLayoutMove();
+	HTML.classList.add("is-layout-moving");
+	const grid = document.getElementById("main-grid");
+	if (!grid) return;
+
+	layoutMovePromise = new Promise<void>((resolve) => {
+		const id = layoutMoveId;
+		const onEnd = (event: TransitionEvent) => {
+			if (event.target !== grid || event.propertyName !== "transform") {
+				return;
+			}
+			grid.removeEventListener("transitionend", onEnd);
+			resolve();
+			if (id === layoutMoveId) stopLayoutMove();
+		};
+		grid.addEventListener("transitionend", onEnd);
+	});
+}
 
 /**
  * Finish Fuwari's animated scroll before any layout class changes. Resolving
@@ -187,6 +215,8 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		const layoutSlides =
 			wasHome !== isHome &&
 			window.matchMedia("(min-width: 1280px)").matches;
+		if (!isPopstate && layoutSlides) startLayoutMove();
+		else stopLayoutMove();
 
 		// Scroll first, while the outgoing page is still in the DOM at its
 		// real height. Then flip the layout and let the transform and the
@@ -195,10 +225,8 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 			await scrollToTopAndWait();
 		}
 
-		knownScrollY = null;
 		if (!isPopstate && layoutSlides) {
-			knownScrollY = getScrollY();
-			if (knownScrollY <= 1 && !visit.to.hash && visit.scroll) {
+			if (window.scrollY <= 1 && !visit.to.hash && visit.scroll) {
 				// The pre-scroll already reset the position. Skip the
 				// plugin's redundant content-scroll pass, which otherwise
 				// forces layout of the new article.
@@ -206,22 +234,47 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 			}
 		}
 
-		setBodyHome(isHome);
 		HTML.style.setProperty("--content-delay", "0ms");
 	}, { priority: 10 });
 
 	swup.hooks.on("content:replace", (visit: Visit) => {
 		const isHome = isHomeVisit(visit);
-		setNavbarHome(isHome);
+		// Mobile banner visibility is a layout property. Apply it now, with
+		// the incoming content still invisible, not with the slide.
 		setBannerVisibility(isHome);
-		// A pre-scrolled layout visit already knows its position; avoid
-		// reading scrollTop, which forces layout of the new article.
-		updateScrollChrome(knownScrollY ?? getScrollY());
-		knownScrollY = null;
+		const moving = HTML.classList.contains("is-layout-moving");
+		const grid = document.getElementById("main-grid");
+		if (moving) {
+			// Flush the incoming layout while it is invisible, before the
+			// class flip starts the 700ms transform.
+			grid?.getBoundingClientRect();
+		}
+		// Start the incoming fade immediately; the layout is already known.
+		// Swup's later animation:in:start removal becomes a no-op.
+		HTML.classList.remove("is-animating");
+		// The content has already been laid out, so reading scrollTop here
+		// is cheap.
+		setBodyHome(isHome);
+		setNavbarHome(isHome);
+		updateScrollChrome();
+		if (moving) {
+			// Flush the class flip so its style recalc happens before the
+			// first transform frame.
+			grid?.getBoundingClientRect();
+		}
+	});
+
+	swup.hooks.on("animation:in:await", () => {
+		if (!layoutMovePromise) return;
+		return layoutMovePromise;
 	});
 
 	swup.hooks.on("animation:in:end", () => {
 		scheduleEnhancements();
+	});
+
+	swup.hooks.on("visit:end", () => {
+		stopLayoutMove();
 	});
 
 }

@@ -42,27 +42,43 @@ Measured with Chrome for Testing at 4x CPU throttle (a mid-range phone):
 click
   → visit:start
       if home <-> content and scrolled: scroll to top, await scroll:end
-      then body.is-home flips
-      #banner-wrapper, #banner and #main-grid start their 700ms transforms
+      add is-layout-moving for a desktop layout slide
   → content fade out (200ms)
       the outgoing page is at scroll 0 before the fade starts
   → content:replace (main + #toc)
       swap the containers
-      sync the persistent navbar and mobile banner
+      flush the incoming layout while it is invisible
+      sync the mobile banner
+      start the incoming fade (remove is-animating)
+      flip is-home / navbar
+      #banner-wrapper, #banner and #main-grid start their 700ms transforms
+      flush the class-flip styles
       the pre-scroll marks the visit as reset; the content-scroll pass is skipped
+  → animation:in:start
+      no-op for layout and fade; both already started at content:replace
   → animation:in:start / animation:in:end
       new content fades in while the transform continues
   → transform end
+      remove is-layout-moving; let Swup finish the visit
       requestIdleCallback → fancybox / mermaid / fonts / comments
 ```
 
-The scroll and the layout are serialized. For a home/non-home visit the
-`visit:start` hook is asynchronous: it asks Swup's scroll plugin to animate to
-the top and resolves on `scroll:end`. Only then does it flip the body class
-and start the 700ms transform. The outgoing document is still present at its
-real height for the whole scroll, so no spacer is needed and the sidebar is
-never repositioned by a sudden scroll reset. Swup's later `scroll:top` runs
-only when the visit was not pre-scrolled.
+The scroll, the incoming content layout, the class-flip style recalculation
+and the transform are serialized. For a home/non-home visit the `visit:start`
+hook is asynchronous: it asks Swup's scroll plugin to animate to the top and
+resolves on `scroll:end`. The outgoing document is still present at its real
+height for the whole scroll, so no spacer is needed. At `content:replace`
+the new article is flushed while it is invisible, the fade starts, then the
+layout class flips and its styles are flushed again. All of that work happens
+before the first transform frame, so the 700ms slide has no large layout or
+style task under it.
+
+`is-layout-moving` stays on `<html>` until the grid's `transitionend`. It
+keeps the navbar blur disabled and tells `runAfterLayoutSettled` that the
+layout is still moving. Swup's `animation:in:await` returns the transform-end
+promise, so `animation:in:end` and `visit:end` also happen after the slide.
+The early `is-animating` removal makes Swup's later removal a no-op and avoids
+a full-document style recalculation in the middle of the transform.
 
 Both sidebars stay sticky and visible, outside the Swup fade container. Their
 only animated property is the sticky `top` compensation, which starts after
@@ -73,9 +89,8 @@ opacity or content-fade animations.
 There is no `#page-height-extend`. A 300vh tail kept the old scroll alive but
 added thousands of pixels of blank scroll below the footer on a tall
 viewport, then the browser snapped back when the tail was removed. The
-outgoing transform can reduce the old page's scroll range by up to the banner
-offset while it fades; that is part of the slide, but the page is already at
-0. `overscroll-behavior-y: none` on `html, body` keeps wheel and touch input
+transform starts only after the scroll and content layout are done.
+`overscroll-behavior-y: none` on `html, body` keeps wheel and touch input
 from moving past the real document boundary.
 
 Key files:
@@ -93,9 +108,14 @@ Key files:
 
 Rules for future changes:
 
-- Flip the body's home class once at `visit:start`, as in Fuwari. Do not move
-  it to `page:view` or after the scroll: that delays the slide and splits it
-  from the fade.
+- Apply the body's home class at `content:replace`, after flushing the
+  incoming layout and starting the fade. Flush the class styles again before
+  returning. Do not flip at `visit:start` or `animation:in:start`: the new
+  article's layout or the class style recalculation would run in the middle
+  of the transform.
+- Keep `is-layout-moving` until the grid transform ends, and make
+  `animation:in:await` wait for that transform. Do not remove Swup's root
+  classes or enable the navbar blur while the slide is running.
 - For a home/non-home visit, finish `swup.scrollTo(0, true)` and await
   `scroll:end` before flipping the body class. Run after the scroll plugin's
   position cache so back navigation keeps the outgoing scroll position. Do

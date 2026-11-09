@@ -7,6 +7,11 @@
  * from the compositor (and from the user's next click).
  */
 export function runAfterLayoutSettled(fn: () => void, timeoutMs = 900): void {
+	if (!document.documentElement.classList.contains("is-layout-moving")) {
+		fn();
+		return;
+	}
+
 	let done = false;
 	const grid = document.getElementById("main-grid");
 
