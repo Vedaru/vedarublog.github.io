@@ -211,8 +211,8 @@ function cancelScrollTween(): void {
  *
  * 不用 Swup scroll 插件的补间：它是指数衰减，前几帧就走完约 90%，之后以
  * 每帧 1–2px 再爬一秒多。换页在 700ms 就完成了，剩下这段爬行发生在已经
- * 淡入的新内容下面，看起来就是「结尾在抖」。这里用固定 420ms 的 ease-out，
- * 在滑动结束前落到 0，且末速度为零。
+ * 淡入的新内容下面，看起来就是「结尾在抖」。这里用固定终点的 ease-out，
+ * 时长随距离在 320–700ms 之间，在滑动结束前落到 0，且末速度为零。
  */
 function startScrollToTop(): void {
 	cancelScrollTween();
@@ -223,7 +223,7 @@ function startScrollToTop(): void {
 		return;
 	}
 
-	const DURATION = 420;
+	const DURATION = Math.min(700, Math.max(320, 320 + startY * 0.1));
 	// The rAF timestamp is the start of the frame, which can be earlier than the
 	// moment the tween was scheduled. Reading the clock here would make the first
 	// frame a negative progress - the page would lurch the wrong way before
