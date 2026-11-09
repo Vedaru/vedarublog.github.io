@@ -69,11 +69,6 @@ html.is-layout-moving.is-animating .transition-swup-fade {
 }
 #swup-container {
 	outline: none;
-	/* The main column is replaced on a visit. Paint containment keeps that
-	   from re-rastering the whole grid. The layout slide opts out in
-	   transitions.ts because containment changes how the transformed grid
-	   is layered. */
-	contain: paint;
 }
 #content-wrapper {
 	animation-delay: var(--content-delay);

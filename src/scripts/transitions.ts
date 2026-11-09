@@ -1,17 +1,22 @@
 /**
  * Fuwari-style page transitions.
  *
- *   1. `visit:start` reads the scroll position, finishes any pre-scroll and
- *      flips the body's home class, starting the 700ms banner/grid transform.
+ *   1. `visit:start` reads the scroll position, kicks off the scroll-to-top
+ *      tween and flips the body's home class in the same tick, so the 700ms
+ *      banner/grid transform starts on the click frame — not after the scroll
+ *      finishes. Fuwari runs both animations concurrently; serialising them
+ *      is what makes the banner look late.
  *   2. The outgoing content fades for the same duration. The incoming
  *      document is prepared while detached (no entrance animations, lazy
  *      images) before Swup swaps it in.
- *   3. `content:replace` happens after the transform. The main column gets
- *      paint containment for the swap, and the sidebar TOC is deferred.
- *   4. The incoming content fades in; the shell, TOC and optional
- *      enhancements sync once the content has painted.
+ *   3. `content:replace` happens after the transform. The sidebar TOC is
+ *      deferred.
+ *   4. The incoming content fades in; the shell and optional enhancements
+ *      sync once the content has painted.
  *
- * There is no page-height spacer and no JavaScript scroll loop.
+ * The scroll tween finishes well inside the 700ms window, so the document is
+ * already at the top when Swup replaces the container; no page-height spacer
+ * is involved.
  */
 import { BANNER_HEIGHT, BANNER_HEIGHT_HOME } from "@constants";
 import { isMainHomePage, pathFromUrl } from "../utils/route-utils";
@@ -178,24 +183,11 @@ function startLayoutMove(): void {
 	});
 }
 
-/**
- * Finish Fuwari's animated scroll before any layout class changes. Resolving
- * on the plugin's `scroll:end` means the outgoing document is still present
- * and at its real height for the whole scroll. No timer or second scroll
- * loop is involved.
- */
-function scrollToTopAndWait(): Promise<void> {
+/** Start Fuwari's animated scroll and resolve; the banner slides alongside it. */
+function startScrollToTop(): void {
 	const swup = window.swup;
-	if (typeof swup?.scrollTo !== "function" || window.scrollY <= 1) {
-		return Promise.resolve();
-	}
-
-	return new Promise<void>((resolve) => {
-		document.addEventListener("swup:scroll:end", () => resolve(), {
-			once: true,
-		});
-		swup.scrollTo(0, true);
-	});
+	if (typeof swup?.scrollTo === "function") swup.scrollTo(0, true);
+	else window.scrollTo(0, 0);
 }
 
 function setup(swup: NonNullable<Window["swup"]>): void {
@@ -230,12 +222,17 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 			}
 		}
 
-		// Scroll first, while the outgoing page is still in the DOM at its
-		// real height. Read the position before any class changes so this
-		// does not force a style/layout pass over the whole document.
+		// Read the position before any class changes so this does not force a
+		// style/layout pass over the whole document.
 		let scrollY = getScrollY();
 		if (!isPopstate && layoutSlides && scrollY > 1) {
-			await scrollToTopAndWait();
+			// Start the tween in the same tick as the class flip. Fuwari runs
+			// the scroll and the banner slide concurrently; waiting for
+			// `scroll:end` here is what made the banner start ~1s late.
+			startScrollToTop();
+			// The tween started above owns the scroll; skip the plugin's
+			// redundant post-replace pass, which would restart it.
+			if (visit.scroll) visit.scroll.reset = false;
 			scrollY = 0;
 		}
 
@@ -246,20 +243,7 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		else stopLayoutMove();
 
 		if (!isPopstate && layoutSlides) {
-			// Paint containment helps the incoming content swap, but it
-			// changes how the transformed grid is layered. The outgoing
-			// container is replaced by Swup, so disabling it here is enough;
-			// the incoming container gets the default back.
-			document
-				.getElementById("swup-container")
-				?.style.setProperty("contain", "none");
 			knownScrollY = scrollY;
-			if (scrollY <= 1 && !visit.to.hash && visit.scroll) {
-				// The pre-scroll already reset the position. Skip the
-				// plugin's redundant content-scroll pass, which otherwise
-				// forces layout of the new article.
-				visit.scroll.reset = false;
-			}
 		}
 		if (!layoutSlides || isPopstate) knownScrollY = null;
 
