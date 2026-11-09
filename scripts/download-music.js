@@ -29,23 +29,17 @@ function extractSongId(song) {
   return '';
 }
 
-async function clearDirectory(dirPath) {
-  try {
-    const files = await fs.readdir(dirPath);
-    for (const file of files) {
-      const filePath = path.join(dirPath, file);
-      await fs.unlink(filePath);
-    }
-  } catch (e) {
-    // ignore if directory doesn't exist or other errors
-  }
-}
-
 async function transcodeAudio(inputPath, outputPath, codec = 'libopus', bitrate = '64k') {
   // 使用ffmpeg转码音频到指定的编码和码率
   // 临时文件后缀是 .temp，ffmpeg 无法据此推断容器格式，必须显式指定 ogg（.opus 即 ogg 容器）
+  //
+  // `-map_metadata -1` + `+bitexact` 让输出可复现：不写入源元数据、编码器版本串和
+  // 创建时间。否则同一首歌每次重编码都会产生不同字节，git 每次都为它存一个新 blob。
   const args = [
     '-i', inputPath,
+    '-map_metadata', '-1',
+    '-fflags', '+bitexact',
+    '-flags:a', '+bitexact',
     '-c:a', codec,
     '-b:a', bitrate,
     '-f', 'ogg',
@@ -256,10 +250,11 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
       // no previous file — first run, fine
     }
 
-    // Clear existing files in url and cover directories, and remove playlist.json
-    await clearDirectory(urlDir);
-    await clearDirectory(coverDir);
-    try { await fs.unlink(playlistPath); } catch (e) {} // ignore if not exists
+    // 不清空目录：已有文件代表上一轮成功下载并转码的结果。清空会让每个文件都
+    // 变成「不存在」，于是每次 CI 都重新下载 27MB 音频并重新编码——历史里正是
+    // 这样堆出每首歌 15 个版本的。改为就地补齐，最后再删除这一轮不再需要的文件。
+    const keepAudio = new Set();
+    const keepCover = new Set();
 
 
 
@@ -311,6 +306,7 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
       }
 
       // Avoid re-downloading if already present
+      let downloaded = false;
       if (!fssync.existsSync(filepath)) {
         try {
           // When the local wrapper is running, download through its proxy
@@ -346,26 +342,34 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
           }
 
           await fs.writeFile(filepath, bytes);
+          downloaded = true;
           console.log(`✓ Saved ${filename} (${(bytes.length / 1024 / 1024).toFixed(2)} MB)`);
         } catch (e) {
           console.warn(`⚠ Error downloading ${song.url}: ${e.message}`);
           continue;
         }
       } else {
-        console.log(`ℹ Skipping existing file ${filename}`);
+        console.log(`ℹ Reusing existing file ${filename}`);
       }
 
-      // 转码音频文件到 Opus 64kbps（ffmpeg 不可用时直接失败，避免保留巨型源文件）
-      // Wrap in try/catch so one bad file doesn't kill the whole run.
-      try {
-        const tempFile = filepath + '.temp';
-        await transcodeAudio(filepath, tempFile, 'libopus', '64k');
-        await fs.rename(tempFile, filepath);
-        console.log(`✓ Transcoded ${filename} to Opus 64kbps`);
-      } catch (e) {
-        console.warn(`⚠ Failed to transcode ${filename}: ${e.message} — removing corrupt file and skipping`);
-        try { await fs.unlink(filepath); } catch { /* ignore */ }
-        continue;
+      keepAudio.add(filename);
+
+      // 转码只处理本次真正下载下来的源文件。对已有的 64k opus 再转一次会产生
+      // 不同字节（libopus 每次编码结果不定），等于每轮都重写整份音乐目录。
+      if (downloaded) {
+        // 转码音频文件到 Opus 64kbps（ffmpeg 不可用时直接失败，避免保留巨型源文件）
+        // Wrap in try/catch so one bad file doesn't kill the whole run.
+        try {
+          const tempFile = filepath + '.temp';
+          await transcodeAudio(filepath, tempFile, 'libopus', '64k');
+          await fs.rename(tempFile, filepath);
+          console.log(`✓ Transcoded ${filename} to Opus 64kbps`);
+        } catch (e) {
+          console.warn(`⚠ Failed to transcode ${filename}: ${e.message} — removing corrupt file and skipping`);
+          try { await fs.unlink(filepath); } catch { /* ignore */ }
+          keepAudio.delete(filename);
+          continue;
+        }
       }
 
       // 直接使用转码后的文件，无需额外处理
@@ -377,6 +381,7 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
       if (song.pic) {
         const coverFilename = `${id}-${safeTitle}.webp`;
         const coverPath = path.join(coverDir, coverFilename);
+        keepCover.add(coverFilename);
         if (!fssync.existsSync(coverPath)) {
           try {
             console.log(`ℹ Downloading cover for ${title} from ${song.pic}`);
@@ -444,6 +449,16 @@ async function fetchWithRetry(url, { timeout = 0, headers = {}, retries = 2, bac
 
     await fs.writeFile(outJson, JSON.stringify(result, null, 2), 'utf-8');
     console.log(`✓ Wrote ${outJson} with ${result.length} songs`);
+
+    // 删除这一轮不再引用的音频/封面（歌单删歌、标题导致的文件名变化）。
+    // 只在成功写入完整歌单后执行，避免下载失败时把上一轮的可用文件删掉。
+    for (const [dir, keep] of [[urlDir, keepAudio], [coverDir, keepCover]]) {
+      for (const name of await fs.readdir(dir)) {
+        if (keep.has(name)) continue;
+        await fs.unlink(path.join(dir, name)).catch(() => {});
+        console.log(`✓ Pruned unused ${name}`);
+      }
+    }
   } catch (e) {
     console.error('Error:', e && e.message ? e.message : e);
     process.exit(1);

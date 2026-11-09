@@ -33,6 +33,12 @@ function transcodeInPlace(inputPath) {
 	const ffArgs = [
 		"-i",
 		inputPath,
+		"-map_metadata",
+		"-1",
+		"-fflags",
+		"+bitexact",
+		"-flags:a",
+		"+bitexact",
 		"-c:a",
 		"libopus",
 		"-b:a",
