@@ -3,26 +3,6 @@
 import { siteConfig } from "../config";
 ---
 
-<!-- 全局配置载体 -->
+<!-- 全局配置载体：data-hue 被 src/utils/setting-utils.ts 读取（无 localStorage 时的默认色相）。 -->
 <div id="config-carrier" data-hue={siteConfig.themeColor.hue}>
 </div>
-
-<script type="application/json" id="config-carrier-toc" set:html={JSON.stringify({
-	tocEnable: siteConfig.toc.enable,
-	tocDepth: siteConfig.toc.depth,
-	tocUseJapaneseBadge: siteConfig.toc.useJapaneseBadge,
-})} />
-<script>
-	import { initConfigCarrier } from "../scripts/widgets/config-carrier";
-	const el = document.getElementById("config-carrier-toc");
-	if (el) {
-		const { tocEnable, tocDepth, tocUseJapaneseBadge } = JSON.parse(
-			el.textContent || "{}",
-		);
-		initConfigCarrier({
-			enable: tocEnable,
-			depth: tocDepth,
-			useJapaneseBadge: tocUseJapaneseBadge,
-		});
-	}
-</script>
