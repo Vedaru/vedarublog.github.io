@@ -18,6 +18,7 @@ class TableOfContents extends HTMLElement {
 	tocEntries: HTMLAnchorElement[] = [];
 	active: boolean[] = [];
 	activeIndicator: HTMLElement | null = null;
+	indicatorFrame = 0;
 	initialized = false;
 
 	constructor() {
@@ -50,16 +51,12 @@ class TableOfContents extends HTMLElement {
 
 	toggleActiveHeading = () => {
 		let i = this.active.length - 1;
-		let min = this.active.length - 1;
-		let max = -1;
 		while (i >= 0 && !this.active[i]) {
 			this.tocEntries[i]?.classList.remove(this.visibleClass);
 			i--;
 		}
 		while (i >= 0 && this.active[i]) {
 			this.tocEntries[i]?.classList.add(this.visibleClass);
-			min = Math.min(min, i);
-			max = Math.max(max, i);
 			i--;
 		}
 		while (i >= 0) {
@@ -67,28 +64,54 @@ class TableOfContents extends HTMLElement {
 			i--;
 		}
 
+		// The indicator is an absolutely positioned child of <table-of-contents>,
+		// while the entries live in the scrolling #toc-inner-wrapper. Measure
+		// against the indicator's own containing block: the rect already
+		// includes any scroll of that wrapper, and the parent is the box the
+		// transform is resolved in.
+		this.positionIndicator();
+	};
+
+	/** Place the highlight behind the entries currently marked visible. */
+	positionIndicator = () => {
 		const indicator = this.activeIndicator;
 		if (!indicator) return;
 
-		if (min > max) {
+		let first: HTMLAnchorElement | null = null;
+		let last: HTMLAnchorElement | null = null;
+		for (const entry of this.tocEntries) {
+			if (!entry.classList.contains(this.visibleClass)) continue;
+			first ??= entry;
+			last = entry;
+		}
+
+		if (!first || !last) {
 			// Keep the last position while fading out: resetting the transform
-			// here would make the next highlight slide in from the top.
+			// would make the next highlight slide in from the top of the list.
 			indicator.style.opacity = "0";
 			return;
 		}
 
-		// The indicator is an absolutely positioned child of <table-of-contents>,
-		// while the entries live in the scrolling #toc-inner-wrapper. Measuring
-		// against the wrapper (and adding its scrollTop) put the indicator below
-		// the list as soon as the TOC scrolled. Measure against the indicator's
-		// own containing block instead - the rect already includes the scroll.
 		const origin = indicator.parentElement?.getBoundingClientRect().top ?? 0;
-		const top = this.tocEntries[min].getBoundingClientRect().top - origin;
-		const bottom = this.tocEntries[max].getBoundingClientRect().bottom - origin;
+		const top = first.getBoundingClientRect().top - origin;
+		const bottom = last.getBoundingClientRect().bottom - origin;
 
 		indicator.style.opacity = "1";
 		indicator.style.transform = `translateY(${Math.floor(top)}px)`;
 		indicator.style.height = `${Math.ceil(bottom - top)}px`;
+	};
+
+	/**
+	 * `scrollToActiveHeading` keeps the active entry visible by smooth-scrolling
+	 * the wrapper, which moves the entries after the highlight was placed. Follow
+	 * it, or the highlight trails the list by however far it scrolled.
+	 */
+	handleTocScroll = () => {
+		if (this.indicatorFrame) return;
+		this.indicatorFrame = requestAnimationFrame(() => {
+			this.indicatorFrame = 0;
+			this.positionIndicator();
+		});
 	};
 
 	scrollToActiveHeading = () => {
@@ -163,6 +186,9 @@ class TableOfContents extends HTMLElement {
 		this.tocEl.addEventListener("click", this.handleAnchorClick, {
 			capture: true,
 		});
+		this.tocEl.addEventListener("scroll", this.handleTocScroll, {
+			passive: true,
+		});
 
 		this.activeIndicator = this.querySelector("#active-indicator");
 		this.tocEntries = Array.from(
@@ -203,6 +229,8 @@ class TableOfContents extends HTMLElement {
 		this.sections.forEach((section) => this.observer.unobserve(section));
 		this.observer.disconnect();
 		this.tocEl?.removeEventListener("click", this.handleAnchorClick);
+		this.tocEl?.removeEventListener("scroll", this.handleTocScroll);
+		if (this.indicatorFrame) cancelAnimationFrame(this.indicatorFrame);
 	}
 }
 
