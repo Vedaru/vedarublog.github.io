@@ -160,6 +160,21 @@ function stopLayoutMove(): void {
 	HTML.classList.remove("is-layout-moving");
 }
 
+/**
+ * Clear everything a visit may have turned on. Called when the content has
+ * painted and again on `visit:end` / `visit:abort`: Swup does not run
+ * `visit:end` for an aborted visit (a second click, a failed fetch, an
+ * external navigation), so an abort must not leave the TOC hidden or the
+ * layout marker on <html>.
+ */
+function settle(): void {
+	stopLayoutMove();
+	knownScrollY = null;
+	document
+		.getElementById("toc-wrapper")
+		?.classList.remove("is-toc-deferred");
+}
+
 function startLayoutMove(): void {
 	stopLayoutMove();
 	HTML.classList.add("is-layout-moving");
@@ -287,22 +302,18 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		const isHome = isHomeVisit(visit);
 		// The incoming content is painted now. Sync the shell in one pass,
 		// outside the container replacement.
+		const scrollNow = knownScrollY ?? getScrollY();
+		settle();
 		setNavbarHome(isHome);
-		updateScrollChrome(knownScrollY ?? getScrollY());
-		knownScrollY = null;
-		stopLayoutMove();
-		document
-			.getElementById("toc-wrapper")
-			?.classList.remove("is-toc-deferred");
+		updateScrollChrome(scrollNow);
 		scheduleEnhancements();
 	});
 
-	swup.hooks.on("visit:end", () => {
-		stopLayoutMove();
-		document
-			.getElementById("toc-wrapper")
-			?.classList.remove("is-toc-deferred");
-	});
+	swup.hooks.on("visit:end", settle);
+
+	// Swup aborts a visit when another link is clicked mid-transition; it
+	// never fires `visit:end` for that one.
+	swup.hooks.on("visit:abort", settle);
 
 }
 

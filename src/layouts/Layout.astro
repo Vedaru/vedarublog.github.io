@@ -302,7 +302,7 @@ if (siteConfig.font) {
 
 			// 与 Fuwari 一致：转成 4px 对齐的整数像素，避免 transform/top
 			// 在 700ms 过渡中逐帧取整，出现文字发虚和网格抖动。
-			function syncBannerExtend() {
+			function applyBannerExtend() {
 				let offset = Math.floor(
 					window.innerHeight * (BANNER_HEIGHT_EXTEND / 100),
 				);
@@ -323,6 +323,23 @@ if (siteConfig.font) {
 					"--banner-offset",
 					`${imageOffset}px`,
 				);
+			}
+
+			// 滑动过程中重算这两个变量等于给正在跑的 transform 换目标值：
+			// 桌面端拖窗口、移动端地址栏收起都会在这 700ms 里触发 resize。
+			// 先记下，等 is-layout-moving 消失后再写一次。
+			let extendRetries = 0;
+			function syncBannerExtend() {
+				if (
+					extendRetries < 10 &&
+					document.documentElement.classList.contains("is-layout-moving")
+				) {
+					extendRetries += 1;
+					window.setTimeout(syncBannerExtend, 120);
+					return;
+				}
+				extendRetries = 0;
+				applyBannerExtend();
 			}
 			syncBannerExtend();
 			window.addEventListener("resize", syncBannerExtend, {
