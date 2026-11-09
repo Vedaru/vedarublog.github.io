@@ -198,11 +198,41 @@ function startLayoutMove(): void {
 	});
 }
 
-/** Start Fuwari's animated scroll and resolve; the banner slides alongside it. */
+/** 换页时的滚动动画句柄（同一时间只允许一个）。 */
+let scrollTweenFrame = 0;
+
+function cancelScrollTween(): void {
+	if (scrollTweenFrame) cancelAnimationFrame(scrollTweenFrame);
+	scrollTweenFrame = 0;
+}
+
+/**
+ * 滚回顶部。
+ *
+ * 不用 Swup scroll 插件的补间：它是指数衰减，前几帧就走完约 90%，之后以
+ * 每帧 1–2px 再爬一秒多。换页在 700ms 就完成了，剩下这段爬行发生在已经
+ * 淡入的新内容下面，看起来就是「结尾在抖」。这里用固定 420ms 的 ease-out，
+ * 在滑动结束前落到 0，且末速度为零。
+ */
 function startScrollToTop(): void {
-	const swup = window.swup;
-	if (typeof swup?.scrollTo === "function") swup.scrollTo(0, true);
-	else window.scrollTo(0, 0);
+	cancelScrollTween();
+	const startY = getScrollY();
+	if (startY <= 1) return;
+	if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+		window.scrollTo(0, 0);
+		return;
+	}
+
+	const DURATION = 420;
+	const started = performance.now();
+	const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
+
+	const step = (now: number) => {
+		const progress = Math.min(1, (now - started) / DURATION);
+		window.scrollTo(0, Math.round(startY * (1 - easeOutCubic(progress))));
+		scrollTweenFrame = progress < 1 ? requestAnimationFrame(step) : 0;
+	};
+	scrollTweenFrame = requestAnimationFrame(step);
 }
 
 function setup(swup: NonNullable<Window["swup"]>): void {
@@ -222,6 +252,8 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		const wasHome = document.body.classList.contains("is-home");
 		const isHome = isHomeVisit(visit);
 		const isPopstate = visit.history?.popstate === true;
+		// 前进/后退由浏览器恢复滚动位置；还在跑的补间会一路把页面拽回顶部。
+		if (isPopstate) cancelScrollTween();
 		const layoutSlides =
 			wasHome !== isHome &&
 			window.matchMedia("(min-width: 1280px)").matches;
@@ -240,13 +272,11 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		// Read the position before any class changes so this does not force a
 		// style/layout pass over the whole document.
 		let scrollY = getScrollY();
-		if (!isPopstate && layoutSlides && scrollY > 1) {
-			// Start the tween in the same tick as the class flip. Fuwari runs
-			// the scroll and the banner slide concurrently; waiting for
-			// `scroll:end` here is what made the banner start ~1s late.
+		// 自己接管「滚回顶部」，普通换页也走这里：固定曲线、在新内容出现前
+		// 就落地。锚点链接交给插件的锚点滚动，前进/后退不动滚动位置。
+		if (!isPopstate && !visit.to.hash && scrollY > 1) {
 			startScrollToTop();
-			// The tween started above owns the scroll; skip the plugin's
-			// redundant post-replace pass, which would restart it.
+			// 上面的补间已经接管滚动，别让插件在 content:scroll 再跑一遍。
 			if (visit.scroll) visit.scroll.reset = false;
 			scrollY = 0;
 		}
@@ -341,6 +371,11 @@ function setupPageScaling(): void {
 export function initTransitions(): void {
 	setupBackToTop();
 	setupPageScaling();
+
+	// 用户自己滚动时立刻让出控制权，不和浏览器抢滚动条。
+	for (const type of ["wheel", "touchstart", "keydown"] as const) {
+		window.addEventListener(type, cancelScrollTween, { passive: true });
+	}
 
 	window.addEventListener("scroll", onScroll, { passive: true });
 	window.addEventListener(
