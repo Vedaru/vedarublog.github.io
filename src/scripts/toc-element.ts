@@ -84,7 +84,7 @@ class TableOfContents extends HTMLElement {
 			scrollOffset;
 		this.activeIndicator?.setAttribute(
 			"style",
-			`top: ${Math.floor(top)}px; height: ${Math.ceil(bottom - top)}px`,
+			`transform: translateY(${Math.floor(top)}px); height: ${Math.ceil(bottom - top)}px`,
 		);
 	};
 
