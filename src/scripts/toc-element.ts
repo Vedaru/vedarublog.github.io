@@ -242,7 +242,11 @@ class TableOfContents extends HTMLElement {
 		this.sections.forEach((section) => {
 			if (section) this.observer.observe(section);
 		});
-		this.fallback();
+		// Seed the active state from the observer's first delivery instead of
+		// measuring here. The swap has only just inserted the document, so the
+		// first getBoundingClientRect forces the whole layout in one go -
+		// measured 2016ms on a long post. Observer callbacks run after layout,
+		// so the same reads are free there.
 		this.update();
 	}
 
