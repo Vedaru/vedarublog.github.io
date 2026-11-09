@@ -2,24 +2,7 @@ import { sidebarLayoutConfig } from "../config";
 import type {
 	SidebarLayoutConfig,
 	WidgetComponentConfig,
-	WidgetComponentType,
 } from "../types/config";
-
-/**
- * 组件映射表 - 将组件类型映射到实际的组件路径
- */
-export const WIDGET_COMPONENT_MAP = {
-	profile: "../components/widget/Profile.astro",
-	announcement: "../components/widget/Announcement.astro",
-	categories: "../components/widget/Categories.astro",
-	tags: "../components/widget/Tags.astro",
-	toc: "../components/widget/TOC.astro",
-	"music-player": "../components/widget/MusicPlayer.svelte",
-	pio: "../components/widget/Pio.astro", // 添加 Pio 组件映射
-	"site-stats": "../components/widget/SiteStats.astro", // 站点统计组件
-	calendar: "../components/widget/Calendar.astro", // 日历组件
-	custom: null, // 自定义组件需要在配置中指定路径
-} as const;
 
 /**
  * 组件管理器类
@@ -174,89 +157,6 @@ export class WidgetManager {
 			return false;
 		}
 		return itemCount >= component.responsive.collapseThreshold;
-	}
-
-	/**
-	 * 获取组件的路径
-	 * @param componentType 组件类型
-	 */
-	getComponentPath(componentType: WidgetComponentType): string | null {
-		return WIDGET_COMPONENT_MAP[componentType];
-	}
-
-	/**
-	 * 检查当前设备是否应该显示侧边栏
-	 * @param deviceType 设备类型
-	 */
-	shouldShowSidebar(deviceType: "mobile" | "tablet" | "desktop"): boolean {
-		if (deviceType === "mobile") {
-			return this.config.components.drawer.length > 0;
-		}
-		if (deviceType === "tablet") {
-			return (
-				this.config.components.left.length > 0 ||
-				this.config.components.right.length > 0
-			);
-		}
-		// desktop
-		return (
-			this.config.components.left.length > 0 ||
-			this.config.components.right.length > 0
-		);
-	}
-
-	/**
-	 * 获取设备断点配置
-	 */
-	getBreakpoints() {
-		return this.config.responsive.breakpoints;
-	}
-
-	/**
-	 * 更新组件配置
-	 * @param newConfig 新的配置
-	 */
-	updateConfig(newConfig: Partial<SidebarLayoutConfig>): void {
-		this.config = { ...this.config, ...newConfig };
-	}
-
-	/**
-	 * 添加新组件到布局中
-	 * @param type 组件类型
-	 * @param sidebar 侧边栏位置
-	 */
-	addComponentToLayout(
-		type: WidgetComponentType,
-		sidebar: "left" | "right" | "drawer" = "left",
-	): void {
-		if (!this.config.components[sidebar].includes(type)) {
-			this.config.components[sidebar].push(type);
-		}
-	}
-
-	/**
-	 * 从布局中移除组件
-	 * @param type 组件类型
-	 */
-	removeComponentFromLayout(type: WidgetComponentType): void {
-		this.config.components.left = this.config.components.left.filter(
-			(t) => t !== type,
-		);
-		this.config.components.right = this.config.components.right.filter(
-			(t) => t !== type,
-		);
-		this.config.components.drawer = this.config.components.drawer.filter(
-			(t) => t !== type,
-		);
-	}
-
-	/**
-	 * 检查组件是否应该在侧边栏中渲染
-	 * @param componentType 组件类型
-	 */
-	isSidebarComponent(componentType: WidgetComponentType): boolean {
-		// Pio 组件是全局组件，不在侧边栏中渲染
-		return componentType !== "pio";
 	}
 }
 

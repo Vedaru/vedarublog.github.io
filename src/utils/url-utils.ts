@@ -13,12 +13,6 @@ export function removeFileExtension(id: string): string {
 	return id.replace(/\.(md|mdx|markdown)$/i, "");
 }
 
-import { pathsEqual as routePathsEqual } from "./route-utils";
-
-export function pathsEqual(path1: string, path2: string) {
-	return routePathsEqual(path1, path2);
-}
-
 function joinUrl(...parts: string[]): string {
 	const joined = parts.join("/");
 	return joined.replace(/\/+/g, "/");

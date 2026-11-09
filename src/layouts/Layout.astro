@@ -22,7 +22,6 @@ import {
 	PAGE_WIDTH,
 } from "@constants";
 import type { Favicon } from "../types/config";
-import { getDefaultBannerUrl } from "../utils/banner-utils";
 import { isMainHomePage } from "../utils/route-utils";
 import { url } from "../utils/url-utils";
 import { readFileSync } from "node:fs";
@@ -55,7 +54,6 @@ if (
 
 interface Props {
 	title?: string;
-	banner?: string;
 	description?: string;
 	lang?: string;
 	setOGTypeArticle?: boolean;
@@ -67,8 +65,7 @@ interface Props {
 	dualLocale?: boolean;
 }
 
-let { title, banner, description, lang, setOGTypeArticle, dualLocale } =
-	Astro.props;
+let { title, description, lang, setOGTypeArticle, dualLocale } = Astro.props;
 
 // apply a class to the body element to decide the height of the banner, only used for initial page load
 // Swup can update the body for each page visit, but it's after the page transition, causing a delay for banner height change
@@ -86,16 +83,6 @@ const navbarTransparentMode =
 // 判断是否应该显示顶部高光效果（只在full和semifull模式下显示）
 const shouldShowTopHighlight =
 	navbarTransparentMode === "full" || navbarTransparentMode === "semifull";
-
-// 获取默认banner图片
-const getDefaultBanner = (): string => getDefaultBannerUrl();
-
-if (!banner || typeof banner !== "string" || banner.trim() === "") {
-	banner = getDefaultBanner();
-}
-
-// TODO don't use post cover as banner for now
-banner = getDefaultBanner();
 
 let pageTitle: string;
 if (title) {

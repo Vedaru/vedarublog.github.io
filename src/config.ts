@@ -1,7 +1,6 @@
 import type {
 	AnnouncementConfig,
 	CommentConfig,
-	ExpressiveCodeConfig,
 	FooterConfig,
 	LicenseConfig,
 	MusicPlayerConfig,
@@ -312,12 +311,6 @@ export const permalinkConfig: PermalinkConfig = {
 	 * 注意：不支持斜杠 "/"，所有生成的链接都在根目录下
 	 */
 	format: "%postname%", // 默认使用文件名
-};
-
-export const expressiveCodeConfig: ExpressiveCodeConfig = {
-	// 注意：某些样式（如背景颜色）已被覆盖，请参阅 astro.config.mjs 文件。
-	// 请选择深色主题，因为此博客主题目前仅支持深色背景
-	theme: "github-dark",
 };
 
 export const commentConfig: CommentConfig = {

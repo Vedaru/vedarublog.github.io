@@ -29,7 +29,6 @@ const isSidebarTOC = tocMode === "sidebar";
 
 interface Props {
 	title?: string;
-	banner?: string;
 	description?: string;
 	lang?: string;
 	setOGTypeArticle?: boolean;
@@ -55,7 +54,6 @@ const bannerPlaceholder = await getBannerPlaceholder(singleDesktopBanner);
 
 const {
 	title,
-	banner,
 	description,
 	lang,
 	setOGTypeArticle,
@@ -176,7 +174,7 @@ const mainContentClass = `
 
 ---
 
-<Layout title={title} banner={banner} description={description} lang={lang} setOGTypeArticle={setOGTypeArticle} dualLocale={dualLocale}>
+<Layout title={title} description={description} lang={lang} setOGTypeArticle={setOGTypeArticle} dualLocale={dualLocale}>
 
 {shouldPreloadDesktopBanner && desktopBannerResponsive && (
 	<link
