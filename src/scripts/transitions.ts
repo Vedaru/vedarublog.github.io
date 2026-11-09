@@ -1,17 +1,17 @@
 /**
- * Fuwari-style page transitions, sequenced so only one thing moves at a time.
+ * Fuwari-style page transitions.
  *
- *   1. `visit:start` flips the body's home class, which starts the single
- *      700ms banner/grid transform while the outgoing page is still visible.
- *   2. Swup fades the old content out. Between-page scroll is not animated,
- *      so the transform is the only motion.
- *   3. `content:replace` swaps the containers and syncs the persistent shell
- *      (navbar, mobile banner). The scroll plugin commits the new position
- *      immediately.
- *   4. Swup fades the new content in while the transform continues.
+ *   1. `visit:start` reads the scroll position, finishes any pre-scroll and
+ *      flips the body's home class, starting the 700ms banner/grid transform.
+ *   2. The outgoing content fades for the same duration. The incoming
+ *      document is prepared while detached (no entrance animations, lazy
+ *      images) before Swup swaps it in.
+ *   3. `content:replace` happens after the transform. The main column gets
+ *      paint containment for the swap, and the sidebar TOC is deferred.
+ *   4. The incoming content fades in; the shell, TOC and optional
+ *      enhancements sync once the content has painted.
  *
- * There is no competing scroll tween, no page-height spacer and no layout
- * timer.
+ * There is no page-height spacer and no JavaScript scroll loop.
  */
 import { BANNER_HEIGHT, BANNER_HEIGHT_HOME } from "@constants";
 import { isMainHomePage, pathFromUrl } from "../utils/route-utils";
@@ -22,7 +22,7 @@ import {
 import "./runtime/comment-boot";
 
 interface Visit {
-	to: { url: string; hash?: string };
+	to: { url: string; hash?: string; document?: Document };
 	history?: { popstate?: boolean };
 	scroll?: { reset?: boolean };
 }
@@ -35,7 +35,6 @@ function isHomeVisit(visit: Visit): boolean {
 
 function setBodyHome(isHome: boolean): void {
 	document.body.classList.toggle("is-home", isHome);
-	document.body.classList.toggle("lg:is-home", isHome);
 }
 
 function setNavbarHome(isHome: boolean): void {
@@ -123,7 +122,7 @@ function updateScrollChrome(scrollY = getScrollY()): void {
 		?.classList.toggle("toc-hide", scrollY <= bannerHeight);
 
 	const isHome =
-		document.body.classList.contains("lg:is-home") &&
+		document.body.classList.contains("is-home") &&
 		window.innerWidth >= 1024;
 	const navbarHeight = isHome ? BANNER_HEIGHT_HOME : BANNER_HEIGHT;
 	const threshold = window.innerHeight * (navbarHeight / 100) - 88;
@@ -147,6 +146,9 @@ function onScroll(): void {
 let hooksRegistered = false;
 let knownScrollY: number | null = null;
 let layoutMovePromise: Promise<void> | null = null;
+let contentDelayCleared = false;
+
+const LAYOUT_FALLBACK_MS = 900;
 
 function stopLayoutMove(): void {
 	layoutMovePromise = null;
@@ -165,8 +167,13 @@ function startLayoutMove(): void {
 				return;
 			}
 			grid.removeEventListener("transitionend", onEnd);
+			window.clearTimeout(timer);
 			resolve();
 		};
+		const timer = window.setTimeout(() => {
+			grid.removeEventListener("transitionend", onEnd);
+			resolve();
+		}, LAYOUT_FALLBACK_MS);
 		grid.addEventListener("transitionend", onEnd);
 	});
 }
@@ -195,35 +202,59 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 	if (hooksRegistered) return;
 	hooksRegistered = true;
 
-	swup.hooks.on("link:click", () => {
-		// Fuwari removes the entrance-animation delay on real navigations.
-		HTML.style.setProperty("--content-delay", "0ms");
-	});
-
 	// The scroll plugin's own visit:start handler has priority 1 and caches
 	// the outgoing position first. Run after it, then finish the scroll before
 	// flipping the layout and starting the transform.
 	swup.hooks.on("visit:start", async (visit: Visit) => {
 		cancelEnhancements();
+		// The TOC is secondary during a swap; keep its layout out of the
+		// content-replacement task.
+		document
+			.getElementById("toc-wrapper")
+			?.classList.add("is-toc-deferred");
 		const wasHome = document.body.classList.contains("is-home");
 		const isHome = isHomeVisit(visit);
 		const isPopstate = visit.history?.popstate === true;
 		const layoutSlides =
 			wasHome !== isHome &&
 			window.matchMedia("(min-width: 1280px)").matches;
+
+		// Remove the entrance-animation stagger for subsequent pages once.
+		// The grid survives the swap; writing to <html> would invalidate the
+		// whole document on the click path.
+		if (!contentDelayCleared) {
+			const grid = document.getElementById("main-grid");
+			if (grid) {
+				grid.style.setProperty("--content-delay", "0ms");
+				contentDelayCleared = true;
+			}
+		}
+
+		// Scroll first, while the outgoing page is still in the DOM at its
+		// real height. Read the position before any class changes so this
+		// does not force a style/layout pass over the whole document.
+		let scrollY = getScrollY();
+		if (!isPopstate && layoutSlides && scrollY > 1) {
+			await scrollToTopAndWait();
+			scrollY = 0;
+		}
+
+		// Start the marker and the transform together, after the scroll has
+		// settled. The marker has to be present before the body flip so the
+		// navbar, enhancements and fade duration see the slide immediately.
 		if (!isPopstate && layoutSlides) startLayoutMove();
 		else stopLayoutMove();
 
-		// Scroll first, while the outgoing page is still in the DOM at its
-		// real height. Then flip the layout and let the transform and the
-		// sidebar compensation run with no scroll reset underneath them.
-		if (!isPopstate && layoutSlides && window.scrollY > 1) {
-			await scrollToTopAndWait();
-		}
-
 		if (!isPopstate && layoutSlides) {
-			knownScrollY = window.scrollY;
-			if (window.scrollY <= 1 && !visit.to.hash && visit.scroll) {
+			// Paint containment helps the incoming content swap, but it
+			// changes how the transformed grid is layered. The outgoing
+			// container is replaced by Swup, so disabling it here is enough;
+			// the incoming container gets the default back.
+			document
+				.getElementById("swup-container")
+				?.style.setProperty("contain", "none");
+			knownScrollY = scrollY;
+			if (scrollY <= 1 && !visit.to.hash && visit.scroll) {
 				// The pre-scroll already reset the position. Skip the
 				// plugin's redundant content-scroll pass, which otherwise
 				// forces layout of the new article.
@@ -233,20 +264,34 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		if (!layoutSlides || isPopstate) knownScrollY = null;
 
 		setBodyHome(isHome);
-		HTML.style.setProperty("--content-delay", "0ms");
 	}, { priority: 10 });
+
+	// Prepare the incoming document while it is still detached. The page
+	// transition already provides the entrance, and images must not start
+	// fetching or decoding while Swup is swapping the container.
+	swup.hooks.before("content:replace", (visit: Visit) => {
+		const incoming = visit.to.document;
+		if (!incoming) return;
+
+		incoming
+			.querySelectorAll("#swup-container .onload-animation")
+			.forEach((element) => element.classList.remove("onload-animation"));
+
+		incoming.querySelectorAll("#swup-container img").forEach((image) => {
+			if (!image.hasAttribute("loading")) {
+				image.setAttribute("loading", "lazy");
+			}
+			if (!image.hasAttribute("decoding")) {
+				image.setAttribute("decoding", "async");
+			}
+		});
+	});
 
 	swup.hooks.on("content:replace", (visit: Visit) => {
 		const isHome = isHomeVisit(visit);
 		// Mobile banner visibility is a layout property. Apply it before the
 		// incoming fade starts, after the outgoing slide has finished.
 		setBannerVisibility(isHome);
-		setNavbarHome(isHome);
-		updateScrollChrome(knownScrollY ?? getScrollY());
-		knownScrollY = null;
-		// The outgoing fade has the same duration as the transform, so the
-		// slide is over by the time Swup replaces the content.
-		stopLayoutMove();
 	});
 
 	swup.hooks.on("animation:in:await", () => {
@@ -254,12 +299,25 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		return layoutMovePromise;
 	});
 
-	swup.hooks.on("animation:in:end", () => {
+	swup.hooks.on("animation:in:end", (visit: Visit) => {
+		const isHome = isHomeVisit(visit);
+		// The incoming content is painted now. Sync the shell in one pass,
+		// outside the container replacement.
+		setNavbarHome(isHome);
+		updateScrollChrome(knownScrollY ?? getScrollY());
+		knownScrollY = null;
+		stopLayoutMove();
+		document
+			.getElementById("toc-wrapper")
+			?.classList.remove("is-toc-deferred");
 		scheduleEnhancements();
 	});
 
 	swup.hooks.on("visit:end", () => {
 		stopLayoutMove();
+		document
+			.getElementById("toc-wrapper")
+			?.classList.remove("is-toc-deferred");
 	});
 
 }

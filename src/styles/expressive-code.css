@@ -67,6 +67,13 @@
 }
 
 /* 代码块折叠功能 (Collapsible) */
+.expressive-code {
+  /* Long posts can contain many highlighted blocks. Defer the offscreen
+     ones so a Swup container swap only lays out what is near the viewport. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 300px;
+}
+
 .expressive-code.collapsible .frame {
   transition: background-color 0.2s ease;
   position: relative;

@@ -69,9 +69,22 @@ html.is-layout-moving.is-animating .transition-swup-fade {
 }
 #swup-container {
 	outline: none;
+	/* The main column is replaced on a visit. Paint containment keeps that
+	   from re-rastering the whole grid. The layout slide opts out in
+	   transitions.ts because containment changes how the transformed grid
+	   is layered. */
+	contain: paint;
 }
 #content-wrapper {
 	animation-delay: var(--content-delay);
+}
+/* The sidebar TOC is secondary on a page swap. Skipping its layout until the
+   incoming content has settled keeps the main container replacement cheap. */
+#toc-wrapper.is-toc-deferred {
+	pointer-events: none;
+}
+#toc-wrapper.is-toc-deferred #toc {
+	content-visibility: hidden;
 }
 .footer {
 	animation-delay: 250ms;
