@@ -49,7 +49,7 @@ click
   → content:replace (main + #toc)
       swap the containers
       sync the persistent navbar and mobile banner
-      Swup's later scroll:top finds the page already at 0 and does nothing
+      the pre-scroll marks the visit as reset; the content-scroll pass is skipped
   → animation:in:start / animation:in:end
       new content fades in while the transform continues
   → transform end
@@ -62,7 +62,7 @@ the top and resolves on `scroll:end`. Only then does it flip the body class
 and start the 700ms transform. The outgoing document is still present at its
 real height for the whole scroll, so no spacer is needed and the sidebar is
 never repositioned by a sudden scroll reset. Swup's later `scroll:top` runs
-at 0 and changes nothing.
+only when the visit was not pre-scrolled.
 
 Both sidebars stay sticky and visible, outside the Swup fade container. Their
 only animated property is the sticky `top` compensation, which starts after
@@ -103,6 +103,8 @@ Rules for future changes:
 - Keep `smoothScrolling: true`. The ordered pre-scroll in `transitions.ts` is
   the only scroll call. Do not add another `scroll:top` override, a timeout,
   or a custom scroll loop.
+- After a layout pre-scroll, set `visit.scroll.reset = false` so the scroll
+  plugin does not force layout of the new article just to scroll to 0 again.
 - Do not re-introduce a page-height spacer or a timer that removes it. The
   clamp happens while the content is invisible; a spacer becomes a scrollable
   blank region and makes the page look endless.

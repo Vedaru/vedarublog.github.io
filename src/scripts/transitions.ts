@@ -22,8 +22,9 @@ import {
 import "./runtime/comment-boot";
 
 interface Visit {
-	to: { url: string };
+	to: { url: string; hash?: string };
 	history?: { popstate?: boolean };
+	scroll?: { reset?: boolean };
 }
 
 const HTML = document.documentElement;
@@ -105,8 +106,7 @@ function updateNavbarChrome(scrollY: number): void {
 	navbar.style.setProperty("--semifull-fade", fade);
 }
 
-function updateScrollChrome(): void {
-	const scrollY = getScrollY();
+function updateScrollChrome(scrollY = getScrollY()): void {
 	const bannerEnabled = document.body.classList.contains("enable-banner");
 	const bannerHeight = window.innerHeight * (BANNER_HEIGHT / 100);
 
@@ -145,6 +145,7 @@ function onScroll(): void {
 
 // ── Swup hooks ─────────────────────────────────────────────────────────────
 let hooksRegistered = false;
+let knownScrollY: number | null = null;
 
 /**
  * Finish Fuwari's animated scroll before any layout class changes. Resolving
@@ -159,17 +160,10 @@ function scrollToTopAndWait(): Promise<void> {
 	}
 
 	return new Promise<void>((resolve) => {
-		const onScrollEnd = () => {
-			document.removeEventListener("swup:scroll:end", onScrollEnd);
-			resolve();
-		};
-		document.addEventListener("swup:scroll:end", onScrollEnd);
-		try {
-			swup.scrollTo(0, true);
-		} catch {
-			document.removeEventListener("swup:scroll:end", onScrollEnd);
-			resolve();
-		}
+		document.addEventListener("swup:scroll:end", () => resolve(), {
+			once: true,
+		});
+		swup.scrollTo(0, true);
 	});
 }
 
@@ -201,6 +195,17 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 			await scrollToTopAndWait();
 		}
 
+		knownScrollY = null;
+		if (!isPopstate && layoutSlides) {
+			knownScrollY = getScrollY();
+			if (knownScrollY <= 1 && !visit.to.hash && visit.scroll) {
+				// The pre-scroll already reset the position. Skip the
+				// plugin's redundant content-scroll pass, which otherwise
+				// forces layout of the new article.
+				visit.scroll.reset = false;
+			}
+		}
+
 		setBodyHome(isHome);
 		HTML.style.setProperty("--content-delay", "0ms");
 	}, { priority: 10 });
@@ -209,7 +214,10 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		const isHome = isHomeVisit(visit);
 		setNavbarHome(isHome);
 		setBannerVisibility(isHome);
-		updateScrollChrome();
+		// A pre-scrolled layout visit already knows its position; avoid
+		// reading scrollTop, which forces layout of the new article.
+		updateScrollChrome(knownScrollY ?? getScrollY());
+		knownScrollY = null;
 	});
 
 	swup.hooks.on("animation:in:end", () => {
