@@ -273,11 +273,6 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 	// flipping the layout and starting the transform.
 	swup.hooks.on("visit:start", async (visit: Visit) => {
 		cancelEnhancements();
-		// The TOC is secondary during a swap; keep its layout out of the
-		// content-replacement task.
-		document
-			.getElementById("toc-wrapper")
-			?.classList.add("is-toc-deferred");
 		const wasHome = document.body.classList.contains("is-home");
 		const isHome = isHomeVisit(visit);
 		const isPopstate = visit.history?.popstate === true;
@@ -286,6 +281,16 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		const layoutSlides =
 			wasHome !== isHome &&
 			window.matchMedia("(min-width: 1280px)").matches;
+
+		// Only a layout slide needs the TOC's layout kept out of the swap: the
+		// swap lands mid-slide, while the grid is still moving. On a plain visit
+		// the swap lands after the scroll has finished, and hiding the TOC for
+		// the length of the tween reads as an empty card in the sidebar.
+		if (layoutSlides) {
+			document
+				.getElementById("toc-wrapper")
+				?.classList.add("is-toc-deferred");
+		}
 
 		// Remove the entrance-animation stagger for subsequent pages once.
 		// The grid survives the swap; writing to <html> would invalidate the
