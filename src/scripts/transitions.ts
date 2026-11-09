@@ -145,43 +145,32 @@ function onScroll(): void {
 
 // ── Swup hooks ─────────────────────────────────────────────────────────────
 let hooksRegistered = false;
-let layoutSlides = false;
-let layoutSlideGeneration = 0;
-
-function stopLayoutSlide(): void {
-	layoutSlideGeneration++;
-	if (!layoutSlides) return;
-	layoutSlides = false;
-	HTML.classList.remove("is-layout-sliding");
-}
 
 /**
- * While the grid is moving between the home and content layouts, take the
- * sticky columns out of sticky positioning so they travel with the grid.
- * Their normal sticky behavior returns when the transform ends.
+ * Finish Fuwari's animated scroll before any layout class changes. Resolving
+ * on the plugin's `scroll:end` means the outgoing document is still present
+ * and at its real height for the whole scroll. No timer or second scroll
+ * loop is involved.
  */
-function startLayoutSlide(wasHome: boolean, isHome: boolean): void {
-	stopLayoutSlide();
-	if (
-		wasHome === isHome ||
-		!window.matchMedia("(min-width: 1280px)").matches ||
-		window.matchMedia("(prefers-reduced-motion: reduce)").matches
-	) {
-		return;
+function scrollToTopAndWait(): Promise<void> {
+	const swup = window.swup;
+	if (typeof swup?.scrollTo !== "function" || window.scrollY <= 1) {
+		return Promise.resolve();
 	}
-	const grid = document.getElementById("main-grid");
-	if (!grid) return;
 
-	const generation = layoutSlideGeneration;
-	HTML.classList.add("is-layout-sliding");
-	layoutSlides = true;
-
-	const onTransitionEnd = (event: TransitionEvent) => {
-		if (event.target !== grid || event.propertyName !== "transform") return;
-		grid.removeEventListener("transitionend", onTransitionEnd);
-		if (generation === layoutSlideGeneration) stopLayoutSlide();
-	};
-	grid.addEventListener("transitionend", onTransitionEnd);
+	return new Promise<void>((resolve) => {
+		const onScrollEnd = () => {
+			document.removeEventListener("swup:scroll:end", onScrollEnd);
+			resolve();
+		};
+		document.addEventListener("swup:scroll:end", onScrollEnd);
+		try {
+			swup.scrollTo(0, true);
+		} catch {
+			document.removeEventListener("swup:scroll:end", onScrollEnd);
+			resolve();
+		}
+	});
 }
 
 function setup(swup: NonNullable<Window["swup"]>): void {
@@ -193,17 +182,28 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		HTML.style.setProperty("--content-delay", "0ms");
 	});
 
-	swup.hooks.on("visit:start", (visit: Visit) => {
+	// The scroll plugin's own visit:start handler has priority 1 and caches
+	// the outgoing position first. Run after it, then finish the scroll before
+	// flipping the layout and starting the transform.
+	swup.hooks.on("visit:start", async (visit: Visit) => {
 		cancelEnhancements();
-		// Start the transform on the outgoing page so it runs continuously
-		// through the fade and the content swap, as in Fuwari. The scroll
-		// reset is committed separately and does not animate between pages.
 		const wasHome = document.body.classList.contains("is-home");
 		const isHome = isHomeVisit(visit);
+		const isPopstate = visit.history?.popstate === true;
+		const layoutSlides =
+			wasHome !== isHome &&
+			window.matchMedia("(min-width: 1280px)").matches;
+
+		// Scroll first, while the outgoing page is still in the DOM at its
+		// real height. Then flip the layout and let the transform and the
+		// sidebar compensation run with no scroll reset underneath them.
+		if (!isPopstate && layoutSlides && window.scrollY > 1) {
+			await scrollToTopAndWait();
+		}
+
 		setBodyHome(isHome);
-		startLayoutSlide(wasHome, isHome);
 		HTML.style.setProperty("--content-delay", "0ms");
-	});
+	}, { priority: 10 });
 
 	swup.hooks.on("content:replace", (visit: Visit) => {
 		const isHome = isHomeVisit(visit);

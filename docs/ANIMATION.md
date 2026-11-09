@@ -41,48 +41,48 @@ Measured with Chrome for Testing at 4x CPU throttle (a mid-range phone):
 ```
 click
   → visit:start
-      body.is-home flips
-      #banner-wrapper and #main-grid start their single 700ms transform
-      the outgoing page is still visible
+      if home <-> content and scrolled: scroll to top, await scroll:end
+      then body.is-home flips
+      #banner-wrapper, #banner and #main-grid start their 700ms transforms
   → content fade out (200ms)
-      between-page scroll is not animated
+      the outgoing page is at scroll 0 before the fade starts
   → content:replace (main + #toc)
       swap the containers
       sync the persistent navbar and mobile banner
-      the scroll plugin commits the target position immediately
+      Swup's later scroll:top finds the page already at 0 and does nothing
   → animation:in:start / animation:in:end
       new content fades in while the transform continues
   → transform end
       requestIdleCallback → fancybox / mermaid / fonts / comments
 ```
 
-The layout flips once at `visit:start`, as in Fuwari. The 700ms transform
-begins on the outgoing page and runs continuously through the fade and the
-swap. The only other motion is the 200ms content fade: the between-page
-scroll is committed instantly, so it never competes with the transform.
+The scroll and the layout are serialized. For a home/non-home visit the
+`visit:start` hook is asynchronous: it asks Swup's scroll plugin to animate to
+the top and resolves on `scroll:end`. Only then does it flip the body class
+and start the 700ms transform. The outgoing document is still present at its
+real height for the whole scroll, so no spacer is needed and the sidebar is
+never repositioned by a sudden scroll reset. Swup's later `scroll:top` runs
+at 0 and changes nothing.
 
-On desktop, `html.is-layout-sliding` takes both sticky columns out of sticky
-positioning for the duration of the transform, so they travel with
-`#main-grid` instead of staying pinned to the viewport. The class is removed
-on the grid's `transitionend`, restoring normal sticky behavior without a
-timer.
+Both sidebars stay sticky and visible, outside the Swup fade container. Their
+only animated property is the sticky `top` compensation, which starts after
+the pre-scroll has finished and uses the same 700ms curve as the grid and
+banner. They are never switched to static positioning and never receive
+opacity or content-fade animations.
 
 There is no `#page-height-extend`. A 300vh tail kept the old scroll alive but
 added thousands of pixels of blank scroll below the footer on a tall
 viewport, then the browser snapped back when the tail was removed. The
 outgoing transform can reduce the old page's scroll range by up to the banner
-offset while it fades; that is part of the slide. At `content:replace` any
-clamp happens while the incoming content is still invisible, and the next
-frame commits the target scroll. `overscroll-behavior-y: none` on `html,
-body` keeps wheel and touch input from moving past the real document
-boundary.
+offset while it fades; that is part of the slide, but the page is already at
+0. `overscroll-behavior-y: none` on `html, body` keeps wheel and touch input
+from moving past the real document boundary.
 
 Key files:
 
 | File | Responsibility |
 | --- | --- |
 | `src/scripts/transitions.ts` | All Swup hooks, body layout class, scroll chrome |
-| `src/scripts/scroll-plugin.ts` | Instant between-page scroll, smooth same-page anchors |
 | `src/scripts/page-enhancements.ts` | Idle-time enhancement loading |
 | `src/scripts/runtime/after-transition.ts` | Wait for the 700ms transform |
 | `src/scripts/toc-element.ts` | TOC custom element (observers only) |
@@ -96,17 +96,23 @@ Rules for future changes:
 - Flip the body's home class once at `visit:start`, as in Fuwari. Do not move
   it to `page:view` or after the scroll: that delays the slide and splits it
   from the fade.
-- Do not animate the between-page scroll. Same-page anchors may still use the
-  smooth scroll.
+- For a home/non-home visit, finish `swup.scrollTo(0, true)` and await
+  `scroll:end` before flipping the body class. Run after the scroll plugin's
+  position cache so back navigation keeps the outgoing scroll position. Do
+  not add a timeout or a second scroll loop.
+- Keep `smoothScrolling: true`. The ordered pre-scroll in `transitions.ts` is
+  the only scroll call. Do not add another `scroll:top` override, a timeout,
+  or a custom scroll loop.
 - Do not re-introduce a page-height spacer or a timer that removes it. The
   clamp happens while the content is invisible; a spacer becomes a scrollable
   blank region and makes the page look endless.
 - Do not load third-party scripts during a visit. Use
   `scheduleEnhancements()` or an `IntersectionObserver`.
 - Do not animate layout properties (`top`, `height`, `width`) inside
-  `#main-grid` while the grid is transformed.
-- Do not leave the sticky sidebars pinned during a home/content layout slide.
-  The `is-layout-sliding` class exists so the grid owns that motion.
+  `#main-grid` while the grid is transformed, except the two sticky sidebars'
+  deliberate `top` compensation.
+- Do not switch the sidebars to `position: static` or fade them during a
+  visit. They remain sticky and visible; only their `top` transitions.
 - Keep the grid's `top` derived from
   `calc(var(--banner-height-home) - var(--banner-height-extend))`, never a
   separate `35vh`. The extend variable is rounded to a 4px grid, so `35vh`
