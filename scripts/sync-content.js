@@ -18,12 +18,12 @@ const ENABLE_CONTENT_SYNC = process.env.ENABLE_CONTENT_SYNC === "true";
 const CONTENT_REPO_URL = process.env.CONTENT_REPO_URL || "";
 const CONTENT_DIR = process.env.CONTENT_DIR || path.join(rootDir, "content");
 
-console.log("Starting content synchronization...\n");
-
 // 检查是否启用内容分离
 if (!ENABLE_CONTENT_SYNC) {
 	process.exit(0);
 }
+
+console.log("Starting content synchronization...\n");
 
 // 检查内容目录是否存在
 if (!fs.existsSync(CONTENT_DIR)) {
