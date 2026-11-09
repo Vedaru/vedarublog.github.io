@@ -1,17 +1,17 @@
 /**
  * Fuwari-style page transitions, sequenced so only one thing moves at a time.
  *
- *   1. `visit:start` only starts the fade-out. The outgoing page keeps its
- *      layout and scroll position.
- *   2. `content:replace` swaps the containers. The scroll plugin commits the
- *      new scroll position immediately: between-page scroll is not animated.
- *   3. `scroll:end` applies the target layout. Flipping the body's home class
- *      here starts the single 700ms banner/grid transform, with the page
- *      already at its final scroll position.
- *   4. Swup fades the new content in while that transform runs.
+ *   1. `visit:start` flips the body's home class, which starts the single
+ *      700ms banner/grid transform while the outgoing page is still visible.
+ *   2. Swup fades the old content out. Between-page scroll is not animated,
+ *      so the transform is the only motion.
+ *   3. `content:replace` swaps the containers and syncs the persistent shell
+ *      (navbar, mobile banner). The scroll plugin commits the new position
+ *      immediately.
+ *   4. Swup fades the new content in while the transform continues.
  *
  * There is no competing scroll tween, no page-height spacer and no layout
- * timer. The only ordering primitive is the plugin's `scroll:end`.
+ * timer.
  */
 import { BANNER_HEIGHT, BANNER_HEIGHT_HOME } from "@constants";
 import { isMainHomePage, pathFromUrl } from "../utils/route-utils";
@@ -32,9 +32,12 @@ function isHomeVisit(visit: Visit): boolean {
 	return isMainHomePage(pathFromUrl(visit.to.url));
 }
 
-function setHomeLayout(isHome: boolean): void {
+function setBodyHome(isHome: boolean): void {
 	document.body.classList.toggle("is-home", isHome);
 	document.body.classList.toggle("lg:is-home", isHome);
+}
+
+function setNavbarHome(isHome: boolean): void {
 	document.getElementById("navbar")?.setAttribute(
 		"data-is-home",
 		String(isHome),
@@ -42,9 +45,8 @@ function setHomeLayout(isHome: boolean): void {
 }
 
 /**
- * Mobile hides the banner on content pages. Apply it with the rest of the
- * target layout after the scroll commit, while the incoming content is still
- * invisible.
+ * Mobile hides the banner on content pages. Apply it at `content:replace`,
+ * when the old DOM is gone and the new content is still invisible.
  */
 function setBannerVisibility(isHome: boolean): void {
 	// Desktop does not hide the banner on content pages. Skipping the class
@@ -143,26 +145,6 @@ function onScroll(): void {
 
 // ── Swup hooks ─────────────────────────────────────────────────────────────
 let hooksRegistered = false;
-let pendingLayout: boolean | null = null;
-let popstateVisit = false;
-
-function applyLayout(isHome: boolean): void {
-	setHomeLayout(isHome);
-	setBannerVisibility(isHome);
-	updateScrollChrome();
-}
-
-/**
- * Apply the incoming page's layout after its scroll position has been
- * committed. The body-class flip starts the banner/grid transform; there is
- * no scroll animation running at the same time.
- */
-function commitPendingLayout(): void {
-	if (pendingLayout === null) return;
-	const isHome = pendingLayout;
-	pendingLayout = null;
-	applyLayout(isHome);
-}
 
 function setup(swup: NonNullable<Window["swup"]>): void {
 	if (hooksRegistered) return;
@@ -175,35 +157,25 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 
 	swup.hooks.on("visit:start", (visit: Visit) => {
 		cancelEnhancements();
-		popstateVisit = visit.history?.popstate === true;
-		// Keep the outgoing layout until the new content is in and the scroll
-		// plugin has committed the target scroll position. `scroll:end` then
-		// applies the layout and starts the one transform.
-		pendingLayout = isHomeVisit(visit);
+		// Start the transform on the outgoing page so it runs continuously
+		// through the fade and the content swap, as in Fuwari. The scroll
+		// reset is committed separately and does not animate between pages.
+		setBodyHome(isHomeVisit(visit));
 		HTML.style.setProperty("--content-delay", "0ms");
+	});
+
+	swup.hooks.on("content:replace", (visit: Visit) => {
+		const isHome = isHomeVisit(visit);
+		setNavbarHome(isHome);
+		setBannerVisibility(isHome);
 		updateScrollChrome();
 	});
-
-	swup.hooks.on("content:replace", () => {
-		// History visits have no between-page scroll commit (the browser
-		// restores the position itself), so apply their layout immediately.
-		if (popstateVisit) commitPendingLayout();
-	});
-
-	swup.hooks.on("animation:in:start", commitPendingLayout);
 
 	swup.hooks.on("animation:in:end", () => {
 		scheduleEnhancements();
 	});
 
-	swup.hooks.on("visit:end", commitPendingLayout);
-
 }
-
-// The plugin dispatches `scroll:end` after committing the between-page
-// position. With `animateScroll.betweenPages = false` this is the same frame
-// as the swap, before the new content fades in.
-document.addEventListener("swup:scroll:end", commitPendingLayout);
 
 /** Back-to-top is a plain native smooth scroll, like Fuwari. */
 function setupBackToTop(): void {

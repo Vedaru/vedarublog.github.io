@@ -41,39 +41,35 @@ Measured with Chrome for Testing at 4x CPU throttle (a mid-range phone):
 ```
 click
   → visit:start
-      content fade out begins
-      outgoing layout and scroll position stay exactly where they are
-  → content:replace (main + #toc)
-      new markup is in the DOM, still under the outgoing body layout
-      TOC re-upgrades automatically
-  → content:scroll
-      the target scroll position is committed immediately
-      (between-page scroll animation is disabled, not delayed)
-  → scroll:end
-      apply the target body layout, once, here
+      body.is-home flips
       #banner-wrapper and #main-grid start their single 700ms transform
+      the outgoing page is still visible
+  → content fade out (200ms)
+      between-page scroll is not animated
+  → content:replace (main + #toc)
+      swap the containers
+      sync the persistent navbar and mobile banner
+      the scroll plugin commits the target position immediately
   → animation:in:start / animation:in:end
-      new content fades in while the transform is the only motion
-  → after the transform
+      new content fades in while the transform continues
+  → transform end
       requestIdleCallback → fancybox / mermaid / fonts / comments
 ```
 
-The order is deliberate: **replace → commit scroll → apply layout → slide**.
-Starting the reset at `visit:start` made the outgoing content slide while it
-faded, then the incoming content replaced it mid-scroll. Applying the layout
-at `visit:start` started the transform before the scroll was committed, so
-the two motions competed. Now the outgoing page fades in place, the incoming
-page starts at the target scroll position, and the 700ms transform carries it
-from the outgoing layout to the new one.
+The layout flips once at `visit:start`, as in Fuwari. The 700ms transform
+begins on the outgoing page and runs continuously through the fade and the
+swap. The only other motion is the 200ms content fade: the between-page
+scroll is committed instantly, so it never competes with the transform.
 
-If the incoming page is shorter, the browser clamps the scroll position at
-`content:replace` while the new container is still at opacity 0, then the
-next frame commits the target scroll. There is no visible jump. There is also
-no `#page-height-extend`: a 300vh tail kept the old scroll alive but added
-thousands of pixels of blank scroll below the footer on a tall viewport, then
-the browser snapped back when the tail was removed. `overscroll-behavior-y:
-none` on `html, body` keeps wheel and touch input from moving past the real
-document boundary.
+There is no `#page-height-extend`. A 300vh tail kept the old scroll alive but
+added thousands of pixels of blank scroll below the footer on a tall
+viewport, then the browser snapped back when the tail was removed. The
+outgoing transform can reduce the old page's scroll range by up to the banner
+offset while it fades; that is part of the slide. At `content:replace` any
+clamp happens while the incoming content is still invisible, and the next
+frame commits the target scroll. `overscroll-behavior-y: none` on `html,
+body` keeps wheel and touch input from moving past the real document
+boundary.
 
 Key files:
 
@@ -91,8 +87,9 @@ Key files:
 
 Rules for future changes:
 
-- Do not flip the body's home class at `visit:start`. It starts the 700ms
-  transform before the scroll is committed. Apply it from `scroll:end`.
+- Flip the body's home class once at `visit:start`, as in Fuwari. Do not move
+  it to `page:view` or after the scroll: that delays the slide and splits it
+  from the fade.
 - Do not animate the between-page scroll. Same-page anchors may still use the
   smooth scroll.
 - Do not re-introduce a page-height spacer or a timer that removes it. The
