@@ -224,11 +224,16 @@ function startScrollToTop(): void {
 	}
 
 	const DURATION = 420;
-	const started = performance.now();
+	// The rAF timestamp is the start of the frame, which can be earlier than the
+	// moment the tween was scheduled. Reading the clock here would make the first
+	// frame a negative progress - the page would lurch the wrong way before
+	// coming back. Start the clock on the first real frame instead.
+	let started = 0;
 	const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
 
 	const step = (now: number) => {
-		const progress = Math.min(1, (now - started) / DURATION);
+		if (!started) started = now;
+		const progress = Math.min(1, Math.max(0, (now - started) / DURATION));
 		window.scrollTo(0, Math.round(startY * (1 - easeOutCubic(progress))));
 		scrollTweenFrame = progress < 1 ? requestAnimationFrame(step) : 0;
 	};
