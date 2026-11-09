@@ -43,8 +43,8 @@ if (footerConfig.enable) {
             <div class="mb-2" set:html={customFooterHtml}></div>
         )}
         &copy; <span id="copyright-year">{currentYear}</span> {profileConfig.name}. All Rights Reserved. /
-        <a class="transition link text-[var(--primary)] font-medium" data-no-swup href={localizeInternalHref('/rss.xml', Astro.currentLocale)}>RSS</a> /
-		<a class="transition link text-[var(--primary)] font-medium" data-no-swup href={localizeInternalHref('/atom.xml', Astro.currentLocale)}>Atom</a> /
+        <a class="transition link text-[var(--primary)] font-medium" target="_blank" rel="noopener" data-no-swup href={localizeInternalHref('/rss.xml', Astro.currentLocale)}>RSS</a> /
+		<a class="transition link text-[var(--primary)] font-medium" target="_blank" rel="noopener" data-no-swup href={localizeInternalHref('/atom.xml', Astro.currentLocale)}>Atom</a> /
         <a class="transition link text-[var(--primary)] font-medium" target="_blank" href={url('sitemap-index.xml')}>Sitemap</a><br>
         Powered by
         <a class="transition link text-[var(--primary)] font-medium" target="_blank" href="https://astro.build">Astro</a> &
