@@ -122,8 +122,6 @@ body.no-banner-mode #banner-wrapper {
 	#right-sidebar-sticky {
 		position: sticky;
 		top: 1rem;
-		transition: top var(--layout-slide-duration)
-			cubic-bezier(0.4, 0, 0.2, 1);
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
@@ -133,8 +131,18 @@ body.no-banner-mode #banner-wrapper {
 		top: calc(1rem - var(--banner-height-extend, 30dvh));
 	}
 
-}
+	/* Animating `top` relaid the sidebar out on every frame of the 700ms glide
+	   (40 layouts per navigation). It only becomes visible once the sidebar is
+	   actually pinned, so the transition is scoped to that state - the scroll
+	   chrome code toggles `is-stuck` on the element. Unpinned, `top` has no
+	   visual effect and snapping it costs nothing. */
+	#sidebar-sticky.is-stuck,
+	#right-sidebar-sticky.is-stuck {
+		transition: top var(--layout-slide-duration)
+			cubic-bezier(0.4, 0, 0.2, 1);
+	}
 
+}
 /* ── No banner: content starts right under the navbar ─────────────────── */
 html[data-wallpaper-mode="none"] .main-panel {
 	top: calc(5.5rem + 1rem);

@@ -112,7 +112,32 @@ function updateNavbarChrome(scrollY: number): void {
 	navbar.style.setProperty("--semifull-fade", fade);
 }
 
+/**
+ * Mark each sidebar while `position: sticky` is actually pinning it.
+ *
+ * Pinned means the rendered top equals the sticky offset plus the grid's own
+ * translate (the grid moves down 30vh on home). The CSS only transitions `top`
+ * while pinned: unpinned, `top` has no visual effect but still relaid the
+ * sidebar out on every frame of a page transition.
+ */
+function updateSidebarStuck(): void {
+	const grid = document.getElementById("main-grid");
+	const gridShift = grid
+		? new DOMMatrixReadOnly(getComputedStyle(grid).transform).m42
+		: 0;
+	for (const id of ["sidebar-sticky", "right-sidebar-sticky"]) {
+		const element = document.getElementById(id);
+		if (!element) continue;
+		const top = Number.parseFloat(getComputedStyle(element).top) || 0;
+		// Slack for sub-pixel rounding: the pinned box can sit a pixel or two
+		// above the offset, but never below it while sticky is engaged.
+		const pinned = element.getBoundingClientRect().top - (top + gridShift) <= 2;
+		element.classList.toggle("is-stuck", pinned);
+	}
+}
+
 function updateScrollChrome(scrollY = getScrollY()): void {
+	updateSidebarStuck();
 	const bannerEnabled = document.body.classList.contains("enable-banner");
 	const bannerHeight = window.innerHeight * (BANNER_HEIGHT / 100);
 
