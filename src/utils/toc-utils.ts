@@ -224,11 +224,17 @@ export function collectHomePostListItems(): PostListItem[] {
 	return items;
 }
 
-/** 平滑滚动到标题（原生合成器滚动，避免 JS 驱动的 forced reflow） */
+/**
+ * 跳到标题。
+ *
+ * 用瞬时跳转而不是平滑滚动：代码块是 `content-visibility: auto`，平滑滚动
+ * 会把途经的每个代码块逐个渲染，长文里跳一次要 1.6s（实测两次 330/480ms
+ * 的停顿）。scrollIntoView 一次落地，并保留 scroll-margin-top 的 80px 偏移。
+ */
 export function scrollToTocHeading(id: string): boolean {
 	const element = document.getElementById(id);
 	if (!element) return false;
-	element.scrollIntoView({ block: "start", behavior: "smooth" });
+	element.scrollIntoView({ block: "start", behavior: "auto" });
 	return true;
 }
 
