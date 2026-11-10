@@ -393,6 +393,42 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 
 }
 
+/**
+ * In-page anchors (the TOC) jump instead of animating.
+ *
+ * `@swup/astro` runs Swup's scroll plugin with `animateScroll`, which walks the
+ * page frame by frame. Every content-visibility code block it passes has to be
+ * rendered on the way, so a 2300px jump took 1.6s with two stalls of 330ms and
+ * 480ms. A single scrollIntoView lands in one frame and keeps scroll-margin-top.
+ */
+function setupAnchorJumps(): void {
+	document.addEventListener(
+		"click",
+		(event) => {
+			if (event.defaultPrevented || event.button !== 0) return;
+			if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+			const anchor = (event.target as Element | null)?.closest?.('a[href^="#"]');
+			if (!anchor) return;
+			const hash = anchor.getAttribute("href");
+			if (!hash || hash === "#") return;
+			const id = decodeURIComponent(hash.slice(1));
+			const target = id ? document.getElementById(id) : null;
+			if (!target) return;
+
+			event.preventDefault();
+			event.stopPropagation();
+			const offset =
+				Number.parseFloat(getComputedStyle(target).scrollMarginTop) || 0;
+			const top = Math.round(
+				window.scrollY + target.getBoundingClientRect().top - offset,
+			);
+			window.scrollTo({ top, behavior: "auto" });
+			history.pushState(history.state, "", hash);
+		},
+		true,
+	);
+}
+
 /** Back-to-top is a plain native smooth scroll, like Fuwari. */
 function setupBackToTop(): void {
 	window.backToTop = () => {
@@ -415,6 +451,7 @@ function setupPageScaling(): void {
 }
 
 export function initTransitions(): void {
+	setupAnchorJumps();
 	setupBackToTop();
 	setupPageScaling();
 
