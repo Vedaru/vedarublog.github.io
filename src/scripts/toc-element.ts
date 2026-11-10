@@ -11,6 +11,8 @@ import { isScrollTweening, onScrollTweenEnd } from "./runtime/motion-state";
 class TableOfContents extends HTMLElement {
 	tocEl: HTMLElement | null = null;
 	visibleClass = "visible";
+	warmToken = 0;
+	warmTimer = 0;
 	observer: IntersectionObserver;
 	anchorNavTarget: HTMLElement | null = null;
 	headingIdxMap = new Map<string, number>();
@@ -178,6 +180,70 @@ class TableOfContents extends HTMLElement {
 		}
 	};
 
+	/**
+	 * Pre-render the code blocks a TOC entry points at while the pointer is
+	 * already resting on that entry.
+	 *
+	 * `content-visibility: auto` keeps the post cheap to open, but the first
+	 * jump into a code-heavy section has to render every block in the
+	 * destination viewport at once - measured 1015ms of layout (1779 objects)
+	 * on the nvim post. Rendering the same blocks on hover moves that cost to
+	 * a moment where a dropped frame is invisible, and the click then lands in
+	 * one frame.
+	 */
+	handleAnchorHover = (event: Event) => {
+		if (!window.matchMedia?.("(hover: hover)").matches) return;
+		const anchor = (event.target as Element | null)?.closest?.('a[href^="#"]');
+		if (!anchor || anchor.hasAttribute("data-warmed")) return;
+		const href = anchor.getAttribute("href");
+		if (!href || href === "#") return;
+		anchor.setAttribute("data-warmed", "");
+
+		// Let the pointer rest before doing any work: a sweep down the list must
+		// not warm every section it passes, and the geometry reads below cost a
+		// layout flush.
+		const token = ++this.warmToken;
+		if (this.warmTimer) window.clearTimeout(this.warmTimer);
+		this.warmTimer = window.setTimeout(() => {
+			if (token !== this.warmToken) return;
+			const target = document.getElementById(decodeURIComponent(href.slice(1)));
+			if (!target) return;
+
+			// The jump renders every block in the destination viewport at once;
+			// measured on the nvim post, a 3-viewport window around the heading
+			// covers all of them (prewarm 6 blocks -> click 1117ms -> 50ms).
+			const headingTop =
+				window.scrollY + target.getBoundingClientRect().top - 400;
+			const limit = headingTop + window.innerHeight * 3;
+			const queue = Array.from(
+				document.querySelectorAll<HTMLElement>(".expressive-code"),
+			).filter((block) => {
+				if (block.style.contentVisibility === "visible") return false;
+				const top = window.scrollY + block.getBoundingClientRect().top;
+				return top >= headingTop && top <= limit;
+			});
+
+			// One block per idle slice: each un-skip is a layout of that block,
+			// so doing them in a row would freeze the pointer resting on the
+			// entry. A newer hover cancels the queue.
+			const step = () => {
+				if (token !== this.warmToken) return;
+				const block = queue.shift();
+				if (!block || !block.isConnected) return;
+				block.style.contentVisibility = "visible";
+				if (queue.length) schedule();
+			};
+			const schedule = () => {
+				if ("requestIdleCallback" in window) {
+					requestIdleCallback(step, { timeout: 250 });
+				} else {
+					setTimeout(step, 40);
+				}
+			};
+			schedule();
+		}, 180);
+	};
+
 	handleAnchorClick = (event: Event) => {
 		const anchor = event
 			.composedPath()
@@ -205,6 +271,9 @@ class TableOfContents extends HTMLElement {
 
 		this.tocEl.addEventListener("click", this.handleAnchorClick, {
 			capture: true,
+		});
+		this.tocEl.addEventListener("pointerover", this.handleAnchorHover, {
+			passive: true,
 		});
 		this.tocEl.addEventListener("scroll", this.handleTocScroll, {
 			passive: true,
@@ -254,6 +323,7 @@ class TableOfContents extends HTMLElement {
 		this.sections.forEach((section) => this.observer.unobserve(section));
 		this.observer.disconnect();
 		this.tocEl?.removeEventListener("click", this.handleAnchorClick);
+		this.tocEl?.removeEventListener("pointerover", this.handleAnchorHover);
 		this.tocEl?.removeEventListener("scroll", this.handleTocScroll);
 		this.stopTweenListener?.();
 		this.stopTweenListener = null;
