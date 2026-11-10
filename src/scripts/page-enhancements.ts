@@ -167,10 +167,11 @@ export function primeCodeBlockSizes(): void {
 	const perLine = Number.isFinite(measured) && measured > 0 ? measured : 20.4;
 	// Frame chrome only. Measured on the nvim post: a 1-line block is 48px with
 	// 20.4px lines and an 18-line block is 395px, so the box above the lines is
-	// ~28px. Adding 56 here made every block 28px too tall, which pushed the
-	// document 334px past reality and turned each first render into a reflow of
-	// the whole page (3053 dirty objects); with the real box the same scroll
-	// only dirties the block's own subtree (~524).
+	// ~28px. The old 56px made every block 28px too tall, pushing the document
+	// 334px past its real height (10095 vs 9761), so scrolling through the post
+	// shifted everything up a little at each block. With the measured box the
+	// reserved height matches the rendered one; the cost of first rendering a
+	// block is unchanged (cold A/B: 970ms vs 968ms on the nvim post).
 	const BOX = 28;
 	for (const block of blocks) {
 		const lines = block.querySelectorAll(".ec-line").length;
