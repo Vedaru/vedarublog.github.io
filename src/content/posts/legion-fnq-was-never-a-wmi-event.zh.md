@@ -31,6 +31,8 @@ GPU 这里是基础 TGP，Dynamic Boost 还能再加最多 15 W。
 
 这套流程在 [`legion-own`](https://git.vedaru.cn/Vedaru/legion-own) 里。驱动还管 platform profile、风扇曲线、电池养护和快充，但这些和本文关系不大。
 
+::forgejo{repo="Vedaru/legion-own"}
+
 ## EC 这一侧，Pengbo 已经写过了
 
 EC 这部分不是我一个人从零摸出来的。Pengbo 在 2026 年 4 月写过 [Lenovo Legion Y9000P 在 Linux 下只有 30W：从现象、WMI 到驱动补丁](https://pengs.top/Y9000P-fix/)，把 30 W 的来龙去脉讲得很清楚。
@@ -65,9 +67,9 @@ D320289E-8FEA-41E0-86F9-611D83151B5F
 
 我可以加轮询，或者固定延迟，或者回声抑制窗口。这些东西都能让不可靠的事件看起来可靠一阵，然后驱动又和硬件不一致，通常还在更糟的时候。我不想搭这种结构。
 
-所以我放弃 Fn+Q，打算让用户自己选个键，用内核 input handler 来循环模式。没有 WMI 事件，没有固件通知，也不用猜。
+所以我放弃 Fn+Q，打算自己选个键，用内核 input handler 来循环模式。没有 WMI 事件，没有固件通知，也不用猜。
 
-我让用户按一个键，开始抓输入。
+我自己按了一个键，开始抓输入。
 
 ## “不对，那就是 Fn+Q”
 
@@ -81,7 +83,7 @@ keycode=193   # KEY_F24
 
 我以为是某个宏键：三个修饰键，最后跟一个 F24。于是绑了 `KEY_F24`，结果每次都灵。
 
-然后用户说，不对，那就是 Fn+Q。就是我让他按的那个键。
+然后我才反应过来：我刚才按的就是 Fn+Q，就是我折腾了好几天的那个键。
 
 这台机器上的 Fn+Q 根本不是 ACPI 事件。它是一个键盘宏，发出 `Super+Shift+F24`。EC 可能仍然会在固件里响应，但这个键每次都会以普通输入事件的形式到达 Linux。WMI 事件只是同一件事的第二份通知，而且不可靠。
 
@@ -133,7 +135,7 @@ static void fnq_workfn(struct work_struct *work)
 }
 ```
 
-用户连按两次时，这一点很关键。EC 可能还在应用第一次的模式。如果 handler 读 `actual_mode`，它可能从一个已经落后一步的值继续走。`requested_mode` 是用户刚刚改过的值，下一次按键应该从它往前走。
+我连按两次时，这一点很关键。EC 可能还在应用第一次的模式。如果 handler 读 `actual_mode`，它可能从一个已经落后一步的值继续走。`requested_mode` 是我刚刚改过的值，下一次按键应该从它往前走。
 
 input handler 需要一个 device ID 表。它不用匹配某一块特定键盘：所有带 `EV_KEY` 的设备都是候选，具体按键由回调过滤。
 

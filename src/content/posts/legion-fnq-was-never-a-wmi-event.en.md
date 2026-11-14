@@ -31,6 +31,8 @@ The annoying part is that the EC only accepts CPU power-limit writes in `custom`
 
 That sequence lives in [`legion-own`](https://git.vedaru.cn/Vedaru/legion-own). It also does platform profiles, fan curves, battery conservation and rapid charge, but none of that matters here.
 
+::forgejo{repo="Vedaru/legion-own"}
+
 ## Someone else already mapped the firmware
 
 I did not figure out the EC side from scratch. Pengbo wrote [Lenovo Legion Y9000P 在 Linux 下只有 30W：从现象、WMI 到驱动补丁](https://pengs.top/Y9000P-fix/) in April 2026, and it is still the clearest description I have found of what this machine's firmware is doing.
@@ -65,9 +67,9 @@ I tried the official notifier for a while. It behaved exactly the same way. When
 
 I could have added a poll. Or a fixed delay. Or an echo-suppression window. All of those make an unreliable event look reliable for a while, and then the driver disagrees with the hardware again, usually at a worse moment. I did not want to build that.
 
-So I gave up on Fn+Q. I would let the user pick another key and handle it in the kernel. No WMI event, no firmware notification, no guessing.
+So I gave up on Fn+Q. I would pick another key and handle it in the kernel. No WMI event, no firmware notification, no guessing.
 
-I asked for a key press and started capturing input events.
+I picked a key and started capturing input events.
 
 ## "No, that is Fn+Q"
 
@@ -81,7 +83,7 @@ keycode=193   # KEY_F24
 
 I thought I was looking at a macro key. Three modifiers and an F24 at the end. I bound `KEY_F24` and it worked every time.
 
-Then the user said: no, that is Fn+Q. That was the key I had asked them to press.
+Then it clicked. The key I had just pressed was Fn+Q. The one I had spent days trying to fix.
 
 So Fn+Q on this machine is not an ACPI event at all. It is a keyboard macro that emits `Super+Shift+F24`. The EC may still react to it inside the firmware, but the key reaches Linux as a normal input event on every press. The WMI notification was a second, optional, unreliable copy of the same information.
 
@@ -133,7 +135,7 @@ static void fnq_workfn(struct work_struct *work)
 }
 ```
 
-This matters when the user presses the key twice quickly. The EC may still be applying the first mode. If the handler reads `actual_mode`, it can advance from a value that is already one step behind. `requested_mode` is the thing the user just changed, so that is what the next press should advance.
+This matters when I hit the key twice quickly. The EC may still be applying the first mode. If the handler reads `actual_mode`, it can advance from a value that is already one step behind. `requested_mode` is the thing I just changed, so that is what the next press should advance.
 
 The input handler needs a device ID table. It does not need to match a specific keyboard; every input device with `EV_KEY` is a candidate, and the event callback filters for F24.
 
