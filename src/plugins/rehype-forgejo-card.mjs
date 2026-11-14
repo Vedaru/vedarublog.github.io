@@ -41,9 +41,9 @@ async function fetchRepo(repo) {
 
 function buildForgejoCard(repo, data, overrides = {}) {
 	const [owner, name] = repo.split("/");
-	const avatar = data?.owner?.avatar_url;
+	const avatar = overrides.avatar || data?.owner?.avatar_url;
 	const description = cleanDescription(
-		data?.description,
+		overrides.description || data?.description,
 		"Repository on git.vedaru.cn",
 	);
 	const license =
@@ -130,6 +130,8 @@ export function rehypeForgejoCard() {
 				const data = await fetchRepo(repo);
 				parent.children[index] = buildForgejoCard(repo, data, {
 					license: String(node.properties?.license || ""),
+					avatar: String(node.properties?.avatar || ""),
+					description: String(node.properties?.description || ""),
 				});
 			}),
 		);

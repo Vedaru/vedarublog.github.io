@@ -31,7 +31,7 @@ The annoying part is that the EC only accepts CPU power-limit writes in `custom`
 
 That sequence lives in [`legion-own`](https://git.vedaru.cn/Vedaru/legion-own). It also does platform profiles, fan curves, battery conservation and rapid charge, but none of that matters here.
 
-::forgejo{repo="Vedaru/legion-own"}
+::forgejo{repo="Vedaru/legion-own" avatar="/images/vedaru-avatar.webp" description="Out-of-tree Lenovo Legion thermal driver"}
 
 ## Someone else already mapped the firmware
 

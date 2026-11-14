@@ -31,7 +31,7 @@ GPU 这里是基础 TGP，Dynamic Boost 还能再加最多 15 W。
 
 这套流程在 [`legion-own`](https://git.vedaru.cn/Vedaru/legion-own) 里。驱动还管 platform profile、风扇曲线、电池养护和快充，但这些和本文关系不大。
 
-::forgejo{repo="Vedaru/legion-own"}
+::forgejo{repo="Vedaru/legion-own" avatar="/images/vedaru-avatar.webp" description="联想 Legion 的 Linux 内核驱动"}
 
 ## EC 这一侧，Pengbo 已经写过了
 
