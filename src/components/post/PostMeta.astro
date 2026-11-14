@@ -8,7 +8,7 @@ import { getCategoryUrl, getTagUrl } from "../../utils/url-utils";
 import { localePrefix } from "@i18n/locales";
 import { normalizeLocale } from "../../i18n/translation";
 
-// 归档筛选链接要跟随页面语言（英文 /en/archive/?tag=...），否则中文页点标签
+// 归档筛选链接要跟随页面语言（英文 /en/archive/tag/...），否则中文页点标签
 // 正确，英文页点标签会被拽回中文归档页。
 const prefix = localePrefix(normalizeLocale(Astro.currentLocale));
 

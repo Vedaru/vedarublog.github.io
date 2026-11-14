@@ -1,16 +1,31 @@
 ---
-import ArchivePanel from "@components/features/archive/ArchivePanel.svelte";
+import ArchivePanel from "@components/features/archive/ArchivePanel.astro";
 import I18nKey from "@i18n/i18nKey";
 import { i18n, normalizeLocale } from "@i18n/translation";
 import MainGridLayout from "@layouts/MainGridLayout.astro";
+import {
+	filterArchivePosts,
+	type ArchiveFilterKind,
+} from "@utils/archive-utils";
 import { getSortedPostsList } from "@utils/content-utils";
 
+interface Props {
+	kind?: ArchiveFilterKind;
+	value?: string;
+}
+
+const { kind, value } = Astro.props;
+const locale = normalizeLocale(Astro.currentLocale);
+
 const sortedPostsList = await getSortedPostsList(
-	normalizeLocale(Astro.currentLocale),
+	locale,
 );
+const filteredPosts = kind
+	? filterArchivePosts(sortedPostsList, kind, value)
+	: sortedPostsList;
 
 // 1. 修复类型兼容性：将 category 的 null 转换为 undefined
-const posts = sortedPostsList.map((post) => ({
+const posts = filteredPosts.map((post) => ({
 	id: post.id,
 	url: post.url,
 	data: {
@@ -20,11 +35,16 @@ const posts = sortedPostsList.map((post) => ({
 		published: post.data.published,
 	},
 }));
+
+const title = kind
+	? `${i18n(I18nKey.archive, Astro.currentLocale)} · ${
+			kind === "uncategorized"
+				? i18n(I18nKey.uncategorized, Astro.currentLocale)
+				: value
+		}`
+	: i18n(I18nKey.archive, Astro.currentLocale);
 ---
 
-<MainGridLayout title={i18n(I18nKey.archive, Astro.currentLocale)} dualLocale>
-
-	<!-- 列表在服务端渲染（client:load 而非 client:only），首屏即有内容：
-	     既避免 hydration 后才插入列表造成的下移/跳动，也利于 SEO。 -->
-	<ArchivePanel sortedPosts={posts} locale={Astro.currentLocale} client:idle />
+<MainGridLayout title={title} dualLocale>
+	<ArchivePanel sortedPosts={posts} locale={Astro.currentLocale} />
 </MainGridLayout>

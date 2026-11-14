@@ -86,7 +86,7 @@ export function localizeInternalHref(href: string, locale?: string): string {
 
 export function getTagUrl(tag: string, prefix = ""): string {
 	if (!tag) return url(`${prefix}/archive/`);
-	return url(`${prefix}/archive/?tag=${encodeURIComponent(tag.trim())}`);
+	return url(`${prefix}/archive/tag/${encodeURIComponent(tag.trim())}/`);
 }
 
 export function getCategoryUrl(category: string | null, prefix = ""): string {
@@ -98,8 +98,10 @@ export function getCategoryUrl(category: string | null, prefix = ""): string {
 		category.trim().toLowerCase() ===
 			i18n(I18nKey.uncategorized).toLowerCase()
 	)
-		return url(`${prefix}/archive/?uncategorized=true`);
-	return url(`${prefix}/archive/?category=${encodeURIComponent(category.trim())}`);
+		return url(`${prefix}/archive/uncategorized/`);
+	return url(
+		`${prefix}/archive/category/${encodeURIComponent(category.trim())}/`,
+	);
 }
 
 export function getFileDirFromPath(filePath: string): string {

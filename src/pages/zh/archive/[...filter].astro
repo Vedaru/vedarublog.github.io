@@ -1,0 +1,12 @@
+---
+import ArchivePage from "@components/pages/ArchivePage.astro";
+import { getArchiveFilterPaths } from "@utils/archive-utils";
+
+export function getStaticPaths() {
+	return getArchiveFilterPaths("zh");
+}
+
+const { kind, value } = Astro.props;
+---
+
+<ArchivePage kind={kind} value={value} />
