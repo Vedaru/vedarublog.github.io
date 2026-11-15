@@ -65,32 +65,36 @@ same class. A single 4x-throttled layout of the first viewport is larger than
 the 2-frame budget; avoiding it requires deferring above-fold content, which
 is explicitly not allowed.
 
-### Raster
+### Navbar raster: negative result
 
-At 1x CPU, uncapped, the banner layer is now only 3-4 RasterTask events
-(3-7ms) in a whole transition. The per-frame source was the navbar's
-transparent text and icons composited over the moving banner: hiding
-`#top-row` in a control probe dropped RasterTask from ~360 to 32. The navbar
-now uses the base solid surface only while `is-layout-moving` runs, snaps
-without the 300ms surface transition, and returns to the configured
-semi/full/semifull surface at settle. The settled first screen is
-pixel-identical (0 differing pixels).
+At 1x uncapped the per-frame raster source is the navbar's transparent text
+and icons composited over the moving banner. Hiding `#top-row` in a control
+probe dropped RasterTask from ~360 to 32. The navbar has 368 DOM elements
+against Fuwari's 100. The banner layer itself is only 3-4 tasks.
 
-| 1x uncapped RasterTask | before (owner trace) | after (slide trace) |
-| --- | ---: | ---: |
-| home → post, total | 2148 / 391.7ms | **95 / 11.4ms** |
-| home → post, 200-900ms | n/a | **80 / 10.3ms** |
-| home → post, after 900ms | n/a | **0** |
-| post → home, total | 2344 / 346.2ms | **375 / 21.0ms** |
-| post → home, 200-900ms | n/a | **205 / 13.5ms** |
-| post → home, after 900ms | n/a | **154 / 6.2ms** |
+The pixel requirement cannot be met by a colour-preserving navbar change.
+With no navigation, the top 120 CSS px is 0.0 mean / 1 max channel difference
+after 120ms. With the unmodified transparent navbar, the moving banner alone
+produces:
 
-The post → home tail is the configured `semifull` navbar returning to its
-transparent surface after settle; it is not the banner. A measurement-only
-permanently solid home navbar gives 44 tasks / 5.6ms total but changes the
-configured transparent design, so it is not applied. The during-slide target
-(<300 tasks / <80ms) is met in both directions, and the banner bitmap is not
-re-rastered per frame.
+| Band vs pre-click | 0ms | 60ms | 120ms | 200ms | 320ms |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| home → post mean abs | 1.37 | 4.15 | **7.09** | 12.8 | 14.5 |
+| home → post max channel | 106 | 120 | **120** | 118 | 112 |
+| post → home mean abs | 2.12 | 3.31 | **4.25** | 5.08 | 6.84 |
+| post → home max channel | 150 | 151 | **158** | 138 | 138 |
+
+The solid slide surface was rejected: at 120ms it measured mean 29.1 / max
+133 and regressed home → post 1x p95 from 1.6 to 16.9ms. It is reverted.
+
+A colour-preserving `will-change: transform` layer on `#navbar-wrapper` kept
+the settled pixels and the slide band identical to the transparent control
+(same mean 7.09 at 120ms), and reduced home → post RasterTask from 388 / 26.6ms
+to 294 / 26.2ms with 1x p95 1.9ms. Post → home was 280-347 / 20ms across two
+runs. It cannot satisfy mean <2 while the banner moves under a transparent
+navbar; only a solid or frozen navbar band can, and both are visible changes.
+The layer was therefore not merged. Restored control: home → post 1x p95
+1.6ms, Raster 388 / 26.6ms; post → home 1.8ms, Raster 250 / 20.8ms.
 
 What changed:
 
