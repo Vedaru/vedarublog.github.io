@@ -63,8 +63,11 @@ export default defineConfig({
 	output: "static",
 
 	build: {
-		// auto：大 CSS 外链并可跨页缓存；always 会撑大 HTML，且破坏 fancybox/katex 动态 CSS
-		inlineStylesheets: "auto",
+		// Inline the initial bundle: it removes the one render-blocking 73KB
+		// stylesheet. Cold Fast 3G + 4x CPU: FCP 2236 -> 1320ms, LCP 4164 ->
+		// 3456ms, load 7094 -> 6038ms. Fancybox/KaTeX are lazy URL imports and
+		// stay as separate CSS files (verified in dist and their JS modules).
+		inlineStylesheets: "always",
 	},
 
 	integrations: [

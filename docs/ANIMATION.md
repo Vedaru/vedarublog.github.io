@@ -78,6 +78,24 @@ What changed:
 - The fade duration is scoped to `#swup-container`; the layout-slide path no
   longer writes inherited custom properties on `#main-grid`.
 
+### Load path
+
+The initial CSS bundle is the only render-blocking resource. Inlining it
+removes that request; Fancybox and KaTeX keep their separate lazy CSS files.
+Cold load, Fast 3G + 4x CPU:
+
+| Cold load | Before | After |
+| --- | ---: | ---: |
+| render-blocking requests | 1 (73KB, 1.9s) | **0** |
+| first contentful paint | 2236ms | **1320ms** |
+| largest contentful paint | 4164ms | **3456ms** |
+| load | 7094ms | **6038ms** |
+
+The 341KB Microsoft YaHei WOFF2 remains a bandwidth competitor for the banner
+on the first load, but it is `font-display: swap` and does not block FCP. The
+banner stays eager, `fetchpriority=high`, with a matching `<link rel=preload
+as=image>`; no content is lazy-loaded.
+
 ## What this site did instead
 
 Measured with Chrome for Testing at 4x CPU throttle (a mid-range phone):
