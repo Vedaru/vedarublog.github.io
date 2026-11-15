@@ -68,6 +68,17 @@
 	transition: transform var(--layout-slide-duration)
 		cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* Our banner image is much larger than Fuwari's demo banner. Without the hint
+   the browser re-rasterizes the two banner layers on every frame of the slide
+   (measured 57 RasterTask events against Fuwari's 22); keeping these two
+   layers promoted brings it to 33. The hint cannot wait for visit:start: the
+   promotion itself is what has to happen before the first frame. */
+#banner-wrapper,
+#banner {
+	will-change: transform;
+}
+
 body.no-banner-mode #banner-wrapper {
 	display: none;
 }

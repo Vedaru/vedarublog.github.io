@@ -169,9 +169,11 @@ Rules for future changes:
   pages. Both use the same 700ms curve as `#main-grid`. Do not give the image
   its own duration or easing. The wrapper's transition must include `opacity`
   for the mobile hide; without it the banner disappears in one frame while
-  the transform animates. Do not add `backface-visibility` or `will-change`
-  to these layers: Fuwari does not, and a forced 3D layer makes the browser
-  resample the banner bitmap independently of the grid while it slides.
+  the transform animates. Keep `will-change: transform` on the two banner
+  layers: our banner image is much larger than Fuwari's, and without the hint
+  the compositor re-rasterizes them every frame of the slide (57 RasterTask
+  events against Fuwari's 22; 32 with the hint). Do not add
+  `backface-visibility`, and do not put the hint on the grid.
 - `backdrop-filter` on the navbar is allowed only when the page is idle
   (`html:not(.is-changing):not(.is-animating)`) and on desktop. The navbar
   transparency itself is CSS-only in `src/styles/navbar.css`; the transition
