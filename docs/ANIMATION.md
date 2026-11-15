@@ -96,6 +96,30 @@ navbar; only a solid or frozen navbar band can, and both are visible changes.
 The layer was therefore not merged. Restored control: home → post 1x p95
 1.6ms, Raster 388 / 26.6ms; post → home 1.8ms, Raster 250 / 20.8ms.
 
+### Markdown deferral: removal experiment (negative result)
+
+Removing the section-level `content-visibility`/`contain-intrinsic-size`,
+the code-block deferral, and loading the code font in the initial CSS does
+not produce a compliant state:
+
+- Without any markdown deferral, the 1x pacing still passes (home → post
+  p95 1.1ms, post → home 1.4ms), but 60Hz 4x home → post regresses to p95
+  33.3ms / p99 166.7ms. The long tasks are 140ms at 308ms and 84ms at 452ms,
+  the full layout/style of the destination code blocks.
+- The scroll audit is unchanged by the removal: scrollHeight still goes
+  4286 → 4698, CLS 0.0135, and a 257ms long task appears. The layout-shift
+  source is `DIV.card-base comment-card p-6 mb-4`, the below-fold comment
+  card lazily mounting Twikoo, not markdown. Loading the code font eagerly
+  (4.5KB data URI) did not change this.
+- Restoring the deferral restores 60Hz home → post p95 16.8ms, but leaves
+  the comment-card scroll shift. Option (b) therefore needs exact code-block
+  heights, including wrapped visual lines, plus a comment-height strategy;
+  the current estimates cannot guarantee ±2px.
+
+The removal experiment was reverted. HEAD keeps the existing markdown
+deferral and does not claim a scroll-stability fix. This item has no
+compliant code change yet.
+
 What changed:
 
 - The first viewport of markdown is eager. Below-viewport sections get
