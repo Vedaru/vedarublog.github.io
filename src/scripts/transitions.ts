@@ -24,6 +24,7 @@ import { setScrollTweening } from "./runtime/motion-state";
 import {
 	cancelEnhancements,
 	primeCodeBlockSizes,
+	primeMarkdownBlockSizes,
 	scheduleEnhancements,
 } from "./page-enhancements";
 import "./runtime/comment-boot";
@@ -168,6 +169,7 @@ let hooksRegistered = false;
 let knownScrollY: number | null = null;
 let layoutMovePromise: Promise<void> | null = null;
 let contentDelayCleared = false;
+let pendingScrollTweenMs = 0;
 
 const LAYOUT_FALLBACK_MS = 900;
 /** Must match --layout-slide-duration in layout-stable.css. */
@@ -350,7 +352,7 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		// Remove the entrance-animation stagger for subsequent pages once.
 		// The grid survives the swap; writing to <html> would invalidate the
 		// whole document on the click path.
-		if (!contentDelayCleared) {
+		if (!contentDelayCleared && !layoutSlides) {
 			const grid = document.getElementById("main-grid");
 			if (grid) {
 				grid.style.setProperty("--content-delay", "0ms");
@@ -376,14 +378,19 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 			if (visit.scroll) visit.scroll.reset = false;
 			scrollY = 0;
 		}
-		// Scope the duration to the grid: writing to <html> would invalidate the
-		// whole document on the click path.
-		document
-			.getElementById("main-grid")
-			?.style.setProperty(
-				"--scroll-tween-duration",
-				`${tweenDuration || 200}ms`,
-			);
+		// The layout slide's fade is the base 200ms rule, so it does not read
+		// this variable. On a non-slide visit, scope it to the fade element
+		// instead of the grid: a custom property on the grid inherits into every
+		// sidebar and content node and dirties them on the click path.
+		pendingScrollTweenMs = layoutSlides ? 0 : tweenDuration || 200;
+		if (pendingScrollTweenMs > 0) {
+			document
+				.getElementById("swup-container")
+				?.style.setProperty(
+					"--scroll-tween-duration",
+					`${pendingScrollTweenMs}ms`,
+				);
+		}
 
 		// Start the marker and the transform together, after the scroll has
 		// settled. The marker has to be present before the body flip so the
@@ -424,10 +431,21 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		// swap, which forced a 50-64ms style recalc on the live page (trace:
 		// `primeCodeBlockSizes` -> `UpdateLayoutTree` at content:replace).
 		primeCodeBlockSizes(incoming);
+		primeMarkdownBlockSizes(incoming);
 	});
 
 	swup.hooks.on("content:replace", (visit: Visit) => {
 		const isHome = isHomeVisit(visit);
+		// Re-apply the fade duration to the new container; the old one was
+		// replaced and the grid-scoped variable is intentionally gone.
+		if (pendingScrollTweenMs > 0) {
+			document
+				.getElementById("swup-container")
+				?.style.setProperty(
+					"--scroll-tween-duration",
+					`${pendingScrollTweenMs}ms`,
+				);
+		}
 		// Mobile banner visibility is a layout property. Commit it together
 		// with the content it describes, before the incoming fade starts.
 		contentIsHome = isHome;

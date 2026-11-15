@@ -208,6 +208,47 @@ export function primeCodeBlockSizes(root: ParentNode = document): void {
 	}
 }
 
+/**
+ * Keep the first viewport's markdown eager, but let sections that start below
+ * it skip layout/paint until they are approached. This is a rendering hint,
+ * not a network or mount deferral: the HTML is already in the document. The
+ * size estimate keeps the scroll height and TOC targets close until the real
+ * section renders, and `auto` remembers the measured height afterwards.
+ */
+export function primeMarkdownBlockSizes(root: ParentNode = document): void {
+	const blocks = root.querySelectorAll<HTMLElement>(
+		".markdown-content > section > *",
+	);
+	if (blocks.length === 0) return;
+	const perLine = codeLineHeight ?? 24;
+	const width = Math.min(816, Math.max(280, window.innerWidth - 48));
+	const charsPerLine = Math.max(28, Math.floor(width / 9));
+	const lineHeight = 28;
+	let top = 505; // post content begins under the content-page banner
+	for (const block of blocks) {
+		const codeBlocks = block.querySelectorAll(".expressive-code").length;
+		const codeLines = block.querySelectorAll(".ec-line").length;
+		let codeText = 0;
+		block.querySelectorAll(".ec-line").forEach((line) => {
+			codeText += (line.textContent || "").length;
+		});
+		const textLines = Math.ceil(
+			Math.max(0, (block.textContent || "").length - codeText) /
+				charsPerLine,
+		);
+		const estimate =
+			48 +
+			textLines * lineHeight +
+			codeBlocks * 32 +
+			codeLines * perLine;
+		if (top > window.innerHeight && !block.style.contentVisibility) {
+			block.style.contentVisibility = "auto";
+			block.style.containIntrinsicSize = `auto ${Math.round(estimate)}px`;
+		}
+		top += estimate;
+	}
+}
+
 // ── Boot ───────────────────────────────────────────────────────────────────
 function bootEnhancements(token: number): void {
 	primeCodeBlockSizes();
