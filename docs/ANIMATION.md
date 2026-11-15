@@ -46,16 +46,20 @@ ends the browser returns to a 60Hz idle cadence (idle p95 17.8ms).
 
 | Uncapped | Before | After |
 | --- | ---: | ---: |
-| during-slide p95 | 10.6ms | **7.2ms** |
-| during-slide p99 | 51.7ms | **33.9ms** |
-| during-slide max | 163.7ms | **97.2ms** |
+| home → post during-slide p95 | 10.6ms | **7.2ms** |
+| home → post during-slide p99 | 51.7ms | **33.9ms** |
+| home → post during-slide max | 163.7ms | **97.2ms** |
+| post → home during-slide p95 | 7.9ms | **7.8ms** |
+| post → home during-slide p99 | 37.0ms | **40.5ms** |
 | whole-window p95 | 17.5ms | 17.4ms |
 
-The remaining 97ms stall is one destination-content style/layout task.
-Hiding the navbar and both sidebars still leaves a ~101ms content-only task
-on the same page, and Fuwari's destination has 77ms/60ms/76ms tasks of the
-same class. A single 4x-throttled layout of the new post is larger than the
-2-frame budget; it is not repeated transition work.
+The remaining stall is the eager first viewport of the destination, not
+repeated transition work. In a measurement-only run with the navbar and both
+sidebars `display:none`, the destination content alone still has a 52ms long
+task at 4x (p99 66.6ms). Fuwari's destination has 77ms/60ms/76ms tasks of the
+same class. A single 4x-throttled layout of the first viewport is larger than
+the 2-frame budget; avoiding it requires deferring above-fold content, which
+is explicitly not allowed.
 
 The raster count is structural rather than a hot transition layer: the post
 page has 1487 DOM elements against Fuwari's 564 (sidebar 270 vs 25, navbar
