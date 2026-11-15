@@ -79,9 +79,15 @@ html.is-animating:not(.is-layout-moving) .transition-swup-fade {
 
 /* Main components */
 .onload-animation {
-	opacity: 0;
-	animation: 300ms fade-in-up;
-	animation-fill-mode: forwards;
+	/*
+	 * `backwards` supplies the 0% frame before and during the animation, then
+	 * hands the element back to its base style. `forwards` kept every animated
+	 * element at `transform: translateY(0)` for the life of the page, which
+	 * promoted the sidebar and content to their own compositor layers, cost
+	 * subpixel text AA and made sticky descendants clamp in a transformed
+	 * space. The 100% keyframe and the base style are visually identical.
+	 */
+	animation: 300ms fade-in-up backwards;
 }
 #swup-container {
 	outline: none;

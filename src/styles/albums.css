@@ -11,7 +11,7 @@
 
 /* 照片网格布局 */
 .photo-gallery {
-  animation: fade-in-up-sm 0.6s ease-out;
+  animation: fade-in-up-sm 0.6s ease-out backwards;
 }
 
 .photo-item {

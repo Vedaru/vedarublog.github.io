@@ -283,8 +283,10 @@ function hostnameOf(url: string): string {
 <style>
 	/* 友链卡片动画 */
 	.friend-card {
-		animation: fade-in-up-sm 0.5s ease-out forwards;
-		opacity: 0;
+		/* backwards, not forwards: after the entrance the card returns to its
+		   base style, so hover transforms are not pinned to the end frame and
+		   the card is not left on a permanent compositor layer. */
+		animation: fade-in-up-sm 0.5s ease-out backwards;
 	}
 
 	.friend-card:nth-child(1) {

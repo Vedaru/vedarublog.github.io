@@ -81,10 +81,16 @@ The early `is-animating` removal makes Swup's later removal a no-op and avoids
 a full-document style recalculation in the middle of the transform.
 
 Both sidebars stay sticky and visible, outside the Swup fade container. Their
-only animated property is the sticky `top` compensation, which starts after
-the pre-scroll has finished and uses the same 700ms curve as the grid and
-banner. They are never switched to static positioning and never receive
-opacity or content-fade animations.
+only animated property is the sticky `top` compensation. It is declared
+unconditionally with the same 700ms curve as the grid and banner, because it
+is compensation for the grid's own translate and changes on exactly the frames
+the transform changes. Snapping it is wrong: a transform on `#main-grid` makes
+sticky clamp in the grid's local space, so a snapped offset clamps an unpinned
+sidebar into the new offset's band for a frame and its top edge visibly jumps.
+Animating both properties on the same clock keeps `top + translate` - the
+rendered pin position - constant for pinned sidebars, on normal visits and
+back/forward alike. The sidebars are never switched to static positioning and
+never receive opacity or content-fade animations.
 
 There is no `#page-height-extend`. A 300vh tail kept the old scroll alive but
 added thousands of pixels of blank scroll below the footer on a tall
@@ -133,6 +139,15 @@ Rules for future changes:
 - Do not animate layout properties (`top`, `height`, `width`) inside
   `#main-grid` while the grid is transformed, except the two sticky sidebars'
   deliberate `top` compensation.
+- Keep the mobile banner / `.main-panel` swap (`setBannerVisibility`) on the
+  committed content state, not on `body.is-home`. The body class flips at
+  `visit:start` for the transform, but a `resize` during the visit (the mobile
+  address bar) would then move the outgoing page's top edge mid-fade.
+- Entrance animations use `animation-fill-mode: backwards`, never `forwards`.
+  A forwards fill leaves `transform: translateY(0)` (or the last keyframe) on
+  the element for the life of the page: that promotes it to a compositor
+  layer, costs subpixel text AA, and makes sticky descendants clamp in a
+  transformed space. The base style must already be the 100% state.
 - Do not switch the sidebars to `position: static` or fade them during a
   visit. They remain sticky and visible; only their `top` transitions.
 - Keep the grid's `top` derived from

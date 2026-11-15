@@ -36,6 +36,19 @@ interface Visit {
 
 const HTML = document.documentElement;
 
+/**
+ * Whether the *committed* content is the home page.
+ *
+ * `body.is-home` is a transition-time state: it flips at `visit:start` so the
+ * 700ms transform starts on the click frame. Anything that is a layout change
+ * instead of a transform (the mobile banner/`main-panel` swap) has to follow
+ * the content, which only changes at `content:replace`. Deriving the mobile
+ * layout from `body.is-home` made a resize in the middle of a visit flip
+ * `.main-panel` between the banner height and 6.5rem while the outgoing page
+ * was still fading, which reads as the top edge jumping.
+ */
+let contentIsHome = document.body.classList.contains("is-home");
+
 function isHomeVisit(visit: Visit): boolean {
 	return isMainHomePage(pathFromUrl(visit.to.url));
 }
@@ -112,32 +125,7 @@ function updateNavbarChrome(scrollY: number): void {
 	navbar.style.setProperty("--semifull-fade", fade);
 }
 
-/**
- * Mark each sidebar while `position: sticky` is actually pinning it.
- *
- * Pinned means the rendered top equals the sticky offset plus the grid's own
- * translate (the grid moves down 30vh on home). The CSS only transitions `top`
- * while pinned: unpinned, `top` has no visual effect but still relaid the
- * sidebar out on every frame of a page transition.
- */
-function updateSidebarStuck(): void {
-	const grid = document.getElementById("main-grid");
-	const gridShift = grid
-		? new DOMMatrixReadOnly(getComputedStyle(grid).transform).m42
-		: 0;
-	for (const id of ["sidebar-sticky", "right-sidebar-sticky"]) {
-		const element = document.getElementById(id);
-		if (!element) continue;
-		const top = Number.parseFloat(getComputedStyle(element).top) || 0;
-		// Slack for sub-pixel rounding: the pinned box can sit a pixel or two
-		// above the offset, but never below it while sticky is engaged.
-		const pinned = element.getBoundingClientRect().top - (top + gridShift) <= 2;
-		element.classList.toggle("is-stuck", pinned);
-	}
-}
-
 function updateScrollChrome(scrollY = getScrollY()): void {
-	updateSidebarStuck();
 	const bannerEnabled = document.body.classList.contains("enable-banner");
 	const bannerHeight = window.innerHeight * (BANNER_HEIGHT / 100);
 
@@ -270,7 +258,10 @@ function startScrollToTop(lockTo = 0): number {
 	const step = (now: number) => {
 		if (!started) started = now;
 		const progress = Math.min(1, Math.max(0, (now - started) / DURATION));
-		window.scrollTo(0, Math.round(startY * (1 - easeOutCubic(progress))));
+		// Leave the value fractional. Rounding to whole CSS pixels turns the
+		// tail of the ease into a visible 1px staircase on high-DPI screens,
+		// where the compositor can resolve half-pixel steps.
+		window.scrollTo(0, startY * (1 - easeOutCubic(progress)));
 		if (progress < 1) {
 			scrollTweenFrame = requestAnimationFrame(step);
 		} else {
@@ -389,9 +380,10 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		// Give the freshly inserted code blocks their real size before the
 		// first layout, so the document does not keep growing under the reader.
 		primeCodeBlockSizes();
-		// Mobile banner visibility is a layout property. Apply it before the
-		// incoming fade starts, after the outgoing slide has finished.
-		setBannerVisibility(isHome);
+		// Mobile banner visibility is a layout property. Commit it together
+		// with the content it describes, before the incoming fade starts.
+		contentIsHome = isHome;
+		setBannerVisibility(contentIsHome);
 	});
 
 	swup.hooks.on("animation:in:await", () => {
@@ -490,15 +482,17 @@ export function initTransitions(): void {
 		"resize",
 		() => {
 			updateScrollChrome();
-			setBannerVisibility(
-				document.body.classList.contains("is-home"),
-			);
+			// A resize can change the viewport category (>= 1280 or not), so
+			// re-sync the mobile class from the committed content. Using
+			// `body.is-home` here would apply the next page's layout as soon as
+			// the visit starts, moving `.main-panel` mid-fade.
+			setBannerVisibility(contentIsHome);
 		},
 		{ passive: true },
 	);
 
 	updateScrollChrome();
-	setBannerVisibility(document.body.classList.contains("is-home"));
+	setBannerVisibility(contentIsHome);
 
 	if (window.swup?.hooks) {
 		setup(window.swup);
