@@ -22,8 +22,6 @@ import { isMainHomePage, pathFromUrl } from "../utils/route-utils";
 import { setScrollTweening } from "./runtime/motion-state";
 import {
 	cancelEnhancements,
-	primeCodeBlockSizes,
-	primeMarkdownBlockSizes,
 	scheduleEnhancements,
 } from "./page-enhancements";
 import "./runtime/comment-boot";
@@ -425,12 +423,6 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 			}
 		});
 
-		// Size the incoming code blocks while they are still detached. The same
-		// inline `contain-intrinsic-size` values used to be written after the
-		// swap, which forced a 50-64ms style recalc on the live page (trace:
-		// `primeCodeBlockSizes` -> `UpdateLayoutTree` at content:replace).
-		primeCodeBlockSizes(incoming);
-		primeMarkdownBlockSizes(incoming);
 	});
 
 	swup.hooks.on("content:replace", (visit: Visit) => {

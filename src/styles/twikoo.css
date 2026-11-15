@@ -157,6 +157,9 @@ Make the emoji component display correctly when there are too many emoji packs
 .comment-card {
   min-width: 0;
   max-width: 100%;
+  /* Reserve the mounted comment card's height so Twikoo's approach-time mount
+     cannot grow the page. Measured 512px on the current post at 1440x900. */
+  min-height: 512px;
   overflow-x: clip;
   overflow-y: visible;
   view-transition-name: twikoo-comments;

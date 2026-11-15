@@ -34,6 +34,9 @@ import playlistJson from "../../public/assets/music/playlist.json";
 import "../styles/variables.styl";
 import "../styles/main.css";
 import "../styles/panel-animations.css";
+// The code font is a 4.5KB data-URI face. Keep it in the initial CSS so code
+// blocks never swap fonts and change their metrics after the article mounts.
+import "@fontsource-variable/jetbrains-mono/wght.css";
 
 const shellCriticalCss = readFileSync(
 	join(process.cwd(), "public/assets/css/shell-critical.css"),

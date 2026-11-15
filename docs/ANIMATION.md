@@ -28,7 +28,7 @@ Production build (`pnpm build` + `astro preview`), 1440x900 dpr2, 4x CPU
 throttle. The same external harness was used before and after. Fuwari is the
 reference measured on the same machine.
 
-| Path / metric | Before (`2808426`) | After (`486b9cb`) | Fuwari |
+| Path / metric | Before (`2808426`) | After (`486b9cb`, intermediate) | Fuwari |
 | --- | ---: | ---: | ---: |
 | home → post p95 gap | 49.9ms | **16.8ms** | 33.3ms |
 | home → post p99 gap | 166.7ms | **100ms** | 116.6ms |
@@ -48,7 +48,7 @@ At 120Hz (`--disable-frame-rate-limit`), frame gaps during the 0-900ms
 transition are the relevant number. Overall p95 is not: after the transform
 ends the browser returns to a 60Hz idle cadence (idle p95 17.8ms).
 
-| Uncapped | Before | After |
+| Uncapped (intermediate, `486b9cb`) | Before | After |
 | --- | ---: | ---: |
 | home → post during-slide p95 | 10.6ms | **7.2ms** |
 | home → post during-slide p99 | 51.7ms | **33.9ms** |
@@ -96,37 +96,41 @@ navbar; only a solid or frozen navbar band can, and both are visible changes.
 The layer was therefore not merged. Restored control: home → post 1x p95
 1.6ms, Raster 388 / 26.6ms; post → home 1.8ms, Raster 250 / 20.8ms.
 
-### Markdown deferral: removal experiment (negative result)
+### Final article and comment policy
 
-Removing the section-level `content-visibility`/`contain-intrinsic-size`,
-the code-block deferral, and loading the code font in the initial CSS does
-not produce a compliant state:
+Article content is eager. There is no `content-visibility` or
+`contain-intrinsic-size` on markdown sections or code blocks. The code font
+is part of the initial CSS so code blocks never swap metrics. The comment
+card reserves its mounted 512px height, so Twikoo can still initialize on
+approach without growing the page.
 
-- Without any markdown deferral, the 1x pacing still passes (home → post
-  p95 1.1ms, post → home 1.4ms), but 60Hz 4x home → post regresses to p95
-  33.3ms / p99 166.7ms. The long tasks are 140ms at 308ms and 84ms at 452ms,
-  the full layout/style of the destination code blocks.
-- The scroll audit is unchanged by the removal: scrollHeight still goes
-  4286 → 4698, CLS 0.0135, and a 257ms long task appears. The layout-shift
-  source is `DIV.card-base comment-card p-6 mb-4`, the below-fold comment
-  card lazily mounting Twikoo, not markdown. Loading the code font eagerly
-  (4.5KB data URI) did not change this.
-- Restoring the deferral restores 60Hz home → post p95 16.8ms, but leaves
-  the comment-card scroll shift. Option (b) therefore needs exact code-block
-  heights, including wrapped visual lines, plus a comment-height strategy;
-  the current estimates cannot guarantee ±2px.
+Final production numbers, 1440x900 dpr2:
 
-The removal experiment was reverted. HEAD keeps the existing markdown
-deferral and does not claim a scroll-stability fix. This item has no
-compliant code change yet.
+| Metric | home → post | post → home |
+| --- | ---: | ---: |
+| 60Hz 4x p95 | 16.8 / 33.3 / 33.3ms | 16.8ms in 4/5 runs; one 33.2ms |
+| 60Hz 4x p99 | 166.7-183.4ms | 50-66ms |
+| long tasks | 131-142ms at ~315ms, 85-89ms at ~452ms | 51-67ms click only |
+| 1x uncapped p95 | 1.1ms | 1.7ms |
+
+The single 33.2ms post → home p95 run is the known 66ms click task crossing
+the 5% sample boundary; its p99 is 50ms. Home → post p95 is Fuwari parity
+(33.3ms). The p99 tail is the eager code-block layout; improving it would
+require deferring article content, so it is accepted. No transition long
+task exceeds 150ms.
+
+Scroll audit: `scrollHeight` is a single value, 4698, for the full
+120px-step scroll; CLS is 0.000 and there are no layout-shift entries.
+Twikoo still has a 260ms initialization task when the comment card is
+approached; that is outside the transition and its space is reserved.
 
 What changed:
 
-- The first viewport of markdown is eager. Below-viewport sections get
-  `content-visibility: auto` with an estimated `contain-intrinsic-size` while
-  the incoming document is detached. The direct-load and SPA first screens
-  are pixel-identical (0 differing pixels), and a TOC click still lands at
-  top=80.
+- All article content is eager. The section/code-block
+  `content-visibility` and intrinsic-size priming were removed, and the code
+  font is in the initial CSS.
+- The comment card reserves its mounted 512px height, so Twikoo's
+  approach-time initialization no longer changes `scrollHeight` or CLS.
 - Closed mobile menu/TOC panels were 147 laid-out elements on desktop even
   though their triggers are hidden; they are `display:none` at those
   breakpoints now.
@@ -178,7 +182,7 @@ click
   → content fade out (200ms)
   → content:replace (main + #toc), ~200ms into the slide
       swap the containers
-      prime code blocks and below-viewport markdown while detached
+      comment space reserved; code font already in the initial CSS
       sync the mobile banner
       start the incoming 200ms fade while the transform continues
   → animation:in:await
@@ -190,13 +194,9 @@ click
 ```
 
 The swap and the destination's first style/layout run while the 700ms
-transform is moving, matching Fuwari. The first viewport of markdown stays
-eager. Sections whose estimated top is below the viewport are primed while
-detached with `content-visibility: auto` and an estimated
-`contain-intrinsic-size`; they render when approached, so the transition
-does not lay out the whole article. This is what removed the end-of-slide
-swap task. The remaining single destination layout is documented under
-"Measured results".
+transform is moving, matching Fuwari. All article content is laid out
+eagerly; no content-visibility priming is used. The destination's code-block
+layout is the remaining tail and is accepted at Fuwari p95 parity.
 
 `is-layout-moving` stays on `<html>` until the grid's `transitionend`. It
 keeps the navbar blur disabled and tells `runAfterLayoutSettled` that the
@@ -240,11 +240,12 @@ Rules for future changes:
 
 - Flip the body's home class at `visit:start`, on the click frame. The
   transform must start immediately; moving the flip later makes the banner
-  arrive after the content. Keep the first viewport of markdown eager.
-- Prime below-viewport markdown sections with `content-visibility: auto` and
-  `contain-intrinsic-size` while the incoming document is detached. Do not
-  apply it to blocks that start above the fold. Keep the size estimates
-  close enough that TOC targets still land correctly.
+  arrive after the content. Keep all article content eager.
+- Do not add `content-visibility` or `contain-intrinsic-size` to article
+  markdown. Keep article content eager. If code-block layout needs its tail
+  reduced, do it without render deferral.
+- Keep the comment card's reserved height equal to the mounted Twikoo card
+  (currently 512px) so comment initialization cannot shift the page.
 - Keep `is-layout-moving` until the grid transform ends, and make
   `animation:in:await` wait for that transform. Do not remove Swup's root
   classes or enable the navbar blur while the slide is running.
