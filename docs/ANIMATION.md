@@ -152,12 +152,17 @@ Rules for future changes:
   visit. They remain sticky and visible; only their `top` transitions.
 - Keep the grid's `top` derived from
   `calc(var(--banner-height-home) - var(--banner-height-extend))`, never a
-  separate `35vh`. The extend variable is rounded to a 4px grid, so `35vh`
-  drifts by 1-4px and the seam becomes visible.
+  separate `35vh`. Both variables are rounded to a 4px grid (the head script
+  writes `--banner-height-home` in snapped pixels), so the banner bottom and
+  the grid top land on the same composited pixel row at 1x/1.25x/1.5x/2x.
 - The banner is two layers: `#banner-wrapper` translates by the extend value
   and `#banner` translates by `--bannerOffset` (15vh for centre) on content
   pages. Both use the same 700ms curve as `#main-grid`. Do not give the image
-  its own duration or easing.
+  its own duration or easing. The wrapper's transition must include `opacity`
+  for the mobile hide; without it the banner disappears in one frame while
+  the transform animates. Do not add `backface-visibility` or `will-change`
+  to these layers: Fuwari does not, and a forced 3D layer makes the browser
+  resample the banner bitmap independently of the grid while it slides.
 - `backdrop-filter` on the navbar is allowed only when the page is idle
   (`html:not(.is-changing):not(.is-animating)`) and on desktop. The navbar
   transparency itself is CSS-only in `src/styles/navbar.css`; the transition

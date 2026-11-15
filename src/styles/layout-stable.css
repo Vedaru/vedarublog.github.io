@@ -50,27 +50,24 @@
    visible 35vh strip shows the centre of the artwork. Both use the same
    700ms clock, so the crop moves with the wrapper instead of snapping. */
 /* One authoritative transition for the three layers that move on a page
-   change. Nothing else is promoted. */
-#banner-wrapper,
+   change. Nothing else is promoted.
+
+   Fuwari's banner layers carry no `backface-visibility`: forcing a 3D layer
+   here makes the browser rasterize the image on its own layer and resample it
+   independently of the grid, which is visible as shimmer in the banner while
+   it slides. The opacity entry is for the mobile hide/show, which otherwise
+   pops while the transform animates. */
+#banner-wrapper {
+	transition:
+		transform var(--layout-slide-duration) cubic-bezier(0.4, 0, 0.2, 1),
+		opacity var(--layout-slide-duration) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 #banner,
 #main-grid {
 	transition: transform var(--layout-slide-duration)
 		cubic-bezier(0.4, 0, 0.2, 1);
-	backface-visibility: hidden;
 }
-/*
- * Promote only while a slide is running. A permanent will-change (together
- * with the translateY(0) content pages carried) kept the whole multi-thousand
- * pixel document alive as a composited layer: entering a long post then cost
- * ~600ms just to paint that layer the first time, and text lost subpixel
- * antialiasing for the entire session.
- */
-html.is-layout-moving #banner-wrapper,
-html.is-layout-moving #banner,
-html.is-layout-moving #main-grid {
-	will-change: transform;
-}
-
 body.no-banner-mode #banner-wrapper {
 	display: none;
 }
