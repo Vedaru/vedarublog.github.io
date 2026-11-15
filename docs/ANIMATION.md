@@ -81,16 +81,13 @@ The early `is-animating` removal makes Swup's later removal a no-op and avoids
 a full-document style recalculation in the middle of the transform.
 
 Both sidebars stay sticky and visible, outside the Swup fade container. Their
-only animated property is the sticky `top` compensation. It is declared
-unconditionally with the same 700ms curve as the grid and banner, because it
-is compensation for the grid's own translate and changes on exactly the frames
-the transform changes. Snapping it is wrong: a transform on `#main-grid` makes
-sticky clamp in the grid's local space, so a snapped offset clamps an unpinned
-sidebar into the new offset's band for a frame and its top edge visibly jumps.
-Animating both properties on the same clock keeps `top + translate` - the
-rendered pin position - constant for pinned sidebars, on normal visits and
-back/forward alike. The sidebars are never switched to static positioning and
-never receive opacity or content-fade animations.
+sticky `top` compensation snaps with the layout class, exactly like Fuwari. It
+is never transitioned: animating a sticky `top` relayouts the grid and repaints
+the root layer on every frame of the slide, including the navbar and the
+banner (measured 333 paint events for the home transition, against 36 with the
+snap). The final pin positions and `top` values are identical either way; only
+the invisible interpolation is gone. The sidebars are never switched to static
+positioning and never receive opacity or content-fade animations.
 
 There is no `#page-height-extend`. A 300vh tail kept the old scroll alive but
 added thousands of pixels of blank scroll below the footer on a tall
@@ -137,8 +134,9 @@ Rules for future changes:
 - Do not load third-party scripts during a visit. Use
   `scheduleEnhancements()` or an `IntersectionObserver`.
 - Do not animate layout properties (`top`, `height`, `width`) inside
-  `#main-grid` while the grid is transformed, except the two sticky sidebars'
-  deliberate `top` compensation.
+  `#main-grid` while the grid is transformed. The sticky sidebars' `top`
+  compensation snaps; transitioning it repaints the root layer every frame and
+  is what the banner jitter came from.
 - Keep the mobile banner / `.main-panel` swap (`setBannerVisibility`) on the
   committed content state, not on `body.is-home`. The body class flips at
   `visit:start` for the transform, but a `resize` during the visit (the mobile
@@ -154,7 +152,8 @@ Rules for future changes:
   of 333 paint events on the home transition, against 97 without the
   promotion). Plain DOM is enough for icons that never animate by themselves.
 - Do not switch the sidebars to `position: static` or fade them during a
-  visit. They remain sticky and visible; only their `top` transitions.
+  visit. They remain sticky and visible; their `top` value flips with the
+  layout class and must not be transitioned.
 - Keep the grid's `top` derived from
   `calc(var(--banner-height-home) - var(--banner-height-extend))`, never a
   separate `35vh`. Both variables are rounded to a 4px grid (the head script

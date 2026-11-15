@@ -119,16 +119,10 @@ body.no-banner-mode #banner-wrapper {
 	#right-sidebar-sticky {
 		position: sticky;
 		top: 1rem;
-		/* The home offset below is compensation for the grid's translate, so it
-		   changes on exactly the frames the grid transform changes. Animate it
-		   on the same clock as #main-grid, unconditionally: inside a
-		   transformed grid sticky clamps in the grid's local space, so snapping
-		   this offset clamps an unpinned sidebar into the new offset's band for
-		   a frame and its top edge visibly jumps. Same duration and curve keeps
-		   `top + translate` (the rendered pin position) constant for pinned
-		   sidebars, including on back/forward. */
-		transition: top var(--layout-slide-duration)
-			cubic-bezier(0.4, 0, 0.2, 1);
+		/* Fuwari snaps this offset; it is never transitioned. Animating a
+		   sticky `top` relayouts and repaints the root layer on every frame of
+		   the slide (the navbar and the banner included), which is exactly the
+		   jitter this layout is trying to avoid. */
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
