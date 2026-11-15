@@ -406,8 +406,6 @@ body::-webkit-scrollbar {
   .mobile-item-icon {
     @apply inline-flex items-center justify-center w-[1.25rem] h-[1.25rem] shrink-0;
     line-height: 1;
-    transform: translateZ(0);
-    backface-visibility: hidden;
   }
 
   .dropdown-item:first-child {

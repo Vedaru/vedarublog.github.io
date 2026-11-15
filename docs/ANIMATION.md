@@ -148,6 +148,11 @@ Rules for future changes:
   the element for the life of the page: that promotes it to a compositor
   layer, costs subpixel text AA, and makes sticky descendants clamp in a
   transformed space. The base style must already be the 100% state.
+- Do not add `transform: translateZ(0)` or `backface-visibility: hidden` to
+  static icons. The sticky offset animation invalidates the root layer during
+  a slide, and a promoted icon repaints on its own every frame (measured: 235
+  of 333 paint events on the home transition, against 97 without the
+  promotion). Plain DOM is enough for icons that never animate by themselves.
 - Do not switch the sidebars to `position: static` or fade them during a
   visit. They remain sticky and visible; only their `top` transitions.
 - Keep the grid's `top` derived from
