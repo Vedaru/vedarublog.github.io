@@ -160,13 +160,10 @@ Rules for future changes:
 - Do not switch the sidebars to `position: static` or fade them during a
   visit. They remain sticky and visible; only their `top` transitions.
 - Keep the grid's `top` derived from
-  `calc(var(--banner-height-home) - var(--banner-height-extend) - 3.5rem)`,
-  never a separate `35vh`. The `3.5rem` is Fuwari's
-  `MAIN_PANEL_OVERLAPS_BANNER_HEIGHT`: the banner always continues behind the
-  content card, so the shared edge cannot expose the page background or
-  shimmer while it moves. Both variables are rounded to a 4px grid (the head
-  script writes `--banner-height-home` in snapped pixels), so the edge lands
-  on the same composited pixel row at 1x/1.25x/1.5x/2x.
+  `calc(var(--banner-height-home) - var(--banner-height-extend))`, never a
+  separate `35vh`. Both variables are rounded to a 4px grid (the head script
+  writes `--banner-height-home` in snapped pixels), so the banner bottom and
+  the grid top land on the same composited pixel row at 1x/1.25x/1.5x/2x.
 - The banner is two layers: `#banner-wrapper` translates by the extend value
   and `#banner` translates by `--bannerOffset` (15vh for centre) on content
   pages. Both use the same 700ms curve as `#main-grid`. Do not give the image
