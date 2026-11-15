@@ -84,3 +84,30 @@ body.enable-banner
 	border-color: rgba(0, 0, 0, calc(0.55 * var(--sf)));
 	box-shadow: 0 4px 16px rgba(0, 0, 0, calc(0.2 * var(--sf)));
 }
+
+/*
+ * A transparent navbar over the moving banner re-rasterizes its text/icons
+ * every frame (control probe: hiding #top-row took RasterTask from ~360 to
+ * ~40 at 1x uncapped). Use the base solid surface only while the slide runs;
+ * the configured semi/full/semifull surface returns at settle, so the settled
+ * pixels are unchanged.
+ */
+/* The marker itself is only added for desktop layout slides. */
+@media (min-width: 1280px) {
+	html.is-layout-moving #navbar > div {
+		background: var(--card-bg) !important;
+		border-color: transparent !important;
+		box-shadow: none !important;
+		backdrop-filter: none !important;
+		-webkit-backdrop-filter: none !important;
+		transition: none !important;
+	}
+
+	/*
+	 * The surface change is a state snap, not a 300ms fade during a visit.
+	 * Letting it transition put the repaint back on the frames after the slide.
+	 */
+	html.is-changing #navbar > div {
+		transition: none !important;
+	}
+}

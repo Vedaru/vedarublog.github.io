@@ -65,11 +65,32 @@ same class. A single 4x-throttled layout of the first viewport is larger than
 the 2-frame budget; avoiding it requires deferring above-fold content, which
 is explicitly not allowed.
 
-The raster count is structural rather than a hot transition layer: the post
-page has 1487 DOM elements against Fuwari's 564 (sidebar 270 vs 25, navbar
-367 vs 100). Per-layer tracing shows the raster spread across content tiles
-(largest 6.1ms) and no single repeated layer. Containment of the sidebar
-paint reduced paint events 117→99 but left RasterTask at 105 events / 12.4ms.
+### Raster
+
+At 1x CPU, uncapped, the banner layer is now only 3-4 RasterTask events
+(3-7ms) in a whole transition. The per-frame source was the navbar's
+transparent text and icons composited over the moving banner: hiding
+`#top-row` in a control probe dropped RasterTask from ~360 to 32. The navbar
+now uses the base solid surface only while `is-layout-moving` runs, snaps
+without the 300ms surface transition, and returns to the configured
+semi/full/semifull surface at settle. The settled first screen is
+pixel-identical (0 differing pixels).
+
+| 1x uncapped RasterTask | before (owner trace) | after (slide trace) |
+| --- | ---: | ---: |
+| home → post, total | 2148 / 391.7ms | **95 / 11.4ms** |
+| home → post, 200-900ms | n/a | **80 / 10.3ms** |
+| home → post, after 900ms | n/a | **0** |
+| post → home, total | 2344 / 346.2ms | **375 / 21.0ms** |
+| post → home, 200-900ms | n/a | **205 / 13.5ms** |
+| post → home, after 900ms | n/a | **154 / 6.2ms** |
+
+The post → home tail is the configured `semifull` navbar returning to its
+transparent surface after settle; it is not the banner. A measurement-only
+permanently solid home navbar gives 44 tasks / 5.6ms total but changes the
+configured transparent design, so it is not applied. The during-slide target
+(<300 tasks / <80ms) is met in both directions, and the banner bitmap is not
+re-rastered per frame.
 
 What changed:
 
