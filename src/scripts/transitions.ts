@@ -6,17 +6,16 @@
  *      banner/grid transform starts on the click frame — not after the scroll
  *      finishes. Fuwari runs both animations concurrently; serialising them
  *      is what makes the banner look late.
- *   2. The outgoing content fades for the same duration. The incoming
- *      document is prepared while detached (no entrance animations, lazy
- *      images) before Swup swaps it in.
- *   3. `content:replace` happens after the transform. The sidebar TOC is
- *      deferred.
+ *   2. The outgoing content fades over 200ms. The incoming document is
+ *      prepared while detached (no entrance animations, lazy images, code
+ *      block and below-fold markdown sizes) before Swup swaps it in.
+ *   3. `content:replace` happens ~200ms into the slide. The sidebar TOC stays
+ *      deferred until the transform ends.
  *   4. The incoming content fades in; the shell and optional enhancements
- *      sync once the content has painted.
+ *      sync after the transform.
  *
- * The scroll tween finishes well inside the 700ms window, so the document is
- * already at the top when Swup replaces the container; no page-height spacer
- * is involved.
+ * The custom scroll tween and the transform share the 700ms clock; the swap
+ * happens while both are moving. No page-height spacer is involved.
  */
 import { BANNER_HEIGHT, BANNER_HEIGHT_HOME } from "@constants";
 import { isMainHomePage, pathFromUrl } from "../utils/route-utils";

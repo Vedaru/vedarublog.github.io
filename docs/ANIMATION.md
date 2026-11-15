@@ -18,10 +18,65 @@ Fuwari's transition is not a special animation library. It is three decisions:
    a custom element waits for the content entrance animation. No comments,
    diagrams, lightboxes or analytics are loaded during the transition.
 
-This site keeps Fuwari's 200ms fade and 700ms banner/grid transform, but does
-not let the between-page scroll run at the same time. Fuwari can overlap those
-two motions; here the scroll position is committed first and the transform is
-the only motion the user sees.
+This site keeps Fuwari's 200ms fade and 700ms banner/grid transform, and runs
+the custom scroll tween on the same clock. The transform starts on the click
+frame.
+
+## Measured results (2026-11-15)
+
+Production build (`pnpm build` + `astro preview`), 1440x900 dpr2, 4x CPU
+throttle. The same external harness was used before and after. Fuwari is the
+reference measured on the same machine.
+
+| Path / metric | Before (`2808426`) | After (`486b9cb`) | Fuwari |
+| --- | ---: | ---: | ---: |
+| home → post p95 gap | 49.9ms | **16.8ms** | 33.3ms |
+| home → post p99 gap | 166.7ms | **100ms** | 116.6ms |
+| home → post main task | 636ms | **462ms** | 518ms |
+| home → post style | 271ms | **178ms** | 230ms |
+| home → post layout | 108ms | **62ms** | 82ms |
+| home → post long tasks | 52@23, 133@313, 53@790 | **50@20, 68@302** | 77/60/76 |
+| post → home p95 gap | 16.8ms | **16.8ms** | n/a |
+| post → home p99 gap | 83.3ms | **66.7ms** | n/a |
+| post → home long tasks | 86 click, 56 swap | **70 click only** | n/a |
+
+At 120Hz (`--disable-frame-rate-limit`), frame gaps during the 0-900ms
+transition are the relevant number. Overall p95 is not: after the transform
+ends the browser returns to a 60Hz idle cadence (idle p95 17.8ms).
+
+| Uncapped | Before | After |
+| --- | ---: | ---: |
+| during-slide p95 | 10.6ms | **7.2ms** |
+| during-slide p99 | 51.7ms | **33.9ms** |
+| during-slide max | 163.7ms | **97.2ms** |
+| whole-window p95 | 17.5ms | 17.4ms |
+
+The remaining 97ms stall is one destination-content style/layout task.
+Hiding the navbar and both sidebars still leaves a ~101ms content-only task
+on the same page, and Fuwari's destination has 77ms/60ms/76ms tasks of the
+same class. A single 4x-throttled layout of the new post is larger than the
+2-frame budget; it is not repeated transition work.
+
+The raster count is structural rather than a hot transition layer: the post
+page has 1487 DOM elements against Fuwari's 564 (sidebar 270 vs 25, navbar
+367 vs 100). Per-layer tracing shows the raster spread across content tiles
+(largest 6.1ms) and no single repeated layer. Containment of the sidebar
+paint reduced paint events 117→99 but left RasterTask at 105 events / 12.4ms.
+
+What changed:
+
+- The first viewport of markdown is eager. Below-viewport sections get
+  `content-visibility: auto` with an estimated `contain-intrinsic-size` while
+  the incoming document is detached. The direct-load and SPA first screens
+  are pixel-identical (0 differing pixels), and a TOC click still lands at
+  top=80.
+- Closed mobile menu/TOC panels were 147 laid-out elements on desktop even
+  though their triggers are hidden; they are `display:none` at those
+  breakpoints now.
+- Closed desktop dropdowns leave layout only while `is-layout-moving`.
+  Hovered, focused, or expanded menus stay visible for a click inside them.
+- The fade duration is scoped to `#swup-container`; the layout-slide path no
+  longer writes inherited custom properties on `#main-grid`.
 
 ## What this site did instead
 
@@ -41,44 +96,37 @@ Measured with Chrome for Testing at 4x CPU throttle (a mid-range phone):
 ```
 click
   → visit:start
-      if home <-> content and scrolled: scroll to top, await scroll:end
+      read the scroll position before any class/style writes
+      start the custom scroll-to-top tween (700ms lock on a layout slide)
       add is-layout-moving for a desktop layout slide
+      flip is-home now; the banner/grid 700ms transforms start on this frame
   → content fade out (200ms)
-      the outgoing page is at scroll 0 before the fade starts
-  → content:replace (main + #toc)
+  → content:replace (main + #toc), ~200ms into the slide
       swap the containers
-      flush the incoming layout while it is invisible
+      prime code blocks and below-viewport markdown while detached
       sync the mobile banner
-      start the incoming fade (remove is-animating)
-      flip is-home / navbar
-      #banner-wrapper, #banner and #main-grid start their 700ms transforms
-      flush the class-flip styles
-      the pre-scroll marks the visit as reset; the content-scroll pass is skipped
-  → animation:in:start
-      no-op for layout and fade; both already started at content:replace
-  → animation:in:start / animation:in:end
-      new content fades in while the transform continues
-  → transform end
-      remove is-layout-moving; let Swup finish the visit
+      start the incoming 200ms fade while the transform continues
+  → animation:in:await
+      returns the 700ms transform-end promise
+  → animation:in:end (after the transform)
+      remove is-layout-moving and the TOC defer
+      sync the navbar/chrome; schedule idle enhancements
       requestIdleCallback → fancybox / mermaid / fonts / comments
 ```
 
-The scroll, the incoming content layout, the class-flip style recalculation
-and the transform are serialized. For a home/non-home visit the `visit:start`
-hook is asynchronous: it asks Swup's scroll plugin to animate to the top and
-resolves on `scroll:end`. The outgoing document is still present at its real
-height for the whole scroll, so no spacer is needed. At `content:replace`
-the new article is flushed while it is invisible, the fade starts, then the
-layout class flips and its styles are flushed again. All of that work happens
-before the first transform frame, so the 700ms slide has no large layout or
-style task under it.
+The swap and the destination's first style/layout run while the 700ms
+transform is moving, matching Fuwari. The first viewport of markdown stays
+eager. Sections whose estimated top is below the viewport are primed while
+detached with `content-visibility: auto` and an estimated
+`contain-intrinsic-size`; they render when approached, so the transition
+does not lay out the whole article. This is what removed the end-of-slide
+swap task. The remaining single destination layout is documented under
+"Measured results".
 
 `is-layout-moving` stays on `<html>` until the grid's `transitionend`. It
 keeps the navbar blur disabled and tells `runAfterLayoutSettled` that the
 layout is still moving. Swup's `animation:in:await` returns the transform-end
 promise, so `animation:in:end` and `visit:end` also happen after the slide.
-The early `is-animating` removal makes Swup's later removal a no-op and avoids
-a full-document style recalculation in the middle of the transform.
 
 Both sidebars stay sticky and visible, outside the Swup fade container. Their
 only animated property is the sticky `top` compensation. It is declared
@@ -95,9 +143,10 @@ never receive opacity or content-fade animations.
 There is no `#page-height-extend`. A 300vh tail kept the old scroll alive but
 added thousands of pixels of blank scroll below the footer on a tall
 viewport, then the browser snapped back when the tail was removed. The
-transform starts only after the scroll and content layout are done.
-`overscroll-behavior-y: none` on `html, body` keeps wheel and touch input
-from moving past the real document boundary.
+transform starts on the click frame; the custom scroll tween uses the slide
+curve and finishes inside the same 700ms window. `overscroll-behavior-y:
+none` on `html, body` keeps wheel and touch input from moving past the real
+document boundary.
 
 Key files:
 
@@ -114,21 +163,28 @@ Key files:
 
 Rules for future changes:
 
-- Apply the body's home class at `content:replace`, after flushing the
-  incoming layout and starting the fade. Flush the class styles again before
-  returning. Do not flip at `visit:start` or `animation:in:start`: the new
-  article's layout or the class style recalculation would run in the middle
-  of the transform.
+- Flip the body's home class at `visit:start`, on the click frame. The
+  transform must start immediately; moving the flip later makes the banner
+  arrive after the content. Keep the first viewport of markdown eager.
+- Prime below-viewport markdown sections with `content-visibility: auto` and
+  `contain-intrinsic-size` while the incoming document is detached. Do not
+  apply it to blocks that start above the fold. Keep the size estimates
+  close enough that TOC targets still land correctly.
 - Keep `is-layout-moving` until the grid transform ends, and make
   `animation:in:await` wait for that transform. Do not remove Swup's root
   classes or enable the navbar blur while the slide is running.
-- For a home/non-home visit, finish `swup.scrollTo(0, true)` and await
-  `scroll:end` before flipping the body class. Run after the scroll plugin's
-  position cache so back navigation keeps the outgoing scroll position. Do
-  not add a timeout or a second scroll loop.
-- Keep `smoothScrolling: true`. The ordered pre-scroll in `transitions.ts` is
-  the only scroll call. Do not add another `scroll:top` override, a timeout,
-  or a custom scroll loop.
+- Keep the closed mobile menu/TOC panels `display:none` at breakpoints where
+  their triggers are hidden; they were 147 laid-out elements on desktop.
+- Closed desktop dropdowns may leave layout only while `is-layout-moving`.
+  Hovered, focused and expanded menus must stay block.
+- Scope the fade duration to `#swup-container`. Do not write inherited custom
+  properties on `#main-grid` on the click path; they dirty every sidebar and
+  content node.
+- The custom tween in `startScrollToTop` owns the pre-scroll. Run it at
+  `visit:start` after the scroll plugin's position cache; do not add another
+  scroll plugin loop, timeout, or `scroll:top` override.
+- Keep `smoothScrolling: true`. The pre-scroll in `transitions.ts` is the
+  only scroll call.
 - After a layout pre-scroll, set `visit.scroll.reset = false` so the scroll
   plugin does not force layout of the new article just to scroll to 0 again.
 - During a layout slide the scroll tween uses the slide curve
