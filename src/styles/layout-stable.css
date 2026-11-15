@@ -29,6 +29,10 @@
 	height: 100%;
 }
 
+#banner {
+	overflow: hidden;
+}
+
 #banner img {
 	object-fit: cover;
 	/* On a hard refresh the wrapper's blurred placeholder paints with the
@@ -94,10 +98,13 @@ body.no-banner-mode #banner-wrapper {
 	html[data-wallpaper-mode="banner"] body.enable-banner .main-panel {
 		/* --banner-height-extend is rounded to a 4px grid, so 65vh - 30vh
 		   is not the same pixel as the banner's real bottom edge. Use the
-		   same values the transform uses, or a 1-4px sliver appears. */
+		   same values the transform uses, and overlap the banner by the same
+		   3.5rem Fuwari uses: the banner then always continues behind the
+		   content card, so the shared edge can never expose the page
+		   background or shimmer while it moves. */
 		top: calc(
 			var(--banner-height-home, 65vh) -
-				var(--banner-height-extend, 30dvh)
+				var(--banner-height-extend, 30dvh) - 3.5rem
 		);
 	}
 
