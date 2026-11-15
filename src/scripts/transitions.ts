@@ -225,6 +225,45 @@ function cancelScrollTween(): void {
 }
 
 /**
+ * The banner/grid transition curve, `cubic-bezier(0.4, 0, 0.2, 1)`, solved for
+ * y at a given x. During a layout slide the grid and the scroll move the same
+ * card: with two different curves the screen position is a sum of two velocity
+ * profiles, so the motion lurches on the first frame while the transform
+ * trails. Using this curve for both makes the card follow one eased path.
+ */
+function slideEase(x: number): number {
+	if (x <= 0) return 0;
+	if (x >= 1) return 1;
+	const bezier = (t: number, p1: number, p2: number) => {
+		const u = 1 - t;
+		return 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t;
+	};
+	const x1 = 0.4;
+	const y1 = 0;
+	const x2 = 0.2;
+	const y2 = 1;
+	let t = x;
+	for (let i = 0; i < 8; i += 1) {
+		const error = bezier(t, x1, x2) - x;
+		if (Math.abs(error) < 1e-6) return bezier(t, y1, y2);
+		const slope =
+			3 * (1 - t) * (1 - t) * x1 +
+			6 * (1 - t) * t * (x2 - x1) +
+			3 * t * t * (1 - x2);
+		if (Math.abs(slope) < 1e-6) break;
+		t -= error / slope;
+	}
+	let low = 0;
+	let high = 1;
+	for (let i = 0; i < 20; i += 1) {
+		t = (low + high) / 2;
+		if (bezier(t, x1, x2) < x) low = t;
+		else high = t;
+	}
+	return bezier(t, y1, y2);
+}
+
+/**
  * 滚回顶部。
  *
  * 不用 Swup scroll 插件的补间：它是指数衰减，前几帧就走完约 90%，之后以
@@ -254,6 +293,7 @@ function startScrollToTop(lockTo = 0): number {
 	// coming back. Start the clock on the first real frame instead.
 	let started = 0;
 	const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
+	const ease = lockTo > 0 ? slideEase : easeOutCubic;
 
 	const step = (now: number) => {
 		if (!started) started = now;
@@ -261,7 +301,7 @@ function startScrollToTop(lockTo = 0): number {
 		// Leave the value fractional. Rounding to whole CSS pixels turns the
 		// tail of the ease into a visible 1px staircase on high-DPI screens,
 		// where the compositor can resolve half-pixel steps.
-		window.scrollTo(0, startY * (1 - easeOutCubic(progress)));
+		window.scrollTo(0, startY * (1 - ease(progress)));
 		if (progress < 1) {
 			scrollTweenFrame = requestAnimationFrame(step);
 		} else {

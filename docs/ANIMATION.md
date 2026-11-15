@@ -131,6 +131,11 @@ Rules for future changes:
   or a custom scroll loop.
 - After a layout pre-scroll, set `visit.scroll.reset = false` so the scroll
   plugin does not force layout of the new article just to scroll to 0 again.
+- During a layout slide the scroll tween uses the slide curve
+  (`cubic-bezier(0.4, 0, 0.2, 1)`), not `easeOutCubic`. The scroll and the
+  transform move the same card; two curves make its screen position a sum of
+  two velocity profiles, so it lurches on the first frame while the transform
+  trails.
 - Do not re-introduce a page-height spacer or a timer that removes it. The
   clamp happens while the content is invisible; a spacer becomes a scrollable
   blank region and makes the page look endless.
