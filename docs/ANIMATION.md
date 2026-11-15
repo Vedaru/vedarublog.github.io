@@ -40,6 +40,10 @@ reference measured on the same machine.
 | post → home p99 gap | 83.3ms | **66.7ms** | n/a |
 | post → home long tasks | 86 click, 56 swap | **70 click only** | n/a |
 
+Three home → post repeats gave p95 16.8 / 33.3 / 16.8ms; the middle repeat is
+33.3ms because the residual 70ms content task crossed the 5% sample boundary.
+The animation itself is one-frame cadence; the p99 is the content task.
+
 At 120Hz (`--disable-frame-rate-limit`), frame gaps during the 0-900ms
 transition are the relevant number. Overall p95 is not: after the transform
 ends the browser returns to a 60Hz idle cadence (idle p95 17.8ms).
