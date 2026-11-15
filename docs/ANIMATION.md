@@ -137,6 +137,11 @@ Rules for future changes:
   `#main-grid` while the grid is transformed. The sticky sidebars' `top`
   compensation snaps; transitioning it repaints the root layer every frame and
   is what the banner jitter came from.
+- Commit the layout class flip on the next animation frame, not inside
+  `visit:start`. A click can run a 100ms+ parse/layout task in the same task
+  on a throttled device; committing inside it makes the 700ms transform start
+  with that much elapsed and the first painted frame jumps. The callback is
+  generation-guarded so an aborted visit cannot flip the layout.
 - Keep the mobile banner / `.main-panel` swap (`setBannerVisibility`) on the
   committed content state, not on `body.is-home`. The body class flips at
   `visit:start` for the transform, but a `resize` during the visit (the mobile

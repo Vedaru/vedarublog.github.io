@@ -167,6 +167,8 @@ let hooksRegistered = false;
 let knownScrollY: number | null = null;
 let layoutMovePromise: Promise<void> | null = null;
 let contentDelayCleared = false;
+/** Invalidates a pending next-frame layout flip when a visit settles/aborts. */
+let visitGeneration = 0;
 
 const LAYOUT_FALLBACK_MS = 900;
 /** Must match --layout-slide-duration in layout-stable.css. */
@@ -187,6 +189,7 @@ function stopLayoutMove(): void {
 function settle(): void {
 	stopLayoutMove();
 	knownScrollY = null;
+	visitGeneration += 1;
 	document
 		.getElementById("toc-wrapper")
 		?.classList.remove("is-toc-deferred");
@@ -283,6 +286,7 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 	// flipping the layout and starting the transform.
 	swup.hooks.on("visit:start", async (visit: Visit) => {
 		cancelEnhancements();
+		const generation = ++visitGeneration;
 		const wasHome = document.body.classList.contains("is-home");
 		const isHome = isHomeVisit(visit);
 		const isPopstate = visit.history?.popstate === true;
@@ -351,7 +355,18 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		}
 		if (!layoutSlides || isPopstate) knownScrollY = null;
 
-		setBodyHome(isHome);
+		if (!layoutSlides) {
+			setBodyHome(isHome);
+		} else {
+			// A click can run a 100ms+ parse/layout task in this same task.
+			// Committing the class flip inside it makes the 700ms transition
+			// start with that much already elapsed, so the first painted frame
+			// jumps. Commit on the next animation frame instead: the task has
+			// finished and the slide starts on a clean frame.
+			requestAnimationFrame(() => {
+				if (generation === visitGeneration) setBodyHome(isHome);
+			});
+		}
 	}, { priority: 10 });
 
 	// Prepare the incoming document while it is still detached. The page
