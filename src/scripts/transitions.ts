@@ -83,12 +83,13 @@ function setBannerVisibility(isHome: boolean): void {
 
 // ── Scroll-driven chrome ───────────────────────────────────────────────────
 function getScrollY(): number {
-	return (
-		window.scrollY ||
-		document.documentElement.scrollTop ||
-		document.body.scrollTop ||
-		0
-	);
+	// `window.scrollY` is a cached viewport value. Falling back to
+	// `scrollTop` (the old IE path) reads layout, and because `scrollY` is 0
+	// at the top of the page the `||` chain took that fallback on every
+	// visit:start - after the hook had already written `is-toc-deferred` and
+	// `--content-delay`, so the read forced a full style/layout pass over the
+	// outgoing page (measured: 50.8ms style + 3ms layout at 4x CPU).
+	return window.scrollY;
 }
 
 let lastSemifullFade = "";
@@ -322,6 +323,10 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 	// the outgoing position first. Run after it, then finish the scroll before
 	// flipping the layout and starting the transform.
 	swup.hooks.on("visit:start", async (visit: Visit) => {
+		// Read before any class or style writes. `getScrollY` is cheap now, but
+		// keeping the read first is what the old comment promised and what
+		// guarantees no later write can turn it into a forced layout.
+		const scrollAtStart = getScrollY();
 		cancelEnhancements();
 		const wasHome = document.body.classList.contains("is-home");
 		const isHome = isHomeVisit(visit);
@@ -353,9 +358,9 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 			}
 		}
 
-		// Read the position before any class changes so this does not force a
-		// style/layout pass over the whole document.
-		let scrollY = getScrollY();
+		// Use the position captured at the top of the hook, before any style
+		// or class writes.
+		let scrollY = scrollAtStart;
 		// 自己接管「滚回顶部」，普通换页也走这里：固定曲线、在新内容出现前
 		// 就落地。锚点链接交给插件的锚点滚动，前进/后退不动滚动位置。
 		// The outgoing content fades for exactly as long as the tween runs, so
@@ -413,13 +418,16 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 				image.setAttribute("decoding", "async");
 			}
 		});
+
+		// Size the incoming code blocks while they are still detached. The same
+		// inline `contain-intrinsic-size` values used to be written after the
+		// swap, which forced a 50-64ms style recalc on the live page (trace:
+		// `primeCodeBlockSizes` -> `UpdateLayoutTree` at content:replace).
+		primeCodeBlockSizes(incoming);
 	});
 
 	swup.hooks.on("content:replace", (visit: Visit) => {
 		const isHome = isHomeVisit(visit);
-		// Give the freshly inserted code blocks their real size before the
-		// first layout, so the document does not keep growing under the reader.
-		primeCodeBlockSizes();
 		// Mobile banner visibility is a layout property. Commit it together
 		// with the content it describes, before the incoming fade starts.
 		contentIsHome = isHome;

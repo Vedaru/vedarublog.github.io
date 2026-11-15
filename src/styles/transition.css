@@ -9,19 +9,12 @@ html.is-animating .transition-swup-fade {
 	transform: translateY(1rem);
 }
 /*
- * The layout slide lasts 700ms. Keep the old content fading for the whole
- * slide so the incoming document is not styled or laid out until the
- * banner and grid have finished moving.
+ * Fuwari fades the outgoing content over its normal 200ms, so the swap and
+ * the incoming document's style/layout run while the 700ms grid/banner
+ * transform is still moving. Holding the fade for the whole slide put that
+ * work at the end of the transform: traces showed our swap tasks at
+ * 799-1045ms against Fuwari's 277-496ms, which is the end-of-animation hitch.
  */
-html.is-layout-moving.is-animating .transition-swup-fade {
-	transition-duration: var(--layout-slide-duration);
-	/*
-	 * The grid and the banner are already sliding; a second translate here
-	 * makes the content slip ~1rem against that slide, which reads as two
-	 * animations pulling the same card in different directions.
-	 */
-	transform: none;
-}
 /*
  * Non-slide visits: the scroll tween owns the outgoing page until it reaches
  * the top. Fade for exactly that long so the swap happens at scroll 0 -

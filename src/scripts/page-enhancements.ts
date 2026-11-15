@@ -157,23 +157,51 @@ function observeMermaid(): void {
  * pixels, so the document keeps growing while blocks render: a TOC jump
  * computed from the estimates lands past its heading (measured 411px on the
  * nvim post) and every correction is another full reflow. Count the lines and
- * give each block an accurate size before the first layout.
+ * give each block an accurate size before the first layout. The incoming
+ * document is primed while detached, so the write never touches the live page.
  */
-export function primeCodeBlockSizes(): void {
-	const blocks = document.querySelectorAll<HTMLElement>(".expressive-code");
+let codeLineHeight: number | null = null;
+
+function measureCodeLineHeight(): number {
+	const existing = document.querySelector<HTMLElement>(
+		".expressive-code .ec-line",
+	);
+	if (existing) {
+		const measured = Number.parseFloat(getComputedStyle(existing).lineHeight);
+		if (Number.isFinite(measured) && measured > 0) return measured;
+	}
+	// The incoming document is primed before it is connected, so its computed
+	// style has no code font yet. Measure a hidden probe in the live document
+	// once; without this the fallback was 20.4px while the real line box is
+	// 24px, and every block had to grow by ~15% after the swap.
+	const probe = document.createElement("div");
+	probe.className = "expressive-code";
+	probe.style.cssText =
+		"position:absolute;left:-9999px;top:0;visibility:hidden;pointer-events:none;";
+	const line = document.createElement("div");
+	line.className = "ec-line";
+	line.textContent = "x";
+	probe.append(line);
+	document.body.append(probe);
+	const measured = Number.parseFloat(getComputedStyle(line).lineHeight);
+	probe.remove();
+	return Number.isFinite(measured) && measured > 0 ? measured : 24;
+}
+
+export function primeCodeBlockSizes(root: ParentNode = document): void {
+	const blocks = root.querySelectorAll<HTMLElement>(".expressive-code");
 	if (blocks.length === 0) return;
-	const sample = document.querySelector<HTMLElement>(".ec-line");
-	const measured = sample ? Number.parseFloat(getComputedStyle(sample).lineHeight) : Number.NaN;
-	const perLine = Number.isFinite(measured) && measured > 0 ? measured : 20.4;
-	// Frame chrome only. Measured on the nvim post: a 1-line block is 48px with
-	// 20.4px lines and an 18-line block is 395px, so the box above the lines is
-	// ~28px. The old 56px made every block 28px too tall, pushing the document
-	// 334px past its real height (10095 vs 9761), so scrolling through the post
-	// shifted everything up a little at each block. With the measured box the
-	// reserved height matches the rendered one; the cost of first rendering a
-	// block is unchanged (cold A/B: 970ms vs 968ms on the nvim post).
-	const BOX = 28;
+	if (codeLineHeight === null) {
+		codeLineHeight = measureCodeLineHeight();
+	}
+	const perLine = codeLineHeight;
+	// Frame chrome only. With the current 24px line box, a 1-line block is 56px
+	// and a 6-line block is 176px, so the box above the lines is ~32px.
+	const BOX = 32;
 	for (const block of blocks) {
+		// The incoming document is primed while detached; the later live pass
+		// must not rewrite the same inline style and force another recalc.
+		if (block.style.containIntrinsicSize) continue;
 		const lines = block.querySelectorAll(".ec-line").length;
 		if (lines === 0) continue;
 		block.style.containIntrinsicSize = `auto ${Math.round(BOX + lines * perLine)}px`;
