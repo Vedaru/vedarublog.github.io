@@ -465,3 +465,16 @@ The residual mechanism was therefore reverted. The tree keeps the flat
 `677ef6a` DOM, the identity layer transforms, the 9424c48 sidebar semantics,
 and the original custom scroll. `verify.mjs` remains ALL PASS and pacing stays
 33.3/16.8ms at 60Hz 4x, but the tail reversal is not fixed.
+
+### Single-clock scroll attempt: reverted
+
+A single-clock version derived the scroll target from the grid transform's
+matrix and applied the residual with the `translate` property. It still could
+not pass the handoff: the Swup scroll reset landed before the first transform
+sample, producing a one-frame 900px step home -> post and a 1200px step
+post -> home at 1x. With the scroll held through the start gate, the first
+transform sample and residual still lagged the committed scroll; DOM sampling
+found 1 reversal in 2,443 home -> post frames and 0 in 3,584 post -> home
+frames, but with a 900/1200px initial step. The tail was monotonic once
+started, but the initial handoff violates the no-step budget. The mechanism
+was reverted to 743f2be; no single-clock code is shipped.
