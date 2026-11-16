@@ -123,6 +123,33 @@ Scroll audit: `scrollHeight` is a single value, 4698, for the full
 120px-step scroll; CLS is 0.000 and there are no layout-shift entries.
 Twikoo still has a 260ms initialization task when the comment card is
 approached; that is outside the transition and its space is reserved.
+Twikoo still has a 260ms initialization task when the comment card is
+approached; that is outside the transition and its space is reserved.
+
+### Mobile residual
+
+Mobile 390x844 dpr2, 4x CPU, home → post:
+
+| Metric | Before | After head-script skip |
+| --- | ---: | ---: |
+| p95 | 16.8ms | **16.8ms** |
+| p99 | 249.9ms | 199.9-216.7ms |
+| longest tasks | 177ms at ~259ms | 123-136ms at ~261ms |
+
+Marking the global head shell script `[data-swup-ignore-script]` removes its
+duplicate evaluation on SPA visits. The remaining 123-136ms task is the
+harness tick forcing the article's style/layout: 73.7ms style + 53.4ms
+layout, 1013 dirty of 1535 objects. Fuwari at the same point is 119ms with
+52ms style + 41.6ms layout of 471/735 objects. The local article has about
+2x the layout objects and 1.7x the text, so the residual is
+content-proportional.
+
+The target max long <=120ms / p99 <=150ms is not met. Attempts: hiding the
+closed mobile menu/TOC panels saved ~6ms; merging adjacent code spans found
+no mergeable pairs; ignoring the bottom module script reduced p99 to 166ms
+but broke the mobile resize check in `verify.mjs`, so it was reverted.
+Desktop remains p95 16.8ms both ways and 1x 1.2/1.3ms. No article content is
+deferred.
 
 What changed:
 
