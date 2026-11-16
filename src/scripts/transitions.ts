@@ -172,7 +172,16 @@ const LAYOUT_FALLBACK_MS = 900;
 /** Must match --layout-slide-duration in layout-stable.css. */
 const LAYOUT_SLIDE_MS = 700;
 
+let layoutFrame = 0;
+
 function stopLayoutMove(): void {
+	if (layoutFrame) cancelAnimationFrame(layoutFrame);
+	layoutFrame = 0;
+	const grid = document.getElementById("main-grid");
+	const banner = document.getElementById("banner-wrapper");
+	grid?.style.removeProperty("transform");
+	banner?.style.removeProperty("transform");
+	HTML.classList.remove("is-layout-engine");
 	layoutMovePromise = null;
 	HTML.classList.remove("is-layout-moving");
 }
@@ -192,26 +201,66 @@ function settle(): void {
 		?.classList.remove("is-toc-deferred");
 }
 
-function startLayoutMove(): void {
+function startLayoutMove(startY: number, isHome: boolean, flip: () => void): void {
 	stopLayoutMove();
-	HTML.classList.add("is-layout-moving");
 	const grid = document.getElementById("main-grid");
+	const banner = document.getElementById("banner-wrapper");
 	if (!grid) return;
 
+	// One read at the click frame: current rendered translations and the
+	// banner-height delta the class flip would otherwise snap by.
+	const readY = (element: HTMLElement | null): number => {
+		if (!element) return 0;
+		const value = getComputedStyle(element).transform;
+		return value === "none" ? 0 : new DOMMatrixReadOnly(value).m42;
+	};
+	const gridStart = readY(grid);
+	const bannerStart = readY(banner);
+	const extend = Number.parseFloat(
+		getComputedStyle(HTML).getPropertyValue("--banner-height-extend"),
+	);
+	const delta = Number.isFinite(extend) ? extend : 0;
+	const gridEnd = gridStart + (isHome ? delta : -delta);
+	const bannerEnd = bannerStart + (isHome ? delta : -delta);
+
+	HTML.classList.add("is-layout-engine", "is-layout-moving");
+
+	const t0 = performance.now();
+	const apply = (progress: number): void => {
+		const eased = slideEase(progress);
+		const gridY = gridStart + (gridEnd - gridStart) * eased;
+		const bannerY = bannerStart + (bannerEnd - bannerStart) * eased;
+		const desired = startY * (1 - eased);
+		window.scrollTo(0, desired);
+		// Chrome stores scroll on whole CSS pixels; add the fractional
+		// remainder to the transform so the rendered edge follows `desired`.
+		const residual = Math.round(desired) - desired;
+		grid.style.transform = `translateY(${(gridY + residual).toFixed(3)}px)`;
+		if (banner) {
+			banner.style.transform = `translateY(${(bannerY + residual).toFixed(3)}px)`;
+		}
+	};
+
+	apply(0);
+	// Flip the class in the same task so the sidebar's CSS top transition
+	// starts on the engine's first frame, not one frame later.
+	flip();
 	layoutMovePromise = new Promise<void>((resolve) => {
-		const onEnd = (event: TransitionEvent) => {
-			if (event.target !== grid || event.propertyName !== "transform") {
+		const step = (now: number) => {
+			const progress = Math.min(1, (now - t0) / LAYOUT_SLIDE_MS);
+			apply(progress);
+			if (progress < 1) {
+				layoutFrame = requestAnimationFrame(step);
 				return;
 			}
-			grid.removeEventListener("transitionend", onEnd);
-			window.clearTimeout(timer);
+			layoutFrame = 0;
+			window.scrollTo(0, 0);
+			grid.style.removeProperty("transform");
+			banner?.style.removeProperty("transform");
+			HTML.classList.remove("is-layout-engine");
 			resolve();
 		};
-		const timer = window.setTimeout(() => {
-			grid.removeEventListener("transitionend", onEnd);
-			resolve();
-		}, LAYOUT_FALLBACK_MS);
-		grid.addEventListener("transitionend", onEnd);
+		layoutFrame = requestAnimationFrame(step);
 	});
 }
 
@@ -359,11 +408,15 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		// frame.
 		let tweenDuration = 0;
 		if (!isPopstate && !visit.to.hash && scrollY > 1) {
-			tweenDuration = startScrollToTop(
-				layoutSlides ? LAYOUT_SLIDE_MS : 0,
-			);
-			// 上面的补间已经接管滚动，别让插件在 content:scroll 再跑一遍。
-			if (visit.scroll) visit.scroll.reset = false;
+			if (layoutSlides) {
+				// The layout engine owns the scroll for the slide: it writes
+				// one transform and one scroll per frame from a single clock.
+				if (visit.scroll) visit.scroll.reset = false;
+			} else {
+				tweenDuration = startScrollToTop(0);
+				// 上面的补间已经接管滚动，别让插件在 content:scroll 再跑一遍。
+				if (visit.scroll) visit.scroll.reset = false;
+			}
 			scrollY = 0;
 		}
 		// The layout slide's fade is the base 200ms rule, so it does not read
@@ -383,15 +436,17 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		// Start the marker and the transform together, after the scroll has
 		// settled. The marker has to be present before the body flip so the
 		// navbar, enhancements and fade duration see the slide immediately.
-		if (!isPopstate && layoutSlides) startLayoutMove();
-		else stopLayoutMove();
+		if (!isPopstate && layoutSlides) {
+			startLayoutMove(scrollAtStart, isHome, () => setBodyHome(isHome));
+		} else {
+			stopLayoutMove();
+			setBodyHome(isHome);
+		}
 
 		if (!isPopstate && layoutSlides) {
 			knownScrollY = scrollY;
 		}
 		if (!layoutSlides || isPopstate) knownScrollY = null;
-
-		setBodyHome(isHome);
 	}, { priority: 10 });
 
 	// Prepare the incoming document while it is still detached. The page

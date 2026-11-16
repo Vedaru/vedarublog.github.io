@@ -76,6 +76,14 @@
 		cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* The layout engine drives these two transforms by hand for the length of a
+   layout slide: one rAF clock, one scroll write, one transform write, and the
+   sub-pixel scroll remainder folded into the same transform. */
+html.is-layout-engine #main-grid,
+html.is-layout-engine #banner-wrapper {
+	transition: none !important;
+}
+
 #banner {
 	transition: top var(--layout-slide-duration)
 		cubic-bezier(0.4, 0, 0.2, 1);
