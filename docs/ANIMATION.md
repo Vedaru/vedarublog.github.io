@@ -497,3 +497,32 @@ after scroll reaches 0. Home -> post still shows 20 small reversals at scroll-
 commit frames (largest 0.68px), not at the tail; this is the remaining
 sub-pixel boundary, recorded rather than masked. `verify.mjs` ALL PASS; 60Hz
 4x p95 33.2/16.8ms; 1x p95 1.1/1.1ms.
+
+### Single-clock handoff and single banner layer
+
+The handoff failure was a target-polarity bug: the single-clock loop started
+before `setBodyHome`, so it read the outgoing home flag as the destination and
+resolved to scroll 0. The loop now starts after the class flip, uses the
+click-frame cached scroll, keeps `visit.scroll.reset` disabled for the layout
+visit, and derives one eased value from the grid transform matrix. Scroll and
+the grid residual are written from that same value.
+
+The seam had a second cause: `#banner-wrapper` and `#banner` were two promoted
+transform layers. The content-page crop offset is now a static
+`top: var(--banner-offset)` on `#banner`; only `#banner-wrapper` animates. The
+same residual `translate` is applied to the wrapper, so the banner bottom,
+grid top, content top and sidebar sticky all share one fractional position.
+
+Tail DOM frames after scroll reaches 0 (1x, home@900 -> post):
+
+```
+315.781, 315.801, 315.815, 315.835, 315.855, 315.869, 315.884, 315.887,
+315.903, 315.923, 315.934, 315.941, 315.949, 315.955, 315.961, 315.967,
+315.976, 315.984, 315.988, 315.992, 315.994, 315.995
+```
+
+All four series are identical and monotonic through the tail; the previous
+banner-bottom sawtooth (17 reversals, ±1px) is gone. Settled pixels are
+unchanged: home 0..584 and content -268..316, with the same image framing.
+`verify.mjs` ALL PASS; 60Hz 4x p95 16.8/16.8ms; 1x p95 1.1/1.2ms; DOM stays
+flat at 722 elements.

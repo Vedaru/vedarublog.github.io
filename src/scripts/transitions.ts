@@ -218,6 +218,7 @@ function startLayoutMove(): void {
 /** 换页时的滚动动画句柄（同一时间只允许一个）。 */
 let scrollTweenFrame = 0;
 let scrollResidualElement: HTMLElement | null = null;
+let scrollResidualBanner: HTMLElement | null = null;
 
 function applyScrollResidual(desired: number, actual: number): void {
 	const content =
@@ -231,6 +232,14 @@ function applyScrollResidual(desired: number, actual: number): void {
 		"translate",
 		`0 ${(actual - desired).toFixed(3)}px`,
 	);
+	scrollResidualBanner = document.getElementById("banner-wrapper");
+	if (scrollResidualBanner) {
+		scrollResidualBanner.classList.add("is-scroll-residual");
+		scrollResidualBanner.style.setProperty(
+			"translate",
+			`0 ${(actual - desired).toFixed(3)}px`,
+		);
+	}
 }
 
 function clearScrollResidual(): void {
@@ -239,7 +248,12 @@ function clearScrollResidual(): void {
 		content.style.removeProperty("translate");
 		content.classList.remove("is-scroll-residual");
 	}
+	if (scrollResidualBanner) {
+		scrollResidualBanner.style.removeProperty("translate");
+		scrollResidualBanner.classList.remove("is-scroll-residual");
+	}
 	scrollResidualElement = null;
+	scrollResidualBanner = null;
 }
 
 function cancelScrollTween(): void {

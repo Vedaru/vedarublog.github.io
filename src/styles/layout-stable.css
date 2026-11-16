@@ -20,6 +20,11 @@
 	transform: translate(0px, 0px);
 }
 
+#main-grid.is-scroll-residual,
+#banner-wrapper.is-scroll-residual {
+	will-change: transform, translate;
+}
+
 /* ── Base banner ──────────────────────────────────────────────────────── */
 #banner-wrapper {
 	position: absolute;
@@ -54,12 +59,11 @@
 	opacity: 1;
 }
 
-/* The banner is two layers in Fuwari: the wrapper slides the whole image,
-   and the image itself offsets by `--banner-offset` on content pages so the
-   visible 35vh strip shows the centre of the artwork. Both use the same
-   700ms clock, so the crop moves with the wrapper instead of snapping. */
-/* One authoritative transition for the three layers that move on a page
-   change. Nothing else is promoted.
+/* One authoritative animated banner layer: the wrapper slides and clips the
+   image. The content-page crop is a static `top` on #banner, so it snaps with
+   the class flip and the visible bottom edge remains one raster boundary. */
+/* One authoritative transition for the two layers that move on a page
+   change: the banner wrapper and the grid. Nothing else is promoted.
 
    Fuwari's banner layers carry no `backface-visibility`: forcing a 3D layer
    here makes the browser rasterize the image on its own layer and resample it
@@ -72,19 +76,15 @@
 		opacity var(--layout-slide-duration) cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-#banner,
 #main-grid {
 	transition: transform var(--layout-slide-duration)
 		cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Our banner image is much larger than Fuwari's demo banner. Without the hint
-   the browser re-rasterizes the two banner layers on every frame of the slide
-   (measured 57 RasterTask events against Fuwari's 22); keeping these two
-   layers promoted brings it to 33. The hint cannot wait for visit:start: the
-   promotion itself is what has to happen before the first frame. */
-#banner-wrapper,
-#banner {
+/* Our banner image is much larger than Fuwari's demo banner. Keep only the
+   wrapper promoted; a second promotion on #banner gives the clip and image
+   different subpixel phases and produces a 1px sawtooth at the bottom seam. */
+#banner-wrapper {
 	will-change: transform;
 }
 
@@ -104,11 +104,11 @@ body.no-banner-mode #banner-wrapper {
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner #banner {
-		transform: translateY(var(--banner-offset, 0px));
+		top: var(--banner-offset, 0px);
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home #banner {
-		transform: translateY(0);
+		top: 0;
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner .main-panel {
