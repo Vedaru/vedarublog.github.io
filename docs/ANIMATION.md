@@ -133,15 +133,16 @@ content top and sidebar column top:
 
 | Direction | Start | Reversals | Fractional tail steps |
 | --- | ---: | ---: | ---: |
-| home -> post | 0 / 900 / 1200 | 0 / 0 / 0 | 37 / 36 / 35 |
-| post -> home | 0 / 900 / 1200 | 0 / 0 / 0 | 37 / 36 / 34 |
+| home -> post | 0 / 900 / 1200 | 0 / 0 / 0 | 34-37 per run |
+| post -> home | 0 / 900 / 1200 | 0 / 0 / 0 | 34-37 per run |
 
-Frame pacing at 1440x900 dpr2 remained at the approved baseline: 60Hz 4x p95
-16.8ms home -> post; post -> home measured 33.3ms in 5/6 runs, and the
-unmodified `fa91afc` reference measured 33.2-33.3ms in 5/5 runs on the same
-machine. That bucket is the known post-move content task crossing the 5%
-sample boundary, not engine work; reverse had no long tasks and no
-reversals. 1x uncapped p95 was 2.0ms home -> post and 1.4ms post -> home.
+Frame pacing at 1440x900 dpr2 remained at the approved baseline: the final
+60Hz 4x run was 16.8ms p95 in both directions. Post -> home measured 33.3ms
+in 5/6 earlier runs, and the unmodified `fa91afc` reference measured
+33.2-33.3ms in 5/5 runs on the same machine. That bucket is the known
+post-move content task crossing the 5% sample boundary, not engine work;
+reverse had no long tasks and no reversals. 1x uncapped p95 was 1.9ms home ->
+post and 1.0ms post -> home.
 
 `verify.mjs` now makes 8 checks: rendered edge lockstep while the engine is
 active, pinned-sidebar at rest, home/post column tops, mobile swap, post ->

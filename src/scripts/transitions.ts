@@ -1,21 +1,7 @@
 /**
- * Fuwari-style page transitions.
- *
- *   1. `visit:start` reads the scroll position, kicks off the scroll-to-top
- *      tween and flips the body's home class in the same tick, so the 700ms
- *      banner/grid transform starts on the click frame — not after the scroll
- *      finishes. Fuwari runs both animations concurrently; serialising them
- *      is what makes the banner look late.
- *   2. The outgoing content fades over 200ms. The incoming document is
- *      prepared while detached (no entrance animations, lazy images, code
- *      block and below-fold markdown sizes) before Swup swaps it in.
- *   3. `content:replace` happens ~200ms into the slide. The sidebar TOC stays
- *      deferred until the transform ends.
- *   4. The incoming content fades in; the shell and optional enhancements
- *      sync after the transform.
- *
- * The custom scroll tween and the transform share the 700ms clock; the swap
- * happens while both are moving. No page-height spacer is involved.
+ * Swup wiring. The move engine owns scroll and the two transforms; this file
+ * reads once at visit:start, flips the class in the same tick, prepares the
+ * detached document, and settles the shell after the swap.
  */
 import { BANNER_HEIGHT, BANNER_HEIGHT_HOME } from "@constants";
 import { isMainHomePage, pathFromUrl } from "../utils/route-utils";
@@ -36,17 +22,7 @@ interface Visit {
 	scroll?: { reset?: boolean };
 }
 
-/**
- * Whether the *committed* content is the home page.
- *
- * `body.is-home` is a transition-time state: it flips at `visit:start` so the
- * 700ms transform starts on the click frame. Anything that is a layout change
- * instead of a transform (the mobile banner/`main-panel` swap) has to follow
- * the content, which only changes at `content:replace`. Deriving the mobile
- * layout from `body.is-home` made a resize in the middle of a visit flip
- * `.main-panel` between the banner height and 6.5rem while the outgoing page
- * was still fading, which reads as the top edge jumping.
- */
+/** The committed page, not the transition-time `body.is-home` state. */
 let contentIsHome = document.body.classList.contains("is-home");
 
 function isHomeVisit(visit: Visit): boolean {
@@ -83,12 +59,7 @@ function setBannerVisibility(isHome: boolean): void {
 
 // ── Scroll-driven chrome ───────────────────────────────────────────────────
 function getScrollY(): number {
-	// `window.scrollY` is a cached viewport value. Falling back to
-	// `scrollTop` (the old IE path) reads layout, and because `scrollY` is 0
-	// at the top of the page the `||` chain took that fallback on every
-	// visit:start - after the hook had already written `is-toc-deferred` and
-	// `--content-delay`, so the read forced a full style/layout pass over the
-	// outgoing page (measured: 50.8ms style + 3ms layout at 4x CPU).
+	// Cached viewport value; never fall back to a layout-reading scrollTop.
 	return window.scrollY;
 }
 
@@ -170,13 +141,7 @@ let layoutMove: LayoutMoveHandle | null = null;
 let contentDelayCleared = false;
 let pendingScrollTweenMs = 0;
 
-/**
- * Clear everything a visit may have turned on. Called when the content has
- * painted and again on `visit:end` / `visit:abort`: Swup does not run
- * `visit:end` for an aborted visit (a second click, a failed fetch, an
- * external navigation), so an abort must not leave the TOC hidden or the
- * layout marker on <html>.
- */
+/** Clear all visit state. Aborted visits never receive `visit:end`. */
 function settle(): void {
 	cancelLayoutMove();
 	layoutMove = null;
@@ -190,13 +155,9 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 	if (hooksRegistered) return;
 	hooksRegistered = true;
 
-	// The scroll plugin's own visit:start handler has priority 1 and caches
-	// the outgoing position first. Run after it, then finish the scroll before
-	// flipping the layout and starting the transform.
+	// Priority 1 runs after the scroll plugin has cached the outgoing position.
 	swup.hooks.on("visit:start", async (visit: Visit) => {
-		// Read before any class or style writes. `getScrollY` is cheap now, but
-		// keeping the read first is what the old comment promised and what
-		// guarantees no later write can turn it into a forced layout.
+		// Read before any class or style writes.
 		const scrollAtStart = getScrollY();
 		cancelEnhancements();
 		const wasHome = document.body.classList.contains("is-home");
@@ -207,19 +168,15 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 			wasHome !== isHome &&
 			window.matchMedia("(min-width: 1280px)").matches;
 
-		// Only a layout slide needs the TOC's layout kept out of the swap: the
-		// swap lands mid-slide, while the grid is still moving. On a plain visit
-		// the swap lands after the scroll has finished, and hiding the TOC for
-		// the length of the tween reads as an empty card in the sidebar.
+		// A layout slide swaps while the grid is still moving; keep the TOC
+		// deferred so it does not reflow mid-slide.
 		if (layoutSlides) {
 			document
 				.getElementById("toc-wrapper")
 				?.classList.add("is-toc-deferred");
 		}
 
-		// Remove the entrance-animation stagger for subsequent pages once.
-		// The grid survives the swap; writing to <html> would invalidate the
-		// whole document on the click path.
+		// Remove the entrance stagger once; the grid survives the swap.
 		if (!contentDelayCleared && !layoutSlides) {
 			const grid = document.getElementById("main-grid");
 			if (grid) {
@@ -228,8 +185,7 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 			}
 		}
 
-		// Use the position captured at the top of the hook, before any style
-		// or class writes.
+		// Use the position captured at the top of the hook.
 		const shouldMove =
 			!isPopstate &&
 			!visit.to.hash &&
@@ -244,10 +200,7 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 			});
 			if (visit.scroll) visit.scroll.reset = false;
 		}
-		// The layout slide's fade is the base 200ms rule, so it does not read
-		// this variable. On a non-slide visit, scope it to the fade element
-		// instead of the grid: a custom property on the grid inherits into every
-		// sidebar and content node and dirties them on the click path.
+		// Scope the fade duration to the fade element, not the grid.
 		pendingScrollTweenMs = layoutSlides ? 0 : layoutMove?.duration || 0;
 		if (pendingScrollTweenMs > 0) {
 			document

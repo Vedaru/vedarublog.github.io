@@ -81,7 +81,7 @@ function clearLayoutStyles(): void {
 	ROOT.classList.remove(ENGINE, MOVING);
 }
 
-function endActive(preserveMoving = false): void {
+function endActive(preserveMoving = false, notify = !preserveMoving): void {
 	if (!active) return;
 	const move = active;
 	active = null;
@@ -90,7 +90,7 @@ function endActive(preserveMoving = false): void {
 	if (preserveMoving) ROOT.classList.add(MOVING);
 	setScrollTweening(false);
 	move.resolve();
-	ROOT.dispatchEvent(new Event(LAYOUT_MOVE_END));
+	if (notify) ROOT.dispatchEvent(new Event(LAYOUT_MOVE_END));
 }
 
 export function cancelLayoutMove(): void {
@@ -213,7 +213,7 @@ export function runLayoutMove(options: LayoutMoveOptions): LayoutMoveHandle {
 	// Capture rendered values once, before cancelling an interrupted move.
 	const startGrid = readY(grid);
 	const startBanner = readY(banner);
-	if (active) endActive();
+	if (active) endActive(false, false);
 	return options.layout
 		? startLayout(options, startGrid, startBanner)
 		: startScroll(options);
