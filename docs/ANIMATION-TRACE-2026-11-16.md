@@ -107,3 +107,80 @@ No scroll engine replacement, no timer, no wrapper, no blanket `will-change`, no
 6. Run `BASE=http://127.0.0.1:4322 node /home/vedaru/.jcode/scratch/vedaru-cdp/verify.mjs` before pushing.
 
 Do not use `animation-fill-mode: forwards` as a shortcut. It removes the pre-delay gap but causes a substantial recorder-measured regression from retained animation layers.
+
+## Correction after the first push: scroll must stay frozen
+
+The first pushed fix (`6e75d30`) removed the entrance fill offset but left the
+layout scroll spring from `516c2bd` running alongside the 700ms CSS transform.
+That was the wrong motion model. At 240Hz the spring settled in roughly
+310-410ms, so the visible banner moved on two clocks: a fast integer scroll
+plus the slower transform. The result was the reported "too fast" motion and
+banner jitter. The scroll steps were also integer, which is visibly coarse at
+240Hz against a fractional compositor transform.
+
+The approved model from `docs/ANIMATION.md` is restored: real scroll is frozen
+at its start value, the grid and banner transforms carry that offset, and the
+scroll is committed once in the same frame as the base transform. No JS scroll
+animation participates in a layout slide. CSS remains the only writer during
+the move, so a main-thread stall cannot desynchronise the banner from the grid.
+
+### Sticky correction without repainting the sidebar
+
+Freezing scroll exposed a second-order issue: sticky still clamps against the
+live scrollport. With real scroll frozen at `S`, the sticky box must carry `-S`
+in its `top` while the transformed layout carries `+S`. Without that
+compensation the announcement starts correctly, then drifts up to 46px away
+from the profile card near the end of the slide and snaps back at commit.
+
+Turning sticky off with `position: static` did remove the gap, but it made the
+sidebar part of the moving grid layer and regressed forward `JankV3` from 6 to
+58 in the same-environment A/B. It was rejected.
+
+The shipped correction keeps `position: sticky` and subtracts the frozen
+scroll from the sticky `top` for both sidebars, including the home banner
+offset. The delta and compensation are swapped atomically with the scroll
+commit. Sticky never leaves the compositor path and its rendered resting
+position is unchanged.
+
+### Same-environment A/B traces
+
+All runs used the same headed Chromium on the owner's 240Hz display, DPR 1.25,
+`Tracing.start` with timeline/CC/benchmark categories, `NO_SCREENSHOT=1`, a
+real `思考` category click at `scrollY 900` for forward, and post -> home for
+reverse. The window must be focused; an occluded Chromium window pauses CSS
+animations and produces invalid zero-time traces.
+
+| Variant | Forward `JankV3` | Reverse `JankV3` |
+| --- | ---: | ---: |
+| `6e75d30` scroll spring + inner transform | 24 | 94 |
+| Frozen scroll + inner `top` crop | 94 | 86 |
+| Frozen scroll + sticky `position: static` | 58 | 6 |
+| Frozen scroll + sticky `-S` compensation | **10** | **4** |
+
+Final geometry with the compensation:
+
+- Forward announcement gap: 16.0000px minimum and maximum across all moving
+  frames. No 62px transient.
+- Reverse announcement gap: 16px after the first 100ms. The initial 62px
+  reading is the post page already scrolled 900px with the profile card
+  offscreen, not a visible gap between rendered cards.
+- Grid and banner reversals: 0 in both directions.
+- Banner bottom minus grid top: within 0.00013px in both directions.
+- Active transition properties during the move: `transform` only. No JS
+  scroll writes, no animation prop on the scroll position.
+
+Final regression harness: **ALL PASS (8/8)**. `astro check`: 0 errors, 0
+warnings, 8 existing hints. `astro build` passed.
+
+### Final source changes
+
+- `src/scripts/transitions.ts`: layout slides use `frozenLayout`, no
+  `startScrollToTop`; transform deltas are cleared and scroll is committed in
+  one frame with layout transitions disabled.
+- `src/styles/layout-stable.css`:
+  - grid and banner transforms include `--layout-scroll-delta`;
+  - `is-layout-committing` disables transitions for the atomic commit;
+  - both sticky sidebars subtract the frozen delta in `top`;
+  - banner wrapper and inner crop both use transform transitions.
+
+The earlier no-fill entrance fix remains required and unchanged.

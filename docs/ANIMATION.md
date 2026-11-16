@@ -278,12 +278,11 @@ Measured with Chrome for Testing at 4x CPU throttle (a mid-range phone):
 click
   → visit:start
       read the scroll position before any class/style writes
-      runLayoutMove({startY, toHome, layout})
-        layout slide: one rAF clock; scrollTo + grid/banner transforms;
-          sub-pixel scroll remainder folded into both transforms
-        otherwise: the Fuwari scroll spring
-      the engine flips is-home and adds is-layout-engine/is-layout-moving
-      the sidebar top compensation and banner crop use the same CSS clock
+      layout slide: freeze real scroll and publish it as --layout-scroll-delta
+        the grid and banner transforms carry that offset
+      flip is-home and add is-layout-moving
+      the sticky top compensation and banner crop use the same CSS clock
+      otherwise: the Fuwari scroll spring
   → content fade out (700ms on a layout slide, 200ms otherwise)
   → content:replace (main + #toc), after the slide on a layout slide
       swap the containers
@@ -291,9 +290,10 @@ click
       sync the mobile banner
       start the incoming fade
   → animation:in:await
-      returns the engine's finished promise on a layout slide
+      returns the grid transform's transitionend promise on a layout slide
   → animation:in:end (after the transform)
-      settle(): cancel/clear the engine, remove layout classes and TOC defer
+      commit scroll and base transform in one frame with transitions disabled,
+        then remove layout classes and TOC defer
       sync the navbar/chrome; schedule idle enhancements
       requestIdleCallback → fancybox / mermaid / fonts / comments
 ```
@@ -305,12 +305,17 @@ content is laid out eagerly; no content-visibility priming is used. The
 destination's code-block layout is the remaining tail and is accepted at
 Fuwari p95 parity.
 
-The engine removes `is-layout-engine` when its 700ms clock ends and leaves
-`is-layout-moving` for CSS/navbar state until `settle()` runs. Swup's
-`animation:in:await` returns the engine handle's `finished` promise, so
-`animation:in:end` and `visit:end` also happen after the slide. A second
-visit or a popstate cancels the active handle; `cancelLayoutMove()` clears the
-inline transforms and classes even when no rAF is active.
+Real scroll never animates on a layout slide. CSS transitions on the grid and
+banner run on the compositor, so they keep moving through main-thread work; a
+JS scroll spring cannot and would add integer scroll steps on top of the
+transform. The sticky sidebars stay sticky, but their `top` also subtracts
+`--layout-scroll-delta`, because sticky clamps against the still-frozen live
+scrollport while the transform carries the committed offset.
+
+Swup's `animation:in:await` returns the grid transform's `transitionend`
+promise, so `animation:in:end` and `visit:end` also happen after the slide. A
+second visit or a popstate cancels the pending token and clears the delta and
+layout classes.
 
 ### Interruption safety
 
@@ -394,9 +399,9 @@ Rules for future changes:
   reduced, do it without render deferral.
 - Keep the comment card's reserved height equal to the mounted Twikoo card
   (currently 512px) so comment initialization cannot shift the page.
-- Keep `animation:in:await` waiting for `layoutMove.finished` on a layout
-  slide. Do not remove Swup's root classes or enable the navbar blur while
-  the engine is running.
+- Keep `animation:in:await` waiting for the grid transform's `transitionend`
+  on a layout slide. Do not remove Swup's root classes or enable the navbar
+  blur while the layout is moving.
 - Keep the closed mobile menu/TOC panels `display:none` at breakpoints where
   their triggers are hidden; they were 147 laid-out elements on desktop.
 - Closed desktop dropdowns may leave layout only while `is-layout-moving`.
@@ -404,23 +409,21 @@ Rules for future changes:
 - Scope the fade duration to `#swup-container`. Do not write inherited custom
   properties on `#main-grid` on the click path; they dirty every sidebar and
   content node.
-- `runLayoutMove` in `layout-engine.ts` is the only scroll writer during a
-  visit. Call it at `visit:start` after the scroll plugin's position cache; do
-  not add another scroll plugin loop, timeout, or `scroll:top` override.
-- Keep `smoothScrolling: true`. The engine's `scrollTo` is the only scroll
-  call.
-- After starting the engine, set `visit.scroll.reset = false` so the scroll
-  plugin does not force layout of the new article just to scroll to 0 again.
-- The engine's easing constant is the single source for both the JS curve and
-  the CSS custom properties (`--layout-slide-duration`/`--layout-slide-ease`).
+- On a layout slide, real scroll is frozen and committed once with the base
+  transform at `transitionend`. Do not add a JS scroll animation, scroll
+  plugin loop, timeout, or `scroll:top` override for that slide.
+- Keep `smoothScrolling: true` for ordinary visits; `startScrollToTop` is only
+  for visits that are not layout slides.
+- On a layout slide set `visit.scroll.reset = false` so the scroll plugin does
+  not force layout of the new article just to scroll to 0 again.
+- `--layout-slide-duration` and `--layout-slide-ease` are the single source for
+  the transform, banner crop, and sticky compensation clocks.
   Do not hardcode a second 700ms or cubic-bezier value in CSS or TS.
-- The scroll and the transforms move the same card. Do not give them separate
-  clocks or curves; two velocity profiles make the card lurch on the first
-  frame while the transform trails.
-- On a second visit, capture the rendered transforms once before cancelling
-  the active handle, then start from those values with absolute targets. On
-  abort/popstate, cancel and clear inline transforms/classes even if the rAF
-  has already finished.
+- The frozen scroll delta and the transforms describe the same card. Never
+  animate both; two velocity profiles make the card lurch and add integer
+  scroll steps on top of the compositor transform.
+- On abort/popstate, invalidate the pending transition token and clear the
+  delta and layout classes so the next visit cannot commit the old move.
 - Do not re-introduce a page-height spacer or a timer that removes it. The
   clamp happens while the content is invisible; a spacer becomes a scrollable
   blank region and makes the page look endless.

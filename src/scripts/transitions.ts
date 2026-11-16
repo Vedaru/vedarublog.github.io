@@ -1,7 +1,8 @@
 /**
- * Swup wiring. CSS owns the layout transforms and the existing scroll spring
- * owns the outgoing scroll offset. The root keeps that offset reachable until
- * the transform transition finishes.
+ * Swup wiring. CSS owns the layout transforms while real scroll stays frozen.
+ * The root keeps the outgoing scroll offset reachable until the transform
+ * transition finishes, then commits it once in the same frame as the base
+ * transform.
  */
 import { BANNER_HEIGHT, BANNER_HEIGHT_HOME } from "@constants";
 import { isMainHomePage, pathFromUrl } from "../utils/route-utils";
@@ -162,12 +163,18 @@ function clearLayoutScrollDelta(): void {
 }
 
 /**
- * The layout transition and native scroll have both reached their destination.
- * Remove the temporary scroll range and make the final scroll position exact.
+ * The transform carries the frozen scroll delta. Swap it for the committed
+ * scroll and base transform in one frame, with transitions off, so neither
+ * layer animates back toward the old offset.
  */
 function commitLayoutMove(): void {
+	const root = document.documentElement;
+	root.classList.add("is-layout-committing");
 	clearLayoutScrollDelta();
 	window.scrollTo(0, 0);
+	requestAnimationFrame(() => {
+		root.classList.remove("is-layout-committing");
+	});
 }
 
 /** Clear all visit state. Aborted visits never receive `visit:end`. */
@@ -243,7 +250,7 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 			}
 		}
 
-		const nativeScrollLayout = layoutSlides && !isPopstate;
+		const frozenLayout = layoutSlides && !isPopstate;
 		if (isPopstate) {
 			// History visits must let Swup's scroll plugin restore the
 			// destination entry. Forward layout visits opt out below. The
@@ -258,20 +265,22 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 			clearLayoutScrollDelta();
 			setLayoutMoving(false);
 		}
-		if (nativeScrollLayout) setLayoutScrollDelta(scrollAtStart);
+		if (frozenLayout) setLayoutScrollDelta(scrollAtStart);
 		setBodyHome(isHome);
 
-		if (nativeScrollLayout) {
-			// Match Fuwari's independent scroll and layout ownership. The
-			// existing cancellable spring owns scroll while CSS owns transforms.
-			if (scrollAtStart > 1) startScrollToTop(scrollAtStart);
+		if (frozenLayout) {
+			// Real scroll stays at its current value. The grid and banner
+			// transforms carry that offset, so the compositor is the only
+			// writer during the slide. A second scroll animation here would
+			// add its velocity to the transform and make the visible banner
+			// move too fast.
 			if (visit.scroll) visit.scroll.reset = false;
 		} else if (!isPopstate && !visit.to.hash && scrollAtStart > 1) {
 			startScrollToTop(scrollAtStart);
 			if (visit.scroll) visit.scroll.reset = false;
 		}
-		setLayoutMoving(nativeScrollLayout);
-		if (nativeScrollLayout) {
+		setLayoutMoving(frozenLayout);
+		if (frozenLayout) {
 			layoutToken += 1;
 			layoutPromise = waitForGridTransition(layoutToken);
 		} else {

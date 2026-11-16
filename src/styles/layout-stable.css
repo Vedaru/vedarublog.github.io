@@ -57,10 +57,9 @@
 }
 
 /* Both banner layers use the same compositor clock as Fuwari: the wrapper
-   slides/clips while the inner crop translates. Keeping the crop on `top`
-   made its reverse animation advance only during main-thread layout work.
-   No backface-visibility or persistent compositing hint is used. The wrapper
-   opacity entry is for the mobile hide/show. */
+   slides and clips while the inner crop translates. No backface-visibility or
+   persistent compositing hint is used; both layers are promoted only for the
+   active transition. The wrapper opacity entry is for the mobile hide/show. */
 #banner-wrapper {
 	transition:
 		transform var(--layout-slide-duration) var(--layout-slide-ease),
@@ -71,10 +70,18 @@
 	transition: transform var(--layout-slide-duration) var(--layout-slide-ease);
 }
 
-/* A short incoming page can shrink the root scroller while the layout's
-   scroll spring is still moving to the top. Keep the outgoing offset reachable
-   until the layout transition commits, or clamping scrollY shifts every
-   animated edge and can also trigger sticky constraints. */
+/* Commit the frozen scroll delta and the base transform in one frame. Without
+   this, clearing the delta starts a second 700ms transition back toward the
+   outgoing offset. */
+html.is-layout-committing #main-grid,
+html.is-layout-committing #banner-wrapper,
+html.is-layout-committing #banner {
+	transition: none;
+}
+
+/* A short incoming page can shrink the root scroller while real scroll is
+   frozen. Keep the outgoing offset reachable until the transform commits, or
+   clamping scrollY shifts every animated edge. */
 html.is-layout-moving {
 	min-height: calc(100vh + var(--layout-scroll-delta, 0px));
 }
@@ -91,12 +98,17 @@ body.no-banner-mode #banner-wrapper {
 /* ── Desktop: home reveals 65vh, content pages show the 35vh strip ───── */
 @media (min-width: 1280px) {
 	html[data-wallpaper-mode="banner"] body.enable-banner #banner-wrapper {
-		transform: translateY(0);
+		transform: translateY(var(--layout-scroll-delta, 0px));
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
 		#banner-wrapper {
-		transform: translateY(var(--banner-height-extend, 30dvh));
+		transform: translateY(
+			calc(
+				var(--banner-height-extend, 30dvh) +
+					var(--layout-scroll-delta, 0px)
+			)
+		);
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner #banner {
@@ -123,12 +135,17 @@ body.no-banner-mode #banner-wrapper {
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner #main-grid {
-		transform: translateY(0);
+		transform: translateY(var(--layout-scroll-delta, 0px));
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
 		#main-grid {
-		transform: translateY(var(--banner-height-extend, 30dvh));
+		transform: translateY(
+			calc(
+				var(--banner-height-extend, 30dvh) +
+					var(--layout-scroll-delta, 0px)
+			)
+		);
 	}
 
 	#sidebar-sticky,
@@ -151,6 +168,29 @@ body.no-banner-mode #banner-wrapper {
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
 		#right-sidebar-sticky {
 		top: calc(1rem - var(--banner-height-extend, 30dvh));
+	}
+
+	/* Real scroll is frozen at S while the grid carries S in its transform.
+	   Sticky still clamps against the live scrollport, so its pinned offset
+	   must also carry -S. Without this, the pinned box drifts away from the
+	   card above it and leaves a growing gap until the scroll commits. The
+	   compensation is swapped with the scroll delta in the commit frame, when
+	   the sticky box is back in normal flow. */
+	html.is-layout-moving #sidebar-sticky,
+	html.is-layout-moving #right-sidebar-sticky {
+		top: calc(1rem - var(--layout-scroll-delta, 0px));
+	}
+
+	html[data-wallpaper-mode="banner"]
+		body.enable-banner.is-home.is-layout-moving
+		#sidebar-sticky,
+	html[data-wallpaper-mode="banner"]
+		body.enable-banner.is-home.is-layout-moving
+		#right-sidebar-sticky {
+		top: calc(
+			1rem - var(--banner-height-extend, 30dvh) -
+				var(--layout-scroll-delta, 0px)
+		);
 	}
 
 	/* The sidebars' sticky `top` transition invalidates the root layer on
