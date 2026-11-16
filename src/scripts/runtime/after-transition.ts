@@ -1,8 +1,8 @@
 /**
- * Run work only after the layout glide has settled. The engine owns the end
- * event; there is no CSS transition to listen for and no fallback timer.
+ * Run work only after the layout glide has settled. The transition hooks own
+ * the event; there is no CSS transition to listen for and no fallback timer.
  */
-import { LAYOUT_MOVE_END } from "./layout-engine";
+import { LAYOUT_SETTLED } from "./layout-events";
 
 const ROOT = document.documentElement;
 
@@ -12,7 +12,7 @@ export function runAfterLayoutSettled(fn: () => void): void {
 		return;
 	}
 	ROOT.addEventListener(
-		LAYOUT_MOVE_END,
+		LAYOUT_SETTLED,
 		() => {
 			fn();
 		},

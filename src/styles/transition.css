@@ -8,26 +8,10 @@ html.is-animating .transition-swup-fade {
 	opacity: 0;
 	transform: translateY(1rem);
 }
-/*
- * Layout slides: hold the outgoing fade for the whole 700ms transform, so
- * content:replace and its main-thread layout cannot run under the sidebar's
- * `top` compensation. This is the 9424c48 ordering. The incoming content
- * waits on the transform through animation:in:await. The slide already moves
- * the content with the grid, so remove the extra 1rem fade translate.
- */
+/* The grid transform already carries the content during a layout slide;
+   the extra 1rem translate would offset the content edge from the grid. */
 html.is-layout-moving.is-animating .transition-swup-fade {
-	transition-duration: var(--layout-slide-duration);
 	transform: none;
-}
-/*
- * Non-slide visits: the scroll tween owns the outgoing page until it reaches
- * the top. Fade for exactly that long so the swap happens at scroll 0 -
- * replacing the content mid-scroll makes every later frame reflow a page that
- * is still inserting images and diagrams (measured: 1.3s of Layout for a
- * 400ms tween on a long post, and a visible freeze before the last jump).
- */
-html.is-animating:not(.is-layout-moving) .transition-swup-fade {
-	transition-duration: var(--scroll-tween-duration, 200ms);
 }
 
 /* Fade-in animations for components */

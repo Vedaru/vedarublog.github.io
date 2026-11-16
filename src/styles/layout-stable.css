@@ -7,6 +7,12 @@
  * transform on the banner and grid plus the sidebars' top compensation.
  */
 
+:root {
+	--layout-slide-duration: 700ms;
+	--layout-slide-ease: cubic-bezier(0.4, 0, 0.2, 1);
+	--layout-scroll-delta: 0px;
+}
+
 /* Fuwari leaves identity transforms on the sidebar and content wrapper.
    Besides matching its DOM/layer shape, this makes each one a containing
    block and keeps their paint independent of the moving grid layer. */
@@ -71,12 +77,10 @@
 	transition: transform var(--layout-slide-duration) var(--layout-slide-ease);
 }
 
-/* The layout engine drives these two transforms by hand for the length of a
-   layout slide: one rAF clock, one scroll write, one transform write, and the
-   sub-pixel scroll remainder folded into the same transform. */
-html.is-layout-engine #main-grid,
-html.is-layout-engine #banner-wrapper {
-	transition: none !important;
+/* Commit the frozen scroll and the base transform in one frame. */
+html.is-layout-committing #main-grid,
+html.is-layout-committing #banner-wrapper {
+	transition: none;
 }
 
 #banner {
@@ -96,12 +100,17 @@ body.no-banner-mode #banner-wrapper {
 /* ── Desktop: home reveals 65vh, content pages show the 35vh strip ───── */
 @media (min-width: 1280px) {
 	html[data-wallpaper-mode="banner"] body.enable-banner #banner-wrapper {
-		transform: translateY(0);
+		transform: translateY(var(--layout-scroll-delta, 0px));
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
 		#banner-wrapper {
-		transform: translateY(var(--banner-height-extend, 30dvh));
+		transform: translateY(
+			calc(
+				var(--banner-height-extend, 30dvh) +
+					var(--layout-scroll-delta, 0px)
+			)
+		);
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner #banner {
@@ -128,12 +137,17 @@ body.no-banner-mode #banner-wrapper {
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner #main-grid {
-		transform: none;
+		transform: translateY(var(--layout-scroll-delta, 0px));
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
 		#main-grid {
-		transform: translateY(var(--banner-height-extend, 30dvh));
+		transform: translateY(
+			calc(
+				var(--banner-height-extend, 30dvh) +
+					var(--layout-scroll-delta, 0px)
+			)
+		);
 	}
 
 	#sidebar-sticky,

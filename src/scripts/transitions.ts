@@ -10,10 +10,10 @@ import {
 	scheduleEnhancements,
 } from "./page-enhancements";
 import {
-	cancelLayoutMove,
-	runLayoutMove,
-	type LayoutMoveHandle,
+	cancelScrollToTop,
+	startScrollToTop,
 } from "./runtime/layout-engine";
+import { notifyLayoutSettled } from "./runtime/layout-events";
 import "./runtime/comment-boot";
 
 interface Visit {
@@ -137,18 +137,65 @@ function onScroll(): void {
 // ── Swup hooks ─────────────────────────────────────────────────────────────
 let hooksRegistered = false;
 let knownScrollY: number | null = null;
-let layoutMove: LayoutMoveHandle | null = null;
+let layoutPromise: Promise<void> | null = null;
+let activeVisit: Visit | null = null;
+let layoutToken = 0;
 let contentDelayCleared = false;
-let pendingScrollTweenMs = 0;
+
+function setLayoutMoving(moving: boolean): void {
+	document.documentElement.classList.toggle("is-layout-moving", moving);
+}
+
+function setLayoutScrollDelta(scrollY: number): void {
+	document.documentElement.style.setProperty(
+		"--layout-scroll-delta",
+		`${scrollY}px`,
+	);
+}
+
+function clearLayoutScrollDelta(): void {
+	setLayoutScrollDelta(0);
+}
+
+/**
+ * The transform already carries the frozen scroll delta. Swap it for the
+ * committed scroll and base transform in one frame, with transitions off.
+ */
+function commitLayoutMove(): void {
+	const root = document.documentElement;
+	root.classList.add("is-layout-committing");
+	clearLayoutScrollDelta();
+	window.scrollTo(0, 0);
+	requestAnimationFrame(() => {
+		root.classList.remove("is-layout-committing");
+	});
+}
 
 /** Clear all visit state. Aborted visits never receive `visit:end`. */
 function settle(): void {
-	cancelLayoutMove();
-	layoutMove = null;
+	cancelScrollToTop();
+	layoutPromise = null;
+	layoutToken += 1;
 	knownScrollY = null;
+	setLayoutMoving(false);
 	document
 		.getElementById("toc-wrapper")
 		?.classList.remove("is-toc-deferred");
+	notifyLayoutSettled();
+}
+
+function waitForGridTransition(token: number): Promise<void> {
+	const grid = document.getElementById("main-grid");
+	if (!grid) return Promise.resolve();
+	return new Promise((resolve) => {
+		const onEnd = (event: TransitionEvent) => {
+			if (event.target !== grid || event.propertyName !== "transform") return;
+			grid.removeEventListener("transitionend", onEnd);
+			if (token === layoutToken) commitLayoutMove();
+			resolve();
+		};
+		grid.addEventListener("transitionend", onEnd);
+	});
 }
 
 function setup(swup: NonNullable<Window["swup"]>): void {
@@ -157,13 +204,13 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 
 	// Priority 1 runs after the scroll plugin has cached the outgoing position.
 	swup.hooks.on("visit:start", async (visit: Visit) => {
+		activeVisit = visit;
 		// Read before any class or style writes.
 		const scrollAtStart = getScrollY();
 		cancelEnhancements();
 		const wasHome = document.body.classList.contains("is-home");
 		const isHome = isHomeVisit(visit);
 		const isPopstate = visit.history?.popstate === true;
-		if (isPopstate) cancelLayoutMove();
 		const layoutSlides =
 			wasHome !== isHome &&
 			window.matchMedia("(min-width: 1280px)").matches;
@@ -185,35 +232,30 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 			}
 		}
 
-		// Use the position captured at the top of the hook.
-		const shouldMove =
-			!isPopstate &&
-			!visit.to.hash &&
-			(layoutSlides || scrollAtStart > 1);
-		layoutMove = null;
-		if (shouldMove) {
-			layoutMove = runLayoutMove({
-				startY: scrollAtStart,
-				toHome: isHome,
-				layout: layoutSlides,
-				onFlip: () => setBodyHome(isHome),
-			});
+		const frozenLayout = layoutSlides && !isPopstate;
+		if (isPopstate) {
+			layoutToken += 1;
+			cancelScrollToTop();
+			clearLayoutScrollDelta();
+			setLayoutMoving(false);
+		}
+		if (frozenLayout) setLayoutScrollDelta(scrollAtStart);
+		setBodyHome(isHome);
+
+		if (frozenLayout) {
+			// The real scroll freezes at its current value; the CSS transform
+			// carries that delta and is committed once at transition end.
+			if (visit.scroll) visit.scroll.reset = false;
+		} else if (!isPopstate && !visit.to.hash && scrollAtStart > 1) {
+			startScrollToTop(scrollAtStart);
 			if (visit.scroll) visit.scroll.reset = false;
 		}
-		// Scope the fade duration to the fade element, not the grid.
-		pendingScrollTweenMs = layoutSlides ? 0 : layoutMove?.duration || 0;
-		if (pendingScrollTweenMs > 0) {
-			document
-				.getElementById("swup-container")
-				?.style.setProperty(
-					"--scroll-tween-duration",
-					`${pendingScrollTweenMs}ms`,
-				);
-		}
-
-		if (!shouldMove) {
-			cancelLayoutMove();
-			setBodyHome(isHome);
+		setLayoutMoving(frozenLayout);
+		if (frozenLayout) {
+			layoutToken += 1;
+			layoutPromise = waitForGridTransition(layoutToken);
+		} else {
+			layoutPromise = null;
 		}
 
 		knownScrollY = layoutSlides ? 0 : null;
@@ -243,16 +285,6 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 
 	swup.hooks.on("content:replace", (visit: Visit) => {
 		const isHome = isHomeVisit(visit);
-		// Re-apply the fade duration to the new container; the old one was
-		// replaced and the grid-scoped variable is intentionally gone.
-		if (pendingScrollTweenMs > 0) {
-			document
-				.getElementById("swup-container")
-				?.style.setProperty(
-					"--scroll-tween-duration",
-					`${pendingScrollTweenMs}ms`,
-				);
-		}
 		// Mobile banner visibility is a layout property. Commit it together
 		// with the content it describes, before the incoming fade starts.
 		contentIsHome = isHome;
@@ -260,8 +292,8 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 	});
 
 	swup.hooks.on("animation:in:await", () => {
-		if (!layoutMove?.layout) return;
-		return layoutMove.finished;
+		if (!layoutPromise) return;
+		return layoutPromise;
 	});
 
 	swup.hooks.on("animation:in:end", (visit: Visit) => {
@@ -275,12 +307,18 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		scheduleEnhancements();
 	});
 
-	swup.hooks.on("visit:end", settle);
+	swup.hooks.on("visit:end", (visit: Visit) => {
+		settle();
+		if (activeVisit === visit) activeVisit = null;
+	});
 
 	// Swup aborts a visit when another link is clicked mid-transition; it
 	// never fires `visit:end` for that one.
-	swup.hooks.on("visit:abort", () => {
-		cancelLayoutMove();
+	swup.hooks.on("visit:abort", (visit: Visit) => {
+		if (activeVisit !== visit) return;
+		activeVisit = null;
+		cancelScrollToTop();
+		clearLayoutScrollDelta();
 		setBodyHome(contentIsHome);
 		settle();
 	});
@@ -351,7 +389,7 @@ export function initTransitions(): void {
 
 	// 用户自己滚动时立刻让出控制权，不和浏览器抢滚动条。
 	for (const type of ["wheel", "touchstart", "keydown"] as const) {
-		window.addEventListener(type, cancelLayoutMove, { passive: true });
+		window.addEventListener(type, cancelScrollToTop, { passive: true });
 	}
 
 	window.addEventListener("scroll", onScroll, { passive: true });

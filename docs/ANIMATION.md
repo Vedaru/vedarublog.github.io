@@ -123,6 +123,48 @@ the 5% sample boundary; its p99 is 50ms. Home → post p95 is Fuwari parity
 require deferring article content, so it is accepted. No transition long
 task exceeds 150ms.
 
+### Why CSS transitions beat JS rAF on this site (2026-11-16)
+
+Measured on a headed Chromium on the owner's Wayland display:
+
+| Measurement | Result |
+| --- | --- |
+| rAF ticks in 700ms (data page) | 169 (240Hz, p50 4.2ms) |
+| rAF ticks in 700ms (our transition) | 163 (240Hz, p50 4.2ms) |
+| CSS transform through 150ms main-thread block | advances: 11.79 / 11.84 / 11.73 px per frame |
+| JS rAF transform through same block | stalls: zero rAF ticks during the block |
+
+The transition window carries ~800ms TaskDuration / ~173ms RecalcStyle /
+~38ms Layout from the visit swap and banner crop. A CSS `transition` on
+`transform` is handed to the compositor at `visit:start` and keeps
+interpolating through main-thread stalls. A JS rAF-written transform cannot:
+the callback does not run during the block, so the edge freezes visibly.
+
+Fuwari's `#main-grid` and `#banner-wrapper` use `transition duration-700`
+(Tailwind) driven by the `lg:is-home` class flip. That is the entire reason
+Fuwari is smooth under the same content cost. The fix is animation ownership,
+not easing, duration or banner structure.
+
+**Conclusion:** `#main-grid` and `#banner-wrapper` are animated by pure CSS
+transitions on `transform`, driven by the body class flip at `visit:start`.
+No JS writes transforms during the move. Real scroll is frozen at its current
+value and committed once at `transitionend` (one `scrollTo(0,0)` frame), so
+integer scroll steps are never part of the visible motion. The 300vh spacer
+is not needed because scroll never animates.
+
+Animation API at mid-transition confirms compositor ownership:
+
+```
+CSSTransition  transform  #main-grid          700ms  running
+CSSTransition  transform  #banner-wrapper     700ms  running
+CSSTransition  top        #banner             700ms  running  (crop, unchanged)
+CSSTransition  top        #sidebar-sticky     700ms  running  (9424, unchanged)
+CSSTransition  top        #right-sidebar-sticky 700ms running  (9424, unchanged)
+```
+
+No JS transform writes appear in the animation list. The sidebar `top`
+transitions and 9424 semantics are untouched.
+
 ### Engine extraction and interruption (2026-11-16)
 
 The approved `fa91afc` motion was moved into
