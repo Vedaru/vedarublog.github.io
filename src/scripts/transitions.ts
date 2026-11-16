@@ -1,7 +1,7 @@
 /**
- * Swup wiring. The move engine owns scroll and the two transforms; this file
- * reads once at visit:start, flips the class in the same tick, prepares the
- * detached document, and settles the shell after the swap.
+ * Swup wiring. CSS owns the layout transforms and the existing scroll spring
+ * owns the outgoing scroll offset. The root keeps that offset reachable until
+ * the transform transition finishes.
  */
 import { BANNER_HEIGHT, BANNER_HEIGHT_HOME } from "@constants";
 import { isMainHomePage, pathFromUrl } from "../utils/route-utils";
@@ -19,8 +19,12 @@ import "./runtime/comment-boot";
 interface Visit {
 	to: { url: string; hash?: string; document?: Document };
 	history?: { popstate?: boolean };
-	scroll?: { reset?: boolean };
+	scroll?: { reset?: boolean; animate?: boolean };
 }
+
+type HistoryScrollPlugin = {
+	getCachedScrollPositions(url: string): { window?: { top?: number } } | undefined;
+};
 
 /** The committed page, not the transition-time `body.is-home` state. */
 let contentIsHome = document.body.classList.contains("is-home");
@@ -158,17 +162,12 @@ function clearLayoutScrollDelta(): void {
 }
 
 /**
- * The transform already carries the frozen scroll delta. Swap it for the
- * committed scroll and base transform in one frame, with transitions off.
+ * The layout transition and native scroll have both reached their destination.
+ * Remove the temporary scroll range and make the final scroll position exact.
  */
 function commitLayoutMove(): void {
-	const root = document.documentElement;
-	root.classList.add("is-layout-committing");
 	clearLayoutScrollDelta();
 	window.scrollTo(0, 0);
-	requestAnimationFrame(() => {
-		root.classList.remove("is-layout-committing");
-	});
 }
 
 /** Clear all visit state. Aborted visits never receive `visit:end`. */
@@ -198,6 +197,15 @@ function waitForGridTransition(token: number): Promise<void> {
 	});
 }
 
+function restoreHistoryScroll(swup: NonNullable<Window["swup"]>, visit: Visit): void {
+	if (!visit.history?.popstate || visit.to.hash) return;
+	const plugin = (swup.plugins as unknown as Array<{ name: string }> | undefined)?.find(
+		(candidate) => candidate.name === "SwupScrollPlugin",
+	) as HistoryScrollPlugin | undefined;
+	const top = plugin?.getCachedScrollPositions(visit.to.url)?.window?.top;
+	if (typeof top === "number") swup.scrollTo(top, false);
+}
+
 function setup(swup: NonNullable<Window["swup"]>): void {
 	if (hooksRegistered) return;
 	hooksRegistered = true;
@@ -211,6 +219,9 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		const wasHome = document.body.classList.contains("is-home");
 		const isHome = isHomeVisit(visit);
 		const isPopstate = visit.history?.popstate === true;
+		// Forward visits must stop any previous scroll spring before starting
+		// this visit's motion. History visits leave scroll restoration to Swup.
+		if (!isPopstate) cancelScrollToTop();
 		const layoutSlides =
 			wasHome !== isHome &&
 			window.matchMedia("(min-width: 1280px)").matches;
@@ -232,26 +243,35 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 			}
 		}
 
-		const frozenLayout = layoutSlides && !isPopstate;
+		const nativeScrollLayout = layoutSlides && !isPopstate;
 		if (isPopstate) {
+			// History visits must let Swup's scroll plugin restore the
+			// destination entry. Forward layout visits opt out below. The
+			// restore itself is immediate; animating it would keep moving the
+			// page after the history offset has been restored.
+			if (visit.scroll) {
+				visit.scroll.reset = true;
+				visit.scroll.animate = false;
+			}
 			layoutToken += 1;
 			cancelScrollToTop();
 			clearLayoutScrollDelta();
 			setLayoutMoving(false);
 		}
-		if (frozenLayout) setLayoutScrollDelta(scrollAtStart);
+		if (nativeScrollLayout) setLayoutScrollDelta(scrollAtStart);
 		setBodyHome(isHome);
 
-		if (frozenLayout) {
-			// The real scroll freezes at its current value; the CSS transform
-			// carries that delta and is committed once at transition end.
+		if (nativeScrollLayout) {
+			// Match Fuwari's independent scroll and layout ownership. The
+			// existing cancellable spring owns scroll while CSS owns transforms.
+			if (scrollAtStart > 1) startScrollToTop(scrollAtStart);
 			if (visit.scroll) visit.scroll.reset = false;
 		} else if (!isPopstate && !visit.to.hash && scrollAtStart > 1) {
 			startScrollToTop(scrollAtStart);
 			if (visit.scroll) visit.scroll.reset = false;
 		}
-		setLayoutMoving(frozenLayout);
-		if (frozenLayout) {
+		setLayoutMoving(nativeScrollLayout);
+		if (nativeScrollLayout) {
 			layoutToken += 1;
 			layoutPromise = waitForGridTransition(layoutToken);
 		} else {
@@ -281,6 +301,10 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 			}
 		});
 
+	});
+
+	swup.hooks.on("content:scroll", (visit: Visit) => {
+		restoreHistoryScroll(swup, visit);
 	});
 
 	swup.hooks.on("content:replace", (visit: Visit) => {

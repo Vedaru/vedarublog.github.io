@@ -56,17 +56,11 @@
 	opacity: 1;
 }
 
-/* One animated banner layer: the wrapper slides/clips. The inner crop offset
-   is a top transition, not a second transform layer, so the visible bottom
-   edge remains one raster boundary while the crop changes continuously. */
-/* One authoritative transition for the moving layers. Nothing else is
-   promoted.
-
-   Fuwari's banner layers carry no `backface-visibility`: forcing a 3D layer
-   here makes the browser rasterize the image on its own layer and resample it
-   independently of the grid, which is visible as shimmer in the banner while
-   it slides. The opacity entry is for the mobile hide/show, which otherwise
-   pops while the transform animates. */
+/* Both banner layers use the same compositor clock as Fuwari: the wrapper
+   slides/clips while the inner crop translates. Keeping the crop on `top`
+   made its reverse animation advance only during main-thread layout work.
+   No backface-visibility or persistent compositing hint is used. The wrapper
+   opacity entry is for the mobile hide/show. */
 #banner-wrapper {
 	transition:
 		transform var(--layout-slide-duration) var(--layout-slide-ease),
@@ -77,28 +71,17 @@
 	transition: transform var(--layout-slide-duration) var(--layout-slide-ease);
 }
 
-/* A short incoming page can shrink the root scroller before the slide ends.
-   Keep the frozen offset reachable or the browser clamps scrollY while the
-   transform still includes the old offset, injecting a visible jump. The
-   existing commit clears the delta and settle removes this class. */
+/* A short incoming page can shrink the root scroller while the layout's
+   scroll spring is still moving to the top. Keep the outgoing offset reachable
+   until the layout transition commits, or clamping scrollY shifts every
+   animated edge and can also trigger sticky constraints. */
 html.is-layout-moving {
 	min-height: calc(100vh + var(--layout-scroll-delta, 0px));
 }
 
-/* Commit the frozen scroll and the base transform in one frame. */
-html.is-layout-committing #main-grid,
-html.is-layout-committing #banner-wrapper {
-	transition: none;
-}
-
 #banner {
-	transition: top var(--layout-slide-duration) var(--layout-slide-ease);
-}
-
-/* Keep only the wrapper promoted; a second promotion on #banner gives the
-   clip and image different subpixel phases and a 1px bottom seam. */
-#banner-wrapper {
-	will-change: transform;
+	top: 0;
+	transition: transform var(--layout-slide-duration) var(--layout-slide-ease);
 }
 
 body.no-banner-mode #banner-wrapper {
@@ -108,22 +91,20 @@ body.no-banner-mode #banner-wrapper {
 /* ── Desktop: home reveals 65vh, content pages show the 35vh strip ───── */
 @media (min-width: 1280px) {
 	html[data-wallpaper-mode="banner"] body.enable-banner #banner-wrapper {
-		transform: translateY(var(--layout-scroll-delta, 0px));
+		transform: translateY(0);
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
 		#banner-wrapper {
-		transform: translateY(
-			calc(var(--banner-height-extend, 30dvh) + var(--layout-scroll-delta, 0px))
-		);
+		transform: translateY(var(--banner-height-extend, 30dvh));
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner #banner {
-		top: var(--banner-offset, 0px);
+		transform: translateY(var(--banner-offset, 0px));
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home #banner {
-		top: 0;
+		transform: translateY(0);
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner .main-panel {
@@ -142,14 +123,12 @@ body.no-banner-mode #banner-wrapper {
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner #main-grid {
-		transform: translateY(var(--layout-scroll-delta, 0px));
+		transform: translateY(0);
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
 		#main-grid {
-		transform: translateY(
-			calc(var(--banner-height-extend, 30dvh) + var(--layout-scroll-delta, 0px))
-		);
+		transform: translateY(var(--banner-height-extend, 30dvh));
 	}
 
 	#sidebar-sticky,
