@@ -111,7 +111,8 @@ function endActive(preserveMovingClass = false): void {
 }
 
 export function cancelLayoutMove(): void {
-	endActive();
+	if (active) endActive();
+	else clearLayoutStyles();
 }
 
 function startLayout(
