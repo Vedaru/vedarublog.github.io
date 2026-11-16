@@ -20,9 +20,9 @@ Fuwari's transition is not a special animation library. It is three decisions:
    diagrams, lightboxes or analytics are loaded during the transition.
 
 This site keeps the 700ms banner/grid transform on the compositor. Real scroll
-does not animate on a layout slide: it is frozen and carried by the transforms,
-then committed once at `transitionend`. Layout slides use a slide-length
-outgoing fade; the transform starts on the click frame.
+is animated separately by Swup's ScrollPlugin. A temporary 300vh tail supplies
+the range the spring needs until the destination page is committed. The
+transform starts on the click frame and the content fade stays 200ms.
 
 ## Measured results (2026-11-15)
 
@@ -145,10 +145,9 @@ not easing, duration or banner structure.
 
 **Conclusion:** `#main-grid` and `#banner-wrapper` are animated by pure CSS
 transitions on `transform`, driven by the body class flip at `visit:start`.
-No JS writes transforms during the move. Real scroll is frozen at its current
-value and committed once at `transitionend` (one `scrollTo(0,0)` frame), so
-integer scroll steps are never part of the visible motion. The 300vh spacer
-is not needed because scroll never animates.
+No JS writes transforms during the move. Swup's ScrollPlugin animates real
+scroll independently, and Fuwari's temporary 300vh tail supplies the range it
+needs until the destination page is committed.
 
 Animation API at mid-transition confirms compositor ownership:
 
@@ -166,7 +165,7 @@ transitions and 9424 semantics are untouched.
 ### Engine extraction and interruption (2026-11-16)
 
 > Historical: this section records the JS rAF engine that preceded the
-> frozen-scroll implementation below. It is kept as measurement history, not
+> Fuwari-model implementation below. It is kept as measurement history, not
 > as the current contract. The current layout slide has no JS scroll writer.
 
 The approved `fa91afc` motion was moved into
@@ -279,45 +278,34 @@ Measured with Chrome for Testing at 4x CPU throttle (a mid-range phone):
 ```
 click
   → visit:start
-      read the scroll position before any class/style writes
-      layout slide: freeze real scroll and publish it as --layout-scroll-delta
-        the grid and banner transforms carry that offset
       flip is-home and add is-layout-moving
+      reveal #page-height-extend for the visit
       the sticky top compensation and banner crop use the same CSS clock
-      otherwise: the Fuwari scroll spring
-  → content fade out (700ms on a layout slide, 200ms otherwise)
-  → content:replace (main + #toc), after the slide on a layout slide
+  → content fade out (200ms)
+  → content:replace (main + #toc), while the 700ms transform continues
       swap the containers
       comment space reserved; code font already in the initial CSS
       sync the mobile banner
       start the incoming fade
-  → animation:in:await
-      returns the grid transform's transitionend promise on a layout slide
-  → animation:in:end (after the transform)
-      commit scroll and base transform in one frame with transitions disabled,
-        then remove layout classes and TOC defer
+  → content:scroll
+      Swup's ScrollPlugin animates to the destination offset
+  → animation:in:end (after the 200ms fade)
+      remove layout classes and TOC defer
       sync the navbar/chrome; schedule idle enhancements
       requestIdleCallback → fancybox / mermaid / fonts / comments
+  → visit:end
+      hide #page-height-extend after 200ms
 ```
 
-On a layout slide the swap and the destination's first style/layout run after
-the 700ms transform, so the sidebar's `top` animation is never underneath that
-layout task. Ordinary visits still swap during the scroll move. All article
-content is laid out eagerly; no content-visibility priming is used. The
-destination's code-block layout is the remaining tail and is accepted at
+On a layout slide the swap happens after the 200ms fade while the 700ms
+transform and Swup's scroll spring continue. That is Fuwari's sequence. All
+article content is laid out eagerly; no content-visibility priming is used.
+The destination's code-block layout is the remaining tail and is accepted at
 Fuwari p95 parity.
 
-Real scroll never animates on a layout slide. CSS transitions on the grid and
-banner run on the compositor, so they keep moving through main-thread work; a
-JS scroll spring cannot and would add integer scroll steps on top of the
-transform. The sticky sidebars stay sticky, but their `top` also subtracts
-`--layout-scroll-delta`, because sticky clamps against the still-frozen live
-scrollport while the transform carries the committed offset.
-
-Swup's `animation:in:await` returns the grid transform's `transitionend`
-promise, so `animation:in:end` and `visit:end` also happen after the slide. A
-second visit or a popstate cancels the pending token and clears the delta and
-layout classes.
+The grid and banner are compositor transforms. Real scroll is animated
+separately by Swup's ScrollPlugin. Fuwari's 300vh tail prevents that spring
+from clamping while the outgoing page is still the document height.
 
 ### Interruption safety
 
@@ -369,10 +357,9 @@ the transformed grid, so at scroll 0 home is banner 0..584, sidebar column
 584, `#sidebar-sticky` 1038; content is 316/316/770. Those are 9424c48's
 exact rects.
 
-There is no `#page-height-extend`. A 300vh tail kept the old scroll alive but
-added thousands of pixels of blank scroll below the footer on a tall
-viewport, then the browser snapped back when the tail was removed. The
-transform starts on the click frame and carries the frozen scroll offset.
+`#page-height-extend` is the Fuwari temporary tail: hidden at rest, revealed
+at `visit:start`, and hidden again 200ms after `visit:end`. It supplies the
+scroll range the spring needs while the outgoing page is still committed.
 `overscroll-behavior-y: none` on `html, body` keeps wheel and touch input from
 moving past the real document boundary.
 
@@ -380,8 +367,7 @@ Key files:
 
 | File | Responsibility |
 | --- | --- |
-| `src/scripts/runtime/layout-engine.ts` | Spring `scrollTo` for ordinary visits, cancellation |
-| `src/scripts/transitions.ts` | Swup hooks, frozen scroll delta/commit, body layout class, scroll chrome |
+| `src/scripts/transitions.ts` | Swup hooks, body layout class, temporary tail, scroll chrome |
 | `src/scripts/page-enhancements.ts` | Idle-time enhancement loading |
 | `src/scripts/runtime/after-transition.ts` | Wait for the layout-settled event |
 | `src/scripts/toc-element.ts` | TOC custom element (observers only) |
@@ -400,9 +386,9 @@ Rules for future changes:
   reduced, do it without render deferral.
 - Keep the comment card's reserved height equal to the mounted Twikoo card
   (currently 512px) so comment initialization cannot shift the page.
-- Keep `animation:in:await` waiting for the grid transform's `transitionend`
-  on a layout slide. Do not remove Swup's root classes or enable the navbar
-  blur while the layout is moving.
+- Do not make `animation:in:await` wait for the 700ms transform; Fuwari swaps
+  content after the 200ms fade while the transform continues. Do not remove
+  Swup's root classes or enable the navbar blur while the layout is moving.
 - Keep the closed mobile menu/TOC panels `display:none` at breakpoints where
   their triggers are hidden; they were 147 laid-out elements on desktop.
 - Closed desktop dropdowns may leave layout only while `is-layout-moving`.
@@ -410,24 +396,16 @@ Rules for future changes:
 - Scope the fade duration to `#swup-container`. Do not write inherited custom
   properties on `#main-grid` on the click path; they dirty every sidebar and
   content node.
-- On a layout slide, real scroll is frozen and committed once with the base
-  transform at `transitionend`. Do not add a JS scroll animation, scroll
-  plugin loop, timeout, or `scroll:top` override for that slide.
-- Keep `smoothScrolling: true` for ordinary visits; `startScrollToTop` is only
-  for visits that are not layout slides.
-- On a layout slide set `visit.scroll.reset = false` so the scroll plugin does
-  not force layout of the new article just to scroll to 0 again.
+- Keep `smoothScrolling: true`. Swup's ScrollPlugin is the only scroll writer.
+  Do not add a second JS scroll loop or a custom `scroll:top` override.
+- Reveal `#page-height-extend` at `visit:start` and hide it 200ms after
+  `visit:end`, matching Fuwari. Do not replace it with CSS `min-height` on the
+  root or with a frozen-scroll transform handoff.
 - `--layout-slide-duration` and `--layout-slide-ease` are the single source for
-  the transform, banner crop, and sticky compensation clocks.
+  the transform, banner crop, and sticky top clocks.
   Do not hardcode a second 700ms or cubic-bezier value in CSS or TS.
-- The frozen scroll delta and the transforms describe the same card. Never
-  animate both; two velocity profiles make the card lurch and add integer
-  scroll steps on top of the compositor transform.
-- On abort/popstate, invalidate the pending transition token and clear the
-  delta and layout classes so the next visit cannot commit the old move.
-- Do not re-introduce a page-height spacer or a timer that removes it. The
-  clamp happens while the content is invisible; a spacer becomes a scrollable
-  blank region and makes the page look endless.
+- On abort/popstate, hide the temporary tail and restore the committed layout
+  class so a stale visit cannot leave the page extended.
 - Do not load third-party scripts during a visit. Use
   `scheduleEnhancements()` or an `IntersectionObserver`.
 - Do not animate layout properties (`top`, `height`, `width`) inside

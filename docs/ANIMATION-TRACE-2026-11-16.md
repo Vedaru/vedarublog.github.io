@@ -37,9 +37,9 @@ Initial-load geometry:
 
 ### 2. The sticky gap was a scroll/sticky interaction, not a reason to change sidebar animation
 
-The real category click at scrollY 900 showed the announcement gap increasing transiently from 16px to 62px when the frozen scroll offset was carried inside `#main-grid` while the sticky `top` transition ran. This was a sticky constraint, not a request to remove or rewrite the sidebar's animation.
+The real category click at scrollY 900 showed the announcement gap increasing transiently from 16px to 62px when a frozen scroll offset was carried inside `#main-grid` while the sticky `top` transition ran. That experiment was rejected; the final Fuwari model animates real scroll and keeps the sidebar's original sticky behavior.
 
-The existing scroll/history implementation at `516c2bd` already passed the complete regression suite. It was retained rather than replaced with another scroll architecture.
+The final model returns to `516c2bd`'s Swup scroll ownership, adds Fuwari's temporary page-height tail, and removes the transform wait so content swaps after the 200ms fade.
 
 ### 3. Banner ownership had to match Fuwari
 
@@ -108,81 +108,58 @@ No scroll engine replacement, no timer, no wrapper, no blanket `will-change`, no
 
 Do not use `animation-fill-mode: forwards` as a shortcut. It removes the pre-delay gap but causes a substantial recorder-measured regression from retained animation layers.
 
-## Correction after the first push: scroll must stay frozen
+## Final model: Fuwari's transition verbatim
 
-The first pushed fix (`6e75d30`) removed the entrance fill offset but left the
-layout scroll spring from `516c2bd` running alongside the 700ms CSS transform.
-That was the wrong motion model. At 240Hz the spring settled in roughly
-310-410ms, so the visible banner moved on two clocks: a fast integer scroll
-plus the slower transform. The result was the reported "too fast" motion and
-banner jitter. The scroll steps were also integer, which is visibly coarse at
-240Hz against a fractional compositor transform.
+The custom frozen-scroll model was removed. It fixed the gap but changed the
+sidebar's motion, which the owner rejected. The final layout slide now follows
+Fuwari's actual sequence:
 
-The approved model from `docs/ANIMATION.md` is restored: real scroll is frozen
-at its start value, the grid and banner transforms carry that offset, and the
-scroll is committed once in the same frame as the base transform. No JS scroll
-animation participates in a layout slide. CSS remains the only writer during
-the move, so a main-thread stall cannot desynchronise the banner from the grid.
+- Flip the body's `is-home` class at `visit:start`.
+- Reveal `#page-height-extend` (`300vh`) for the duration of the visit.
+- Let Swup's ScrollPlugin animate real scroll back to the destination offset
+  after `content:scroll`.
+- Let the 700ms banner/grid transforms run independently on the compositor.
+- Hide the temporary tail 200ms after `visit:end`.
 
-### Sticky correction without repainting the sidebar
+There is no frozen scroll delta, no sticky `top` compensation, no
+`position:static` switch, no custom scroll writer, and no transform/scroll
+commit handoff. The sticky sidebars keep their original `top` transition and
+home offset.
 
-Freezing scroll exposed a second-order issue: sticky still clamps against the
-live scrollport. With real scroll frozen at `S`, the sticky box must carry `-S`
-in its `top` while the transformed layout carries `+S`. Without that
-compensation the announcement starts correctly, then drifts up to 46px away
-from the profile card near the end of the slide and snaps back at commit.
+The spring starts at `content:scroll`, not on the click frame. Fuwari itself
+shows a small direction change at that handoff. Measured on
+`https://fuwari.vercel.app/` at scrollY 900 with the same sampler, Fuwari had
+6 grid reversals during the first 760ms. The local Fuwari-model build had 3.
 
-Turning sticky off with `position: static` did remove the gap, but it made the
-sidebar part of the moving grid layer and regressed forward `JankV3` from 6 to
-58 in the same-environment A/B. It was rejected.
+### Final measurements
 
-The shipped correction keeps `position: sticky` and subtracts the frozen
-scroll from the sticky `top` for both sidebars, including the home banner
-offset. The delta and compensation are swapped atomically with the scroll
-commit. Sticky never leaves the compositor path and its rendered resting
-position is unchanged.
-
-### Same-environment A/B traces
-
-All runs used the same headed Chromium on the owner's 240Hz display, DPR 1.25,
+Same headed Chromium, 240Hz display, DPR 1.25, focused window,
 `Tracing.start` with timeline/CC/benchmark categories, `NO_SCREENSHOT=1`, a
-real `思考` category click at `scrollY 900` for forward, and post -> home for
-reverse. The window must be focused; an occluded Chromium window pauses CSS
-animations and produces invalid zero-time traces.
+real `思考` category click at scrollY 900 forward, and post -> home reverse.
 
-| Variant | Forward `JankV3` | Reverse `JankV3` |
+| Build | Forward `JankV3` | Reverse `JankV3` |
 | --- | ---: | ---: |
-| `6e75d30` scroll spring + inner transform | 24 | 94 |
-| Frozen scroll + inner `top` crop | 94 | 86 |
-| Frozen scroll + sticky `position: static` | 58 | 6 |
-| Frozen scroll + sticky `-S` compensation | **10** | **4** |
+| Previous custom spring build (`6e75d30`) | 24 | 94 |
+| Final Fuwari model, 3 runs | 14-52 | 12-20 |
 
-Final geometry with the compensation:
+`JankV3` varies between runs on this display, so the ranges are reported
+instead of selecting the best sample. The geometric and event evidence is
+stable: no long tasks, banner and grid move together, and the Fuwari handoff
+has fewer reversals locally than the live reference.
 
-- Forward announcement gap: 16.0000px minimum and maximum across all moving
-  frames. No 62px transient.
-- Reverse announcement gap: 16px after the first 100ms. The initial 62px
-  reading is the post page already scrolled 900px with the profile card
-  offscreen, not a visible gap between rendered cards.
-- Grid and banner reversals: 0 in both directions.
+- Forward announcement gap: 16.0000px minimum and maximum across moving
+  frames.
+- Reverse announcement gap: 16px once the announcement is on screen; the
+  initial 62px reading is the post page's offscreen profile card.
 - Banner bottom minus grid top: within 0.00013px in both directions.
 - Moving layout layers animate only `transform` (`#main-grid`,
   `#banner-wrapper`, inner `#banner`). The only animated `top` properties are
-  the two sticky compensations. The trace records no `unsupportedProperties`
-  or `compositeFailed` for either, and no JS scroll writes.
+  the two original sticky transitions.
+- No `unsupportedProperties` or `compositeFailed` for the moving layers.
+- `#page-height-extend` is hidden and zero-height after the visit; the final
+  document height equals the real page height.
 
 Final regression harness: **ALL PASS (8/8)**. `astro check`: 0 errors, 0
 warnings, 8 existing hints. `astro build` passed.
-
-### Final source changes
-
-- `src/scripts/transitions.ts`: layout slides use `frozenLayout`, no
-  `startScrollToTop`; transform deltas are cleared and scroll is committed in
-  one frame with layout transitions disabled.
-- `src/styles/layout-stable.css`:
-  - grid and banner transforms include `--layout-scroll-delta`;
-  - `is-layout-committing` disables transitions for the atomic commit;
-  - both sticky sidebars subtract the frozen delta in `top`;
-  - banner wrapper and inner crop both use transform transitions.
 
 The earlier no-fill entrance fix remains required and unchanged.

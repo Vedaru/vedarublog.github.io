@@ -10,7 +10,6 @@
 :root {
 	--layout-slide-duration: 700ms;
 	--layout-slide-ease: cubic-bezier(0.4, 0, 0.2, 1);
-	--layout-scroll-delta: 0px;
 }
 
 /* Fuwari leaves identity transforms on the sidebar and content wrapper.
@@ -70,25 +69,15 @@
 	transition: transform var(--layout-slide-duration) var(--layout-slide-ease);
 }
 
-/* Commit the frozen scroll delta and the base transform in one frame. Without
-   this, clearing the delta starts a second 700ms transition back toward the
-   outgoing offset. */
-html.is-layout-committing #main-grid,
-html.is-layout-committing #banner-wrapper,
-html.is-layout-committing #banner {
-	transition: none;
-}
-
-/* A short incoming page can shrink the root scroller while real scroll is
-   frozen. Keep the outgoing offset reachable until the transform commits, or
-   clamping scrollY shifts every animated edge. */
-html.is-layout-moving {
-	min-height: calc(100vh + var(--layout-scroll-delta, 0px));
-}
-
 #banner {
 	top: 0;
 	transition: transform var(--layout-slide-duration) var(--layout-slide-ease);
+}
+
+/* Fuwari's temporary tail. It keeps the scroll spring from clamping while the
+   destination page height is still the outgoing page's. */
+#page-height-extend {
+	height: 300vh;
 }
 
 body.no-banner-mode #banner-wrapper {
@@ -98,17 +87,12 @@ body.no-banner-mode #banner-wrapper {
 /* ── Desktop: home reveals 65vh, content pages show the 35vh strip ───── */
 @media (min-width: 1280px) {
 	html[data-wallpaper-mode="banner"] body.enable-banner #banner-wrapper {
-		transform: translateY(var(--layout-scroll-delta, 0px));
+		transform: translateY(0);
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
 		#banner-wrapper {
-		transform: translateY(
-			calc(
-				var(--banner-height-extend, 30dvh) +
-					var(--layout-scroll-delta, 0px)
-			)
-		);
+		transform: translateY(var(--banner-height-extend, 30dvh));
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner #banner {
@@ -135,17 +119,12 @@ body.no-banner-mode #banner-wrapper {
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner #main-grid {
-		transform: translateY(var(--layout-scroll-delta, 0px));
+		transform: translateY(0);
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
 		#main-grid {
-		transform: translateY(
-			calc(
-				var(--banner-height-extend, 30dvh) +
-					var(--layout-scroll-delta, 0px)
-			)
-		);
+		transform: translateY(var(--banner-height-extend, 30dvh));
 	}
 
 	#sidebar-sticky,
@@ -168,39 +147,6 @@ body.no-banner-mode #banner-wrapper {
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
 		#right-sidebar-sticky {
 		top: calc(1rem - var(--banner-height-extend, 30dvh));
-	}
-
-	/* Real scroll is frozen at S while the grid carries S in its transform.
-	   Sticky still clamps against the live scrollport, so its pinned offset
-	   must also carry -S. Without this, the pinned box drifts away from the
-	   card above it and leaves a growing gap until the scroll commits. The
-	   compensation is swapped with the scroll delta in the commit frame, when
-	   the sticky box is back in normal flow. */
-	html.is-layout-moving #sidebar-sticky,
-	html.is-layout-moving #right-sidebar-sticky {
-		top: calc(1rem - var(--layout-scroll-delta, 0px));
-	}
-
-	html[data-wallpaper-mode="banner"]
-		body.enable-banner.is-home.is-layout-moving
-		#sidebar-sticky,
-	html[data-wallpaper-mode="banner"]
-		body.enable-banner.is-home.is-layout-moving
-		#right-sidebar-sticky {
-		top: calc(
-			1rem - var(--banner-height-extend, 30dvh) -
-				var(--layout-scroll-delta, 0px)
-		);
-	}
-
-	/* The sidebars' sticky `top` transition invalidates the root layer on
-	   every frame of a slide, and the navbar is the largest non-composited
-	   paint in it. Contain the paint while the slide runs so the root repaint
-	   cannot touch the navbar. Its panels are absolutely positioned and sit
-	   inside this box (their rects were checked and do not move), so geometry
-	   and behaviour are unchanged. */
-	html.is-layout-moving #top-row {
-		contain: paint;
 	}
 
 }

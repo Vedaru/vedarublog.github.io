@@ -81,8 +81,8 @@ export default defineConfig({
 			// 自定义元素，换页后由浏览器自动升级，无需运行时重建。
 			containers: ["main", "#toc"],
 			// Fuwari's animated between-page scroll. The scroll plugin moves the
-			// page continuously, so the sticky sidebars reposition smoothly
-			// instead of clamping at content:replace. No spacer is needed.
+			// page continuously; #page-height-extend supplies the temporary
+			// range it needs until the destination page is committed.
 			smoothScrolling: true,
 			cache: true,
 			preload: true,
