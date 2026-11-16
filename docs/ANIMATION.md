@@ -423,41 +423,45 @@ grid transform snaps. The moving grid layer has no filter, backdrop-filter or
 paint containment on its ancestors; its only transform is the 268px
 `translateY`.
 
-The whole-pixel tail comes from `window.scrollTo`: Chrome stores window
-scroll on whole CSS pixels. The transition now keeps that integer target for
-native sticky and renders the sub-pixel remainder on `#swup-container`:
+The whole-pixel tail that remains on the list edge comes from the custom rAF
+scroll tween. The tween targets fractional `window.scrollTo` positions, but
+the rendered scroll offset advances in whole pixels and ends with a 0.03px
+content-swap correction. Fuwari's Swup ScrollPlugin uses a spring with a
+longer fractional deceleration, so its edge decays differently. Changing that
+requires changing scroll ownership/curve or the swap geometry, both outside
+the "no timers/rAF nudges/duration games" constraint for this pass. No mask
+was added; the grid layer and DOM cleanup are shipped, the scroll tail is
+recorded here as the remaining cause.
 
-```
-actual = Math.round(desired)
-remaining = actual - desired      // -0.5 .. 0.5px
-main.style.transform = translateY(remaining)
-```
+### Sub-pixel scroll residual rejected: exact conflict
 
-`#swup-container` is the persistent sibling of the sidebar columns. The
-residual is therefore composited with the content while the sidebars stay
-outside it: a pinned sidebar remains at 16px and an unpinned one follows the
-real integer scroll, so the 9424 semantics are unchanged. During the residual
-the main's `transition-property` is narrowed to `opacity`, so setting the
-transform does not start a 200ms transform transition. At the end the inline
-transform is zeroed while that class is still active; it is removed only after
-settle. Removing it first would animate the last -0.27px to 0 and create the
-old settle reversal.
+The sub-pixel residual was implemented twice. `cb01495` put it on
+`#content-wrapper`; DOM sampling of home@900 -> post showed 813 tween frames,
+17 direction reversals, and a tail velocity spike of 0.2733px/ms. The
+replacement put the remainder on `#main-grid` via the separate `translate`
+property and derived it from the scroll position actually in effect. Sampling
+uncapped at 1x still found 189 reversals in 1,324 frames home -> post and 258
+in 3,363 frames post -> home.
 
-Compositor screencast tail of the main layer at scroll 900 home -> post,
-without and with the residual:
+The conflict is the two independent 700ms clocks. At the tail of home@900 ->
+post the grid transform still has about 1.0px left while the scroll is almost
+at 0: the grid edge goes 316.577 -> 315.639 (-0.938px) as scrollY goes 1 -> 0
+and the residual goes 0.564 -> -0.364. The scroll residual cancels the scroll
+quantization, but it cannot cancel the grid transform's remaining upward
+motion. The rendered edge is `layout(t) - desiredScroll(t)`; near the tail the
+layout derivative exceeds the scroll derivative, so the sum reverses.
 
-| Tail frame | Before | After |
-| --- | ---: | ---: |
-| 1 | 575.504 | 575.710 |
-| 2 | 578.000 | 578.000 |
-| 3 | 580.275 | 580.192 |
-| 4 | 581.561 | 581.506 |
-| 5 | 582.718 | 582.557 |
-| 6 | 584.000 | 583.529 |
-| 7 | 584.000 | 584.000 |
+Making this continuous requires one of:
 
-The after deltas are 2.29, 2.19, 1.31, 1.05, 0.97, 0.47px: fractional and
-monotonic. The last frame no longer jumps 1.28px, and there is no sign
-reversal at settle. This is option (b), sub-pixel residual on the composited
-content layer, chosen over option (a) because it preserves the native
-scroll and does not need a hidden-content scrollTop commit.
+- one clock for both motions, which means moving the scroll into a transform
+  and committing scrollTop at the swap (option a). That either translates the
+  sidebar with the document or forces a sidebar jump at the commit.
+- removing the scroll animation from the slide, as Fuwari does, which
+  reintroduces the sidebar jump we are required not to copy.
+- changing the relative duration/easing of the grid and scroll, which is a
+  duration/curve game.
+
+The residual mechanism was therefore reverted. The tree keeps the flat
+`677ef6a` DOM, the identity layer transforms, the 9424c48 sidebar semantics,
+and the original custom scroll. `verify.mjs` remains ALL PASS and pacing stays
+33.3/16.8ms at 60Hz 4x, but the tail reversal is not fixed.

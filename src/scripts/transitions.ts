@@ -186,7 +186,6 @@ function stopLayoutMove(): void {
  */
 function settle(): void {
 	stopLayoutMove();
-	releaseScrollResidualInline();
 	knownScrollY = null;
 	document
 		.getElementById("toc-wrapper")
@@ -218,65 +217,10 @@ function startLayoutMove(): void {
 
 /** 换页时的滚动动画句柄（同一时间只允许一个）。 */
 let scrollTweenFrame = 0;
-let scrollDesired = 0;
-let scrollResidualActive = false;
-let scrollResidualSelector = "#content-wrapper";
-let scrollResidualElement: HTMLElement | null = null;
-let scrollResidualInline: HTMLElement | null = null;
-
-/**
- * Chrome stores window scroll on whole CSS pixels. Keep the native scroll
- * integer for sticky, and render the sub-pixel remainder on the content
- * wrapper only. The sidebar stays outside this transform, so a pinned sidebar
- * remains at 16px and an unpinned one follows the real scroll container.
- */
-function applyScrollResidual(desired: number): void {
-	scrollDesired = desired;
-	if (!scrollResidualElement || !scrollResidualElement.isConnected) {
-		scrollResidualElement = document.querySelector<HTMLElement>(
-			scrollResidualSelector,
-		);
-	}
-	const content = scrollResidualElement;
-	if (!content) return;
-	content.classList.add("is-scroll-residual");
-	content.style.transform = `translateY(${(Math.round(desired) - desired).toFixed(3)}px)`;
-	scrollResidualActive = true;
-}
-
-function clearScrollResidual(): void {
-	const content = scrollResidualElement;
-	if (content) {
-		// Zero the inline transform while the residual class still disables
-		// the transform transition, then drop the class. Keep the zero inline
-		// until settle: removing it immediately would transition the last
-		// sub-pixel value to 0 and create a settle reversal.
-		content.style.transform = "translateY(0px)";
-		content.classList.remove("is-scroll-residual");
-		scrollResidualInline = content;
-	}
-	document
-		.querySelectorAll(".is-scroll-residual")
-		.forEach((element) => {
-			(element as HTMLElement).style.transform = "translateY(0px)";
-			element.classList.remove("is-scroll-residual");
-			scrollResidualInline = element as HTMLElement;
-		});
-	scrollResidualElement = null;
-	scrollDesired = 0;
-	scrollResidualActive = false;
-}
-
-function releaseScrollResidualInline(): void {
-	if (!scrollResidualInline) return;
-	scrollResidualInline.style.removeProperty("transform");
-	scrollResidualInline = null;
-}
 
 function cancelScrollTween(): void {
 	if (scrollTweenFrame) cancelAnimationFrame(scrollTweenFrame);
 	scrollTweenFrame = 0;
-	clearScrollResidual();
 	setScrollTweening(false);
 }
 
@@ -336,13 +280,8 @@ function startScrollToTop(lockTo = 0): number {
 	if (startY <= 1) return 0;
 	if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
 		window.scrollTo(0, 0);
-		clearScrollResidual();
 		return 0;
 	}
-	scrollResidualSelector = lockTo > 0 ? "#swup-container" : "#content-wrapper";
-	scrollResidualElement = document.querySelector<HTMLElement>(
-		scrollResidualSelector,
-	);
 
 	const DURATION =
 		lockTo > 0
@@ -362,14 +301,11 @@ function startScrollToTop(lockTo = 0): number {
 		// Leave the value fractional. Rounding to whole CSS pixels turns the
 		// tail of the ease into a visible 1px staircase on high-DPI screens,
 		// where the compositor can resolve half-pixel steps.
-		const desired = startY * (1 - ease(progress));
-		window.scrollTo(0, desired);
-		applyScrollResidual(desired);
+		window.scrollTo(0, startY * (1 - ease(progress)));
 		if (progress < 1) {
 			scrollTweenFrame = requestAnimationFrame(step);
 		} else {
 			scrollTweenFrame = 0;
-			clearScrollResidual();
 			setScrollTweening(false);
 		}
 	};
@@ -491,7 +427,6 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 
 	swup.hooks.on("content:replace", (visit: Visit) => {
 		const isHome = isHomeVisit(visit);
-		if (scrollResidualActive) applyScrollResidual(scrollDesired);
 		// Re-apply the fade duration to the new container; the old one was
 		// replaced and the grid-scoped variable is intentionally gone.
 		if (pendingScrollTweenMs > 0) {
