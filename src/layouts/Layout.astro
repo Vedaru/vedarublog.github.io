@@ -529,8 +529,8 @@ if (siteConfig.font) {
 	})();
 </script>
 
-<!-- Fuwari's temporary scroll range during a page transition. Hidden at rest. -->
-<div id="page-height-extend" hidden aria-hidden="true"></div>
+<!-- increase the page height during page transition to prevent the scrolling animation from jumping -->
+<div id="page-height-extend" class="hidden h-[300vh]" aria-hidden="true"></div>
 
 </body>
 </html>

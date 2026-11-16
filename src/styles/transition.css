@@ -1,17 +1,14 @@
 /* Page transition animations with Swup (Fuwari's model). */
-.transition-swup-fade {
-	transition:
-		opacity 200ms var(--layout-slide-ease),
-		transform 200ms var(--layout-slide-ease);
+html.is-changing .transition-swup-fade {
+	transition-property:
+		color, background-color, border-color, text-decoration-color, fill,
+		stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+	transition-duration: 200ms;
+	transition-timing-function: var(--layout-slide-ease);
 }
 html.is-animating .transition-swup-fade {
 	opacity: 0;
 	transform: translateY(1rem);
-}
-/* The grid transform already carries the content during a layout slide;
-   the extra 1rem translate would offset the content edge from the grid. */
-html.is-layout-moving.is-animating .transition-swup-fade {
-	transform: none;
 }
 
 /* Fade-in animations for components */
@@ -60,10 +57,9 @@ html.is-layout-moving.is-animating .transition-swup-fade {
 
 /* Main components */
 .onload-animation {
-	/* No fill mode: before the delay the card stays at its settled position,
-	   avoiding the backwards-fill 2rem gap. After the entrance, the animated
-	   layer is released instead of being retained as with forwards fill. */
+	opacity: 0;
 	animation: 300ms fade-in-up;
+	animation-fill-mode: forwards;
 }
 #swup-container {
 	outline: none;

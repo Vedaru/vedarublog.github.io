@@ -10,7 +10,6 @@ import {
 	cancelEnhancements,
 	scheduleEnhancements,
 } from "./page-enhancements";
-import { notifyLayoutSettled } from "./runtime/layout-events";
 import { setScrollTweening } from "./runtime/motion-state";
 import "./runtime/comment-boot";
 
@@ -122,6 +121,10 @@ function updateScrollChrome(scrollY = getScrollY()): void {
 let scrollScheduled = false;
 
 function onScroll(): void {
+	// The banner transform owns the visual motion. Recomputing navbar, TOC and
+	// back-to-top state on every scroll frame dirties the same root layer under
+	// the composited banner; apply the final state once layout settles.
+	if (document.documentElement.classList.contains("is-layout-moving")) return;
 	if (scrollScheduled) return;
 	scrollScheduled = true;
 	requestAnimationFrame(() => {
@@ -132,126 +135,65 @@ function onScroll(): void {
 
 // ── Swup hooks ─────────────────────────────────────────────────────────────
 let hooksRegistered = false;
-let knownScrollY: number | null = null;
 let activeVisit: Visit | null = null;
-let contentDelayCleared = false;
-let heightExtendTimer: ReturnType<typeof setTimeout> | undefined;
-
-function setLayoutMoving(moving: boolean): void {
-	document.documentElement.classList.toggle("is-layout-moving", moving);
-}
-
-/**
- * Fuwari's temporary 300vh tail keeps the scroll plugin from clamping before
- * the destination page's real height is known. It is removed 200ms after the
- * visit ends, when the scroll animation has finished.
- */
-function showPageHeightExtend(show: boolean): void {
-	clearTimeout(heightExtendTimer);
-	const element = document.getElementById("page-height-extend");
-	if (!element) return;
-	if (show) {
-		element.hidden = false;
-		return;
-	}
-	heightExtendTimer = setTimeout(() => {
-		element.hidden = true;
-	}, 200);
-}
-
-/** Clear all visit state. Aborted visits never receive `visit:end`. */
-function settle(): void {
-	knownScrollY = null;
-	setLayoutMoving(false);
-	document
-		.getElementById("toc-wrapper")
-		?.classList.remove("is-toc-deferred");
-	notifyLayoutSettled();
-}
 
 function setup(swup: NonNullable<Window["swup"]>): void {
 	if (hooksRegistered) return;
 	hooksRegistered = true;
 
-	// Priority 1 runs after the scroll plugin has cached the outgoing position.
-	swup.hooks.on("visit:start", async (visit: Visit) => {
+	swup.hooks.on("link:click", () => {
+		// Remove the delay for the first time page load.
+		document.documentElement.style.setProperty("--content-delay", "0ms");
+
+		// Prevent elements from overlapping the navbar.
+		const threshold = window.innerHeight * (BANNER_HEIGHT / 100) - 72 - 16;
+		const navbar = document.getElementById("navbar-wrapper");
+		if (!navbar || !document.body.classList.contains("is-home")) return;
+		if (getScrollY() >= threshold) navbar.classList.add("navbar-hidden");
+	});
+
+	swup.hooks.on("visit:start", (visit: Visit) => {
 		activeVisit = visit;
 		cancelEnhancements();
-		const wasHome = document.body.classList.contains("is-home");
-		const isHome = isHomeVisit(visit);
-		const layoutSlides =
-			wasHome !== isHome &&
-			window.matchMedia("(min-width: 1280px)").matches;
+		// Change banner height immediately when a link is clicked.
+		setBodyHome(isHomeVisit(visit));
 
-		// A layout slide swaps while the grid is still moving; keep the TOC
-		// deferred so it does not reflow mid-slide.
-		if (layoutSlides) {
-			document
-				.getElementById("toc-wrapper")
-				?.classList.add("is-toc-deferred");
-		}
+		// Increase the page height during page transition to prevent the
+		// scrolling animation from jumping.
+		document
+			.getElementById("page-height-extend")
+			?.classList.remove("hidden");
 
-		// Remove the entrance stagger once; the grid survives the swap.
-		if (!contentDelayCleared && !layoutSlides) {
-			const grid = document.getElementById("main-grid");
-			if (grid) {
-				grid.style.setProperty("--content-delay", "0ms");
-				contentDelayCleared = true;
-			}
-		}
-
-		// Fuwari flips the banner/grid layout on the click frame, while the
-		// outgoing page is still visible.
-		setBodyHome(isHome);
-		setLayoutMoving(layoutSlides);
-		showPageHeightExtend(true);
-		knownScrollY = layoutSlides ? 0 : null;
+		// Hide the TOC while scrolling back to top.
+		document
+			.getElementById("toc-wrapper")
+			?.classList.add("is-toc-deferred");
 	}, { priority: 10 });
-
-	// Prepare the incoming document while it is still detached. The page
-	// transition already provides the entrance, and images must not start
-	// fetching or decoding while Swup is swapping the container.
-	swup.hooks.before("content:replace", (visit: Visit) => {
-		const incoming = visit.to.document;
-		if (!incoming) return;
-
-		incoming
-			.querySelectorAll("#swup-container .onload-animation")
-			.forEach((element) => element.classList.remove("onload-animation"));
-
-		incoming.querySelectorAll("#swup-container img").forEach((image) => {
-			if (!image.hasAttribute("loading")) {
-				image.setAttribute("loading", "lazy");
-			}
-			if (!image.hasAttribute("decoding")) {
-				image.setAttribute("decoding", "async");
-			}
-		});
-
-	});
 
 	swup.hooks.on("content:replace", (visit: Visit) => {
 		const isHome = isHomeVisit(visit);
-		// Mobile banner visibility is a layout property. Commit it together
-		// with the content it describes, before the incoming fade starts.
 		contentIsHome = isHome;
 		setBannerVisibility(contentIsHome);
 	});
 
-	swup.hooks.on("animation:in:end", (visit: Visit) => {
-		const isHome = isHomeVisit(visit);
-		// The incoming content is painted now. Sync the shell in one pass,
-		// outside the container replacement.
-		const scrollNow = knownScrollY ?? getScrollY();
-		settle();
-		setNavbarHome(isHome);
-		updateScrollChrome(scrollNow);
-		scheduleEnhancements();
+	swup.hooks.on("page:view", () => {
+		document
+			.getElementById("page-height-extend")
+			?.classList.remove("hidden");
 	});
 
 	swup.hooks.on("visit:end", (visit: Visit) => {
-		settle();
-		showPageHeightExtend(false);
+		setTimeout(() => {
+			document
+				.getElementById("page-height-extend")
+				?.classList.add("hidden");
+			document
+				.getElementById("toc-wrapper")
+				?.classList.remove("is-toc-deferred");
+			setNavbarHome(isHomeVisit(visit));
+			updateScrollChrome(getScrollY());
+			scheduleEnhancements();
+		}, 200);
 		if (activeVisit === visit) activeVisit = null;
 	});
 
@@ -260,14 +202,16 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 	swup.hooks.on("scroll:start", () => setScrollTweening(true));
 	swup.hooks.on("scroll:end", () => setScrollTweening(false));
 
-	// Swup aborts a visit when another link is clicked mid-transition; it
-	// never fires `visit:end` for that one.
 	swup.hooks.on("visit:abort", (visit: Visit) => {
 		if (activeVisit !== visit) return;
 		activeVisit = null;
-		showPageHeightExtend(false);
+		document
+			.getElementById("page-height-extend")
+			?.classList.add("hidden");
 		setBodyHome(contentIsHome);
-		settle();
+		document
+			.getElementById("toc-wrapper")
+			?.classList.remove("is-toc-deferred");
 	});
 
 }
