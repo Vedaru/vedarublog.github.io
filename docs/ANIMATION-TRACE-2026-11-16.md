@@ -126,6 +126,12 @@ There is no frozen scroll delta, no sticky `top` compensation, no
 commit handoff. The sticky sidebars keep their original `top` transition and
 home offset.
 
+The banner wrapper now also matches Fuwari's layer shape: the inner `#banner`
+clips its image (`overflow:hidden`), and the temporary upscaled placeholder
+`background-image` is removed from the wrapper once the real image paints.
+Before this, the moving composited wrapper permanently carried both the
+full-size bitmap and a stretched placeholder raster.
+
 The spring starts at `content:scroll`, not on the click frame. Fuwari itself
 shows a small direction change at that handoff. Measured on
 `https://fuwari.vercel.app/` at scrollY 900 with the same sampler, Fuwari had
@@ -140,7 +146,7 @@ real `思考` category click at scrollY 900 forward, and post -> home reverse.
 | Build | Forward `JankV3` | Reverse `JankV3` |
 | --- | ---: | ---: |
 | Previous custom spring build (`6e75d30`) | 24 | 94 |
-| Final Fuwari model, 3 runs | 14-52 | 12-20 |
+| Final Fuwari model, 4 runs | 14-52 | 4-20 |
 
 `JankV3` varies between runs on this display, so the ranges are reported
 instead of selecting the best sample. The geometric and event evidence is

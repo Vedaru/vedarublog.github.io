@@ -71,6 +71,10 @@
 
 #banner {
 	top: 0;
+	/* Fuwari's ImageWrapper clips at the inner banner layer as well as at the
+	   wrapper. Without this the image is only clipped by its moving ancestor,
+	   which rasterizes the full-size bitmap at a different layer boundary. */
+	overflow: hidden;
 	transition: transform var(--layout-slide-duration) var(--layout-slide-ease);
 }
 

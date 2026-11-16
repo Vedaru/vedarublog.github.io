@@ -511,7 +511,14 @@ if (siteConfig.font) {
 	(() => {
 		const banner = document.querySelector("#banner img");
 		if (!banner) return;
-		const show = () => banner.classList.add("is-banner-ready");
+		const show = () => {
+			banner.classList.add("is-banner-ready");
+			// Drop the upscaled placeholder from the composited wrapper once
+			// the real image is painted, matching Fuwari's wrapper.
+			document
+				.getElementById("banner-wrapper")
+				?.removeAttribute("style");
+		};
 		if (banner.getAttribute("src")?.startsWith("data:")) {
 			// Nothing to wait for: reveal without fading over the placeholder.
 			banner.style.transition = "none";
