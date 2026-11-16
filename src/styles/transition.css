@@ -4,7 +4,7 @@ html.is-changing .transition-swup-fade {
 		color, background-color, border-color, text-decoration-color, fill,
 		stroke, opacity, box-shadow, transform, filter, backdrop-filter;
 	transition-duration: 200ms;
-	transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+	transition-timing-function: var(--layout-slide-ease);
 }
 html.is-animating .transition-swup-fade {
 	opacity: 0;
