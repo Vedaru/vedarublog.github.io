@@ -478,3 +478,22 @@ found 1 reversal in 2,443 home -> post frames and 0 in 3,584 post -> home
 frames, but with a 900/1200px initial step. The tail was monotonic once
 started, but the initial handoff violates the no-step budget. The mechanism
 was reverted to 743f2be; no single-clock code is shipped.
+
+### Single-clock handoff: target polarity fixed
+
+The earlier single-clock loop was started before `setBodyHome`, so it read the
+outgoing home flag as the destination and immediately resolved to scroll 0.
+The loop now starts after the class flip, with `startScrollY` cached at the top
+of `visit:start`, and `visit.scroll.reset` disabled for the layout visit. It
+reads the grid transform matrix each frame, derives the eased fraction from
+that same value, writes both `scrollTop = startY * (1 - eased)` and the residual
+`translateY = actualScrollY - desiredScrollY` on `#main-grid`, and clears at
+the final transform value. No independent scroll clock remains.
+
+Handoff data at 1x: the first frames stay at 900/1200, with no 900/1200 one-
+frame step. The largest observed step is 8.46px home -> post; post -> home
+sampling is 0 direction reversals. Tail motion is fractional and monotonic
+after scroll reaches 0. Home -> post still shows 20 small reversals at scroll-
+commit frames (largest 0.68px), not at the tail; this is the remaining
+sub-pixel boundary, recorded rather than masked. `verify.mjs` ALL PASS; 60Hz
+4x p95 33.2/16.8ms; 1x p95 1.1/1.1ms.

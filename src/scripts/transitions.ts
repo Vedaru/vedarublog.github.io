@@ -217,10 +217,35 @@ function startLayoutMove(): void {
 
 /** 换页时的滚动动画句柄（同一时间只允许一个）。 */
 let scrollTweenFrame = 0;
+let scrollResidualElement: HTMLElement | null = null;
+
+function applyScrollResidual(desired: number, actual: number): void {
+	const content =
+		scrollResidualElement?.isConnected
+			? scrollResidualElement
+			: document.getElementById("main-grid");
+	if (!content) return;
+	scrollResidualElement = content;
+	content.classList.add("is-scroll-residual");
+	content.style.setProperty(
+		"translate",
+		`0 ${(actual - desired).toFixed(3)}px`,
+	);
+}
+
+function clearScrollResidual(): void {
+	const content = scrollResidualElement;
+	if (content) {
+		content.style.removeProperty("translate");
+		content.classList.remove("is-scroll-residual");
+	}
+	scrollResidualElement = null;
+}
 
 function cancelScrollTween(): void {
 	if (scrollTweenFrame) cancelAnimationFrame(scrollTweenFrame);
 	scrollTweenFrame = 0;
+	clearScrollResidual();
 	setScrollTweening(false);
 }
 
@@ -274,26 +299,27 @@ function slideEase(x: number): number {
  * `lockTo` 用于布局滑动：栅格和横幅都按 700ms 的时基移动，滚动若先结束，
  * 最后那段时间页面会被布局继续推向反方向，看起来就是两个动画互相拽。
  */
-function startScrollToTop(lockTo = 0): number {
+function startScrollToTop(lockTo = 0, startY = getScrollY()): number {
 	cancelScrollTween();
-	const startY = getScrollY();
 	if (startY <= 1) return 0;
 	if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
 		window.scrollTo(0, 0);
 		return 0;
 	}
 
+	if (lockTo > 0) {
+		return startLayoutScroll(startY, lockTo);
+	}
+
 	const DURATION =
-		lockTo > 0
-			? lockTo
-			: Math.min(700, Math.max(320, 320 + startY * 0.1));
+		Math.min(700, Math.max(320, 320 + startY * 0.1));
 	// The rAF timestamp is the start of the frame, which can be earlier than the
 	// moment the tween was scheduled. Reading the clock here would make the first
 	// frame a negative progress - the page would lurch the wrong way before
 	// coming back. Start the clock on the first real frame instead.
 	let started = 0;
 	const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
-	const ease = lockTo > 0 ? slideEase : easeOutCubic;
+	const ease = easeOutCubic;
 
 	const step = (now: number) => {
 		if (!started) started = now;
@@ -312,6 +338,88 @@ function startScrollToTop(lockTo = 0): number {
 	setScrollTweening(true);
 	scrollTweenFrame = requestAnimationFrame(step);
 	return DURATION;
+}
+
+/**
+ * Drive scroll from the grid transform's actual value. Call only after the
+ * body home class has been flipped, so the target transform is known.
+ */
+function startLayoutScroll(startY: number, duration: number): number {
+	const grid = document.getElementById("main-grid");
+	const extend =
+		Number.parseFloat(
+			getComputedStyle(document.documentElement).getPropertyValue(
+				"--banner-height-extend",
+			),
+		) || 0;
+	const destinationHome = document.body.classList.contains("is-home");
+	let sawAnimation = false;
+	let fallbackStart = 0;
+
+	window.scrollTo(0, startY);
+	applyScrollResidual(startY, window.scrollY);
+
+	const finish = () => {
+		window.scrollTo(0, 0);
+		applyScrollResidual(0, window.scrollY);
+		scrollTweenFrame = 0;
+		clearScrollResidual();
+		setScrollTweening(false);
+	};
+
+	const step = (now: number) => {
+		let eased = 0;
+		const animation = grid
+			?.getAnimations()
+			.find(
+				(candidate) =>
+					(candidate as CSSTransition).transitionProperty ===
+					"transform",
+			);
+		if (animation) {
+			sawAnimation = true;
+		}
+		if (!sawAnimation) {
+			window.scrollTo(0, startY);
+			applyScrollResidual(startY, window.scrollY);
+		}
+		if (grid && extend > 0 && sawAnimation) {
+			const transform = getComputedStyle(grid).transform;
+			const translateY =
+				transform === "none"
+					? 0
+					: new DOMMatrixReadOnly(transform).m42;
+			const rawEased = destinationHome
+				? translateY / extend
+				: 1 - translateY / extend;
+			eased = Math.min(1, Math.max(0, rawEased));
+		}
+		if (!sawAnimation && !eased) {
+			if (!fallbackStart) fallbackStart = now;
+			if (now - fallbackStart < 34) {
+				scrollTweenFrame = requestAnimationFrame(step);
+				return;
+			}
+			eased = slideEase(
+				Math.min(1, (now - fallbackStart) / duration),
+			);
+		} else {
+			fallbackStart = 0;
+		}
+
+		const desired = startY * (1 - eased);
+		window.scrollTo(0, desired);
+		applyScrollResidual(desired, window.scrollY);
+		if (eased >= 1) {
+			finish();
+		} else {
+			scrollTweenFrame = requestAnimationFrame(step);
+		}
+	};
+
+	setScrollTweening(true);
+	scrollTweenFrame = requestAnimationFrame(step);
+	return duration;
 }
 
 function setup(swup: NonNullable<Window["swup"]>): void {
@@ -367,10 +475,13 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		// through a document that is still inserting images costs a reflow per
 		// frame.
 		let tweenDuration = 0;
+		let layoutScrollStart = 0;
 		if (!isPopstate && !visit.to.hash && scrollY > 1) {
-			tweenDuration = startScrollToTop(
-				layoutSlides ? LAYOUT_SLIDE_MS : 0,
-			);
+			if (layoutSlides) {
+				layoutScrollStart = scrollAtStart;
+			} else {
+				tweenDuration = startScrollToTop(0, scrollAtStart);
+			}
 			// 上面的补间已经接管滚动，别让插件在 content:scroll 再跑一遍。
 			if (visit.scroll) visit.scroll.reset = false;
 			scrollY = 0;
@@ -401,6 +512,9 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		if (!layoutSlides || isPopstate) knownScrollY = null;
 
 		setBodyHome(isHome);
+		if (layoutScrollStart > 1) {
+			startScrollToTop(LAYOUT_SLIDE_MS, layoutScrollStart);
+		}
 	}, { priority: 10 });
 
 	// Prepare the incoming document while it is still detached. The page
