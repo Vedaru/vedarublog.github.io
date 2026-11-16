@@ -313,7 +313,11 @@ function slideEase(x: number): number {
  * `lockTo` 用于布局滑动：栅格和横幅都按 700ms 的时基移动，滚动若先结束，
  * 最后那段时间页面会被布局继续推向反方向，看起来就是两个动画互相拽。
  */
-function startScrollToTop(lockTo = 0, startY = getScrollY()): number {
+function startScrollToTop(
+	lockTo = 0,
+	startY = getScrollY(),
+	fromHome = false,
+): number {
 	cancelScrollTween();
 	if (startY <= 1) return 0;
 	if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
@@ -322,7 +326,7 @@ function startScrollToTop(lockTo = 0, startY = getScrollY()): number {
 	}
 
 	if (lockTo > 0) {
-		return startLayoutScroll(startY, lockTo);
+		return startLayoutScroll(startY, lockTo, fromHome);
 	}
 
 	const DURATION =
@@ -355,76 +359,96 @@ function startScrollToTop(lockTo = 0, startY = getScrollY()): number {
 }
 
 /**
- * Drive scroll from the grid transform's actual value. Call only after the
- * body home class has been flipped, so the target transform is known.
+ * One clock for the layout slide. Every moving property is written from the
+ * same eased progress; there are no CSS transitions on those properties and
+ * no per-frame style reads.
  */
-function startLayoutScroll(startY: number, duration: number): number {
+function startLayoutScroll(
+	startY: number,
+	duration: number,
+	fromHome: boolean,
+): number {
 	const grid = document.getElementById("main-grid");
+	const bannerWrapper = document.getElementById("banner-wrapper");
+	const banner = document.getElementById("banner");
+	const sidebarSticky = document.getElementById("sidebar-sticky");
+	const rightSidebarSticky = document.getElementById(
+		"right-sidebar-sticky",
+	);
 	const extend =
 		Number.parseFloat(
 			getComputedStyle(document.documentElement).getPropertyValue(
 				"--banner-height-extend",
 			),
 		) || 0;
+	const bannerOffset =
+		Number.parseFloat(
+			getComputedStyle(document.documentElement).getPropertyValue(
+				"--banner-offset",
+			),
+		) || 0;
 	const destinationHome = document.body.classList.contains("is-home");
-	let sawAnimation = false;
-	let fallbackStart = 0;
+	const startGrid = fromHome ? extend : 0;
+	const endGrid = destinationHome ? extend : 0;
+	const startBannerTop = fromHome ? 0 : bannerOffset;
+	const endBannerTop = destinationHome ? 0 : bannerOffset;
+	const startSidebarTop = 16 - (fromHome ? extend : 0);
+	const endSidebarTop = 16 - (destinationHome ? extend : 0);
 
+	const write = (eased: number) => {
+		const gridY = startGrid + (endGrid - startGrid) * eased;
+		const bannerY =
+			startGrid + (endGrid - startGrid) * eased;
+		const bannerTop =
+			startBannerTop +
+			(endBannerTop - startBannerTop) * eased;
+		const sidebarTop =
+			startSidebarTop +
+			(endSidebarTop - startSidebarTop) * eased;
+		grid?.style.setProperty("transform", `translateY(${gridY}px)`);
+		bannerWrapper?.style.setProperty(
+			"transform",
+			`translateY(${bannerY}px)`,
+		);
+		banner?.style.setProperty("top", `${bannerTop}px`);
+		sidebarSticky?.style.setProperty("top", `${sidebarTop}px`);
+		rightSidebarSticky?.style.setProperty("top", `${sidebarTop}px`);
+	};
+
+	const clearInline = () => {
+		grid?.style.removeProperty("transform");
+		bannerWrapper?.style.removeProperty("transform");
+		banner?.style.removeProperty("top");
+		sidebarSticky?.style.removeProperty("top");
+		rightSidebarSticky?.style.removeProperty("top");
+	};
+
+	write(0);
 	window.scrollTo(0, startY);
 	applyScrollResidual(startY, window.scrollY);
+	const startedAt = performance.now();
 
 	const finish = () => {
+		write(1);
 		window.scrollTo(0, 0);
 		applyScrollResidual(0, window.scrollY);
 		scrollTweenFrame = 0;
 		clearScrollResidual();
+		clearInline();
 		setScrollTweening(false);
 	};
 
 	const step = (now: number) => {
-		let eased = 0;
-		const animation = grid
-			?.getAnimations()
-			.find(
-				(candidate) =>
-					(candidate as CSSTransition).transitionProperty ===
-					"transform",
-			);
-		if (animation) {
-			sawAnimation = true;
-		}
-		if (!sawAnimation) {
-			window.scrollTo(0, startY);
-			applyScrollResidual(startY, window.scrollY);
-		}
-		if (grid && extend > 0 && sawAnimation) {
-			const transform = getComputedStyle(grid).transform;
-			const translateY =
-				transform === "none"
-					? 0
-					: new DOMMatrixReadOnly(transform).m42;
-			const rawEased = destinationHome
-				? translateY / extend
-				: 1 - translateY / extend;
-			eased = Math.min(1, Math.max(0, rawEased));
-		}
-		if (!sawAnimation && !eased) {
-			if (!fallbackStart) fallbackStart = now;
-			if (now - fallbackStart < 34) {
-				scrollTweenFrame = requestAnimationFrame(step);
-				return;
-			}
-			eased = slideEase(
-				Math.min(1, (now - fallbackStart) / duration),
-			);
-		} else {
-			fallbackStart = 0;
-		}
-
+		const progress = Math.min(
+			1,
+			Math.max(0, (now - startedAt) / duration),
+		);
+		const eased = slideEase(progress);
+		write(eased);
 		const desired = startY * (1 - eased);
 		window.scrollTo(0, desired);
 		applyScrollResidual(desired, window.scrollY);
-		if (eased >= 1) {
+		if (progress >= 1) {
 			finish();
 		} else {
 			scrollTweenFrame = requestAnimationFrame(step);
@@ -527,7 +551,7 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 
 		setBodyHome(isHome);
 		if (layoutScrollStart > 1) {
-			startScrollToTop(LAYOUT_SLIDE_MS, layoutScrollStart);
+			startScrollToTop(LAYOUT_SLIDE_MS, layoutScrollStart, wasHome);
 		}
 	}, { priority: 10 });
 

@@ -526,3 +526,27 @@ banner-bottom sawtooth (17 reversals, ±1px) is gone. Settled pixels are
 unchanged: home 0..584 and content -268..316, with the same image framing.
 `verify.mjs` ALL PASS; 60Hz 4x p95 16.8/16.8ms; 1x p95 1.1/1.2ms; DOM stays
 flat at 722 elements.
+
+### Single JS loop: teleport and handoff fixed; style-recalc limit
+
+The layout slide now writes grid transform, banner-wrapper transform, banner
+top, sidebar top, and scroll from one `p` with no CSS transitions on those
+properties. The banner teleport is gone: the first frame keeps `#banner` top at
+0 and eases it continuously; the handoff keeps scroll at 900/1200 on the first
+frames. At the tail, banner bottom, grid top, content top and sidebar top are
+the same series with 0 reversals; the banner sawtooth remains gone.
+
+Performance still misses the target. At 1x uncapped over the transition:
+TaskDuration 899.2ms, RecalcStyleDuration 281.5ms, LayoutDuration 33.7ms,
+ScriptDuration 117.2ms, with one 66ms task. The five per-frame style writes
+include the two layout offsets (`#banner` top and sidebar top); they force the
+same style-recalc class of work the old per-frame `getComputedStyle` did. The
+loop no longer reads style or layout, but style recalculation from writes
+remains.
+
+Getting RecalcStyle below 20ms requires compositor-only properties for the
+banner inner offset and sidebar compensation (or no continuous inner/sidebar
+offset), which reintroduces the second animated banner layer or removes the
+9424 sidebar transition. That conflicts with this task's seam and sidebar
+constraints; the code is committed with the measured performance miss recorded
+rather than masked.

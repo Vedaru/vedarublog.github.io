@@ -111,6 +111,13 @@ body.no-banner-mode #banner-wrapper {
 		top: 0;
 	}
 
+	html.is-layout-moving #main-grid,
+	html.is-layout-moving #banner-wrapper,
+	html.is-layout-moving #sidebar-sticky,
+	html.is-layout-moving #right-sidebar-sticky {
+		transition: none;
+	}
+
 	html[data-wallpaper-mode="banner"] body.enable-banner .main-panel {
 		/* --banner-height-extend is rounded to a 4px grid, so 65vh - 30vh
 		   is not the same pixel as the banner's real bottom edge. Use the
