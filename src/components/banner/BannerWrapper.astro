@@ -13,7 +13,6 @@ interface Props {
 	desktopBannerResponsive: BannerResponsive;
 	mobileBannerResponsive: BannerResponsive;
 	bannerObjectPosition: string;
-	placeholder?: string;
 }
 
 const {
@@ -21,22 +20,20 @@ const {
 	desktopBannerResponsive,
 	mobileBannerResponsive,
 	bannerObjectPosition,
-	placeholder,
 }: Props = Astro.props;
 ---
 
 <!-- Banner - 始终渲染，通过 JS 控制显示隐藏 -->
 <div
     id="banner-wrapper"
-    class={`absolute z-10 w-full overflow-hidden ${mobileNonHomeBannerClass}`}
-    style={placeholder ? `background-image: url("${placeholder}"); background-size: cover; background-position: ${bannerObjectPosition};` : undefined}
+    class={`absolute z-10 w-full transition duration-700 overflow-hidden ${mobileNonHomeBannerClass}`}
 >
     {desktopBannerResponsive && (
-        <div id="banner" class="relative h-full w-full">
+        <div id="banner" class="object-cover h-full transition duration-700 opacity-0 scale-105 overflow-hidden relative">
             <div class="transition absolute inset-0 dark:bg-black/10 bg-opacity-50 pointer-events-none"></div>
             <img
                 alt="Banner image of the blog"
-                class="object-cover w-full h-full"
+                class="w-full h-full object-cover"
                 src={url(desktopBannerResponsive.full)}
                 srcset={`${url((mobileBannerResponsive ?? desktopBannerResponsive).w768)} 768w, ${url(desktopBannerResponsive.w1280)} 1280w, ${url(desktopBannerResponsive.full)} 1920w, ${url(desktopBannerResponsive.w2560)} 2560w`}
                 sizes="100vw"

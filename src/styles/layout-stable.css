@@ -41,51 +41,11 @@
 
 #banner img {
 	object-fit: cover;
-	/* On a hard refresh the wrapper's blurred placeholder paints with the
-	   document and the real image lands a frame or two later. Fade it in over
-	   the placeholder instead of popping. Without JS it stays visible. */
-	transition: opacity 400ms ease;
-}
-
-.js #banner img {
-	opacity: 0;
-}
-
-.js #banner img.is-banner-ready {
-	opacity: 1;
-}
-
-/* Both banner layers use the same compositor clock as Fuwari: the wrapper
-   slides and clips while the inner crop translates. No backface-visibility or
-   persistent compositing hint is used; both layers are promoted only for the
-   active transition. The wrapper opacity entry is for the mobile hide/show. */
-#banner-wrapper {
-	transition-property:
-		color, background-color, border-color, text-decoration-color, fill,
-		stroke, opacity, box-shadow, transform, filter, backdrop-filter;
-	transition-duration: var(--layout-slide-duration);
-	transition-timing-function: var(--layout-slide-ease);
-}
-
-#main-grid {
-	transition-property:
-		color, background-color, border-color, text-decoration-color, fill,
-		stroke, opacity, box-shadow, transform, filter, backdrop-filter;
-	transition-duration: var(--layout-slide-duration);
-	transition-timing-function: var(--layout-slide-ease);
 }
 
 #banner {
 	top: 0;
-	/* Fuwari's ImageWrapper clips at the inner banner layer as well as at the
-	   wrapper. Without this the image is only clipped by its moving ancestor,
-	   which rasterizes the full-size bitmap at a different layer boundary. */
 	overflow: hidden;
-	transition-property:
-		color, background-color, border-color, text-decoration-color, fill,
-		stroke, opacity, box-shadow, transform, filter, backdrop-filter;
-	transition-duration: var(--layout-slide-duration);
-	transition-timing-function: var(--layout-slide-ease);
 }
 
 /* Fuwari's temporary tail. It keeps the scroll spring from clamping while the

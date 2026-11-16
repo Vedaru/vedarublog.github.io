@@ -17,7 +17,6 @@ import {
 	getBannerResponsive,
 	toBannerSrcList,
 } from "../utils/banner-utils";
-import { getBannerPlaceholder } from "../utils/banner-placeholder";
 import { isMainHomePage } from "../utils/route-utils";
 import { url } from "../utils/url-utils";
 import Layout from "./Layout.astro";
@@ -50,7 +49,6 @@ const singleMobileBanner = mobileBannerList[0];
 const desktopBannerResponsive = getBannerResponsive(singleDesktopBanner);
 const mobileBannerResponsive =
 	getBannerResponsive(singleMobileBanner) ?? desktopBannerResponsive;
-const bannerPlaceholder = await getBannerPlaceholder(singleDesktopBanner);
 
 const {
 	title,
@@ -153,7 +151,6 @@ const showSidebarTOC =
 	desktopBannerResponsive={desktopBannerResponsive}
 	mobileBannerResponsive={mobileBannerResponsive}
 	bannerObjectPosition={bannerObjectPosition}
-	placeholder={bannerPlaceholder}
 />
 
 <!-- Main content -->
@@ -165,7 +162,7 @@ const showSidebarTOC =
 >
     <!-- The pointer-events-none here prevent blocking the click event of the TOC -->
     <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto min-w-0 w-full">
-        <div id="main-grid" class="w-full max-w-[var(--page-width)] min-w-0 left-0 right-0 mx-auto gap-4 px-2 md:px-4"
+        <div id="main-grid" class="transition duration-700 w-full max-w-[var(--page-width)] min-w-0 left-0 right-0 mx-auto gap-4 px-2 md:px-4"
              data-layout-mode={defaultPostListLayout}
              data-sides={desktopSides}
              data-mobile={mobileShowSidebar ? "true" : "false"}

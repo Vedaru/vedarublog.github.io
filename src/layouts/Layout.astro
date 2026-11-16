@@ -509,27 +509,22 @@ if (siteConfig.font) {
      Only a fallback (no inline) needs the placeholder fade. -->
 <script is:inline>
 	(() => {
-		const banner = document.querySelector("#banner img");
+		const banner = document.getElementById("banner");
 		if (!banner) return;
-		const show = () => {
-			banner.classList.add("is-banner-ready");
-			// Drop the upscaled placeholder from the composited wrapper once
-			// the real image is painted, matching Fuwari's wrapper.
-			document
-				.getElementById("banner-wrapper")
-				?.removeAttribute("style");
-		};
-		if (banner.getAttribute("src")?.startsWith("data:")) {
+		const image = banner.querySelector("img");
+		if (!image) return;
+		const show = () => banner.classList.remove("opacity-0", "scale-105");
+		if (image.getAttribute("src")?.startsWith("data:")) {
 			// Nothing to wait for: reveal without fading over the placeholder.
-			banner.style.transition = "none";
+			image.style.transition = "none";
 			show();
 			return;
 		}
 		const decoded = () =>
-			banner.decode ? banner.decode().then(show, show) : show();
-		if (banner.complete && banner.naturalWidth > 0) decoded();
-		else banner.addEventListener("load", decoded, { once: true });
-		banner.addEventListener("error", show, { once: true });
+			image.decode ? image.decode().then(show, show) : show();
+		if (image.complete && image.naturalWidth > 0) decoded();
+		else image.addEventListener("load", decoded, { once: true });
+		image.addEventListener("error", show, { once: true });
 		setTimeout(show, 1500);
 	})();
 </script>
