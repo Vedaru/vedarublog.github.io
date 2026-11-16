@@ -7,6 +7,7 @@ import SideBar from "@components/widget/SideBar.astro";
 import BannerWrapper from "@components/banner/BannerWrapper.astro";
 import type { MarkdownHeading } from "astro";
 import TOC from "../components/widget/TOC.astro";
+import { widgetManager } from "../utils/widget-manager";
 import {
 	siteConfig,
 } from "../config";
@@ -72,6 +73,29 @@ const mobileNonHomeBannerClass = !isHomePage ? "mobile-hide-banner" : "";
 const showSidebarTOC =
 	siteConfig.toc.enable && isSidebarTOC && headings.length > 0;
 
+const hasLeftSidebarComponents =
+	widgetManager.getComponentsByPosition("top", "left", "desktop").length > 0 ||
+	widgetManager.getComponentsByPosition("sticky", "left", "desktop").length > 0;
+
+const hasRightSidebarComponents =
+	widgetManager.getComponentsByPosition("top", "right", "desktop").length > 0 ||
+	widgetManager.getComponentsByPosition("sticky", "right", "desktop").length > 0;
+
+const mobileShowSidebar =
+	widgetManager.getComponentsByPosition("top", "drawer", "mobile").length > 0 ||
+	widgetManager.getComponentsByPosition("sticky", "drawer", "mobile").length > 0;
+
+const desktopSides =
+	hasLeftSidebarComponents && hasRightSidebarComponents
+		? "both"
+		: hasLeftSidebarComponents
+			? "left"
+			: hasRightSidebarComponents
+				? "right"
+				: "none";
+
+const defaultPostListLayout = siteConfig.postListLayout?.defaultMode || "list";
+
 ---
 
 <Layout title={title} description={description} lang={lang} setOGTypeArticle={setOGTypeArticle} dualLocale={dualLocale}>
@@ -115,6 +139,7 @@ const showSidebarTOC =
 <BannerWrapper
 	mobileNonHomeBannerClass={mobileNonHomeBannerClass}
 	desktopBannerResponsive={desktopBannerResponsive}
+	mobileBannerResponsive={mobileBannerResponsive}
 	bannerObjectPosition={bannerObjectPosition}
 />
 
@@ -126,9 +151,19 @@ const showSidebarTOC =
 	]}
 >
     <!-- The pointer-events-none here prevent blocking the click event of the TOC -->
-    <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto">
-        <div id="main-grid" class="transition duration-700 w-full left-0 right-0 grid grid-cols-[17.5rem_auto] grid-rows-[auto_1fr_auto] lg:grid-rows-[auto] mx-auto gap-4 px-0 md:px-4">
+    <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto min-w-0 w-full">
+        <div id="main-grid" class="transition duration-700 w-full max-w-[var(--page-width)] min-w-0 left-0 right-0 mx-auto gap-4 px-2 md:px-4"
+             data-layout-mode={defaultPostListLayout}
+             data-sides={desktopSides}
+             data-mobile={mobileShowSidebar ? "true" : "false"}
+        >
             <SideBar class="mb-4 row-start-2 row-end-3 col-span-2 lg:row-start-1 lg:row-end-2 lg:col-span-1 lg:max-w-[17.5rem] onload-animation"></SideBar>
+
+            {hasRightSidebarComponents && (
+                <div class="right-sidebar-container onload-animation">
+                    <SideBar side="right" headings={headings}></SideBar>
+                </div>
+            )}
 
             <main id="swup-container" class="transition-swup-fade col-span-2 lg:col-span-1 overflow-hidden">
                 <div class="sr-only" data-swup-a11y-title>{title || siteConfig.title}</div>

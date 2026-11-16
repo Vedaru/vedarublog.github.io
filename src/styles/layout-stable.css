@@ -75,10 +75,9 @@ body.no-banner-mode #banner-wrapper {
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner .main-panel {
-		/* Fuwari overlaps the main panel 3.5rem into the banner. */
 		top: calc(
 			var(--banner-height-home, 65vh) -
-				var(--banner-height-extend, 30dvh) - 3.5rem
+				var(--banner-height-extend, 30dvh)
 		);
 	}
 
@@ -214,6 +213,25 @@ html[data-wallpaper-mode="none"] #main-grid {
    The sidebar containers carry no placement utilities of their own, and no
    !important is needed to unpick them at a smaller breakpoint.
    ---------------------------------------------------------------------- */
+
+#main-grid {
+	display: grid;
+	grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+#sidebar,
+.right-sidebar-container {
+	display: none;
+}
+
+#sidebar {
+	grid-column: 1 / -1;
+}
+
+#swup-container {
+	grid-column: 1 / -1;
+	grid-row: 1;
+}
 
 #main-grid[data-mobile="true"] #sidebar {
 	display: block;

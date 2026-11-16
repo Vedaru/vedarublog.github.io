@@ -12,12 +12,14 @@ type BannerResponsive = {
 interface Props {
 	mobileNonHomeBannerClass: string;
 	desktopBannerResponsive: BannerResponsive;
+	mobileBannerResponsive: BannerResponsive;
 	bannerObjectPosition: string;
 }
 
 const {
 	mobileNonHomeBannerClass,
 	desktopBannerResponsive,
+	mobileBannerResponsive,
 	bannerObjectPosition,
 }: Props = Astro.props;
 ---
@@ -35,10 +37,13 @@ const {
                 alt="Banner image of the blog"
                 class="w-full h-full object-cover"
                 src={url(desktopBannerResponsive.full)}
+                srcset={`${url((mobileBannerResponsive ?? desktopBannerResponsive).w768)} 768w, ${url(desktopBannerResponsive.w1280)} 1280w, ${url(desktopBannerResponsive.full)} 1920w, ${url(desktopBannerResponsive.w2560)} 2560w`}
+                sizes="100vw"
                 width={1920}
                 height={1097}
                 style={`object-position: ${bannerObjectPosition}`}
-                loading="lazy"
+                loading="eager"
+                fetchpriority="high"
                 decoding="async"
             />
         </div>
