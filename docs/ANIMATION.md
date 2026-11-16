@@ -10,17 +10,18 @@ Fuwari's transition is not a special animation library. It is three decisions:
 
 1. **The layout flip happens at `visit:start`, not after the content swap.**
    The body's `is-home` class changes on the click. The 700ms banner/grid
-   `transform` starts on the compositor immediately, then Swup's 200ms content
-   fade runs *inside* that movement. The user sees one motion.
+   `transform` starts on the compositor immediately. On a layout slide the
+   outgoing fade is held for the whole 700ms transform, so `content:replace`
+   lands after the transform; ordinary visits keep the 200ms fade.
 2. **Only `main` and the TOC are swapped.** Everything else (navbar, sidebar,
    music player) is persistent. There is no per-visit re-init of the shell.
 3. **Optional work runs after the motion.** Fuwari's TOC is server-rendered and
    a custom element waits for the content entrance animation. No comments,
    diagrams, lightboxes or analytics are loaded during the transition.
 
-This site keeps Fuwari's 200ms fade and 700ms banner/grid transform, and runs
-the custom scroll tween on the same clock. The transform starts on the click
-frame.
+This site keeps the 700ms banner/grid transform and runs the custom scroll
+tween on the same clock. Layout slides use a slide-length outgoing fade; the
+transform starts on the click frame.
 
 ## Measured results (2026-11-15)
 
@@ -205,13 +206,13 @@ click
       read the scroll position before any class/style writes
       start the custom scroll-to-top tween (700ms lock on a layout slide)
       add is-layout-moving for a desktop layout slide
-      flip is-home now; the banner/grid 700ms transforms start on this frame
-  → content fade out (200ms)
-  → content:replace (main + #toc), ~200ms into the slide
+      flip is-home now; the banner/grid and sidebar-top 700ms transitions start
+  → content fade out (700ms on a layout slide, 200ms otherwise)
+  → content:replace (main + #toc), after the slide on a layout slide
       swap the containers
       comment space reserved; code font already in the initial CSS
       sync the mobile banner
-      start the incoming 200ms fade while the transform continues
+      start the incoming fade
   → animation:in:await
       returns the 700ms transform-end promise
   → animation:in:end (after the transform)
@@ -220,24 +221,35 @@ click
       requestIdleCallback → fancybox / mermaid / fonts / comments
 ```
 
-The swap and the destination's first style/layout run while the 700ms
-transform is moving, matching Fuwari. All article content is laid out
-eagerly; no content-visibility priming is used. The destination's code-block
-layout is the remaining tail and is accepted at Fuwari p95 parity.
+On a layout slide the swap and the destination's first style/layout run after
+the 700ms transform, so the sidebar's `top` animation is never underneath that
+layout task. Ordinary visits still swap during the scroll tween. All article
+content is laid out eagerly; no content-visibility priming is used. The
+destination's code-block layout is the remaining tail and is accepted at
+Fuwari p95 parity.
 
-`is-layout-moving` stays on `<html>` until the content column's `transitionend`. It
+`is-layout-moving` stays on `<html>` until the grid's `transitionend`. It
 keeps the navbar blur disabled and tells `runAfterLayoutSettled` that the
 layout is still moving. Swup's `animation:in:await` returns the transform-end
 promise, so `animation:in:end` and `visit:end` also happen after the slide.
 
-Both sidebars stay sticky and visible, outside the Swup fade container. They
-have no self-animation: `position: sticky; top: 1rem` is the whole mechanism.
-The 700ms layout slide is a transform on the banner and on `#content-column`;
-the sidebar columns are siblings of that transformed subtree, so their sticky
-containing block and clamping are untouched. A pinned sidebar stays at 1rem
-through the class flip; an unpinned one follows its container, as native
-sticky specifies. There is no `top` transition, no compensation offset, and no
-opacity or content-fade animation on either sidebar.
+Both sidebars stay sticky and visible, outside the Swup fade container. Their
+only animated property is the sticky `top` compensation. It is declared
+unconditionally with the same 700ms curve as the grid and banner, because it
+is compensation for the grid's own translate and changes on exactly the frames
+the transform changes. Snapping it is wrong: a transform on `#main-grid` makes
+sticky clamp in the grid's local space, so a snapped offset clamps an unpinned
+sidebar into the new offset's band for a frame and its top edge visibly jumps.
+Animating both properties on the same clock keeps `top + translate` - the
+rendered pin position - constant for pinned sidebars, on normal visits and
+back/forward alike. The sidebars are never switched to static positioning and
+never receive opacity or content-fade animations.
+
+The home offset is `top: calc(1rem - var(--banner-height-extend))`, which is
+-252px at a 900px viewport; content pages use `1rem`. The sidebars are inside
+the transformed grid, so at scroll 0 home is banner 0..584, sidebar column
+584, `#sidebar-sticky` 1038; content is 316/316/770. Those are 9424c48's
+exact rects.
 
 There is no `#page-height-extend`. A 300vh tail kept the old scroll alive but
 added thousands of pixels of blank scroll below the footer on a tall
@@ -257,7 +269,7 @@ Key files:
 | `src/scripts/toc-element.ts` | TOC custom element (observers only) |
 | `src/components/widget/TOC.astro` | Server-rendered TOC markup |
 | `src/styles/transition.css` | 200ms fade and 300ms entrance animation |
-| `src/styles/layout-stable.css` | Banner/content geometry, the 700ms transform, native sidebar sticky |
+| `src/styles/layout-stable.css` | Banner/grid geometry and the single 700ms transform |
 | `src/styles/main.css` | Cards, buttons, panels (no banner overrides) |
 
 Rules for future changes:
@@ -270,7 +282,7 @@ Rules for future changes:
   reduced, do it without render deferral.
 - Keep the comment card's reserved height equal to the mounted Twikoo card
   (currently 512px) so comment initialization cannot shift the page.
-- Keep `is-layout-moving` until the content-column transform ends, and make
+- Keep `is-layout-moving` until the grid transform ends, and make
   `animation:in:await` wait for that transform. Do not remove Swup's root
   classes or enable the navbar blur while the slide is running.
 - Keep the closed mobile menu/TOC panels `display:none` at breakpoints where
@@ -297,12 +309,13 @@ Rules for future changes:
   blank region and makes the page look endless.
 - Do not load third-party scripts during a visit. Use
   `scheduleEnhancements()` or an `IntersectionObserver`.
-- Do not animate layout properties (`top`, `height`, `width`) inside the
-  transformed content column while the slide is running.
-- Keep the sidebar columns outside the transformed subtree. A transformed
-  ancestor makes sticky clamp in the ancestor's local space; moving the
-  sidebar back under the slide transform reintroduces the two-clock
-  compensation this design removes.
+- Do not animate layout properties (`top`, `height`, `width`) inside
+  `#main-grid` while the grid is transformed, except the two sticky sidebars'
+  deliberate `top` compensation.
+- The sticky `top` transition invalidates the root paint on every frame. Keep
+  `html.is-layout-moving #top-row { contain: paint }` so that repaint cannot
+  touch the navbar; its panels are absolutely positioned inside that box and
+  their rects do not move.
 - Keep the mobile banner / `.main-panel` swap (`setBannerVisibility`) on the
   committed content state, not on `body.is-home`. The body class flips at
   `visit:start` for the transform, but a `resize` during the visit (the mobile
@@ -318,7 +331,7 @@ Rules for future changes:
   of 333 paint events on the home transition, against 97 without the
   promotion). Plain DOM is enough for icons that never animate by themselves.
 - Do not switch the sidebars to `position: static` or fade them during a
-  visit. They remain sticky and visible with a constant `top: 1rem`.
+  visit. They remain sticky and visible; only their `top` transitions.
 - Keep the grid's `top` derived from
   `calc(var(--banner-height-home) - var(--banner-height-extend))`, never a
   separate `35vh`. Both variables are rounded to a 4px grid (the head script
@@ -340,66 +353,41 @@ Rules for future changes:
   script only toggles `data-is-home`, `.scrolled` and `--semifull-fade`.
 - New heavy features belong in `page-enhancements.ts`, not in `Layout.astro`.
 
-### Sidebar ownership: native sticky, not a compensated animation
+### Sidebar ownership: 9424c48 restored; native sticky rejected
 
-The sidebar used to sit inside the transformed `#main-grid` and carried a
-700ms `top` transition from `-268px` (home) to `0` (content) as compensation.
-That made the sidebar's viewport position depend on two clocks: a layout
-property (`top`) and the grid transform. When the 200ms swap landed mid-slide,
-its main-thread layout could not produce intermediate `top` values, so the
-sidebar held its old position and then moved two frames' worth in one frame.
+The native-sticky experiment (e92947c/2c086a6) removed the `top` transition
+and transformed only the content column. It fixed the swap-time jerk, but the
+sidebar column's home and content tops differ by the 268px banner extension.
+Any static placement therefore has to switch at the class flip: measured at
+scroll 0, `#sidebar-sticky` went 1038 -> 770 in one frame (and 770 -> 1038 in
+reverse); at scroll 900 home -> post it went 138 -> 16 in one frame. A static
+margin, padding, row or relative offset can only change on that class flip, so
+it must snap. The one-frame delta was 268px, above the 20px acceptance bound.
+That architecture was rejected and is no longer in the tree.
 
-The fix is structural. `#content-column`, a wrapper around `#swup-container`,
-now owns the slide transform. The sidebar columns remain siblings in normal
-grid flow and use only `position: sticky; top: 1rem`. There is no `top`
-transition, no home compensation and no transform on either sidebar. At the
-home/content class flip the content column and banner animate; the sidebar
-clamp is untouched. A pinned sidebar stays at 16px; an unpinned one follows
-its container, which is the native sticky definition. `startLayoutMove` and
-`runAfterLayoutSettled` now wait on `#content-column`'s `transitionend`, so
-`is-layout-moving` still covers the full slide.
+The restored implementation is 9424c48's: `#main-grid` carries the 700ms
+transform, both sidebars are inside it, and their `top` compensation runs on
+the same 700ms curve. The home offset is the static per-page value above.
+`html.is-layout-moving.is-animating .transition-swup-fade` holds the outgoing
+fade for the whole slide, so `content:replace` lands after the transform and
+its layout task is not underneath the sidebar's `top` animation. The custom
+scroll tween, cached scroll read, inline stylesheet, eager content, comment
+space reservation and head-script skip are unchanged.
 
-Home's 268px banner below the grid's natural row is a static grid-item
-`margin-top: var(--banner-height-extend)` on `#sidebar` and
-`.right-sidebar-container`, under `body.is-home`. This moves the column box
-itself, not the sticky element's `top`. It snaps with the class flip and is not
-transitioned. At 1440x900 scroll 0 the rects are:
+Trace at 4x against 9424c48 (max sidebar frame delta, 1440x900):
 
-| Page | Banner | Content column |Left sidebar | Right sidebar | `#sidebar-sticky` |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Home | 0..584 | 584 | 584 | 584 | 1038 |
-| Post | -268..316 | 316 | 316 | 316 | 770 |
-
-These match 9424c48's home placement exactly; the earlier transform-only
-version started both columns at 316 on home and overlapped the banner by
-268px. `verify.mjs` now checks the column top equals the content-column top on
-both page types, so that overlap cannot regress.
-
-Measured after the change (1440x900, 60Hz, CPU 4x unless noted):
-
-| Trace | Before (2808426/db48fe2) | After |
+| Direction / start | 9424c48 | Restored |
 | --- | ---: | ---: |
-| Home -> post, scroll 0, sidebar max frame delta | 33.3px at the swap (owner trace) | 268px once, static `is-home` margin snap |
-| Home -> post, scroll 0, computed sidebar top | transitions -252 -> 16 | constant 16 |
-| Post -> home, scroll 0, sidebar max frame delta | 17.4px (9424c48 reference) | 268px once, static `is-home` margin snap |
-| Home sidebar column / content top | 316 / 584 (overlap) | 584 / 584 |
-| 1x uncapped p95 home -> post / post -> home | 1.2 / 1.2ms | 1.2 / 1.2ms |
-| 60Hz 4x p95 home -> post / post -> home | 16.8 / 16.8ms | 16.8 / 16.8ms |
+| Home -> post, scroll 0 | 17.4px | 17.4px |
+| Home -> post, scroll 900 | 40.9px | 40.7px |
+| Home -> post, scroll 1200 | 60.9px | 60.9px |
+| Post -> home, scroll 0 | 17.3px | 17.4px |
+| Post -> home, scroll 900 | 75.2px | 75.2px |
+| Post -> home, scroll 1200 | 95.2px | 95.2px |
 
-`verify.mjs` now asserts the native semantics: at scroll 900 the computed
-`top` is constant, the sidebar stays at the 1rem offset while pinned, and
-`sb == max(16, natural - scrollY)` once it unpins; at scroll 0 the unpinned
-sidebar has exactly one static placement snap and no animation; the home and
-post column tops equal the content-column top; the mobile and same-type visit
-checks are retained. All seven tests pass.
-
-There is one remaining container-level artifact. At scroll 900/1200 the
-existing rAF scroll tween loses frames to the swap's content layout and then
-catches up in one large scroll step. Because the sidebar is now genuinely
-native, it follows that container step: 220/378px at 1x/4x scroll 900 and
-302/523px at 1x/4x scroll 1200 (home -> post). This is not a sidebar
-self-animation, a retarget or a `top` transition; it is the scroll container
-moving under it. Removing it without masking requires moving scroll ownership
-to the compositor or moving the swap after the slide. The swap-after-slide
-ordering was explicitly rejected; the scroll tween is left unchanged here so
-the sidebar ownership fix stays isolated.
+Deltas are continuous, with no one-frame jump; the pinned sidebar stays at
+16px and the unpinned sidebar follows the grid/scroll continuously. Pacing is
+60Hz 4x p95 16.8ms home -> post and 16.8ms post -> home; 1x uncapped p95
+1.1/1.1ms. `verify.mjs` is back on the `top + gridTransform = 16` invariant,
+keeps the pinned back/forward check, and adds the home/post column-top check
+(584/584 home, 316/316 post). All checks pass.

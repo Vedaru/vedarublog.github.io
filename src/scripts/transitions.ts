@@ -3,7 +3,7 @@
  *
  *   1. `visit:start` reads the scroll position, kicks off the scroll-to-top
  *      tween and flips the body's home class in the same tick, so the 700ms
- *      banner/content transform starts on the click frame — not after the scroll
+ *      banner/grid transform starts on the click frame — not after the scroll
  *      finishes. Fuwari runs both animations concurrently; serialising them
  *      is what makes the banner look late.
  *   2. The outgoing content fades over 200ms. The incoming document is
@@ -195,23 +195,23 @@ function settle(): void {
 function startLayoutMove(): void {
 	stopLayoutMove();
 	HTML.classList.add("is-layout-moving");
-	const column = document.getElementById("content-column");
-	if (!column) return;
+	const grid = document.getElementById("main-grid");
+	if (!grid) return;
 
 	layoutMovePromise = new Promise<void>((resolve) => {
 		const onEnd = (event: TransitionEvent) => {
-			if (event.target !== column || event.propertyName !== "transform") {
+			if (event.target !== grid || event.propertyName !== "transform") {
 				return;
 			}
-			column.removeEventListener("transitionend", onEnd);
+			grid.removeEventListener("transitionend", onEnd);
 			window.clearTimeout(timer);
 			resolve();
 		};
 		const timer = window.setTimeout(() => {
-			column.removeEventListener("transitionend", onEnd);
+			grid.removeEventListener("transitionend", onEnd);
 			resolve();
 		}, LAYOUT_FALLBACK_MS);
-		column.addEventListener("transitionend", onEnd);
+		grid.addEventListener("transitionend", onEnd);
 	});
 }
 
@@ -337,7 +337,7 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 			window.matchMedia("(min-width: 1280px)").matches;
 
 		// Only a layout slide needs the TOC's layout kept out of the swap: the
-		// swap lands mid-slide, while the content column is still moving. On a plain visit
+		// swap lands mid-slide, while the grid is still moving. On a plain visit
 		// the swap lands after the scroll has finished, and hiding the TOC for
 		// the length of the tween reads as an empty card in the sidebar.
 		if (layoutSlides) {
@@ -371,8 +371,7 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 			tweenDuration = startScrollToTop(
 				layoutSlides ? LAYOUT_SLIDE_MS : 0,
 			);
-			// The tween owns scrolling; keep the plugin from running again
-			// on content:scroll.
+			// 上面的补间已经接管滚动，别让插件在 content:scroll 再跑一遍。
 			if (visit.scroll) visit.scroll.reset = false;
 			scrollY = 0;
 		}
