@@ -1,6 +1,5 @@
 ---
 import { url } from "../../utils/url-utils";
-import { BANNER_HEIGHT_EXTEND } from "../../constants";
 
 type BannerResponsive = {
 	w768: string;
@@ -28,7 +27,6 @@ const {
 <div
     id="banner-wrapper"
     class={`absolute z-10 w-full transition duration-700 overflow-hidden ${mobileNonHomeBannerClass}`}
-    style={`top: -${BANNER_HEIGHT_EXTEND}vh`}
 >
     {desktopBannerResponsive && (
         <div id="banner" class="object-cover h-full transition duration-700 opacity-0 scale-105 overflow-hidden relative">
