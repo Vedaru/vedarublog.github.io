@@ -11,6 +11,15 @@
 	--layout-slide-duration: 700ms;
 }
 
+/* Fuwari leaves identity transforms on the sidebar and content wrapper.
+   Besides matching its DOM/layer shape, this makes each one a containing
+   block and keeps their paint independent of the moving grid layer. */
+#sidebar,
+.right-sidebar-container,
+#content-wrapper {
+	transform: translate(0px, 0px);
+}
+
 /* ── Base banner ──────────────────────────────────────────────────────── */
 #banner-wrapper {
 	position: absolute;

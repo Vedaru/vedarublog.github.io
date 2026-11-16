@@ -233,6 +233,14 @@ keeps the navbar blur disabled and tells `runAfterLayoutSettled` that the
 layout is still moving. Swup's `animation:in:await` returns the transform-end
 promise, so `animation:in:end` and `visit:end` also happen after the slide.
 
+The grid subtree now matches Fuwari's shape: `#main-grid` has four direct
+children, `#sidebar`, `.right-sidebar-container`, `#swup-container` and the
+mobile footer. The old `<div class="contents">` wrapper was removed. At
+1440x900 the subtree went from 723 to 722 elements; the wrapper was the only
+removed node. `#sidebar`, `.right-sidebar-container` and `#content-wrapper`
+carry Fuwari's identity `translate(0px, 0px)` transform, which keeps their
+paint in their own containing block while the grid moves.
+
 Both sidebars stay sticky and visible, outside the Swup fade container. Their
 only animated property is the sticky `top` compensation. It is declared
 unconditionally with the same 700ms curve as the grid and banner, because it
@@ -391,3 +399,36 @@ Deltas are continuous, with no one-frame jump; the pinned sidebar stays at
 1.1/1.1ms. `verify.mjs` is back on the `top + gridTransform = 16` invariant,
 keeps the pinned back/forward check, and adds the home/post column-top check
 (584/584 home, 316/316 post). All checks pass.
+
+### Compositor tail: grid is subpixel; the integer edge is the scroll path
+
+The moving `#main-grid` layer is composited and translates fractionally.
+A compositor screencast with a magenta marker inside `#content-wrapper`,
+sampled at 60fps during the class-flip tail, measured:
+
+| Frame tail | Marker top |
+| --- | ---: |
+| 29 | 319.28 |
+| 30 | 318.00 |
+| 31 | 317.48 |
+| 32 | 316.49 |
+| 33 | 316.28 |
+| 34 | 316.10 |
+| 35 | 316.00 |
+
+That is 0.1-0.5px steps, monotonic, with no one-frame jump. Measurements of a
+white card edge against the banner image quantize to whole rows because the
+card's painted top edge is sampled against an image backdrop, not because the
+grid transform snaps. The moving grid layer has no filter, backdrop-filter or
+paint containment on its ancestors; its only transform is the 268px
+`translateY`.
+
+The whole-pixel tail that remains on the list edge comes from the custom rAF
+scroll tween. The tween targets fractional `window.scrollTo` positions, but
+the rendered scroll offset advances in whole pixels and ends with a 0.03px
+content-swap correction. Fuwari's Swup ScrollPlugin uses a spring with a
+longer fractional deceleration, so its edge decays differently. Changing that
+requires changing scroll ownership/curve or the swap geometry, both outside
+the "no timers/rAF nudges/duration games" constraint for this pass. No mask
+was added; the grid layer and DOM cleanup are shipped, the scroll tail is
+recorded here as the remaining cause.

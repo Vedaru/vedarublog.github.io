@@ -170,18 +170,15 @@ const showSidebarTOC =
              data-sides={desktopSides}
              data-mobile={mobileShowSidebar ? "true" : "false"}
         >
-            {/* 侧边栏和主内容区域容器 */}
-            <div class="contents">
-                {(mobileShowSidebar || tabletShowSidebar || hasLeftSidebarComponents || hasRightSidebarComponents) && (
-                    <SideBar class="onload-animation" headings={headings}></SideBar>
-                )}
-                
-                {hasRightSidebarComponents && (
-                    <div class="right-sidebar-container onload-animation">
-                        <RightSideBar headings={headings}></RightSideBar>
-                    </div>
-                )}
-            </div>
+            {(mobileShowSidebar || tabletShowSidebar || hasLeftSidebarComponents || hasRightSidebarComponents) && (
+                <SideBar class="onload-animation" headings={headings}></SideBar>
+            )}
+            
+            {hasRightSidebarComponents && (
+                <div class="right-sidebar-container onload-animation">
+                    <RightSideBar headings={headings}></RightSideBar>
+                </div>
+            )}
 
             <main id="swup-container" class="w-full transition-swup-fade min-w-0 overflow-hidden">
                 <div class="sr-only" data-swup-a11y-title>{title || siteConfig.title}</div>
