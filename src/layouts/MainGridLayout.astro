@@ -2,7 +2,6 @@
 import BackToTop from "@components/control/BackToTop.astro";
 import FloatingTOC from "@components/control/FloatingTOC.astro";
 import Footer from "@components/Footer.astro";
-import RightSideBar from "@components/layout/RightSideBar.astro";
 import Navbar from "@components/nav/Navbar.astro";
 import SideBar from "@components/widget/SideBar.astro";
 import BannerWrapper from "@components/banner/BannerWrapper.astro";
@@ -11,7 +10,6 @@ import TOC from "../components/widget/TOC.astro";
 import {
 	siteConfig,
 } from "../config";
-import { widgetManager } from "../utils/widget-manager";
 import {
 	getBannerImages,
 	getBannerResponsive,
@@ -68,41 +66,9 @@ const mobileBannerObjectPosition =
 // 手机端非首页不显示 banner（只在 content:replace 之后切换，避免旧页面跳动）
 const mobileNonHomeBannerClass = !isHomePage ? "mobile-hide-banner" : "";
 
-// 检查左侧边栏是否有组件
-const hasLeftSidebarComponents =
-	widgetManager.getComponentsByPosition("top", "left", "desktop").length > 0 ||
-	widgetManager.getComponentsByPosition("sticky", "left", "desktop").length > 0;
-
-// 检查右侧边栏是否有组件
-const hasRightSidebarComponents =
-	widgetManager.getComponentsByPosition("top", "right", "desktop").length > 0 ||
-	widgetManager.getComponentsByPosition("sticky", "right", "desktop").length > 0;
-
-// 检查手机端 drawer 是否有组件
-const hasMobileDrawerComponents =
-	widgetManager.getComponentsByPosition("top", "drawer", "mobile").length > 0 ||
-	widgetManager.getComponentsByPosition("sticky", "drawer", "mobile").length > 0;
-
-// 平板端是否有组件（考虑自动移动逻辑）
-const hasTabletLeftSidebarComponents =
-	widgetManager.getComponentsByPosition("top", "left", "tablet").length > 0 ||
-	widgetManager.getComponentsByPosition("sticky", "left", "tablet").length > 0;
-
 // 栅格布局只由 #main-grid 上的 data-* 属性表达，列宽与各区域定位统一在
 // layout-stable.css 的「Main grid」一节定义。以前同一套布局在这个文件里拼
 // class 字符串、又在 <style> 里用 !important 覆盖，两处会互相打架。
-const mobileShowSidebar = hasMobileDrawerComponents;
-const tabletShowSidebar = hasTabletLeftSidebarComponents;
-const desktopSides =
-	hasLeftSidebarComponents && hasRightSidebarComponents
-		? "both"
-		: hasLeftSidebarComponents
-			? "left"
-			: hasRightSidebarComponents
-				? "right"
-				: "none";
-
-const defaultPostListLayout = siteConfig.postListLayout?.defaultMode || "list";
 const showSidebarTOC =
 	siteConfig.toc.enable && isSidebarTOC && headings.length > 0;
 
@@ -149,7 +115,6 @@ const showSidebarTOC =
 <BannerWrapper
 	mobileNonHomeBannerClass={mobileNonHomeBannerClass}
 	desktopBannerResponsive={desktopBannerResponsive}
-	mobileBannerResponsive={mobileBannerResponsive}
 	bannerObjectPosition={bannerObjectPosition}
 />
 

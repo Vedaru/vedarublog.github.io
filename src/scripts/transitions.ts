@@ -195,7 +195,11 @@ function settle(): void {
 	if (
 		!grid
 			.getAnimations()
-			.some((animation) => animation.transitionProperty === "transform")
+			.some(
+				(animation) =>
+					animation instanceof CSSTransition &&
+					animation.transitionProperty === "transform",
+			)
 	) {
 		finishLayoutNow();
 	}
@@ -214,7 +218,11 @@ function waitForGridTransition(token: number): Promise<void> {
 		if (
 			!grid
 				.getAnimations()
-				.some((animation) => animation.transitionProperty === "transform")
+				.some(
+					(animation) =>
+						animation instanceof CSSTransition &&
+						animation.transitionProperty === "transform",
+				)
 		) {
 			grid.removeEventListener("transitionend", onEnd);
 			resolve();
