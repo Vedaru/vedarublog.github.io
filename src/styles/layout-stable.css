@@ -90,10 +90,6 @@ body.no-banner-mode #banner-wrapper {
 
 /* ── Desktop: home reveals 65vh, content pages show the 35vh strip ───── */
 @media (min-width: 1280px) {
-	html[data-wallpaper-mode="banner"] body.enable-banner #banner-wrapper {
-		transform: translateY(0);
-	}
-
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
 		#banner-wrapper {
 		transform: translateY(var(--banner-height-extend, 30dvh));
@@ -120,10 +116,6 @@ body.no-banner-mode #banner-wrapper {
 	html[data-wallpaper-mode="banner"] #top-row {
 		height: calc(var(--banner-height-home, 65vh) - 4.5rem);
 		min-height: calc(var(--banner-height-home, 65vh) - 4.5rem);
-	}
-
-	html[data-wallpaper-mode="banner"] body.enable-banner #main-grid {
-		transform: translateY(0);
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
