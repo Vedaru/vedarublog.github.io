@@ -7,10 +7,6 @@
  * transform on the banner and grid plus the sidebars' top compensation.
  */
 
-:root {
-	--layout-slide-duration: 700ms;
-}
-
 /* Fuwari leaves identity transforms on the sidebar and content wrapper.
    Besides matching its DOM/layer shape, this makes each one a containing
    block and keeps their paint independent of the moving grid layer. */
@@ -67,13 +63,12 @@
    pops while the transform animates. */
 #banner-wrapper {
 	transition:
-		transform var(--layout-slide-duration) cubic-bezier(0.4, 0, 0.2, 1),
-		opacity var(--layout-slide-duration) cubic-bezier(0.4, 0, 0.2, 1);
+		transform var(--layout-slide-duration) var(--layout-slide-ease),
+		opacity var(--layout-slide-duration) var(--layout-slide-ease);
 }
 
 #main-grid {
-	transition: transform var(--layout-slide-duration)
-		cubic-bezier(0.4, 0, 0.2, 1);
+	transition: transform var(--layout-slide-duration) var(--layout-slide-ease);
 }
 
 /* The layout engine drives these two transforms by hand for the length of a
@@ -85,8 +80,7 @@ html.is-layout-engine #banner-wrapper {
 }
 
 #banner {
-	transition: top var(--layout-slide-duration)
-		cubic-bezier(0.4, 0, 0.2, 1);
+	transition: top var(--layout-slide-duration) var(--layout-slide-ease);
 }
 
 /* Keep only the wrapper promoted; a second promotion on #banner gives the
@@ -154,8 +148,7 @@ body.no-banner-mode #banner-wrapper {
 		   a frame and its top edge visibly jumps. Same duration and curve keeps
 		   `top + translate` (the rendered pin position) constant for pinned
 		   sidebars, including on back/forward. */
-		transition: top var(--layout-slide-duration)
-			cubic-bezier(0.4, 0, 0.2, 1);
+		transition: top var(--layout-slide-duration) var(--layout-slide-ease);
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home

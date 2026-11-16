@@ -19,11 +19,15 @@
  */
 import { BANNER_HEIGHT, BANNER_HEIGHT_HOME } from "@constants";
 import { isMainHomePage, pathFromUrl } from "../utils/route-utils";
-import { setScrollTweening } from "./runtime/motion-state";
 import {
 	cancelEnhancements,
 	scheduleEnhancements,
 } from "./page-enhancements";
+import {
+	cancelLayoutMove,
+	runLayoutMove,
+	type LayoutMoveHandle,
+} from "./runtime/layout-engine";
 import "./runtime/comment-boot";
 
 interface Visit {
@@ -31,8 +35,6 @@ interface Visit {
 	history?: { popstate?: boolean };
 	scroll?: { reset?: boolean };
 }
-
-const HTML = document.documentElement;
 
 /**
  * Whether the *committed* content is the home page.
@@ -164,27 +166,9 @@ function onScroll(): void {
 // ── Swup hooks ─────────────────────────────────────────────────────────────
 let hooksRegistered = false;
 let knownScrollY: number | null = null;
-let layoutMovePromise: Promise<void> | null = null;
+let layoutMove: LayoutMoveHandle | null = null;
 let contentDelayCleared = false;
 let pendingScrollTweenMs = 0;
-
-const LAYOUT_FALLBACK_MS = 900;
-/** Must match --layout-slide-duration in layout-stable.css. */
-const LAYOUT_SLIDE_MS = 700;
-
-let layoutFrame = 0;
-
-function stopLayoutMove(): void {
-	if (layoutFrame) cancelAnimationFrame(layoutFrame);
-	layoutFrame = 0;
-	const grid = document.getElementById("main-grid");
-	const banner = document.getElementById("banner-wrapper");
-	grid?.style.removeProperty("transform");
-	banner?.style.removeProperty("transform");
-	HTML.classList.remove("is-layout-engine");
-	layoutMovePromise = null;
-	HTML.classList.remove("is-layout-moving");
-}
 
 /**
  * Clear everything a visit may have turned on. Called when the content has
@@ -194,164 +178,12 @@ function stopLayoutMove(): void {
  * layout marker on <html>.
  */
 function settle(): void {
-	stopLayoutMove();
+	cancelLayoutMove();
+	layoutMove = null;
 	knownScrollY = null;
 	document
 		.getElementById("toc-wrapper")
 		?.classList.remove("is-toc-deferred");
-}
-
-function startLayoutMove(startY: number, isHome: boolean, flip: () => void): void {
-	stopLayoutMove();
-	const grid = document.getElementById("main-grid");
-	const banner = document.getElementById("banner-wrapper");
-	if (!grid) return;
-
-	// One read at the click frame: current rendered translations and the
-	// banner-height delta the class flip would otherwise snap by.
-	const readY = (element: HTMLElement | null): number => {
-		if (!element) return 0;
-		const value = getComputedStyle(element).transform;
-		return value === "none" ? 0 : new DOMMatrixReadOnly(value).m42;
-	};
-	const gridStart = readY(grid);
-	const bannerStart = readY(banner);
-	const extend = Number.parseFloat(
-		getComputedStyle(HTML).getPropertyValue("--banner-height-extend"),
-	);
-	const delta = Number.isFinite(extend) ? extend : 0;
-	const gridEnd = gridStart + (isHome ? delta : -delta);
-	const bannerEnd = bannerStart + (isHome ? delta : -delta);
-
-	HTML.classList.add("is-layout-engine", "is-layout-moving");
-
-	const t0 = performance.now();
-	const apply = (progress: number): void => {
-		const eased = slideEase(progress);
-		const gridY = gridStart + (gridEnd - gridStart) * eased;
-		const bannerY = bannerStart + (bannerEnd - bannerStart) * eased;
-		const desired = startY * (1 - eased);
-		window.scrollTo(0, desired);
-		// Chrome stores scroll on whole CSS pixels; add the fractional
-		// remainder to the transform so the rendered edge follows `desired`.
-		const residual = Math.round(desired) - desired;
-		grid.style.transform = `translateY(${(gridY + residual).toFixed(3)}px)`;
-		if (banner) {
-			banner.style.transform = `translateY(${(bannerY + residual).toFixed(3)}px)`;
-		}
-	};
-
-	apply(0);
-	// Flip the class in the same task so the sidebar's CSS top transition
-	// starts on the engine's first frame, not one frame later.
-	flip();
-	layoutMovePromise = new Promise<void>((resolve) => {
-		const step = (now: number) => {
-			const progress = Math.min(1, (now - t0) / LAYOUT_SLIDE_MS);
-			apply(progress);
-			if (progress < 1) {
-				layoutFrame = requestAnimationFrame(step);
-				return;
-			}
-			layoutFrame = 0;
-			window.scrollTo(0, 0);
-			grid.style.removeProperty("transform");
-			banner?.style.removeProperty("transform");
-			HTML.classList.remove("is-layout-engine");
-			resolve();
-		};
-		layoutFrame = requestAnimationFrame(step);
-	});
-}
-
-/** 换页时的滚动动画句柄（同一时间只允许一个）。 */
-let scrollTweenFrame = 0;
-
-function cancelScrollTween(): void {
-	if (scrollTweenFrame) cancelAnimationFrame(scrollTweenFrame);
-	scrollTweenFrame = 0;
-	setScrollTweening(false);
-}
-
-/**
- * The banner/grid transition curve, `cubic-bezier(0.4, 0, 0.2, 1)`, solved for
- * y at a given x. During a layout slide the grid and the scroll move the same
- * card: with two different curves the screen position is a sum of two velocity
- * profiles, so the motion lurches on the first frame while the transform
- * trails. Using this curve for both makes the card follow one eased path.
- */
-function slideEase(x: number): number {
-	if (x <= 0) return 0;
-	if (x >= 1) return 1;
-	const bezier = (t: number, p1: number, p2: number) => {
-		const u = 1 - t;
-		return 3 * u * u * t * p1 + 3 * u * t * t * p2 + t * t * t;
-	};
-	const x1 = 0.4;
-	const y1 = 0;
-	const x2 = 0.2;
-	const y2 = 1;
-	let t = x;
-	for (let i = 0; i < 8; i += 1) {
-		const error = bezier(t, x1, x2) - x;
-		if (Math.abs(error) < 1e-6) return bezier(t, y1, y2);
-		const slope =
-			3 * (1 - t) * (1 - t) * x1 +
-			6 * (1 - t) * t * (x2 - x1) +
-			3 * t * t * (1 - x2);
-		if (Math.abs(slope) < 1e-6) break;
-		t -= error / slope;
-	}
-	let low = 0;
-	let high = 1;
-	for (let i = 0; i < 20; i += 1) {
-		t = (low + high) / 2;
-		if (bezier(t, x1, x2) < x) low = t;
-		else high = t;
-	}
-	return bezier(t, y1, y2);
-}
-
-/**
- * Fuwari's swup ScrollPlugin spring: update velocity, render one float
- * scrollTo, and snap exactly when the target is crossed. No reads in the loop.
- */
-function startScrollToTop(lockTo = 0): number {
-	cancelScrollTween();
-	const startY = getScrollY();
-	if (startY <= 1) return 0;
-	if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
-		window.scrollTo(0, 0);
-		return 0;
-	}
-
-	const DURATION =
-		lockTo > 0
-			? lockTo
-			: Math.min(700, Math.max(320, 320 + startY * 0.1));
-	const target = 0;
-	let position = startY;
-	let velocity = 0;
-	window.scrollTo(0, position);
-
-	const step = () => {
-		const delta = target - position;
-		velocity += delta * 0.04;
-		velocity *= 0.7;
-		position += velocity;
-		window.scrollTo(0, position);
-		if (position > target) {
-			scrollTweenFrame = requestAnimationFrame(step);
-		} else {
-			position = target;
-			window.scrollTo(0, target);
-			scrollTweenFrame = 0;
-			setScrollTweening(false);
-		}
-	};
-	setScrollTweening(true);
-	scrollTweenFrame = requestAnimationFrame(step);
-	return DURATION;
 }
 
 function setup(swup: NonNullable<Window["swup"]>): void {
@@ -370,8 +202,7 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		const wasHome = document.body.classList.contains("is-home");
 		const isHome = isHomeVisit(visit);
 		const isPopstate = visit.history?.popstate === true;
-		// 前进/后退由浏览器恢复滚动位置；还在跑的补间会一路把页面拽回顶部。
-		if (isPopstate) cancelScrollTween();
+		if (isPopstate) cancelLayoutMove();
 		const layoutSlides =
 			wasHome !== isHome &&
 			window.matchMedia("(min-width: 1280px)").matches;
@@ -399,31 +230,25 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 
 		// Use the position captured at the top of the hook, before any style
 		// or class writes.
-		let scrollY = scrollAtStart;
-		// 自己接管「滚回顶部」，普通换页也走这里：固定曲线、在新内容出现前
-		// 就落地。锚点链接交给插件的锚点滚动，前进/后退不动滚动位置。
-		// The outgoing content fades for exactly as long as the tween runs, so
-		// the swap lands on a page that is already at the top - scrolling
-		// through a document that is still inserting images costs a reflow per
-		// frame.
-		let tweenDuration = 0;
-		if (!isPopstate && !visit.to.hash && scrollY > 1) {
-			if (layoutSlides) {
-				// The layout engine owns the scroll for the slide: it writes
-				// one transform and one scroll per frame from a single clock.
-				if (visit.scroll) visit.scroll.reset = false;
-			} else {
-				tweenDuration = startScrollToTop(0);
-				// 上面的补间已经接管滚动，别让插件在 content:scroll 再跑一遍。
-				if (visit.scroll) visit.scroll.reset = false;
-			}
-			scrollY = 0;
+		const shouldMove =
+			!isPopstate &&
+			!visit.to.hash &&
+			(layoutSlides || scrollAtStart > 1);
+		layoutMove = null;
+		if (shouldMove) {
+			layoutMove = runLayoutMove({
+				startY: scrollAtStart,
+				toHome: isHome,
+				layout: layoutSlides,
+				onFlip: () => setBodyHome(isHome),
+			});
+			if (visit.scroll) visit.scroll.reset = false;
 		}
 		// The layout slide's fade is the base 200ms rule, so it does not read
 		// this variable. On a non-slide visit, scope it to the fade element
 		// instead of the grid: a custom property on the grid inherits into every
 		// sidebar and content node and dirties them on the click path.
-		pendingScrollTweenMs = layoutSlides ? 0 : tweenDuration || 200;
+		pendingScrollTweenMs = layoutSlides ? 0 : layoutMove?.duration || 0;
 		if (pendingScrollTweenMs > 0) {
 			document
 				.getElementById("swup-container")
@@ -433,20 +258,12 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 				);
 		}
 
-		// Start the marker and the transform together, after the scroll has
-		// settled. The marker has to be present before the body flip so the
-		// navbar, enhancements and fade duration see the slide immediately.
-		if (!isPopstate && layoutSlides) {
-			startLayoutMove(scrollAtStart, isHome, () => setBodyHome(isHome));
-		} else {
-			stopLayoutMove();
+		if (!shouldMove) {
+			cancelLayoutMove();
 			setBodyHome(isHome);
 		}
 
-		if (!isPopstate && layoutSlides) {
-			knownScrollY = scrollY;
-		}
-		if (!layoutSlides || isPopstate) knownScrollY = null;
+		knownScrollY = layoutSlides ? 0 : null;
 	}, { priority: 10 });
 
 	// Prepare the incoming document while it is still detached. The page
@@ -490,8 +307,8 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 	});
 
 	swup.hooks.on("animation:in:await", () => {
-		if (!layoutMovePromise) return;
-		return layoutMovePromise;
+		if (!layoutMove?.layout) return;
+		return layoutMove.finished;
 	});
 
 	swup.hooks.on("animation:in:end", (visit: Visit) => {
@@ -509,7 +326,11 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 
 	// Swup aborts a visit when another link is clicked mid-transition; it
 	// never fires `visit:end` for that one.
-	swup.hooks.on("visit:abort", settle);
+	swup.hooks.on("visit:abort", () => {
+		cancelLayoutMove();
+		setBodyHome(contentIsHome);
+		settle();
+	});
 
 }
 
@@ -577,7 +398,7 @@ export function initTransitions(): void {
 
 	// 用户自己滚动时立刻让出控制权，不和浏览器抢滚动条。
 	for (const type of ["wheel", "touchstart", "keydown"] as const) {
-		window.addEventListener(type, cancelScrollTween, { passive: true });
+		window.addEventListener(type, cancelLayoutMove, { passive: true });
 	}
 
 	window.addEventListener("scroll", onScroll, { passive: true });
