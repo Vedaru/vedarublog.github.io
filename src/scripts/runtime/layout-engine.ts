@@ -1,28 +1,20 @@
 /**
- * Page-move engine. Owned properties:
- * - window scrollTop while a move runs
- * - #main-grid transform (layout slides + sub-pixel scroll remainder)
- * - #banner-wrapper transform (layout slides + sub-pixel scroll remainder)
- * Not owned: sidebar top (CSS), banner crop top (CSS), opacity/fades.
- *
- * One rAF handle; one scroll write per frame; one read phase at the start.
+ * Page-move engine. Owns window scrollTop, #main-grid transform and
+ * #banner-wrapper transform. Sidebar top, banner crop and fades stay CSS.
+ * One rAF handle; one scroll write per frame; reads happen once at start.
  */
 import { setScrollTweening } from "./motion-state";
 
-const MOVE_DURATION_MS = 700;
+const DURATION = 700;
 const EASE = [0.4, 0, 0.2, 1] as const;
-const ENGINE_CLASS = "is-layout-engine";
-const MOVING_CLASS = "is-layout-moving";
+const ENGINE = "is-layout-engine";
+const MOVING = "is-layout-moving";
+const ROOT = document.documentElement;
+export const LAYOUT_MOVE_END = "layout-move-end";
 
 // One source for the duration and easing consumed by CSS transitions.
-document.documentElement.style.setProperty(
-	"--layout-slide-duration",
-	`${MOVE_DURATION_MS}ms`,
-);
-document.documentElement.style.setProperty(
-	"--layout-slide-ease",
-	`cubic-bezier(${EASE.join(",")})`,
-);
+ROOT.style.setProperty("--layout-slide-duration", `${DURATION}ms`);
+ROOT.style.setProperty("--layout-slide-ease", `cubic-bezier(${EASE.join(",")})`);
 
 export interface LayoutMoveOptions {
 	startY: number;
@@ -37,15 +29,13 @@ export interface LayoutMoveHandle {
 	readonly finished: Promise<void>;
 }
 
-type MoveKind = "layout" | "scroll";
-
-interface ActiveMove {
-	kind: MoveKind;
+type Active = {
+	kind: "layout" | "scroll";
 	frame: number;
-	resolve: (() => void) | null;
-}
+	resolve: () => void;
+};
 
-let active: ActiveMove | null = null;
+let active: Active | null = null;
 
 function slideEase(x: number): number {
 	if (x <= 0) return 0;
@@ -76,43 +66,39 @@ function slideEase(x: number): number {
 	return bezier(t, y1, y2);
 }
 
-function parseY(value: string): number {
+function readY(element: HTMLElement): number {
+	const value =
+		element.style.transform || getComputedStyle(element).transform;
 	if (!value || value === "none") return 0;
 	const matrix = /matrix\(([^)]+)\)/.exec(value);
 	return matrix ? Number.parseFloat(matrix[1].split(",")[5] ?? "0") || 0 : 0;
-}
-
-function readY(element: HTMLElement): number {
-	const inline = element.style.getPropertyValue("transform");
-	return inline
-		? parseY(inline)
-		: parseY(getComputedStyle(element).transform);
 }
 
 function clearLayoutStyles(): void {
 	for (const id of ["main-grid", "banner-wrapper"]) {
 		document.getElementById(id)?.style.removeProperty("transform");
 	}
-	document.documentElement.classList.remove(ENGINE_CLASS, MOVING_CLASS);
+	ROOT.classList.remove(ENGINE, MOVING);
 }
 
-function endActive(preserveMovingClass = false): void {
+function endActive(preserveMoving = false): void {
 	if (!active) return;
 	const move = active;
 	active = null;
 	if (move.frame) cancelAnimationFrame(move.frame);
 	clearLayoutStyles();
-	if (preserveMovingClass) {
-		document.documentElement.classList.add(MOVING_CLASS);
-	}
+	if (preserveMoving) ROOT.classList.add(MOVING);
 	setScrollTweening(false);
-	move.resolve?.();
-	move.resolve = null;
+	move.resolve();
+	ROOT.dispatchEvent(new Event(LAYOUT_MOVE_END));
 }
 
 export function cancelLayoutMove(): void {
 	if (active) endActive();
-	else clearLayoutStyles();
+	else {
+		clearLayoutStyles();
+		ROOT.dispatchEvent(new Event(LAYOUT_MOVE_END));
+	}
 }
 
 function startLayout(
@@ -130,16 +116,11 @@ function startLayout(
 	const bannerEl = banner;
 	const extend =
 		Number.parseFloat(
-			getComputedStyle(document.documentElement).getPropertyValue(
-				"--banner-height-extend",
-			),
+			getComputedStyle(ROOT).getPropertyValue("--banner-height-extend"),
 		) || 0;
-	// Absolute targets keep an interrupted move continuous regardless of the
-	// class it was heading to.
 	const gridEnd = options.toHome ? extend : 0;
 	const bannerEnd = options.toHome ? extend : 0;
-
-	document.documentElement.classList.add(ENGINE_CLASS, MOVING_CLASS);
+	ROOT.classList.add(ENGINE, MOVING);
 	const t0 = performance.now();
 	const apply = (progress: number): void => {
 		const eased = slideEase(progress);
@@ -156,32 +137,29 @@ function startLayout(
 	apply(0);
 	options.onFlip();
 
-	let move: ActiveMove;
-	const finished = new Promise<void>((resolve) => {
-		move = { kind: "layout", frame: 0, resolve };
-		active = move;
-		startFrame();
-	});
-	function startFrame(): void {
-		const step = (now: number) => {
-			if (active !== move) return;
-			const progress = Math.min(1, (now - t0) / MOVE_DURATION_MS);
-			apply(progress);
-			if (progress < 1) {
-				move.frame = requestAnimationFrame(step);
-				return;
-			}
-			move.frame = 0;
-			window.scrollTo(0, 0);
-			gridEl.style.removeProperty("transform");
-			bannerEl.style.removeProperty("transform");
-			document.documentElement.classList.remove(ENGINE_CLASS);
-			endActive(true);
-		};
-		move.frame = requestAnimationFrame(step);
+	const move: Active = { kind: "layout", frame: 0, resolve: () => {} };
+	function step(now: number): void {
+		if (active !== move) return;
+		const progress = Math.min(1, (now - t0) / DURATION);
+		apply(progress);
+		if (progress < 1) {
+			move.frame = requestAnimationFrame(step);
+			return;
+		}
+		move.frame = 0;
+		window.scrollTo(0, 0);
+		gridEl.style.removeProperty("transform");
+		bannerEl.style.removeProperty("transform");
+		ROOT.classList.remove(ENGINE);
+		endActive(true);
 	}
+	const finished = new Promise<void>((resolve) => {
+		move.resolve = resolve;
+		active = move;
+		move.frame = requestAnimationFrame(step);
+	});
 	setScrollTweening(true);
-	return { duration: MOVE_DURATION_MS, layout: true, finished };
+	return { duration: DURATION, layout: true, finished };
 }
 
 function startScroll(options: LayoutMoveOptions): LayoutMoveHandle {
@@ -201,27 +179,27 @@ function startScroll(options: LayoutMoveOptions): LayoutMoveHandle {
 	let velocity = 0;
 	window.scrollTo(0, position);
 	options.onFlip();
+	const move: Active = { kind: "scroll", frame: 0, resolve: () => {} };
+	function step(): void {
+		if (active !== move) return;
+		velocity += -position * 0.04;
+		velocity *= 0.7;
+		position += velocity;
+		window.scrollTo(0, position);
+		if (position > 0) {
+			move.frame = requestAnimationFrame(step);
+			return;
+		}
+		move.frame = 0;
+		window.scrollTo(0, 0);
+		endActive();
+	}
 	const finished = new Promise<void>((resolve) => {
-		const move: ActiveMove = { kind: "scroll", frame: 0, resolve };
+		move.resolve = resolve;
 		active = move;
-		const step = () => {
-			if (active !== move) return;
-			const delta = -position;
-			velocity += delta * 0.04;
-			velocity *= 0.7;
-			position += velocity;
-			window.scrollTo(0, position);
-			if (position > 0) {
-				move.frame = requestAnimationFrame(step);
-				return;
-			}
-			move.frame = 0;
-			window.scrollTo(0, 0);
-			endActive();
-		};
 		move.frame = requestAnimationFrame(step);
-		setScrollTweening(true);
 	});
+	setScrollTweening(true);
 	return { duration, layout: false, finished };
 }
 
@@ -236,7 +214,6 @@ export function runLayoutMove(options: LayoutMoveOptions): LayoutMoveHandle {
 	const startGrid = readY(grid);
 	const startBanner = readY(banner);
 	if (active) endActive();
-
 	return options.layout
 		? startLayout(options, startGrid, startBanner)
 		: startScroll(options);

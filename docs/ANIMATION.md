@@ -19,9 +19,12 @@ Fuwari's transition is not a special animation library. It is three decisions:
    a custom element waits for the content entrance animation. No comments,
    diagrams, lightboxes or analytics are loaded during the transition.
 
-This site keeps the 700ms banner/grid transform and runs the custom scroll
-tween on the same clock. Layout slides use a slide-length outgoing fade; the
-transform starts on the click frame.
+This site keeps the 700ms banner/grid transform and drives it from one rAF
+engine in `src/scripts/runtime/layout-engine.ts`. The engine also owns
+`window.scrollTop`; the scroll and both transforms are evaluated from one
+curve, and the sub-pixel scroll remainder is folded into the transforms.
+Layout slides use a slide-length outgoing fade; the transform starts on the
+click frame.
 
 ## Measured results (2026-11-15)
 
@@ -120,6 +123,34 @@ the 5% sample boundary; its p99 is 50ms. Home → post p95 is Fuwari parity
 require deferring article content, so it is accepted. No transition long
 task exceeds 150ms.
 
+### Engine extraction and interruption (2026-11-16)
+
+The approved `fa91afc` motion was moved into
+`src/scripts/runtime/layout-engine.ts` without changing its clock, curve or
+read phase. In the same production build, the edge harness sampled only
+frames with `is-layout-engine` set and found, for banner bottom, grid top,
+content top and sidebar column top:
+
+| Direction | Start | Reversals | Fractional tail steps |
+| --- | ---: | ---: | ---: |
+| home -> post | 0 / 900 / 1200 | 0 / 0 / 0 | 37 / 36 / 35 |
+| post -> home | 0 / 900 / 1200 | 0 / 0 / 0 | 37 / 36 / 34 |
+
+Frame pacing at 1440x900 dpr2 remained at the approved baseline: 60Hz 4x p95
+16.8ms home -> post; post -> home measured 33.3ms in 5/6 runs, and the
+unmodified `fa91afc` reference measured 33.2-33.3ms in 5/5 runs on the same
+machine. That bucket is the known post-move content task crossing the 5%
+sample boundary, not engine work; reverse had no long tasks and no
+reversals. 1x uncapped p95 was 2.0ms home -> post and 1.4ms post -> home.
+
+`verify.mjs` now makes 8 checks: rendered edge lockstep while the engine is
+active, pinned-sidebar at rest, home/post column tops, mobile swap, post ->
+post stable offset, and second-visit/back interruption finals. All pass. The
+grid subtree remains 722 elements, the banner remains eager with
+`fetchpriority=high`, and the source delta is **net -34 lines** after deleting
+the old cancel path, the dead `transitionend`/900ms fallback, and the
+duplicated CSS duration/curve.
+
 Scroll audit: `scrollHeight` is a single value, 4698, for the full
 120px-step scroll; CLS is 0.000 and there are no layout-shift entries.
 Twikoo still has a 260ms initialization task when the comment card is
@@ -204,9 +235,12 @@ Measured with Chrome for Testing at 4x CPU throttle (a mid-range phone):
 click
   → visit:start
       read the scroll position before any class/style writes
-      start the custom scroll-to-top tween (700ms lock on a layout slide)
-      add is-layout-moving for a desktop layout slide
-      flip is-home now; the banner/grid and sidebar-top 700ms transitions start
+      runLayoutMove({startY, toHome, layout})
+        layout slide: one rAF clock; scrollTo + grid/banner transforms;
+          sub-pixel scroll remainder folded into both transforms
+        otherwise: the Fuwari scroll spring
+      the engine flips is-home and adds is-layout-engine/is-layout-moving
+      the sidebar top compensation and banner crop use the same CSS clock
   → content fade out (700ms on a layout slide, 200ms otherwise)
   → content:replace (main + #toc), after the slide on a layout slide
       swap the containers
@@ -214,24 +248,50 @@ click
       sync the mobile banner
       start the incoming fade
   → animation:in:await
-      returns the 700ms transform-end promise
+      returns the engine's finished promise on a layout slide
   → animation:in:end (after the transform)
-      remove is-layout-moving and the TOC defer
+      settle(): cancel/clear the engine, remove layout classes and TOC defer
       sync the navbar/chrome; schedule idle enhancements
       requestIdleCallback → fancybox / mermaid / fonts / comments
 ```
 
 On a layout slide the swap and the destination's first style/layout run after
 the 700ms transform, so the sidebar's `top` animation is never underneath that
-layout task. Ordinary visits still swap during the scroll tween. All article
+layout task. Ordinary visits still swap during the scroll move. All article
 content is laid out eagerly; no content-visibility priming is used. The
 destination's code-block layout is the remaining tail and is accepted at
 Fuwari p95 parity.
 
-`is-layout-moving` stays on `<html>` until the grid's `transitionend`. It
-keeps the navbar blur disabled and tells `runAfterLayoutSettled` that the
-layout is still moving. Swup's `animation:in:await` returns the transform-end
-promise, so `animation:in:end` and `visit:end` also happen after the slide.
+The engine removes `is-layout-engine` when its 700ms clock ends and leaves
+`is-layout-moving` for CSS/navbar state until `settle()` runs. Swup's
+`animation:in:await` returns the engine handle's `finished` promise, so
+`animation:in:end` and `visit:end` also happen after the slide. A second
+visit or a popstate cancels the active handle; `cancelLayoutMove()` clears the
+inline transforms and classes even when no rAF is active.
+
+### Interruption safety
+
+`runLayoutMove` reads the rendered grid/banner transforms once, before it
+cancels an active handle, and uses absolute targets, so a second visit starts
+from what is on screen. At 1440x900 from home at scroll 900, a second visit
+100ms into the first gave (time, scrollTop, grid top, inline transform):
+
+| t | scrollTop | grid top | inline transform |
+| ---: | ---: | ---: | --- |
+| 158.8 | 867 | -292.81 | `translateY(258.191px)` |
+| 192.4 | 867 | -292.81 | `translateY(258.191px)` |
+| 209.1 | 865 | -291.56 | `translateY(257.439px)` |
+
+The pause at the node fetch is not a jump; the second engine starts from the
+captured values. The final page was the second destination, scrollTop 0, grid
+top 316, with no engine class and no inline transform.
+
+A `history.back()` 100ms into a post -> home move cancels the rAF and restores
+the previous entry's scroll (866 -> 900), then the CSS base-state transition
+settles into grid top -584 and sticky top 16. The final state had no engine
+class or inline transform. A full navigation away at 180ms (scrollTop 677,
+grid top -159.48, inline `translateY(201.52px)`) produced a fresh document at
+scrollTop 0, grid top 584, with no layout classes, as expected.
 
 The grid subtree now matches Fuwari's shape: `#main-grid` has four direct
 children, `#sidebar`, `.right-sidebar-container`, `#swup-container` and the
@@ -262,7 +322,7 @@ exact rects.
 There is no `#page-height-extend`. A 300vh tail kept the old scroll alive but
 added thousands of pixels of blank scroll below the footer on a tall
 viewport, then the browser snapped back when the tail was removed. The
-transform starts on the click frame; the custom scroll tween uses the slide
+transform starts on the click frame; the engine's scroll uses the same slide
 curve and finishes inside the same 700ms window. `overscroll-behavior-y:
 none` on `html, body` keeps wheel and touch input from moving past the real
 document boundary.
@@ -271,9 +331,10 @@ Key files:
 
 | File | Responsibility |
 | --- | --- |
-| `src/scripts/transitions.ts` | All Swup hooks, body layout class, scroll chrome |
+| `src/scripts/runtime/layout-engine.ts` | Scroll + grid/banner rAF engine, duration/easing source, cancellation |
+| `src/scripts/transitions.ts` | Swup hooks, body layout class, scroll chrome |
 | `src/scripts/page-enhancements.ts` | Idle-time enhancement loading |
-| `src/scripts/runtime/after-transition.ts` | Wait for the 700ms transform |
+| `src/scripts/runtime/after-transition.ts` | Wait for the engine's end event |
 | `src/scripts/toc-element.ts` | TOC custom element (observers only) |
 | `src/components/widget/TOC.astro` | Server-rendered TOC markup |
 | `src/styles/transition.css` | 200ms fade and 300ms entrance animation |
@@ -290,9 +351,9 @@ Rules for future changes:
   reduced, do it without render deferral.
 - Keep the comment card's reserved height equal to the mounted Twikoo card
   (currently 512px) so comment initialization cannot shift the page.
-- Keep `is-layout-moving` until the grid transform ends, and make
-  `animation:in:await` wait for that transform. Do not remove Swup's root
-  classes or enable the navbar blur while the slide is running.
+- Keep `animation:in:await` waiting for `layoutMove.finished` on a layout
+  slide. Do not remove Swup's root classes or enable the navbar blur while
+  the engine is running.
 - Keep the closed mobile menu/TOC panels `display:none` at breakpoints where
   their triggers are hidden; they were 147 laid-out elements on desktop.
 - Closed desktop dropdowns may leave layout only while `is-layout-moving`.
@@ -300,18 +361,23 @@ Rules for future changes:
 - Scope the fade duration to `#swup-container`. Do not write inherited custom
   properties on `#main-grid` on the click path; they dirty every sidebar and
   content node.
-- The custom tween in `startScrollToTop` owns the pre-scroll. Run it at
-  `visit:start` after the scroll plugin's position cache; do not add another
-  scroll plugin loop, timeout, or `scroll:top` override.
-- Keep `smoothScrolling: true`. The pre-scroll in `transitions.ts` is the
-  only scroll call.
-- After a layout pre-scroll, set `visit.scroll.reset = false` so the scroll
+- `runLayoutMove` in `layout-engine.ts` is the only scroll writer during a
+  visit. Call it at `visit:start` after the scroll plugin's position cache; do
+  not add another scroll plugin loop, timeout, or `scroll:top` override.
+- Keep `smoothScrolling: true`. The engine's `scrollTo` is the only scroll
+  call.
+- After starting the engine, set `visit.scroll.reset = false` so the scroll
   plugin does not force layout of the new article just to scroll to 0 again.
-- During a layout slide the scroll tween uses the slide curve
-  (`cubic-bezier(0.4, 0, 0.2, 1)`), not `easeOutCubic`. The scroll and the
-  transform move the same card; two curves make its screen position a sum of
-  two velocity profiles, so it lurches on the first frame while the transform
-  trails.
+- The engine's easing constant is the single source for both the JS curve and
+  the CSS custom properties (`--layout-slide-duration`/`--layout-slide-ease`).
+  Do not hardcode a second 700ms or cubic-bezier value in CSS or TS.
+- The scroll and the transforms move the same card. Do not give them separate
+  clocks or curves; two velocity profiles make the card lurch on the first
+  frame while the transform trails.
+- On a second visit, capture the rendered transforms once before cancelling
+  the active handle, then start from those values with absolute targets. On
+  abort/popstate, cancel and clear inline transforms/classes even if the rAF
+  has already finished.
 - Do not re-introduce a page-height spacer or a timer that removes it. The
   clamp happens while the content is invisible; a spacer becomes a scrollable
   blank region and makes the page look endless.
@@ -378,9 +444,9 @@ transform, both sidebars are inside it, and their `top` compensation runs on
 the same 700ms curve. The home offset is the static per-page value above.
 `html.is-layout-moving.is-animating .transition-swup-fade` holds the outgoing
 fade for the whole slide, so `content:replace` lands after the transform and
-its layout task is not underneath the sidebar's `top` animation. The custom
-scroll tween, cached scroll read, inline stylesheet, eager content, comment
-space reservation and head-script skip are unchanged.
+its layout task is not underneath the sidebar's `top` animation. The single
+scroll/transform engine, cached scroll read, inline stylesheet, eager content,
+comment space reservation and head-script skip are unchanged.
 
 Trace at 4x against 9424c48 (max sidebar frame delta, 1440x900):
 
@@ -394,11 +460,11 @@ Trace at 4x against 9424c48 (max sidebar frame delta, 1440x900):
 | Post -> home, scroll 1200 | 95.2px | 95.2px |
 
 Deltas are continuous, with no one-frame jump; the pinned sidebar stays at
-16px and the unpinned sidebar follows the grid/scroll continuously. Pacing is
-60Hz 4x p95 16.8ms home -> post and 16.8ms post -> home; 1x uncapped p95
-1.1/1.1ms. `verify.mjs` is back on the `top + gridTransform = 16` invariant,
-keeps the pinned back/forward check, and adds the home/post column-top check
-(584/584 home, 316/316 post). All checks pass.
+16px and the unpinned sidebar follows the grid/scroll continuously.
+`verify.mjs` samples rendered edges only while the engine is active:
+sidebar-column, content and banner edges track the grid, then the pinned
+sidebar is checked at rest. Home/post column tops are 584/584 and 316/316.
+All checks pass.
 
 ### Compositor tail: grid is subpixel; the integer edge is the scroll path
 
@@ -423,8 +489,8 @@ grid transform snaps. The moving grid layer has no filter, backdrop-filter or
 paint containment on its ancestors; its only transform is the 268px
 `translateY`.
 
-The whole-pixel tail that remains on the list edge comes from the custom rAF
-scroll tween. The tween targets fractional `window.scrollTo` positions, but
+The whole-pixel tail that remains on the list edge comes from the engine's
+rAF scroll. It targets fractional `window.scrollTo` positions, but
 the rendered scroll offset advances in whole pixels and ends with a 0.03px
 content-swap correction. Fuwari's Swup ScrollPlugin uses a spring with a
 longer fractional deceleration, so its edge decays differently. Changing that
@@ -463,7 +529,7 @@ Making this continuous requires one of:
 
 The residual mechanism was therefore reverted. The tree keeps the flat
 `677ef6a` DOM, the identity layer transforms, the 9424c48 sidebar semantics,
-and the original custom scroll. `verify.mjs` remains ALL PASS and pacing stays
+and the original single engine. `verify.mjs` remains ALL PASS and pacing stays
 33.3/16.8ms at 60Hz 4x, but the tail reversal is not fixed.
 
 ### Single-clock scroll attempt: reverted
