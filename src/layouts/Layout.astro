@@ -1,6 +1,7 @@
 ---
 import { getLocaleFromPath, localeHtmlLang, locales, localizePath, stripLocalePrefix } from "@i18n/locales";
 import ConfigCarrier from "@components/ConfigCarrier.astro";
+import { readFileSync } from "node:fs";
 import MusicPlayer from "@components/widget/MusicPlayer.svelte";
 import Pio from "@components/widget/Pio.svelte";
 import TerminalEasterEgg from "@components/widget/TerminalEasterEgg.svelte";
@@ -468,6 +469,14 @@ if (siteConfig.font) {
 			},
 		]}
 	>
+		<svg class="doodle-backdrop" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+			<defs>
+				<pattern id="doodle-tile" width="340" height="736" patternUnits="userSpaceOnUse">
+					<g transform="scale(0.3022222222)" set:html={readFileSync("src/assets/patterns/doodle.svg", "utf-8").replace(/^<svg[^>]*>/, "").replace(/<\/svg>\s*$/, "")} />
+				</pattern>
+			</defs>
+			<rect width="100%" height="100%" fill="url(#doodle-tile)" />
+		</svg>
 		<!-- 页面顶部渐变高光效果 - 只在full和semifull模式下显示 -->
 		{shouldShowTopHighlight && <div class="top-gradient-highlight" />}
 

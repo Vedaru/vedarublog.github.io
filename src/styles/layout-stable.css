@@ -12,6 +12,16 @@
 	--layout-slide-ease: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Keep the moving content and both sidebar columns in their own paint
+   containing blocks, matching the deployed smooth implementation. Without
+   these, the fixed doodle layer shares the root paint surface with the moving
+   banner and is repainted every frame. */
+#sidebar,
+.right-sidebar-container,
+#content-wrapper {
+	transform: translate(0px, 0px);
+}
+
 /* ── Base banner ──────────────────────────────────────────────────────── */
 #banner-wrapper {
 	position: absolute;

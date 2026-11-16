@@ -1,43 +1,21 @@
 /*
  * Telegram-style doodle backdrop.
  *
- * One fixed layer, tinted with the theme hue and masked by a seamless SVG
- * doodle tile. No canvas, no per-doodle animation.
- *
- * The tile is inlined as a data URI by Vite (see `assetsInlineLimit` in
- * astro.config.mjs), so it is parsed with the stylesheet: no second request,
- * no first-paint pop, nothing to fade in.
+ * Inline SVG <pattern>. This keeps the SVG in the DOM as a render tree instead
+ * of repainting a masked/background image on every frame.
  */
 
 .doodle-backdrop {
-	--doodle-image: url("../assets/patterns/doodle.svg");
-	--doodle-opacity: 0.14;
-
 	position: fixed;
 	inset: 0;
 	z-index: 0;
+	width: 100vw;
+	height: 100vh;
 	pointer-events: none;
-	background: oklch(0.62 0.03 var(--hue));
-	-webkit-mask-image: var(--doodle-image);
-	mask-image: var(--doodle-image);
-	-webkit-mask-repeat: repeat;
-	mask-repeat: repeat;
-	-webkit-mask-position: 0 0;
-	mask-position: 0 0;
-	-webkit-mask-size: 340px auto;
-	mask-size: 340px auto;
-	opacity: var(--doodle-opacity);
+	opacity: 0.2;
 }
 
-:root:not(.dark) .doodle-backdrop {
-	background: oklch(0.45 0.03 var(--hue));
-	--doodle-opacity: 0.2;
-}
-
-@media (max-width: 768px) {
-	.doodle-backdrop {
-		-webkit-mask-size: 260px auto;
-		mask-size: 260px auto;
-		--doodle-opacity: 0.12;
-	}
+:root.dark .doodle-backdrop {
+	opacity: 0.14;
+	filter: invert(1);
 }
