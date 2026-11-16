@@ -359,27 +359,45 @@ its container, which is the native sticky definition. `startLayoutMove` and
 `runAfterLayoutSettled` now wait on `#content-column`'s `transitionend`, so
 `is-layout-moving` still covers the full slide.
 
+Home's 268px banner below the grid's natural row is a static grid-item
+`margin-top: var(--banner-height-extend)` on `#sidebar` and
+`.right-sidebar-container`, under `body.is-home`. This moves the column box
+itself, not the sticky element's `top`. It snaps with the class flip and is not
+transitioned. At 1440x900 scroll 0 the rects are:
+
+| Page | Banner | Content column |Left sidebar | Right sidebar | `#sidebar-sticky` |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Home | 0..584 | 584 | 584 | 584 | 1038 |
+| Post | -268..316 | 316 | 316 | 316 | 770 |
+
+These match 9424c48's home placement exactly; the earlier transform-only
+version started both columns at 316 on home and overlapped the banner by
+268px. `verify.mjs` now checks the column top equals the content-column top on
+both page types, so that overlap cannot regress.
+
 Measured after the change (1440x900, 60Hz, CPU 4x unless noted):
 
 | Trace | Before (2808426/db48fe2) | After |
 | --- | ---: | ---: |
-| Home -> post, scroll 0, sidebar max frame delta | 33.3px at the swap (owner trace) | 0px |
+| Home -> post, scroll 0, sidebar max frame delta | 33.3px at the swap (owner trace) | 268px once, static `is-home` margin snap |
 | Home -> post, scroll 0, computed sidebar top | transitions -252 -> 16 | constant 16 |
-| Post -> home, scroll 0, sidebar max frame delta | 17.4px (9424c48 reference) | 0px |
+| Post -> home, scroll 0, sidebar max frame delta | 17.4px (9424c48 reference) | 268px once, static `is-home` margin snap |
+| Home sidebar column / content top | 316 / 584 (overlap) | 584 / 584 |
 | 1x uncapped p95 home -> post / post -> home | 1.2 / 1.2ms | 1.2 / 1.2ms |
-| 60Hz 4x p95 home -> post / post -> home | 16.8 / 16.8ms | 33.3 / 16.8ms |
+| 60Hz 4x p95 home -> post / post -> home | 16.8 / 16.8ms | 16.8 / 16.8ms |
 
 `verify.mjs` now asserts the native semantics: at scroll 900 the computed
 `top` is constant, the sidebar stays at the 1rem offset while pinned, and
 `sb == max(16, natural - scrollY)` once it unpins; at scroll 0 the unpinned
-sidebar does not move; the mobile and same-type visit checks are retained.
-All five tests pass.
+sidebar has exactly one static placement snap and no animation; the home and
+post column tops equal the content-column top; the mobile and same-type visit
+checks are retained. All seven tests pass.
 
 There is one remaining container-level artifact. At scroll 900/1200 the
 existing rAF scroll tween loses frames to the swap's content layout and then
 catches up in one large scroll step. Because the sidebar is now genuinely
-native, it follows that container step: 221/392px at 1x/4x scroll 900 and
-138/523px at 1x/4x scroll 1200 (home -> post). This is not a sidebar
+native, it follows that container step: 220/378px at 1x/4x scroll 900 and
+302/523px at 1x/4x scroll 1200 (home -> post). This is not a sidebar
 self-animation, a retarget or a `top` transition; it is the scroll container
 moving under it. Removing it without masking requires moving scroll ownership
 to the compositor or moving the swap after the slide. The swap-after-slide

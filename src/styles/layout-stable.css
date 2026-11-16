@@ -135,6 +135,18 @@ body.no-banner-mode #banner-wrapper {
 		top: 1rem;
 	}
 
+	/* Home shows 268px of banner below the content column's natural grid
+	   row. The content column animates that offset as a transform; the
+	   sidebars must never be transformed or sticky-shifted. Give their grid
+	   boxes a static home margin so their top edge sits on the content
+	   column's top edge (584px at 900px viewport). It snaps with `is-home`
+	   and is not transitioned. */
+	html[data-wallpaper-mode="banner"] body.enable-banner.is-home #sidebar,
+	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
+		.right-sidebar-container {
+		margin-top: var(--banner-height-extend, 30dvh);
+	}
+
 }
 /* ── No banner: content starts right under the navbar ─────────────────── */
 html[data-wallpaper-mode="none"] .main-panel {
