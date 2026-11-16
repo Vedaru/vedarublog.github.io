@@ -60,13 +60,19 @@
    persistent compositing hint is used; both layers are promoted only for the
    active transition. The wrapper opacity entry is for the mobile hide/show. */
 #banner-wrapper {
-	transition:
-		transform var(--layout-slide-duration) var(--layout-slide-ease),
-		opacity var(--layout-slide-duration) var(--layout-slide-ease);
+	transition-property:
+		color, background-color, border-color, text-decoration-color, fill,
+		stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+	transition-duration: var(--layout-slide-duration);
+	transition-timing-function: var(--layout-slide-ease);
 }
 
 #main-grid {
-	transition: transform var(--layout-slide-duration) var(--layout-slide-ease);
+	transition-property:
+		color, background-color, border-color, text-decoration-color, fill,
+		stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+	transition-duration: var(--layout-slide-duration);
+	transition-timing-function: var(--layout-slide-ease);
 }
 
 #banner {
@@ -75,7 +81,11 @@
 	   wrapper. Without this the image is only clipped by its moving ancestor,
 	   which rasterizes the full-size bitmap at a different layer boundary. */
 	overflow: hidden;
-	transition: transform var(--layout-slide-duration) var(--layout-slide-ease);
+	transition-property:
+		color, background-color, border-color, text-decoration-color, fill,
+		stroke, opacity, box-shadow, transform, filter, backdrop-filter;
+	transition-duration: var(--layout-slide-duration);
+	transition-timing-function: var(--layout-slide-ease);
 }
 
 /* Fuwari's temporary tail. It keeps the scroll spring from clamping while the
