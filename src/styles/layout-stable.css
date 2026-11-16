@@ -1,10 +1,11 @@
 /**
- * Layout geometry: banner, main panel, grid glide, sidebar sticky, TOC.
+ * Layout geometry: banner, main panel, content glide, sidebar sticky, TOC.
  *
  * Single source of truth for the Fuwari-style layout animation. The body's
  * `is-home` class is flipped by `src/scripts/transitions.ts` at `visit:start`,
- * while the outgoing page is still visible, and CSS does the rest with one
- * transform on the banner and grid plus the sidebars' top compensation.
+ * while the outgoing page is still visible. Only the banner and the content
+ * column move; the sidebar column stays in normal flow and native sticky owns
+ * its viewport position. It has no top transition or other own animation.
  */
 
 :root {
@@ -49,8 +50,10 @@
    and the image itself offsets by `--banner-offset` on content pages so the
    visible 35vh strip shows the centre of the artwork. Both use the same
    700ms clock, so the crop moves with the wrapper instead of snapping. */
-/* One authoritative transition for the three layers that move on a page
-   change. Nothing else is promoted.
+/* One authoritative transition for the two layers that move on a page
+   change: the banner and the content column. The sidebar column is not in
+   this subtree and has no transform or top transition. Nothing else is
+   promoted.
 
    Fuwari's banner layers carry no `backface-visibility`: forcing a 3D layer
    here makes the browser rasterize the image on its own layer and resample it
@@ -64,7 +67,7 @@
 }
 
 #banner,
-#main-grid {
+#content-column {
 	transition: transform var(--layout-slide-duration)
 		cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -117,12 +120,12 @@ body.no-banner-mode #banner-wrapper {
 		min-height: calc(var(--banner-height-home, 65vh) - 4.5rem);
 	}
 
-	html[data-wallpaper-mode="banner"] body.enable-banner #main-grid {
+	html[data-wallpaper-mode="banner"] body.enable-banner #content-column {
 		transform: none;
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
-		#main-grid {
+		#content-column {
 		transform: translateY(var(--banner-height-extend, 30dvh));
 	}
 
@@ -130,33 +133,6 @@ body.no-banner-mode #banner-wrapper {
 	#right-sidebar-sticky {
 		position: sticky;
 		top: 1rem;
-		/* The home offset below is compensation for the grid's translate, so it
-		   changes on exactly the frames the grid transform changes. Animate it
-		   on the same clock as #main-grid, unconditionally: inside a
-		   transformed grid sticky clamps in the grid's local space, so snapping
-		   this offset clamps an unpinned sidebar into the new offset's band for
-		   a frame and its top edge visibly jumps. Same duration and curve keeps
-		   `top + translate` (the rendered pin position) constant for pinned
-		   sidebars, including on back/forward. */
-		transition: top var(--layout-slide-duration)
-			cubic-bezier(0.4, 0, 0.2, 1);
-	}
-
-	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
-		#sidebar-sticky,
-	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
-		#right-sidebar-sticky {
-		top: calc(1rem - var(--banner-height-extend, 30dvh));
-	}
-
-	/* The sidebars' sticky `top` transition invalidates the root layer on
-	   every frame of a slide, and the navbar is the largest non-composited
-	   paint in it. Contain the paint while the slide runs so the root repaint
-	   cannot touch the navbar. Its panels are absolutely positioned and sit
-	   inside this box (their rects were checked and do not move), so geometry
-	   and behaviour are unchanged. */
-	html.is-layout-moving #top-row {
-		contain: paint;
 	}
 
 }
@@ -184,10 +160,6 @@ html[data-wallpaper-mode="none"] #main-grid {
 
 	html[data-wallpaper-mode="banner"] .main-panel {
 		top: var(--mobile-banner-height);
-	}
-
-	html[data-wallpaper-mode="banner"] body.enable-banner #main-grid {
-		transform: none !important;
 	}
 
 	html[data-wallpaper-mode="banner"] #banner-wrapper.mobile-hide-banner {
@@ -294,9 +266,15 @@ html[data-wallpaper-mode="none"] #main-grid {
 	}
 }
 
-#swup-container {
+#content-column {
 	grid-column: 1 / -1;
 	grid-row: 1;
+	min-width: 0;
+	width: 100%;
+}
+
+#swup-container {
+	min-width: 0;
 }
 
 /* 1280 以下仍是单列。右侧有组件时沿用原来的 1rem 内边距（旧 .mobile-both-sidebar） */
@@ -333,14 +311,14 @@ html[data-wallpaper-mode="none"] #main-grid {
 		display: none;
 	}
 
-	#main-grid[data-sides="left"] #swup-container,
-	#main-grid[data-sides="both"] #swup-container {
+	#main-grid[data-sides="left"] #content-column,
+	#main-grid[data-sides="both"] #content-column {
 		grid-column: 2;
 	}
-	#main-grid[data-sides="right"] #swup-container {
+	#main-grid[data-sides="right"] #content-column {
 		grid-column: 1;
 	}
-	#main-grid[data-sides="none"] #swup-container {
+	#main-grid[data-sides="none"] #content-column {
 		grid-column: 1 / -1;
 	}
 
@@ -370,7 +348,7 @@ html[data-post-list-layout="grid"] .right-sidebar-container {
 		grid-template-rows: auto 1fr auto !important;
 	}
 
-	html[data-post-list-layout="grid"] #main-grid #swup-container {
+	html[data-post-list-layout="grid"] #main-grid #content-column {
 		grid-column: 1 / 2;
 		grid-row: 1 / 2;
 	}
@@ -381,7 +359,7 @@ html[data-post-list-layout="grid"] .right-sidebar-container {
 		grid-template-columns: 17.5rem 1fr !important;
 	}
 
-	html[data-post-list-layout="grid"] #main-grid #swup-container {
+	html[data-post-list-layout="grid"] #main-grid #content-column {
 		grid-column: 2 / 3;
 	}
 }

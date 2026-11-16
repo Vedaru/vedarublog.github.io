@@ -183,16 +183,18 @@ const showSidebarTOC =
                 )}
             </div>
 
-            <main id="swup-container" class="w-full transition-swup-fade min-w-0 overflow-hidden">
-                <div class="sr-only" data-swup-a11y-title>{title || siteConfig.title}</div>
-                <div id="content-wrapper" class="onload-animation">
-                    <!-- make id different from windows.swup global property -->
-                    <slot></slot>
-                    <div class="footer col-span-full onload-animation hidden lg:block">
-                        <Footer></Footer>
+            <div id="content-column">
+                <main id="swup-container" class="w-full transition-swup-fade min-w-0 overflow-hidden">
+                    <div class="sr-only" data-swup-a11y-title>{title || siteConfig.title}</div>
+                    <div id="content-wrapper" class="onload-animation">
+                        <!-- make id different from windows.swup global property -->
+                        <slot></slot>
+                        <div class="footer col-span-full onload-animation hidden lg:block">
+                            <Footer></Footer>
+                        </div>
                     </div>
-                </div>
-            </main>
+                </main>
+            </div>
 
             <div class="footer col-span-full onload-animation block lg:hidden">
                 <Footer></Footer>

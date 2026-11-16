@@ -13,13 +13,13 @@ export function runAfterLayoutSettled(fn: () => void, timeoutMs = 900): void {
 	}
 
 	let done = false;
-	const grid = document.getElementById("main-grid");
+	const column = document.getElementById("content-column");
 
-	// The grid only transitions when the page changes between home and a
+	// The content column only transitions when the page changes between home and a
 	// content page. Listen for that exact transition; otherwise fall back to a
 	// timer that covers the full 700ms glide.
 	const onTransitionEnd = (event: TransitionEvent) => {
-		if (event.target === grid && event.propertyName === "transform") {
+		if (event.target === column && event.propertyName === "transform") {
 			finish();
 		}
 	};
@@ -27,7 +27,7 @@ export function runAfterLayoutSettled(fn: () => void, timeoutMs = 900): void {
 	const timer = window.setTimeout(finish, timeoutMs);
 
 	function cleanup() {
-		grid?.removeEventListener("transitionend", onTransitionEnd);
+		column?.removeEventListener("transitionend", onTransitionEnd);
 		window.clearTimeout(timer);
 	}
 
@@ -38,5 +38,5 @@ export function runAfterLayoutSettled(fn: () => void, timeoutMs = 900): void {
 		fn();
 	}
 
-	grid?.addEventListener("transitionend", onTransitionEnd);
+	column?.addEventListener("transitionend", onTransitionEnd);
 }
