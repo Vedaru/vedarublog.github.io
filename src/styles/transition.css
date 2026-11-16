@@ -60,15 +60,10 @@ html.is-layout-moving.is-animating .transition-swup-fade {
 
 /* Main components */
 .onload-animation {
-	/*
-	 * `backwards` supplies the 0% frame before and during the animation, then
-	 * hands the element back to its base style. `forwards` kept every animated
-	 * element at `transform: translateY(0)` for the life of the page, which
-	 * promoted the sidebar and content to their own compositor layers, cost
-	 * subpixel text AA and made sticky descendants clamp in a transformed
-	 * space. The 100% keyframe and the base style are visually identical.
-	 */
-	animation: 300ms fade-in-up backwards;
+	/* No fill mode: before the delay the card stays at its settled position,
+	   avoiding the backwards-fill 2rem gap. After the entrance, the animated
+	   layer is released instead of being retained as with forwards fill. */
+	animation: 300ms fade-in-up;
 }
 #swup-container {
 	outline: none;
