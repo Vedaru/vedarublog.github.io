@@ -343,3 +343,28 @@ Rules for future changes:
   transparency itself is CSS-only in `src/styles/navbar.css`; the transition
   script only toggles `data-is-home`, `.scrolled` and `--semifull-fade`.
 - New heavy features belong in `page-enhancements.ts`, not in `Layout.astro`.
+
+### Sidebar swap continuity: negative result
+
+The 9424c48 reference is smooth. The 2808426/db48fe2 trace shows the reported
+one-frame discontinuity, but the sidebar's two computed drivers do not
+retarget across `content:replace`:
+
+| Frame | computed sidebar top | grid transform | sum |
+| --- | ---: | ---: | ---: |
+| before swap | -164.04 | 179.96 | 15.92 |
+| after swap | -129.46 | 145.46 | 16.00 |
+| next | -98.44 | 114.44 | 16.00 |
+
+`top + gridTransform` stays at 16px, and the unpinned sidebar's viewport
+position is `770 + gridTransform` throughout. The -33.4px frame is two
+normal 16.7px deltas merged because the swap's main-thread layout blocks
+rAF (a 166ms gap in the local 4x trace), not a retarget or reversal.
+
+Removing the sampled spike would require one of: making the swap layout
+non-blocking (article deferral is forbidden), swapping after the transform
+(the pacing win is reverted), or moving the sticky offset to a compositor
+transform. The last changes the sticky clamp and settled geometry, and the
+existing `verify.mjs` relation is defined in terms of the transitioning
+`top`; it would fail. No code change was shipped for this item. The residual
+is the swap task's main-thread duration, not two clocks.
