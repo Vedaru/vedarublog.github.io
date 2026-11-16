@@ -20,6 +20,15 @@
 	transform: translate(0px, 0px);
 }
 
+#swup-container.is-scroll-residual,
+#content-wrapper.is-scroll-residual {
+	will-change: transform;
+}
+
+#swup-container.is-scroll-residual {
+	transition-property: opacity;
+}
+
 /* ── Base banner ──────────────────────────────────────────────────────── */
 #banner-wrapper {
 	position: absolute;

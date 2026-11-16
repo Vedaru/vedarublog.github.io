@@ -423,12 +423,41 @@ grid transform snaps. The moving grid layer has no filter, backdrop-filter or
 paint containment on its ancestors; its only transform is the 268px
 `translateY`.
 
-The whole-pixel tail that remains on the list edge comes from the custom rAF
-scroll tween. The tween targets fractional `window.scrollTo` positions, but
-the rendered scroll offset advances in whole pixels and ends with a 0.03px
-content-swap correction. Fuwari's Swup ScrollPlugin uses a spring with a
-longer fractional deceleration, so its edge decays differently. Changing that
-requires changing scroll ownership/curve or the swap geometry, both outside
-the "no timers/rAF nudges/duration games" constraint for this pass. No mask
-was added; the grid layer and DOM cleanup are shipped, the scroll tail is
-recorded here as the remaining cause.
+The whole-pixel tail comes from `window.scrollTo`: Chrome stores window
+scroll on whole CSS pixels. The transition now keeps that integer target for
+native sticky and renders the sub-pixel remainder on `#swup-container`:
+
+```
+actual = Math.round(desired)
+remaining = actual - desired      // -0.5 .. 0.5px
+main.style.transform = translateY(remaining)
+```
+
+`#swup-container` is the persistent sibling of the sidebar columns. The
+residual is therefore composited with the content while the sidebars stay
+outside it: a pinned sidebar remains at 16px and an unpinned one follows the
+real integer scroll, so the 9424 semantics are unchanged. During the residual
+the main's `transition-property` is narrowed to `opacity`, so setting the
+transform does not start a 200ms transform transition. At the end the inline
+transform is zeroed while that class is still active; it is removed only after
+settle. Removing it first would animate the last -0.27px to 0 and create the
+old settle reversal.
+
+Compositor screencast tail of the main layer at scroll 900 home -> post,
+without and with the residual:
+
+| Tail frame | Before | After |
+| --- | ---: | ---: |
+| 1 | 575.504 | 575.710 |
+| 2 | 578.000 | 578.000 |
+| 3 | 580.275 | 580.192 |
+| 4 | 581.561 | 581.506 |
+| 5 | 582.718 | 582.557 |
+| 6 | 584.000 | 583.529 |
+| 7 | 584.000 | 584.000 |
+
+The after deltas are 2.29, 2.19, 1.31, 1.05, 0.97, 0.47px: fractional and
+monotonic. The last frame no longer jumps 1.28px, and there is no sign
+reversal at settle. This is option (b), sub-pixel residual on the composited
+content layer, chosen over option (a) because it preserves the native
+scroll and does not need a hidden-content scrollTop commit.
