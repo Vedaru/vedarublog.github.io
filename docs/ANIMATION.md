@@ -19,12 +19,10 @@ Fuwari's transition is not a special animation library. It is three decisions:
    a custom element waits for the content entrance animation. No comments,
    diagrams, lightboxes or analytics are loaded during the transition.
 
-This site keeps the 700ms banner/grid transform and drives it from one rAF
-engine in `src/scripts/runtime/layout-engine.ts`. The engine also owns
-`window.scrollTop`; the scroll and both transforms are evaluated from one
-curve, and the sub-pixel scroll remainder is folded into the transforms.
-Layout slides use a slide-length outgoing fade; the transform starts on the
-click frame.
+This site keeps the 700ms banner/grid transform on the compositor. Real scroll
+does not animate on a layout slide: it is frozen and carried by the transforms,
+then committed once at `transitionend`. Layout slides use a slide-length
+outgoing fade; the transform starts on the click frame.
 
 ## Measured results (2026-11-15)
 
@@ -166,6 +164,10 @@ No JS transform writes appear in the animation list. The sidebar `top`
 transitions and 9424 semantics are untouched.
 
 ### Engine extraction and interruption (2026-11-16)
+
+> Historical: this section records the JS rAF engine that preceded the
+> frozen-scroll implementation below. It is kept as measurement history, not
+> as the current contract. The current layout slide has no JS scroll writer.
 
 The approved `fa91afc` motion was moved into
 `src/scripts/runtime/layout-engine.ts` without changing its clock, curve or
@@ -370,19 +372,18 @@ exact rects.
 There is no `#page-height-extend`. A 300vh tail kept the old scroll alive but
 added thousands of pixels of blank scroll below the footer on a tall
 viewport, then the browser snapped back when the tail was removed. The
-transform starts on the click frame; the engine's scroll uses the same slide
-curve and finishes inside the same 700ms window. `overscroll-behavior-y:
-none` on `html, body` keeps wheel and touch input from moving past the real
-document boundary.
+transform starts on the click frame and carries the frozen scroll offset.
+`overscroll-behavior-y: none` on `html, body` keeps wheel and touch input from
+moving past the real document boundary.
 
 Key files:
 
 | File | Responsibility |
 | --- | --- |
-| `src/scripts/runtime/layout-engine.ts` | Scroll + grid/banner rAF engine, duration/easing source, cancellation |
-| `src/scripts/transitions.ts` | Swup hooks, body layout class, scroll chrome |
+| `src/scripts/runtime/layout-engine.ts` | Spring `scrollTo` for ordinary visits, cancellation |
+| `src/scripts/transitions.ts` | Swup hooks, frozen scroll delta/commit, body layout class, scroll chrome |
 | `src/scripts/page-enhancements.ts` | Idle-time enhancement loading |
-| `src/scripts/runtime/after-transition.ts` | Wait for the engine's end event |
+| `src/scripts/runtime/after-transition.ts` | Wait for the layout-settled event |
 | `src/scripts/toc-element.ts` | TOC custom element (observers only) |
 | `src/components/widget/TOC.astro` | Server-rendered TOC markup |
 | `src/styles/transition.css` | 200ms fade and 300ms entrance animation |

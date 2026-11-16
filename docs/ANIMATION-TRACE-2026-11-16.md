@@ -166,8 +166,10 @@ Final geometry with the compensation:
   offscreen, not a visible gap between rendered cards.
 - Grid and banner reversals: 0 in both directions.
 - Banner bottom minus grid top: within 0.00013px in both directions.
-- Active transition properties during the move: `transform` only. No JS
-  scroll writes, no animation prop on the scroll position.
+- Moving layout layers animate only `transform` (`#main-grid`,
+  `#banner-wrapper`, inner `#banner`). The only animated `top` properties are
+  the two sticky compensations. The trace records no `unsupportedProperties`
+  or `compositeFailed` for either, and no JS scroll writes.
 
 Final regression harness: **ALL PASS (8/8)**. `astro check`: 0 errors, 0
 warnings, 8 existing hints. `astro build` passed.
