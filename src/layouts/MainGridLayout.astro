@@ -161,23 +161,11 @@ const showSidebarTOC =
 	]}
 >
     <!-- The pointer-events-none here prevent blocking the click event of the TOC -->
-    <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto min-w-0 w-full">
-        <div id="main-grid" class="transition duration-700 w-full max-w-[var(--page-width)] min-w-0 left-0 right-0 mx-auto gap-4 px-2 md:px-4"
-             data-layout-mode={defaultPostListLayout}
-             data-sides={desktopSides}
-             data-mobile={mobileShowSidebar ? "true" : "false"}
-        >
-            {(mobileShowSidebar || tabletShowSidebar || hasLeftSidebarComponents || hasRightSidebarComponents) && (
-                <SideBar class="onload-animation" headings={headings}></SideBar>
-            )}
-            
-            {hasRightSidebarComponents && (
-                <div class="right-sidebar-container onload-animation">
-                    <RightSideBar headings={headings}></RightSideBar>
-                </div>
-            )}
+    <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto">
+        <div id="main-grid" class="transition duration-700 w-full left-0 right-0 grid grid-cols-[17.5rem_auto] grid-rows-[auto_1fr_auto] lg:grid-rows-[auto] mx-auto gap-4 px-0 md:px-4">
+            <SideBar class="mb-4 row-start-2 row-end-3 col-span-2 lg:row-start-1 lg:row-end-2 lg:col-span-1 lg:max-w-[17.5rem] onload-animation"></SideBar>
 
-            <main id="swup-container" class="w-full transition-swup-fade min-w-0 overflow-hidden">
+            <main id="swup-container" class="transition-swup-fade col-span-2 lg:col-span-1 overflow-hidden">
                 <div class="sr-only" data-swup-a11y-title>{title || siteConfig.title}</div>
                 <div id="content-wrapper" class="onload-animation">
                     <!-- make id different from windows.swup global property -->

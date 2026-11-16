@@ -10,7 +10,6 @@ import {
 	cancelEnhancements,
 	scheduleEnhancements,
 } from "./page-enhancements";
-import { notifyLayoutSettled } from "./runtime/layout-events";
 import { setScrollTweening } from "./runtime/motion-state";
 import "./runtime/comment-boot";
 
@@ -18,15 +17,17 @@ interface Visit {
 	to: { url: string; hash?: string; document?: Document };
 }
 
-/** The committed page, not the transition-time `body.is-home` state. */
-let contentIsHome = document.body.classList.contains("is-home");
+const HOME_CLASS = "lg:is-home";
+
+/** The committed page, not the transition-time home class state. */
+let contentIsHome = document.body.classList.contains(HOME_CLASS);
 
 function isHomeVisit(visit: Visit): boolean {
 	return isMainHomePage(pathFromUrl(visit.to.url));
 }
 
 function setBodyHome(isHome: boolean): void {
-	document.body.classList.toggle("is-home", isHome);
+	document.body.classList.toggle(HOME_CLASS, isHome);
 }
 
 function setNavbarHome(isHome: boolean): void {
@@ -110,7 +111,7 @@ function updateScrollChrome(scrollY = getScrollY()): void {
 		?.classList.toggle("toc-hide", scrollY <= bannerHeight);
 
 	const isHome =
-		document.body.classList.contains("is-home") &&
+		document.body.classList.contains(HOME_CLASS) &&
 		window.innerWidth >= 1024;
 	const navbarHeight = isHome ? BANNER_HEIGHT_HOME : BANNER_HEIGHT;
 	const threshold = window.innerHeight * (navbarHeight / 100) - 88;
@@ -137,168 +138,64 @@ function onScroll(): void {
 // ── Swup hooks ─────────────────────────────────────────────────────────────
 let hooksRegistered = false;
 let activeVisit: Visit | null = null;
-let contentDelayCleared = false;
-let heightExtendTimer: ReturnType<typeof setTimeout> | undefined;
-let finishLayoutCleanup: (() => void) | null = null;
-let layoutPromise: Promise<void> | null = null;
-let layoutToken = 0;
-
-function setLayoutMoving(moving: boolean): void {
-	document.documentElement.classList.toggle("is-layout-moving", moving);
-}
-
-function showPageHeightExtend(show: boolean): void {
-	clearTimeout(heightExtendTimer);
-	const element = document.getElementById("page-height-extend");
-	if (!element) return;
-	if (show) {
-		element.hidden = false;
-		return;
-	}
-	heightExtendTimer = setTimeout(() => {
-		element.hidden = true;
-	}, 200);
-}
-
-function finishLayoutNow(): void {
-	finishLayoutCleanup?.();
-	finishLayoutCleanup = null;
-	setLayoutMoving(false);
-	setNavbarHome(document.body.classList.contains("is-home"));
-	updateScrollChrome(getScrollY());
-	showPageHeightExtend(false);
-	document
-		.getElementById("toc-wrapper")
-		?.classList.remove("is-toc-deferred");
-	notifyLayoutSettled();
-}
-
-function settle(): void {
-	if (!document.documentElement.classList.contains("is-layout-moving")) {
-		finishLayoutNow();
-		return;
-	}
-	if (finishLayoutCleanup) return;
-	const grid = document.getElementById("main-grid");
-	if (!grid) {
-		finishLayoutNow();
-		return;
-	}
-	const onEnd = (event: TransitionEvent) => {
-		if (event.target !== grid || event.propertyName !== "transform") return;
-		finishLayoutNow();
-	};
-	grid.addEventListener("transitionend", onEnd);
-	finishLayoutCleanup = () => grid.removeEventListener("transitionend", onEnd);
-	if (
-		!grid
-			.getAnimations()
-			.some((animation) => animation.transitionProperty === "transform")
-	) {
-		finishLayoutNow();
-	}
-}
-
-function waitForGridTransition(token: number): Promise<void> {
-	const grid = document.getElementById("main-grid");
-	if (!grid) return Promise.resolve();
-	return new Promise((resolve) => {
-		const onEnd = (event: TransitionEvent) => {
-			if (event.target !== grid || event.propertyName !== "transform") return;
-			grid.removeEventListener("transitionend", onEnd);
-			resolve();
-		};
-		grid.addEventListener("transitionend", onEnd);
-		if (
-			!grid
-				.getAnimations()
-				.some((animation) => animation.transitionProperty === "transform")
-		) {
-			grid.removeEventListener("transitionend", onEnd);
-			resolve();
-		}
-		if (token !== layoutToken) {
-			grid.removeEventListener("transitionend", onEnd);
-			resolve();
-		}
-	});
-}
 
 function setup(swup: NonNullable<Window["swup"]>): void {
 	if (hooksRegistered) return;
 	hooksRegistered = true;
 
+	swup.hooks.on("link:click", () => {
+		// Remove the delay for the first time page load.
+		document.documentElement.style.setProperty("--content-delay", "0ms");
+
+		// Prevent elements from overlapping the navbar.
+		const threshold = window.innerHeight * (BANNER_HEIGHT / 100) - 72 - 16;
+		const navbar = document.getElementById("navbar-wrapper");
+		if (!navbar || !document.body.classList.contains(HOME_CLASS)) return;
+		if (getScrollY() >= threshold) navbar.classList.add("navbar-hidden");
+	});
+
 	swup.hooks.on("visit:start", (visit: Visit) => {
 		activeVisit = visit;
 		cancelEnhancements();
-		const wasHome = document.body.classList.contains("is-home");
-		const isHome = isHomeVisit(visit);
-		const layoutSlides =
-			wasHome !== isHome &&
-			window.matchMedia("(min-width: 1280px)").matches;
+		// Change banner height immediately when a link is clicked.
+		setBodyHome(isHomeVisit(visit));
 
-		if (layoutSlides) {
-			document
-				.getElementById("toc-wrapper")
-				?.classList.add("is-toc-deferred");
-		}
+		// Increase the page height during page transition to prevent the
+		// scrolling animation from jumping.
+		document
+			.getElementById("page-height-extend")
+			?.classList.remove("hidden");
 
-		if (!contentDelayCleared && !layoutSlides) {
-			const grid = document.getElementById("main-grid");
-			if (grid) {
-				grid.style.setProperty("--content-delay", "0ms");
-				contentDelayCleared = true;
-			}
-		}
-
-		setBodyHome(isHome);
-		setLayoutMoving(layoutSlides);
-		showPageHeightExtend(true);
-		if (layoutSlides) {
-			layoutToken += 1;
-			layoutPromise = waitForGridTransition(layoutToken);
-		} else {
-			layoutPromise = null;
-		}
+		// Hide the TOC while scrolling back to top.
+		document
+			.getElementById("toc-wrapper")
+			?.classList.add("is-toc-deferred");
 	}, { priority: 10 });
-
-	swup.hooks.before("content:replace", (visit: Visit) => {
-		const incoming = visit.to.document;
-		if (!incoming) return;
-
-		incoming
-			.querySelectorAll("#swup-container .onload-animation")
-			.forEach((element) => element.classList.remove("onload-animation"));
-
-		incoming.querySelectorAll("#swup-container img").forEach((image) => {
-			if (!image.hasAttribute("loading")) {
-				image.setAttribute("loading", "lazy");
-			}
-			if (!image.hasAttribute("decoding")) {
-				image.setAttribute("decoding", "async");
-			}
-		});
-	});
 
 	swup.hooks.on("content:replace", (visit: Visit) => {
 		const isHome = isHomeVisit(visit);
 		contentIsHome = isHome;
 		setBannerVisibility(contentIsHome);
-		if (layoutPromise) {
-			layoutPromise = null;
-			setLayoutMoving(false);
-		}
 	});
 
-	swup.hooks.on("animation:in:await", () => layoutPromise ?? undefined);
-
-	swup.hooks.on("animation:in:end", () => {
-		settle();
-		scheduleEnhancements();
+	swup.hooks.on("page:view", () => {
+		document
+			.getElementById("page-height-extend")
+			?.classList.remove("hidden");
 	});
 
 	swup.hooks.on("visit:end", (visit: Visit) => {
-		settle();
+		setTimeout(() => {
+			document
+				.getElementById("page-height-extend")
+				?.classList.add("hidden");
+			document
+				.getElementById("toc-wrapper")
+				?.classList.remove("is-toc-deferred");
+			setNavbarHome(isHomeVisit(visit));
+			updateScrollChrome(getScrollY());
+			scheduleEnhancements();
+		}, 200);
 		if (activeVisit === visit) activeVisit = null;
 	});
 
@@ -310,11 +207,13 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 	swup.hooks.on("visit:abort", (visit: Visit) => {
 		if (activeVisit !== visit) return;
 		activeVisit = null;
-		layoutToken += 1;
-		layoutPromise = null;
-		showPageHeightExtend(false);
+		document
+			.getElementById("page-height-extend")
+			?.classList.add("hidden");
 		setBodyHome(contentIsHome);
-		finishLayoutNow();
+		document
+			.getElementById("toc-wrapper")
+			?.classList.remove("is-toc-deferred");
 	});
 
 }

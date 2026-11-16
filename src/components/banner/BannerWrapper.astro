@@ -1,5 +1,6 @@
 ---
 import { url } from "../../utils/url-utils";
+import { BANNER_HEIGHT_EXTEND } from "../../constants";
 
 type BannerResponsive = {
 	w768: string;
@@ -27,6 +28,7 @@ const {
 <div
     id="banner-wrapper"
     class={`absolute z-10 w-full transition duration-700 overflow-hidden ${mobileNonHomeBannerClass}`}
+    style={`top: -${BANNER_HEIGHT_EXTEND}vh`}
 >
     {desktopBannerResponsive && (
         <div id="banner" class="object-cover h-full transition duration-700 opacity-0 scale-105 overflow-hidden relative">
@@ -35,13 +37,10 @@ const {
                 alt="Banner image of the blog"
                 class="w-full h-full object-cover"
                 src={url(desktopBannerResponsive.full)}
-                srcset={`${url((mobileBannerResponsive ?? desktopBannerResponsive).w768)} 768w, ${url(desktopBannerResponsive.w1280)} 1280w, ${url(desktopBannerResponsive.full)} 1920w, ${url(desktopBannerResponsive.w2560)} 2560w`}
-                sizes="100vw"
                 width={1920}
                 height={1097}
                 style={`object-position: ${bannerObjectPosition}`}
-                loading="eager"
-                fetchpriority="high"
+                loading="lazy"
                 decoding="async"
             />
         </div>

@@ -2,7 +2,7 @@
  * Layout geometry: banner, main panel, grid glide, sidebar sticky, TOC.
  *
  * Single source of truth for the Fuwari-style layout animation. The body's
- * `is-home` class is flipped by `src/scripts/transitions.ts` at `visit:start`,
+ * `lg:is-home` class is flipped by `src/scripts/transitions.ts` at `visit:start`,
  * while the outgoing page is still visible, and CSS does the rest with one
  * transform on the banner and grid plus the sidebars' top compensation.
  */
@@ -10,15 +10,6 @@
 :root {
 	--layout-slide-duration: 700ms;
 	--layout-slide-ease: cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Fuwari leaves identity transforms on the sidebar and content wrapper.
-   Besides matching its DOM/layer shape, this makes each one a containing
-   block and keeps their paint independent of the moving grid layer. */
-#sidebar,
-.right-sidebar-container,
-#content-wrapper {
-	transform: translate(0px, 0px);
 }
 
 /* ── Base banner ──────────────────────────────────────────────────────── */
@@ -59,8 +50,8 @@ body.no-banner-mode #banner-wrapper {
 }
 
 /* ── Desktop: home reveals 65vh, content pages show the 35vh strip ───── */
-@media (min-width: 1280px) {
-	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
+@media (min-width: 1024px) {
+	html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home
 		#banner-wrapper {
 		transform: translateY(var(--banner-height-extend, 30dvh));
 	}
@@ -69,17 +60,15 @@ body.no-banner-mode #banner-wrapper {
 		transform: translateY(var(--banner-offset, 0px));
 	}
 
-	html[data-wallpaper-mode="banner"] body.enable-banner.is-home #banner {
+	html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #banner {
 		transform: translateY(0);
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner .main-panel {
-		/* --banner-height-extend is rounded to a 4px grid, so 65vh - 30vh
-		   is not the same pixel as the banner's real bottom edge. Use the
-		   same values the transform uses, or a 1-4px sliver appears. */
+		/* Fuwari overlaps the main panel 3.5rem into the banner. */
 		top: calc(
 			var(--banner-height-home, 65vh) -
-				var(--banner-height-extend, 30dvh)
+				var(--banner-height-extend, 30dvh) - 3.5rem
 		);
 	}
 
@@ -88,7 +77,7 @@ body.no-banner-mode #banner-wrapper {
 		min-height: calc(var(--banner-height-home, 65vh) - 4.5rem);
 	}
 
-	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
+	html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home
 		#main-grid {
 		transform: translateY(var(--banner-height-extend, 30dvh));
 	}
@@ -97,20 +86,11 @@ body.no-banner-mode #banner-wrapper {
 	#right-sidebar-sticky {
 		position: sticky;
 		top: 1rem;
-		/* The home offset below is compensation for the grid's translate, so it
-		   changes on exactly the frames the grid transform changes. Animate it
-		   on the same clock as #main-grid, unconditionally: inside a
-		   transformed grid sticky clamps in the grid's local space, so snapping
-		   this offset clamps an unpinned sidebar into the new offset's band for
-		   a frame and its top edge visibly jumps. Same duration and curve keeps
-		   `top + translate` (the rendered pin position) constant for pinned
-		   sidebars, including on back/forward. */
-		transition: top var(--layout-slide-duration) var(--layout-slide-ease);
 	}
 
-	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
+	html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home
 		#sidebar-sticky,
-	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
+	html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home
 		#right-sidebar-sticky {
 		top: calc(1rem - var(--banner-height-extend, 30dvh));
 	}
@@ -225,20 +205,6 @@ html[data-wallpaper-mode="none"] #main-grid {
    !important is needed to unpick them at a smaller breakpoint.
    ---------------------------------------------------------------------- */
 
-#main-grid {
-	display: grid;
-	grid-template-columns: repeat(1, minmax(0, 1fr));
-}
-
-#sidebar,
-.right-sidebar-container {
-	display: none;
-}
-
-#sidebar {
-	grid-column: 1 / -1;
-}
-
 #main-grid[data-mobile="true"] #sidebar {
 	display: block;
 }
@@ -248,11 +214,6 @@ html[data-wallpaper-mode="none"] #main-grid {
 	#main-grid[data-mobile="false"] {
 		display: block;
 	}
-}
-
-#swup-container {
-	grid-column: 1 / -1;
-	grid-row: 1;
 }
 
 /* 1280 以下仍是单列。右侧有组件时沿用原来的 1rem 内边距（旧 .mobile-both-sidebar） */

@@ -320,32 +320,13 @@ if (siteConfig.font) {
 					`${offset}px`,
 				);
 
-				// Same trick for the image layer: a fractional offset makes the
-				// large bitmap land on a different subpixel every frame and
-				// reads as shimmer.
-				let imageOffset = Math.floor(
-					viewportHeight * (bannerOffsetVh / 100),
-				);
-				imageOffset -= imageOffset % 4;
 				document.documentElement.style.setProperty(
 					"--banner-offset",
-					`${imageOffset}px`,
+					`${bannerOffsetVh}vh`,
 				);
-
-				// The banner bottom and the grid top are separate composited
-				// layers. Keep the banner height on the same 4px grid as the
-				// transform, or a fractional `65vh` makes the two layers anti-
-				// alias their shared edge differently every frame (the seam
-				// looks like it is shaking on high-DPI screens).
-				const bannerHome =
-					Math.round(
-						(viewportHeight *
-							(BANNER_HEIGHT + BANNER_HEIGHT_EXTEND)) /
-							400,
-					) * 4;
 				document.documentElement.style.setProperty(
 					"--banner-height-home",
-					`${bannerHome}px`,
+					`${BANNER_HEIGHT + BANNER_HEIGHT_EXTEND}vh`,
 				);
 			}
 
@@ -478,16 +459,15 @@ if (siteConfig.font) {
 
 	</head>
 	<body
-		class="min-h-screen"
+		class="min-h-screen transition"
 		class:list={[
 			{
-				"is-home": isHomePage,
+				"lg:is-home": isHomePage,
 				"enable-banner": siteConfig.wallpaperMode.defaultMode === "banner",
 				"no-banner-mode": siteConfig.wallpaperMode.defaultMode === "none",
 			},
 		]}
 	>
-		<div class="doodle-backdrop" aria-hidden="true"></div>
 		<!-- 页面顶部渐变高光效果 - 只在full和semifull模式下显示 -->
 		{shouldShowTopHighlight && <div class="top-gradient-highlight" />}
 
@@ -529,8 +509,8 @@ if (siteConfig.font) {
 	})();
 </script>
 
-<!-- Fuwari's temporary scroll range during a page transition. Hidden at rest. -->
-<div id="page-height-extend" hidden aria-hidden="true"></div>
+<!-- increase the page height during page transition to prevent the scrolling animation from jumping -->
+<div id="page-height-extend" class="hidden h-[300vh]" aria-hidden="true"></div>
 
 </body>
 </html>

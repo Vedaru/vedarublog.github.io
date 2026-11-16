@@ -10,13 +10,6 @@ html.is-animating .transition-swup-fade {
 	opacity: 0;
 	transform: translateY(1rem);
 }
-/* The content swap itself waits for the banner/grid transform. Keep the
-   outgoing page visible and stationary under the moving shell. */
-html.is-layout-moving.is-animating .transition-swup-fade {
-	opacity: 1;
-	transform: none;
-}
-
 /* Fade-in animations for components */
 @keyframes fade-in-up {
 	0% {
