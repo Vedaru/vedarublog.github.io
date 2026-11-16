@@ -100,16 +100,15 @@ body.no-banner-mode #banner-wrapper {
 /* ── Desktop: home reveals 65vh, content pages show the 35vh strip ───── */
 @media (min-width: 1280px) {
 	html[data-wallpaper-mode="banner"] body.enable-banner #banner-wrapper {
-		transform: translateY(var(--layout-scroll-delta, 0px));
+		transform: translate3d(0, var(--layout-scroll-delta, 0px), 0);
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
 		#banner-wrapper {
-		transform: translateY(
-			calc(
-				var(--banner-height-extend, 30dvh) +
-					var(--layout-scroll-delta, 0px)
-			)
+		transform: translate3d(
+			0,
+			calc(var(--banner-height-extend, 30dvh) + var(--layout-scroll-delta, 0px)),
+			0
 		);
 	}
 
@@ -137,16 +136,15 @@ body.no-banner-mode #banner-wrapper {
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner #main-grid {
-		transform: translateY(var(--layout-scroll-delta, 0px));
+		transform: translate3d(0, var(--layout-scroll-delta, 0px), 0);
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home
 		#main-grid {
-		transform: translateY(
-			calc(
-				var(--banner-height-extend, 30dvh) +
-					var(--layout-scroll-delta, 0px)
-			)
+		transform: translate3d(
+			0,
+			calc(var(--banner-height-extend, 30dvh) + var(--layout-scroll-delta, 0px)),
+			0
 		);
 	}
 
