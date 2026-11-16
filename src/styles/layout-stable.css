@@ -77,6 +77,14 @@
 	transition: transform var(--layout-slide-duration) var(--layout-slide-ease);
 }
 
+/* A short incoming page can shrink the root scroller before the slide ends.
+   Keep the frozen offset reachable or the browser clamps scrollY while the
+   transform still includes the old offset, injecting a visible jump. The
+   existing commit clears the delta and settle removes this class. */
+html.is-layout-moving {
+	min-height: calc(100vh + var(--layout-scroll-delta, 0px));
+}
+
 /* Commit the frozen scroll and the base transform in one frame. */
 html.is-layout-committing #main-grid,
 html.is-layout-committing #banner-wrapper {
