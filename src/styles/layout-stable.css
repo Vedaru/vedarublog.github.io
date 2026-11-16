@@ -20,11 +20,6 @@
 	transform: translate(0px, 0px);
 }
 
-#main-grid.is-scroll-residual,
-#banner-wrapper.is-scroll-residual {
-	will-change: transform, translate;
-}
-
 /* ── Base banner ──────────────────────────────────────────────────────── */
 #banner-wrapper {
 	position: absolute;
@@ -59,11 +54,11 @@
 	opacity: 1;
 }
 
-/* One authoritative animated banner layer: the wrapper slides and clips the
-   image. The content-page crop is a static `top` on #banner, so it snaps with
-   the class flip and the visible bottom edge remains one raster boundary. */
-/* One authoritative transition for the two layers that move on a page
-   change: the banner wrapper and the grid. Nothing else is promoted.
+/* One animated banner layer: the wrapper slides/clips. The inner crop offset
+   is a top transition, not a second transform layer, so the visible bottom
+   edge remains one raster boundary while the crop changes continuously. */
+/* One authoritative transition for the moving layers. Nothing else is
+   promoted.
 
    Fuwari's banner layers carry no `backface-visibility`: forcing a 3D layer
    here makes the browser rasterize the image on its own layer and resample it
@@ -81,9 +76,13 @@
 		cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Our banner image is much larger than Fuwari's demo banner. Keep only the
-   wrapper promoted; a second promotion on #banner gives the clip and image
-   different subpixel phases and produces a 1px sawtooth at the bottom seam. */
+#banner {
+	transition: top var(--layout-slide-duration)
+		cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Keep only the wrapper promoted; a second promotion on #banner gives the
+   clip and image different subpixel phases and a 1px bottom seam. */
 #banner-wrapper {
 	will-change: transform;
 }
@@ -109,13 +108,6 @@ body.no-banner-mode #banner-wrapper {
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.is-home #banner {
 		top: 0;
-	}
-
-	html.is-layout-moving #main-grid,
-	html.is-layout-moving #banner-wrapper,
-	html.is-layout-moving #sidebar-sticky,
-	html.is-layout-moving #right-sidebar-sticky {
-		transition: none;
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner .main-panel {

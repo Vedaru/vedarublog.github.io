@@ -217,49 +217,10 @@ function startLayoutMove(): void {
 
 /** 换页时的滚动动画句柄（同一时间只允许一个）。 */
 let scrollTweenFrame = 0;
-let scrollResidualElement: HTMLElement | null = null;
-let scrollResidualBanner: HTMLElement | null = null;
-
-function applyScrollResidual(desired: number, actual: number): void {
-	const content =
-		scrollResidualElement?.isConnected
-			? scrollResidualElement
-			: document.getElementById("main-grid");
-	if (!content) return;
-	scrollResidualElement = content;
-	content.classList.add("is-scroll-residual");
-	content.style.setProperty(
-		"translate",
-		`0 ${(actual - desired).toFixed(3)}px`,
-	);
-	scrollResidualBanner = document.getElementById("banner-wrapper");
-	if (scrollResidualBanner) {
-		scrollResidualBanner.classList.add("is-scroll-residual");
-		scrollResidualBanner.style.setProperty(
-			"translate",
-			`0 ${(actual - desired).toFixed(3)}px`,
-		);
-	}
-}
-
-function clearScrollResidual(): void {
-	const content = scrollResidualElement;
-	if (content) {
-		content.style.removeProperty("translate");
-		content.classList.remove("is-scroll-residual");
-	}
-	if (scrollResidualBanner) {
-		scrollResidualBanner.style.removeProperty("translate");
-		scrollResidualBanner.classList.remove("is-scroll-residual");
-	}
-	scrollResidualElement = null;
-	scrollResidualBanner = null;
-}
 
 function cancelScrollTween(): void {
 	if (scrollTweenFrame) cancelAnimationFrame(scrollTweenFrame);
 	scrollTweenFrame = 0;
-	clearScrollResidual();
 	setScrollTweening(false);
 }
 
@@ -303,52 +264,38 @@ function slideEase(x: number): number {
 }
 
 /**
- * 滚回顶部。
- *
- * 不用 Swup scroll 插件的补间：它是指数衰减，前几帧就走完约 90%，之后以
- * 每帧 1–2px 再爬一秒多。换页在 700ms 就完成了，剩下这段爬行发生在已经
- * 淡入的新内容下面，看起来就是「结尾在抖」。这里用固定终点的 ease-out，
- * 时长随距离在 320–700ms 之间，且末速度为零。
- *
- * `lockTo` 用于布局滑动：栅格和横幅都按 700ms 的时基移动，滚动若先结束，
- * 最后那段时间页面会被布局继续推向反方向，看起来就是两个动画互相拽。
+ * Fuwari's swup ScrollPlugin spring: update velocity, render one float
+ * scrollTo, and snap exactly when the target is crossed. No reads in the loop.
  */
-function startScrollToTop(
-	lockTo = 0,
-	startY = getScrollY(),
-	fromHome = false,
-): number {
+function startScrollToTop(lockTo = 0): number {
 	cancelScrollTween();
+	const startY = getScrollY();
 	if (startY <= 1) return 0;
 	if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
 		window.scrollTo(0, 0);
 		return 0;
 	}
 
-	if (lockTo > 0) {
-		return startLayoutScroll(startY, lockTo, fromHome);
-	}
-
 	const DURATION =
-		Math.min(700, Math.max(320, 320 + startY * 0.1));
-	// The rAF timestamp is the start of the frame, which can be earlier than the
-	// moment the tween was scheduled. Reading the clock here would make the first
-	// frame a negative progress - the page would lurch the wrong way before
-	// coming back. Start the clock on the first real frame instead.
-	let started = 0;
-	const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
-	const ease = easeOutCubic;
+		lockTo > 0
+			? lockTo
+			: Math.min(700, Math.max(320, 320 + startY * 0.1));
+	const target = 0;
+	let position = startY;
+	let velocity = 0;
+	window.scrollTo(0, position);
 
-	const step = (now: number) => {
-		if (!started) started = now;
-		const progress = Math.min(1, Math.max(0, (now - started) / DURATION));
-		// Leave the value fractional. Rounding to whole CSS pixels turns the
-		// tail of the ease into a visible 1px staircase on high-DPI screens,
-		// where the compositor can resolve half-pixel steps.
-		window.scrollTo(0, startY * (1 - ease(progress)));
-		if (progress < 1) {
+	const step = () => {
+		const delta = target - position;
+		velocity += delta * 0.04;
+		velocity *= 0.7;
+		position += velocity;
+		window.scrollTo(0, position);
+		if (position > target) {
 			scrollTweenFrame = requestAnimationFrame(step);
 		} else {
+			position = target;
+			window.scrollTo(0, target);
 			scrollTweenFrame = 0;
 			setScrollTweening(false);
 		}
@@ -356,108 +303,6 @@ function startScrollToTop(
 	setScrollTweening(true);
 	scrollTweenFrame = requestAnimationFrame(step);
 	return DURATION;
-}
-
-/**
- * One clock for the layout slide. Every moving property is written from the
- * same eased progress; there are no CSS transitions on those properties and
- * no per-frame style reads.
- */
-function startLayoutScroll(
-	startY: number,
-	duration: number,
-	fromHome: boolean,
-): number {
-	const grid = document.getElementById("main-grid");
-	const bannerWrapper = document.getElementById("banner-wrapper");
-	const banner = document.getElementById("banner");
-	const sidebarSticky = document.getElementById("sidebar-sticky");
-	const rightSidebarSticky = document.getElementById(
-		"right-sidebar-sticky",
-	);
-	const extend =
-		Number.parseFloat(
-			getComputedStyle(document.documentElement).getPropertyValue(
-				"--banner-height-extend",
-			),
-		) || 0;
-	const bannerOffset =
-		Number.parseFloat(
-			getComputedStyle(document.documentElement).getPropertyValue(
-				"--banner-offset",
-			),
-		) || 0;
-	const destinationHome = document.body.classList.contains("is-home");
-	const startGrid = fromHome ? extend : 0;
-	const endGrid = destinationHome ? extend : 0;
-	const startBannerTop = fromHome ? 0 : bannerOffset;
-	const endBannerTop = destinationHome ? 0 : bannerOffset;
-	const startSidebarTop = 16 - (fromHome ? extend : 0);
-	const endSidebarTop = 16 - (destinationHome ? extend : 0);
-
-	const write = (eased: number) => {
-		const gridY = startGrid + (endGrid - startGrid) * eased;
-		const bannerY =
-			startGrid + (endGrid - startGrid) * eased;
-		const bannerTop =
-			startBannerTop +
-			(endBannerTop - startBannerTop) * eased;
-		const sidebarTop =
-			startSidebarTop +
-			(endSidebarTop - startSidebarTop) * eased;
-		grid?.style.setProperty("transform", `translateY(${gridY}px)`);
-		bannerWrapper?.style.setProperty(
-			"transform",
-			`translateY(${bannerY}px)`,
-		);
-		banner?.style.setProperty("top", `${bannerTop}px`);
-		sidebarSticky?.style.setProperty("top", `${sidebarTop}px`);
-		rightSidebarSticky?.style.setProperty("top", `${sidebarTop}px`);
-	};
-
-	const clearInline = () => {
-		grid?.style.removeProperty("transform");
-		bannerWrapper?.style.removeProperty("transform");
-		banner?.style.removeProperty("top");
-		sidebarSticky?.style.removeProperty("top");
-		rightSidebarSticky?.style.removeProperty("top");
-	};
-
-	write(0);
-	window.scrollTo(0, startY);
-	applyScrollResidual(startY, window.scrollY);
-	const startedAt = performance.now();
-
-	const finish = () => {
-		write(1);
-		window.scrollTo(0, 0);
-		applyScrollResidual(0, window.scrollY);
-		scrollTweenFrame = 0;
-		clearScrollResidual();
-		clearInline();
-		setScrollTweening(false);
-	};
-
-	const step = (now: number) => {
-		const progress = Math.min(
-			1,
-			Math.max(0, (now - startedAt) / duration),
-		);
-		const eased = slideEase(progress);
-		write(eased);
-		const desired = startY * (1 - eased);
-		window.scrollTo(0, desired);
-		applyScrollResidual(desired, window.scrollY);
-		if (progress >= 1) {
-			finish();
-		} else {
-			scrollTweenFrame = requestAnimationFrame(step);
-		}
-	};
-
-	setScrollTweening(true);
-	scrollTweenFrame = requestAnimationFrame(step);
-	return duration;
 }
 
 function setup(swup: NonNullable<Window["swup"]>): void {
@@ -513,13 +358,10 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		// through a document that is still inserting images costs a reflow per
 		// frame.
 		let tweenDuration = 0;
-		let layoutScrollStart = 0;
 		if (!isPopstate && !visit.to.hash && scrollY > 1) {
-			if (layoutSlides) {
-				layoutScrollStart = scrollAtStart;
-			} else {
-				tweenDuration = startScrollToTop(0, scrollAtStart);
-			}
+			tweenDuration = startScrollToTop(
+				layoutSlides ? LAYOUT_SLIDE_MS : 0,
+			);
 			// 上面的补间已经接管滚动，别让插件在 content:scroll 再跑一遍。
 			if (visit.scroll) visit.scroll.reset = false;
 			scrollY = 0;
@@ -550,9 +392,6 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		if (!layoutSlides || isPopstate) knownScrollY = null;
 
 		setBodyHome(isHome);
-		if (layoutScrollStart > 1) {
-			startScrollToTop(LAYOUT_SLIDE_MS, layoutScrollStart, wasHome);
-		}
 	}, { priority: 10 });
 
 	// Prepare the incoming document while it is still detached. The page

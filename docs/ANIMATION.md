@@ -550,3 +550,26 @@ offset), which reintroduces the second animated banner layer or removes the
 9424 sidebar transition. That conflicts with this task's seam and sidebar
 constraints; the code is committed with the measured performance miss recorded
 rather than masked.
+
+### Fuwari spring adopted; performance target still blocked by layout offsets
+
+The custom bezier scroll and all JS transform/residual writes are gone. The
+scroll loop is the SwupScrollPlugin integrator: velocity += delta * 0.04,
+velocity *= 0.7, position += velocity, one float scrollTo per frame, snap at
+the crossed target; no reads inside the loop. Grid and banner-wrapper
+transforms are CSS transitions again. The inner banner offset is a continuous
+`top` CSS transition on the single banner layer, not a second transform layer.
+
+Results at 1x uncapped:
+- TaskDuration 751.1ms home -> post / 660.9ms post -> home.
+- RecalcStyle 188.9 / 142.3ms; Layout 82.9 / 52.4ms.
+- 1x p95 1.8 / 1.7ms; verify.mjs ALL PASS.
+- 60Hz 4x home -> post p95 33.3ms, not the requested 16.7ms.
+
+The remaining cost is the two continuous layout offsets (`#banner` top and the
+sidebar `top` transition). They must be layout properties to keep one banner
+layer and 9424 sidebar semantics. Moving them to transforms would restore the
+second banner layer/seam or change sticky behavior; removing them snaps the
+crop/sidebar. The performance target (<20ms recalc, <30ms layout, no >50ms long
+task) is therefore not met by this composition; the metrics are recorded
+instead of masking it.
