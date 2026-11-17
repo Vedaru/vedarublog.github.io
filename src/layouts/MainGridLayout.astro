@@ -157,10 +157,10 @@ const defaultPostListLayout = siteConfig.postListLayout?.defaultMode || "list";
              data-sides={desktopSides}
              data-mobile={mobileShowSidebar ? "true" : "false"}
         >
-            <SideBar class="mb-4 row-start-2 row-end-3 col-span-2 lg:row-start-1 lg:row-end-2 lg:col-span-1 lg:max-w-[17.5rem] onload-animation"></SideBar>
+            <SideBar class="mb-4 row-start-2 row-end-3 col-span-2 lg:row-start-1 lg:row-end-2 lg:col-span-1 lg:max-w-[17.5rem]"></SideBar>
 
             {hasRightSidebarComponents && (
-                <div class="right-sidebar-container onload-animation">
+                <div class="right-sidebar-container">
                     <SideBar side="right" headings={headings}></SideBar>
                 </div>
             )}
