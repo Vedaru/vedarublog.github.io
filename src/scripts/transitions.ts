@@ -142,8 +142,6 @@ let activeVisit: Visit | null = null;
 let contentDelayCleared = false;
 let heightExtendTimer: ReturnType<typeof setTimeout> | undefined;
 let finishLayoutCleanup: (() => void) | null = null;
-let layoutPromise: Promise<void> | null = null;
-let layoutToken = 0;
 
 function setLayoutMoving(moving: boolean): void {
 	document.documentElement.classList.toggle("is-layout-moving", moving);
@@ -159,6 +157,9 @@ function showPageHeightExtend(show: boolean): void {
 	}
 	heightExtendTimer = setTimeout(() => {
 		element.classList.add("hidden");
+		document
+			.getElementById("toc-wrapper")
+			?.classList.remove("is-toc-deferred");
 	}, 200);
 }
 
@@ -168,10 +169,6 @@ function finishLayoutNow(): void {
 	setLayoutMoving(false);
 	setNavbarHome(document.body.classList.contains(HOME_CLASS));
 	updateScrollChrome(getScrollY());
-	showPageHeightExtend(false);
-	document
-		.getElementById("toc-wrapper")
-		?.classList.remove("is-toc-deferred");
 	notifyLayoutSettled();
 }
 
@@ -205,35 +202,6 @@ function settle(): void {
 	}
 }
 
-function waitForGridTransition(token: number): Promise<void> {
-	const grid = document.getElementById("main-grid");
-	if (!grid) return Promise.resolve();
-	return new Promise((resolve) => {
-		const onEnd = (event: TransitionEvent) => {
-			if (event.target !== grid || event.propertyName !== "transform") return;
-			grid.removeEventListener("transitionend", onEnd);
-			resolve();
-		};
-		grid.addEventListener("transitionend", onEnd);
-		if (
-			!grid
-				.getAnimations()
-				.some(
-					(animation) =>
-						animation instanceof CSSTransition &&
-						animation.transitionProperty === "transform",
-				)
-		) {
-			grid.removeEventListener("transitionend", onEnd);
-			resolve();
-		}
-		if (token !== layoutToken) {
-			grid.removeEventListener("transitionend", onEnd);
-			resolve();
-		}
-	});
-}
-
 function setup(swup: NonNullable<Window["swup"]>): void {
 	if (hooksRegistered) return;
 	hooksRegistered = true;
@@ -247,11 +215,9 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 			wasHome !== isHome &&
 			window.matchMedia("(min-width: 1280px)").matches;
 
-		if (layoutSlides) {
-			document
-				.getElementById("toc-wrapper")
-				?.classList.add("is-toc-deferred");
-		}
+		document
+			.getElementById("toc-wrapper")
+			?.classList.add("is-toc-deferred");
 
 		if (!contentDelayCleared && !layoutSlides) {
 			const grid = document.getElementById("main-grid");
@@ -264,12 +230,6 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		setBodyHome(isHome);
 		setLayoutMoving(layoutSlides);
 		showPageHeightExtend(true);
-		if (layoutSlides) {
-			layoutToken += 1;
-			layoutPromise = waitForGridTransition(layoutToken);
-		} else {
-			layoutPromise = null;
-		}
 	}, { priority: 10 });
 
 	swup.hooks.before("content:replace", (visit: Visit) => {
@@ -294,13 +254,7 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 		const isHome = isHomeVisit(visit);
 		contentIsHome = isHome;
 		setBannerVisibility(contentIsHome);
-		if (layoutPromise) {
-			layoutPromise = null;
-			setLayoutMoving(false);
-		}
 	});
-
-	swup.hooks.on("animation:in:await", () => layoutPromise ?? undefined);
 
 	swup.hooks.on("animation:in:end", () => {
 		settle();
@@ -309,6 +263,7 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 
 	swup.hooks.on("visit:end", (visit: Visit) => {
 		settle();
+		showPageHeightExtend(false);
 		if (activeVisit === visit) activeVisit = null;
 	});
 
@@ -320,8 +275,6 @@ function setup(swup: NonNullable<Window["swup"]>): void {
 	swup.hooks.on("visit:abort", (visit: Visit) => {
 		if (activeVisit !== visit) return;
 		activeVisit = null;
-		layoutToken += 1;
-		layoutPromise = null;
 		showPageHeightExtend(false);
 		setBodyHome(contentIsHome);
 		finishLayoutNow();

@@ -10,9 +10,8 @@ Fuwari's transition is not a special animation library. It is three decisions:
 
 1. **The layout flip happens at `visit:start`, not after the content swap.**
    The body's `is-home` class changes on the click. The 700ms banner/grid
-   `transform` starts on the compositor immediately. On a layout slide the
-   outgoing fade is held for the whole 700ms transform, so `content:replace`
-   lands after the transform; ordinary visits keep the 200ms fade.
+   `transform` starts on the compositor immediately. Content follows Fuwari's
+   normal 200ms fade and swaps while the independent transform continues.
 2. **Only `main` and the TOC are swapped.** Everything else (navbar, sidebar,
    music player) is persistent. There is no per-visit re-init of the shell.
 3. **Optional work runs after the motion.** Fuwari's TOC is server-rendered and

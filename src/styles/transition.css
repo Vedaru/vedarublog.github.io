@@ -10,10 +10,7 @@ html.is-animating .transition-swup-fade {
 	opacity: 0;
 	transform: translateY(1rem);
 }
-html.is-layout-moving.is-animating .transition-swup-fade {
-	opacity: 1;
-	transform: none;
-}
+
 /* Fade-in animations for components */
 @keyframes fade-in-up {
 	0% {
