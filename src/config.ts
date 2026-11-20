@@ -391,9 +391,7 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 			type: "profile",
 			// 组件位置："top" 表示固定在顶部
 			position: "top",
-			// CSS 类名，用于应用样式和动画
-			class: "onload-animation",
-			// 动画延迟时间（毫秒），用于错开动画效果
+			// 入场动画由侧栏父容器统一执行，避免资料卡重复位移
 			animationDelay: 0,
 		},
 		{
