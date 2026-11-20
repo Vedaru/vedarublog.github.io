@@ -1,8 +1,9 @@
 # Fuwari transition baseline
 
-The current implementation follows upstream Fuwari commit `6d39b0d` for all
-Fuwari-owned animation behavior. Older custom smooth-motion tags and traces are
-historical references only.
+The current implementation uses Fuwari's motion design where it addresses
+page-transition jitter. Upstream commit `6d39b0d` is a reference, not a target
+for wholesale code or layout replacement. Older custom smooth-motion tags and
+traces are historical references only.
 
 ## Required behavior
 
@@ -13,6 +14,9 @@ historical references only.
 - The temporary 300vh tail opens at `visit:start`, remains visible at
   `page:view`, and closes 200ms after `visit:end` together with TOC readiness
   cleanup.
+- The main panel meets the banner at its boundary, without the upstream
+  3.5rem overlap. Banner height and extension use shared variables so the edge
+  remains aligned after responsive pixel rounding.
 - ScrollPlugin uses `smoothScrolling: true` without custom acceleration,
   `doScrollingRightAway`, a second scroll writer, or transform-dependent waits.
 - Banner reveal and resize calculations follow Fuwari. Mobile keeps the same

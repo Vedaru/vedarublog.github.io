@@ -14,7 +14,9 @@
 	width: 100%;
 	z-index: 10;
 	overflow: hidden;
-	height: var(--banner-height-home, 65vh);
+	height: calc(
+		var(--banner-height, 35vh) + var(--banner-height-extend, 30dvh)
+	);
 	top: calc(-1 * var(--banner-height-extend, 30dvh));
 }
 
@@ -44,9 +46,9 @@ body.no-banner-mode #banner-wrapper {
 	display: none;
 }
 
-/* Fuwari's content panel overlaps the 35vh banner strip by 3.5rem. */
+/* The content panel starts at the 35vh banner boundary, without an extra overlap. */
 html[data-wallpaper-mode="banner"] .main-panel {
-	top: calc(var(--banner-height, 35vh) - 3.5rem);
+	top: var(--banner-height, 35vh);
 }
 
 html[data-wallpaper-mode="banner"] #top-row {

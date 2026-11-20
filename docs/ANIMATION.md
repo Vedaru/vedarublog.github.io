@@ -1,8 +1,10 @@
 # Animation architecture
 
-The Fuwari-owned animation implementation is aligned with upstream commit
-`6d39b0d`. Blog-specific widgets and content features remain, but they do not
-replace Fuwari's page-transition lifecycle or animation ownership.
+The page motion follows Fuwari's design, using upstream commit `6d39b0d` as
+a reference. The goal is to understand its animation ownership and sequencing,
+not to synchronize the entire blog with upstream or replace blog-specific
+components and geometry. In particular, the main panel starts at the banner
+boundary without Fuwari's 3.5rem overlap.
 
 ## Page lifecycle
 
@@ -36,7 +38,7 @@ scroll acceleration, held outgoing fade, secondary scroll writer, or
 | Sticky sidebars | Native sticky elements with `transition-all duration-700`; no entrance class or identity transform on the sticky container |
 | Widget entrances | Individual widgets and Fuwari's sidebar wrapper use `onload-animation` and the shared delay ladder |
 | Navbar | `onload-animation`, native mask gradient, and Fuwari's scroll-threshold classes |
-| Sidebar TOC | Fixed-height scrolling viewport, upstream active indicator, and the vendored upstream custom-element class |
+| Sidebar TOC | Fixed-height scrolling viewport, upstream-style active indicator, and native custom-element behavior |
 | Cards and controls | Shared Fuwari `transition`, expansion, button, link, panel, and metadata rules in `main.css` |
 | Back to top | Native `window.scroll({ top: 0, behavior: "smooth" })` |
 | Optional enhancements | Idle-scheduled after `visit:end`; never a gate for content replacement or animation completion |
@@ -47,10 +49,10 @@ page-transition coordinator.
 
 ## TOC contract
 
-`src/scripts/toc-element.ts` is the upstream Fuwari class, excluding only
-trailing whitespace cleanup. It waits for `.prose` to finish its entrance
-animation, observes heading sections, positions `#active-indicator` with
-`top` and `height`, and scrolls `#toc-inner-wrapper` to the active entries.
+`src/scripts/toc-element.ts` follows Fuwari's observer and indicator design. It
+waits for `.prose` to finish its entrance animation, observes heading sections,
+positions `#active-indicator` with `top` and `height`, and scrolls
+`#toc-inner-wrapper` to the active entries.
 
 Keep the upstream spacer elements and `h-full` on `#toc`. Do not insert a
 positioned ancestor between the fixed TOC viewport and its contents, and do

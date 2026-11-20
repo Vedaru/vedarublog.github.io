@@ -4,11 +4,7 @@
  * clean up 200ms after visit:end. Blog-specific chrome and idle enhancements
  * stay outside the animation lifecycle.
  */
-import {
-	BANNER_HEIGHT,
-	BANNER_HEIGHT_HOME,
-	MAIN_PANEL_OVERLAPS_BANNER_HEIGHT,
-} from "@constants";
+import { BANNER_HEIGHT, BANNER_HEIGHT_HOME } from "@constants";
 import { isMainHomePage, pathFromUrl } from "../utils/route-utils";
 import {
 	cancelEnhancements,
@@ -93,10 +89,7 @@ function updateScrollChrome(scrollY = getScrollY()): void {
 		document.body.classList.contains(HOME_CLASS) && window.innerWidth >= 1024;
 	const currentBannerHeight = isHome ? BANNER_HEIGHT_HOME : BANNER_HEIGHT;
 	const threshold =
-		window.innerHeight * (currentBannerHeight / 100) -
-		72 -
-		MAIN_PANEL_OVERLAPS_BANNER_HEIGHT * 16 -
-		16;
+		window.innerHeight * (currentBannerHeight / 100) - 72 - 16;
 	document
 		.getElementById("navbar-wrapper")
 		?.classList.toggle("navbar-hidden", scrollY >= threshold);
