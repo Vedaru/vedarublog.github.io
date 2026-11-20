@@ -101,17 +101,15 @@ const badgeFor = (index: number, depth: number) => {
 		id="active-indicator"
 		style="opacity: 0"
 		class:list={[
-			"hidden",
-			"-z-10 absolute top-0 bg-[var(--toc-btn-hover)] left-0 right-0 rounded-xl transition-[transform,height,opacity,background-color,border-color] group-hover:bg-transparent border-2 border-[var(--toc-btn-hover)] group-hover:border-[var(--toc-btn-active)] border-dashed",
+			{ hidden: headings.length === 0 },
+			"-z-10 absolute bg-[var(--toc-btn-hover)] left-0 right-0 rounded-xl transition-all group-hover:bg-transparent border-2 border-[var(--toc-btn-hover)] group-hover:border-[var(--toc-btn-active)] border-dashed",
 		]}
-	>
-	</div>
+	></div>
 </table-of-contents>
 
 <style>
 	table-of-contents {
 		display: block;
-		position: relative;
 	}
 
 	table-of-contents a.visible > div:last-child {
