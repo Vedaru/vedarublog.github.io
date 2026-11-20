@@ -197,9 +197,11 @@ const defaultPostListLayout = siteConfig.postListLayout?.defaultMode || "list";
             "-right-[var(--toc-width)]",
             {"toc-hide": siteConfig.wallpaperMode.defaultMode === "banner"}]}
         >
-            <div id="toc-inner-wrapper" class="fixed top-14 w-[var(--toc-width)] max-h-[calc(100vh_-_10rem)] overflow-y-auto hide-scrollbar">
+            <div id="toc-inner-wrapper" class="fixed top-14 w-[var(--toc-width)] h-[calc(100vh_-_20rem)] overflow-y-scroll hide-scrollbar">
                 <div id="toc" class="w-full transition-swup-fade">
+                    <div class="h-8 w-full"></div>
                     {showSidebarTOC && <TOC headings={headings}></TOC>}
+                    <div class="h-8 w-full"></div>
                 </div>
             </div>
         </div>
@@ -211,7 +213,7 @@ const defaultPostListLayout = siteConfig.postListLayout?.defaultMode || "list";
 /* TOC 垂直对齐优化 */
 body.no-banner-mode #toc-inner-wrapper {
     top: 5.5rem !important;
-    max-height: calc(100vh - 8rem) !important;
+    height: calc(100vh - 8rem) !important;
 }
 
 /* 移动端banner性能优化 */

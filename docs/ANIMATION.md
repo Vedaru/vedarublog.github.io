@@ -334,9 +334,9 @@ The grid subtree now matches Fuwari's shape: `#main-grid` has four direct
 children, `#sidebar`, `.right-sidebar-container`, `#swup-container` and the
 mobile footer. The old `<div class="contents">` wrapper was removed. At
 1440x900 the subtree went from 723 to 722 elements; the wrapper was the only
-removed node. `#sidebar`, `.right-sidebar-container` and `#content-wrapper`
-carry Fuwari's identity `translate(0px, 0px)` transform, which keeps their
-paint in their own containing block while the grid moves.
+removed node. `#content-wrapper` keeps its paint in a separate containing
+block. Sidebar columns have no persistent identity transform, and their sticky
+groups have no entrance animation, so sticky ownership matches Fuwari.
 
 Both sidebars stay sticky and visible, outside the Swup fade container. Their
 only animated property is the sticky `top` compensation. It is declared

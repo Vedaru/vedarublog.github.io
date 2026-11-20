@@ -22,6 +22,12 @@ is not the current implementation contract.
 - Local chrome and enhancement hooks may use `is-layout-moving` to avoid
   unrelated work during the transform, but they must not change Fuwari's fade,
   swap, scroll, or cleanup sequence.
+- The sidebar TOC uses Fuwari's fixed-height scrolling viewport and positions
+  its indicator with `top`/`height` in scroll-content coordinates. Do not add a
+  positioned TOC ancestor or a transform that chases the wrapper's scroll.
+- Sticky sidebar containers keep Fuwari's native `sticky` and `transition-all`
+  behavior without entrance animations or persistent identity transforms.
+  Entrance animations belong on the individual widgets.
 
 Verify changes with a real click on the bottommost visible post after scrolling
 to the bottom, then run `pnpm exec astro check` and a production build.
