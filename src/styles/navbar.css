@@ -44,7 +44,7 @@ body.enable-banner
 }
 
 @media (min-width: 1280px) {
-	html:not(.is-changing):not(.is-animating)
+	html:not(.is-changing):not(.is-animating):not(.is-layout-moving)
 		body.enable-banner
 		#navbar[data-transparent-mode="semi"][data-is-home="true"]:not(.scrolled)
 		> div {

@@ -1,55 +1,27 @@
 # Fuwari transition baseline
 
-The current implementation uses Fuwari's motion design where it addresses
-page-transition jitter. Upstream commit `6d39b0d` is a reference, not a target
-for wholesale code or layout replacement. Older custom smooth-motion tags and
-traces are historical references only.
+The owner explicitly requested the literal Fuwari animation lifecycle on
+2026-11-19. This supersedes the earlier custom `17b75c0` baseline, which held
+the outgoing page and waited for the grid transform before completing the
+incoming animation. The `smooth-2026-11-16` tag remains useful history, but it
+is not the current implementation contract.
 
-## Required behavior
+## Current behavior
 
-- Content uses Fuwari's normal 200ms Swup fade. No outgoing page is held while
-  a transform completes.
-- `lg:is-home` changes at `visit:start`. The banner and grid independently run
-  their native 700ms CSS transforms.
-- The temporary 300vh tail opens at `visit:start`, remains visible at
-  `page:view`, and closes 200ms after `visit:end` together with TOC readiness
-  cleanup.
-- The main panel meets the banner at its boundary, without the upstream
-  3.5rem overlap. Banner height and extension use shared variables so the edge
-  remains aligned after responsive pixel rounding.
-- `#sidebar`, `.right-sidebar-container`, and `#content-wrapper` retain the
-  identity-transform paint boundaries from `7749408`. They prevent the custom
-  fixed doodle backdrop from sharing the moving banner's root paint surface.
-  Fuwari does not have these blog-specific layers.
-- ScrollPlugin uses `smoothScrolling: true` without custom acceleration,
-  `doScrollingRightAway`, a second scroll writer, or transform-dependent waits.
-- Banner reveal and resize calculations follow Fuwari. Mobile keeps the same
-  banner and main-panel model instead of a separate motion layout.
-- Sticky sidebars retain native sticky positioning and `transition-all
-  duration-700`. Entrance animation belongs on widgets and the Fuwari sidebar
-  wrapper, not on sticky containers.
-- The sidebar TOC uses Fuwari's fixed-height scrolling viewport, mask,
-  `top`/`height` indicator, spacers, and client class.
-- Shared cards, controls, links, panels, post lists, and markdown controls use
-  Fuwari's standard transitions.
-- Optional blog enhancements are canceled when a visit starts and scheduled
-  for idle time after the visit ends. They never gate Fuwari's lifecycle.
-- `updateHead: true` keeps page metadata and head slots synchronized while
-  Swup replaces only the main content and TOC containers.
+- Fuwari's banner subtree, 700ms banner/grid transforms, and 200ms page fade
+  are vendored.
+- The home layout class flips at `visit:start`, and the temporary 300vh page
+  tail opens immediately.
+- Swup performs its normal content replacement after the outgoing 200ms fade.
+  There is no `animation:in:await` transform wait and no CSS rule holding the
+  outgoing page visible for the full layout slide.
+- ScrollPlugin uses the standard `smoothScrolling: true` configuration with no
+  custom acceleration, early-scroll setting, or second scroll writer.
+- `visit:end` hides the temporary tail and restores the deferred TOC after
+  200ms, matching Fuwari.
+- Local chrome and enhancement hooks may use `is-layout-moving` to avoid
+  unrelated work during the transform, but they must not change Fuwari's fade,
+  swap, scroll, or cleanup sequence.
 
-## Regression checks
-
-Use a production build rather than the development server for animation
-checks. At minimum:
-
-1. Scroll to the bottom of home and activate the bottommost post. Check both
-   directions, including browser back and forward.
-2. Check post-to-post navigation and a bilingual route.
-3. Verify initial-load and Swup-load TOC initialization, active-heading
-   tracking, indicator geometry, and internal TOC scrolling.
-4. Check sidebar stickiness at rest and during home/post navigation.
-5. Check mobile banner geometry and mobile menu/TOC interaction.
-6. Run `git diff --check`, `pnpm exec astro check`, `pnpm build`, and the
-   generated-markup assertions.
-
-See `docs/ANIMATION.md` for ownership details and the lifecycle contract.
+Verify changes with a real click on the bottommost visible post after scrolling
+to the bottom, then run `pnpm exec astro check` and a production build.

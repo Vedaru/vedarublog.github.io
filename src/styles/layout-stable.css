@@ -7,9 +7,15 @@
  * transform on the banner and grid plus the sidebars' top compensation.
  */
 
-/* Blog-specific paint ownership. The fixed doodle backdrop and custom dual
-   sidebars must not share the root paint surface with the moving banner and
-   content. Fuwari does not have these layers, so it does not need this rule. */
+:root {
+	--layout-slide-duration: 700ms;
+	--layout-slide-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Keep the moving content and both sidebar columns in their own paint
+   containing blocks, matching the deployed smooth implementation. Without
+   these, the fixed doodle layer shares the root paint surface with the moving
+   banner and is repainted every frame. */
 #sidebar,
 .right-sidebar-container,
 #content-wrapper {
@@ -23,9 +29,7 @@
 	width: 100%;
 	z-index: 10;
 	overflow: hidden;
-	height: calc(
-		var(--banner-height, 35vh) + var(--banner-height-extend, 30dvh)
-	);
+	height: var(--banner-height-home, 65vh);
 	top: calc(-1 * var(--banner-height-extend, 30dvh));
 }
 
@@ -55,16 +59,6 @@ body.no-banner-mode #banner-wrapper {
 	display: none;
 }
 
-/* The content panel starts at the 35vh banner boundary, without an extra overlap. */
-html[data-wallpaper-mode="banner"] .main-panel {
-	top: var(--banner-height, 35vh);
-}
-
-html[data-wallpaper-mode="banner"] #top-row {
-	height: calc(var(--banner-height-home, 65vh) - 4.5rem);
-	min-height: calc(var(--banner-height-home, 65vh) - 4.5rem);
-}
-
 /* ── Desktop: home reveals 65vh, content pages show the 35vh strip ───── */
 @media (min-width: 1024px) {
 	html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home
@@ -78,6 +72,18 @@ html[data-wallpaper-mode="banner"] #top-row {
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #banner {
 		transform: translateY(0);
+	}
+
+	html[data-wallpaper-mode="banner"] body.enable-banner .main-panel {
+		top: calc(
+			var(--banner-height-home, 65vh) -
+				var(--banner-height-extend, 30dvh)
+		);
+	}
+
+	html[data-wallpaper-mode="banner"] #top-row {
+		height: calc(var(--banner-height-home, 65vh) - 4.5rem);
+		min-height: calc(var(--banner-height-home, 65vh) - 4.5rem);
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home
@@ -101,7 +107,86 @@ html[data-wallpaper-mode="banner"] #top-row {
 }
 /* ── No banner: content starts right under the navbar ─────────────────── */
 html[data-wallpaper-mode="none"] .main-panel {
-	top: 5.5rem;
+	top: calc(5.5rem + 1rem);
+	min-height: calc(100vh - 6.5rem);
+}
+
+html[data-wallpaper-mode="none"] #main-grid {
+	padding-top: 1rem;
+}
+
+/* ── Mobile: full-height banner on home, hidden on content pages ──────── */
+:root {
+	--mobile-banner-height: max(70vh, 450px);
+}
+
+@media (max-width: 1279px) {
+	html[data-wallpaper-mode="banner"] #banner-wrapper {
+		top: 0;
+		height: var(--mobile-banner-height);
+		transform: none;
+	}
+
+	html[data-wallpaper-mode="banner"] .main-panel {
+		top: var(--mobile-banner-height);
+	}
+
+	html[data-wallpaper-mode="banner"] body.enable-banner #main-grid {
+		transform: none !important;
+	}
+
+	html[data-wallpaper-mode="banner"] #banner-wrapper.mobile-hide-banner {
+		transform: translateY(-100%);
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	.main-panel.mobile-main-no-banner {
+		top: calc(5.5rem + 1rem) !important;
+		min-height: calc(100vh - 6.5rem);
+	}
+}
+
+@media (min-width: 480px) and (max-width: 767px) {
+	:root {
+		--mobile-banner-height: max(75vh, 500px);
+	}
+}
+
+@media (min-width: 768px) and (max-width: 1279px) {
+	:root {
+		--mobile-banner-height: max(70vh, 500px);
+	}
+}
+
+@media (max-width: 1279px) and (orientation: landscape) {
+	:root {
+		--mobile-banner-height: max(60vh, 300px);
+	}
+}
+
+@media (max-height: 500px) {
+	:root {
+		--mobile-banner-height: max(85vh, 350px);
+	}
+}
+
+@media (min-height: 501px) and (max-height: 600px) {
+	:root {
+		--mobile-banner-height: max(80vh, 400px);
+	}
+}
+
+@media (min-height: 601px) and (max-height: 700px) {
+	:root {
+		--mobile-banner-height: max(75vh, 450px);
+	}
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+	:root {
+		--mobile-banner-height: max(90vh, 300px);
+	}
 }
 
 /* ── TOC scroll container ─────────────────────────────────────────────── */

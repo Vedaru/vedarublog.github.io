@@ -49,6 +49,7 @@ declare global {
 		__adjustPageScale?: () => void;
 		__analyticsSchedulerBootstrapped?: boolean;
 		__iconifyLoaderInitialized?: boolean;
+		backToTop?: () => void;
 		loadIconify?: () => Promise<void> | void;
 		preloadIcons?: (icons: string | string[]) => void;
 		onIconifyReady?: (callback: () => void) => void;

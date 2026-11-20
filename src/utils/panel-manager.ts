@@ -1,9 +1,10 @@
 /**
  * Floating panel state.
  *
- * Panel visibility uses the shared transition rules in styles/main.css.
- * `.float-panel-closed` is the only state this module toggles. No forced
- * reflow, inline transition strings, or per-panel timers.
+ * Animation lives in panel-animations.css: every panel has the same CSS
+ * transition on transform/opacity, and `.float-panel-closed` is the only state
+ * this module toggles. No forced reflow, no inline transition strings, no
+ * per-panel timers.
  */
 export type PanelId =
 	| "language-panel"

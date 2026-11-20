@@ -9,22 +9,24 @@ type BannerResponsive = {
 } | null;
 
 interface Props {
+	mobileNonHomeBannerClass: string;
 	desktopBannerResponsive: BannerResponsive;
 	mobileBannerResponsive: BannerResponsive;
 	bannerObjectPosition: string;
 }
 
 const {
+	mobileNonHomeBannerClass,
 	desktopBannerResponsive,
 	mobileBannerResponsive,
 	bannerObjectPosition,
 }: Props = Astro.props;
 ---
 
-<!-- Banner - Fuwari's persistent, composited banner subtree -->
+<!-- Banner - 始终渲染，通过 JS 控制显示隐藏 -->
 <div
     id="banner-wrapper"
-    class="absolute z-10 w-full transition duration-700 overflow-hidden"
+    class={`absolute z-10 w-full transition duration-700 overflow-hidden ${mobileNonHomeBannerClass}`}
 >
     {desktopBannerResponsive && (
         <div id="banner" class="object-cover h-full transition duration-700 opacity-0 scale-105 overflow-hidden relative">
