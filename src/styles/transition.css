@@ -1,97 +1,52 @@
-/* Page transition animations with Swup (Fuwari's model). */
+/* Page transition animations with Swup */
 html.is-changing .transition-swup-fade {
-	transition-property:
-		color, background-color, border-color, text-decoration-color, fill,
-		stroke, opacity, box-shadow, transform, filter, backdrop-filter;
-	transition-duration: 200ms;
-	transition-timing-function: var(--layout-slide-ease);
+    @apply transition-all duration-200
 }
 html.is-animating .transition-swup-fade {
-	opacity: 0;
-	transform: translateY(1rem);
+    @apply opacity-0 translate-y-4
 }
 
 /* Fade-in animations for components */
 @keyframes fade-in-up {
-	0% {
-		transform: translateY(2rem);
-		opacity: 0;
-	}
-	100% {
-		transform: translateY(0);
-		opacity: 1;
-	}
-}
-
-/* Shared entrance animations used by album/friend/skill/404 pages. */
-@keyframes fade-in-up-sm {
-	from {
-		opacity: 0;
-		transform: translateY(20px);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0);
-	}
-}
-
-@keyframes fade-in-up-lg {
-	from {
-		opacity: 0;
-		transform: translateY(30px);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0);
-	}
-}
-
-@keyframes spin {
-	from {
-		transform: rotate(0deg);
-	}
-	to {
-		transform: rotate(360deg);
-	}
+    0% {
+        transform: translateY(2rem);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 /* Main components */
 .onload-animation {
-	opacity: 0;
-	animation: 300ms fade-in-up;
-	animation-fill-mode: forwards;
+    opacity: 0;
+    animation: 300ms fade-in-up;
+    animation-fill-mode: forwards;
+}
+#navbar {
+    animation-delay: 0ms
+}
+#sidebar {
+    animation-delay: 100ms
 }
 #swup-container {
-	outline: none;
+    outline: none;
 }
 #content-wrapper {
-	animation-delay: var(--content-delay);
-}
-/* The sidebar TOC is secondary on a page swap. Skipping its layout until the
-   incoming content has settled keeps the main container replacement cheap. */
-#toc-wrapper.is-toc-deferred {
-	pointer-events: none;
-}
-#toc-wrapper.is-toc-deferred #toc {
-	content-visibility: hidden;
+    animation-delay: var(--content-delay);
 }
 .footer {
-	animation-delay: 250ms;
+    animation-delay: 250ms;
+}
+#banner-credit {
+    animation-delay: 400ms;
 }
 
-/* Reduced-motion: one authoritative rule for the whole site. */
-@media (prefers-reduced-motion: reduce) {
-	*,
-	*::before,
-	*::after {
-		animation-duration: 0.01ms !important;
-		animation-iteration-count: 1 !important;
-		transition-duration: 0.01ms !important;
-		scroll-behavior: auto !important;
-	}
-
-	.onload-animation {
-		animation: none !important;
-		opacity: 1 !important;
-	}
-}
+/* Post content */
+#post-container :nth-child(1) { animation-delay: calc(var(--content-delay) + 0ms) }
+#post-container :nth-child(2) { animation-delay: calc(var(--content-delay) + 50ms) }
+#post-container :nth-child(3) { animation-delay: calc(var(--content-delay) + 100ms) }
+#post-container :nth-child(4) { animation-delay: calc(var(--content-delay) + 175ms) }
+#post-container :nth-child(5) { animation-delay: calc(var(--content-delay) + 250ms) }
+#post-container :nth-child(6) { animation-delay: calc(var(--content-delay) + 325ms) }

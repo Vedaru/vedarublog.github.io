@@ -34,7 +34,6 @@ import playlistJson from "../../public/assets/music/playlist.json";
 // 副作用被编译进包；该 glob 收窄为图片扩展名后须显式引入。
 import "../styles/variables.styl";
 import "../styles/main.css";
-import "../styles/panel-animations.css";
 // The code font is a 4.5KB data-URI face. Keep it in the initial CSS so code
 // blocks never swap fonts and change their metrics after the article mounts.
 import "@fontsource-variable/jetbrains-mono/wght.css";
@@ -179,7 +178,7 @@ if (siteConfig.font) {
 <!doctype html>
 <html
 	lang={siteLang}
-	class="bg-[var(--page-bg)] text-[14px] md:text-[16px]"
+	class="bg-[var(--page-bg)] transition text-[14px] md:text-[16px]"
 	data-wallpaper-mode={siteConfig.wallpaperMode.defaultMode}
 	data-post-list-layout={siteConfig.postListLayout?.defaultMode || "list"}
 	data-locale={urlLocale}
@@ -335,24 +334,8 @@ if (siteConfig.font) {
 				);
 			}
 
-			// 滑动过程中重算这两个变量等于给正在跑的 transform 换目标值：
-			// 桌面端拖窗口、移动端地址栏收起都会在这 700ms 里触发 resize。
-			// 先记下，等 is-layout-moving 消失后再写一次。
-			let extendRetries = 0;
-			function syncBannerExtend() {
-				if (
-					extendRetries < 10 &&
-					document.documentElement.classList.contains("is-layout-moving")
-				) {
-					extendRetries += 1;
-					window.setTimeout(syncBannerExtend, 120);
-					return;
-				}
-				extendRetries = 0;
-				applyBannerExtend();
-			}
-			syncBannerExtend();
-			window.addEventListener("resize", syncBannerExtend, {
+			applyBannerExtend();
+			window.addEventListener("resize", applyBannerExtend, {
 				passive: true,
 			});
 			document.documentElement.style.setProperty(
@@ -498,28 +481,11 @@ if (siteConfig.font) {
 <!-- Easter egg: type "holo" on any page -->
 <TerminalEasterEgg client:only="svelte" />
 
-<!-- The banner is inlined as a data: URI, so it is parsed with the document.
-     Only a fallback (no inline) needs the placeholder fade. -->
+<!-- Reveal the persistent banner exactly as Fuwari does on initialization. -->
 <script is:inline>
-	(() => {
-		const banner = document.getElementById("banner");
-		if (!banner) return;
-		const image = banner.querySelector("img");
-		if (!image) return;
-		const show = () => banner.classList.remove("opacity-0", "scale-105");
-		if (image.getAttribute("src")?.startsWith("data:")) {
-			// Nothing to wait for: reveal without fading over the placeholder.
-			image.style.transition = "none";
-			show();
-			return;
-		}
-		const decoded = () =>
-			image.decode ? image.decode().then(show, show) : show();
-		if (image.complete && image.naturalWidth > 0) decoded();
-		else image.addEventListener("load", decoded, { once: true });
-		image.addEventListener("error", show, { once: true });
-		setTimeout(show, 1500);
-	})();
+	document
+		.getElementById("banner")
+		?.classList.remove("opacity-0", "scale-105");
 </script>
 
 <!-- increase the page height during page transition to prevent the scrolling animation from jumping -->
@@ -534,5 +500,5 @@ if (siteConfig.font) {
 	import "../scripts/toc-element";
 
 	initTransitions();
-initEnhancements();
+	initEnhancements();
 </script>

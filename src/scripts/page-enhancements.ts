@@ -3,10 +3,9 @@
  *
  * Everything here is optional: image lightboxes, math fonts, code fonts,
  * mermaid diagrams, comment widgets and analytics. None of it is needed for
- * first paint or the page transition, so it starts only after the 700ms
- * banner/grid glide has settled and the browser is idle.
+ * first paint or the page transition, so it starts in an idle callback after
+ * each Swup visit.
  */
-import { runAfterLayoutSettled } from "./runtime/after-transition";
 
 let generation = 0;
 
@@ -159,17 +158,14 @@ function bootEnhancements(token: number): void {
 
 export function scheduleEnhancements(): void {
 	const token = ++generation;
-	runAfterLayoutSettled(() => {
-		if (token !== generation) return;
-		const run = () => {
-			if (token === generation) bootEnhancements(token);
-		};
-		if ("requestIdleCallback" in window) {
-			requestIdleCallback(run, { timeout: 2500 });
-		} else {
-			setTimeout(run, 300);
-		}
-	});
+	const run = () => {
+		if (token === generation) bootEnhancements(token);
+	};
+	if ("requestIdleCallback" in window) {
+		requestIdleCallback(run, { timeout: 2500 });
+	} else {
+		setTimeout(run, 300);
+	}
 }
 
 /** Invalidate work queued for the previous page. */

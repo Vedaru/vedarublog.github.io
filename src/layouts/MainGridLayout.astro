@@ -64,9 +64,6 @@ const shouldPreloadMobileBanner = isHomePage && Boolean(mobileBannerResponsive);
 const bannerObjectPosition = siteConfig.banner.position || "center";
 const mobileBannerObjectPosition =
 	siteConfig.banner.mobilePosition || "left center";
-// 手机端非首页不显示 banner（只在 content:replace 之后切换，避免旧页面跳动）
-const mobileNonHomeBannerClass = !isHomePage ? "mobile-hide-banner" : "";
-
 // 栅格布局只由 #main-grid 上的 data-* 属性表达，列宽与各区域定位统一在
 // layout-stable.css 的「Main grid」一节定义。以前同一套布局在这个文件里拼
 // class 字符串、又在 <style> 里用 !important 覆盖，两处会互相打架。
@@ -137,19 +134,13 @@ const defaultPostListLayout = siteConfig.postListLayout?.defaultMode || "list";
 </div>
 
 <BannerWrapper
-	mobileNonHomeBannerClass={mobileNonHomeBannerClass}
 	desktopBannerResponsive={desktopBannerResponsive}
 	mobileBannerResponsive={mobileBannerResponsive}
 	bannerObjectPosition={bannerObjectPosition}
 />
 
 <!-- Main content -->
-<div
-	class:list={[
-		"main-panel absolute w-full z-30 pointer-events-none",
-		mobileNonHomeBannerClass ? "mobile-main-no-banner" : "",
-	]}
->
+<div class="main-panel absolute w-full z-30 pointer-events-none">
     <!-- The pointer-events-none here prevent blocking the click event of the TOC -->
     <div class="relative max-w-[var(--page-width)] mx-auto pointer-events-auto min-w-0 w-full">
         <div id="main-grid" class="transition duration-700 w-full max-w-[var(--page-width)] min-w-0 left-0 right-0 mx-auto gap-4 px-2 md:px-4"
@@ -157,10 +148,10 @@ const defaultPostListLayout = siteConfig.postListLayout?.defaultMode || "list";
              data-sides={desktopSides}
              data-mobile={mobileShowSidebar ? "true" : "false"}
         >
-            <SideBar class="mb-4 row-start-2 row-end-3 col-span-2 lg:row-start-1 lg:row-end-2 lg:col-span-1 lg:max-w-[17.5rem]"></SideBar>
+            <SideBar class="mb-4 row-start-2 row-end-3 col-span-2 lg:row-start-1 lg:row-end-2 lg:col-span-1 lg:max-w-[17.5rem] onload-animation"></SideBar>
 
             {hasRightSidebarComponents && (
-                <div class="right-sidebar-container">
+                <div class="right-sidebar-container onload-animation">
                     <SideBar side="right" headings={headings}></SideBar>
                 </div>
             )}
@@ -197,8 +188,8 @@ const defaultPostListLayout = siteConfig.postListLayout?.defaultMode || "list";
             "-right-[var(--toc-width)]",
             {"toc-hide": siteConfig.wallpaperMode.defaultMode === "banner"}]}
         >
-            <div id="toc-inner-wrapper" class="fixed top-14 w-[var(--toc-width)] h-[calc(100vh_-_20rem)] overflow-y-scroll hide-scrollbar">
-                <div id="toc" class="w-full transition-swup-fade">
+            <div id="toc-inner-wrapper" class="fixed top-14 w-[var(--toc-width)] h-[calc(100vh_-_20rem)] overflow-y-scroll overflow-x-hidden hide-scrollbar">
+                <div id="toc" class="w-full h-full transition-swup-fade">
                     <div class="h-8 w-full"></div>
                     {showSidebarTOC && <TOC headings={headings}></TOC>}
                     <div class="h-8 w-full"></div>
@@ -214,47 +205,5 @@ const defaultPostListLayout = siteConfig.postListLayout?.defaultMode || "list";
 body.no-banner-mode #toc-inner-wrapper {
     top: 5.5rem !important;
     height: calc(100vh - 8rem) !important;
-}
-
-/* 移动端banner性能优化 */
-@media (max-width: 1279px) {
-    .banner-container {
-        /* 启用硬件加速 */
-        transform: translateZ(0);
-        -webkit-transform: translateZ(0);
-        
-        /* 优化渲染性能 */
-        contain: layout style paint;
-        
-        /* 减少重绘 */
-        backface-visibility: hidden;
-        -webkit-backface-visibility: hidden;
-    }
-
-    /* 移动端图片优化 */
-    .banner-container img {
-        /* 图片渲染优化 */
-        image-rendering: -webkit-optimize-contrast;
-        image-rendering: crisp-edges;
-        
-        /* 防止图片拖拽 */
-        -webkit-user-drag: none;
-        -khtml-user-drag: none;
-        -moz-user-drag: none;
-        -o-user-drag: none;
-        user-drag: none;
-        
-        /* 触摸优化 */
-        pointer-events: none;
-    }
-}
-
-/* 移动端横屏优化 — 布局高度见 layout-stable.css */
-@media (max-width: 1279px) and (orientation: landscape) {
-    .banner-container {
-        height: 60vh;
-        min-height: 300px;
-    }
-
 }
 </style>

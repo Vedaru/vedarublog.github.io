@@ -7,17 +7,6 @@
  * transform on the banner and grid plus the sidebars' top compensation.
  */
 
-:root {
-	--layout-slide-duration: 700ms;
-	--layout-slide-ease: cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Keep the moving content in its own paint containing block. Sidebar columns
-   remain untransformed so their sticky groups keep Fuwari's native ownership. */
-#content-wrapper {
-	transform: translate(0px, 0px);
-}
-
 /* ── Base banner ──────────────────────────────────────────────────────── */
 #banner-wrapper {
 	position: absolute;
@@ -55,6 +44,16 @@ body.no-banner-mode #banner-wrapper {
 	display: none;
 }
 
+/* Fuwari's content panel overlaps the 35vh banner strip by 3.5rem. */
+html[data-wallpaper-mode="banner"] .main-panel {
+	top: calc(var(--banner-height, 35vh) - 3.5rem);
+}
+
+html[data-wallpaper-mode="banner"] #top-row {
+	height: calc(var(--banner-height-home, 65vh) - 4.5rem);
+	min-height: calc(var(--banner-height-home, 65vh) - 4.5rem);
+}
+
 /* ── Desktop: home reveals 65vh, content pages show the 35vh strip ───── */
 @media (min-width: 1024px) {
 	html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home
@@ -68,18 +67,6 @@ body.no-banner-mode #banner-wrapper {
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home #banner {
 		transform: translateY(0);
-	}
-
-	html[data-wallpaper-mode="banner"] body.enable-banner .main-panel {
-		top: calc(
-			var(--banner-height-home, 65vh) -
-				var(--banner-height-extend, 30dvh)
-		);
-	}
-
-	html[data-wallpaper-mode="banner"] #top-row {
-		height: calc(var(--banner-height-home, 65vh) - 4.5rem);
-		min-height: calc(var(--banner-height-home, 65vh) - 4.5rem);
 	}
 
 	html[data-wallpaper-mode="banner"] body.enable-banner.lg\:is-home
@@ -103,86 +90,7 @@ body.no-banner-mode #banner-wrapper {
 }
 /* ── No banner: content starts right under the navbar ─────────────────── */
 html[data-wallpaper-mode="none"] .main-panel {
-	top: calc(5.5rem + 1rem);
-	min-height: calc(100vh - 6.5rem);
-}
-
-html[data-wallpaper-mode="none"] #main-grid {
-	padding-top: 1rem;
-}
-
-/* ── Mobile: full-height banner on home, hidden on content pages ──────── */
-:root {
-	--mobile-banner-height: max(70vh, 450px);
-}
-
-@media (max-width: 1279px) {
-	html[data-wallpaper-mode="banner"] #banner-wrapper {
-		top: 0;
-		height: var(--mobile-banner-height);
-		transform: none;
-	}
-
-	html[data-wallpaper-mode="banner"] .main-panel {
-		top: var(--mobile-banner-height);
-	}
-
-	html[data-wallpaper-mode="banner"] body.enable-banner #main-grid {
-		transform: none !important;
-	}
-
-	html[data-wallpaper-mode="banner"] #banner-wrapper.mobile-hide-banner {
-		transform: translateY(-100%);
-		opacity: 0;
-		pointer-events: none;
-	}
-
-	.main-panel.mobile-main-no-banner {
-		top: calc(5.5rem + 1rem) !important;
-		min-height: calc(100vh - 6.5rem);
-	}
-}
-
-@media (min-width: 480px) and (max-width: 767px) {
-	:root {
-		--mobile-banner-height: max(75vh, 500px);
-	}
-}
-
-@media (min-width: 768px) and (max-width: 1279px) {
-	:root {
-		--mobile-banner-height: max(70vh, 500px);
-	}
-}
-
-@media (max-width: 1279px) and (orientation: landscape) {
-	:root {
-		--mobile-banner-height: max(60vh, 300px);
-	}
-}
-
-@media (max-height: 500px) {
-	:root {
-		--mobile-banner-height: max(85vh, 350px);
-	}
-}
-
-@media (min-height: 501px) and (max-height: 600px) {
-	:root {
-		--mobile-banner-height: max(80vh, 400px);
-	}
-}
-
-@media (min-height: 601px) and (max-height: 700px) {
-	:root {
-		--mobile-banner-height: max(75vh, 450px);
-	}
-}
-
-@media (orientation: landscape) and (max-height: 500px) {
-	:root {
-		--mobile-banner-height: max(90vh, 300px);
-	}
+	top: 5.5rem;
 }
 
 /* ── TOC scroll container ─────────────────────────────────────────────── */
