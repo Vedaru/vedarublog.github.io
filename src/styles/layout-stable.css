@@ -7,6 +7,15 @@
  * transform on the banner and grid plus the sidebars' top compensation.
  */
 
+/* Blog-specific paint ownership. The fixed doodle backdrop and custom dual
+   sidebars must not share the root paint surface with the moving banner and
+   content. Fuwari does not have these layers, so it does not need this rule. */
+#sidebar,
+.right-sidebar-container,
+#content-wrapper {
+	transform: translate(0px, 0px);
+}
+
 /* ── Base banner ──────────────────────────────────────────────────────── */
 #banner-wrapper {
 	position: absolute;

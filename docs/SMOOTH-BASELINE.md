@@ -17,6 +17,10 @@ traces are historical references only.
 - The main panel meets the banner at its boundary, without the upstream
   3.5rem overlap. Banner height and extension use shared variables so the edge
   remains aligned after responsive pixel rounding.
+- `#sidebar`, `.right-sidebar-container`, and `#content-wrapper` retain the
+  identity-transform paint boundaries from `7749408`. They prevent the custom
+  fixed doodle backdrop from sharing the moving banner's root paint surface.
+  Fuwari does not have these blog-specific layers.
 - ScrollPlugin uses `smoothScrolling: true` without custom acceleration,
   `doScrollingRightAway`, a second scroll writer, or transform-dependent waits.
 - Banner reveal and resize calculations follow Fuwari. Mobile keeps the same

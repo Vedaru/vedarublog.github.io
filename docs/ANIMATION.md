@@ -47,6 +47,16 @@ JavaScript does not write banner or grid transforms during a visit. Do not add
 rAF transform drivers, geometry polling, layout-settled events, or another
 page-transition coordinator.
 
+## Blog-specific paint ownership
+
+Fuwari's structure alone is not sufficient for this blog's rendering workload.
+The fixed SVG doodle backdrop and custom dual sidebars can share the root paint
+surface with the moving banner. Keep `#sidebar`, `.right-sidebar-container`,
+and `#content-wrapper` in their own paint containing blocks with the identity
+transform in `layout-stable.css`. These boundaries were present in the smooth
+`7749408` implementation and were removed by the later upstream-alignment work.
+Do not remove them merely because upstream Fuwari does not need them.
+
 ## TOC contract
 
 `src/scripts/toc-element.ts` follows Fuwari's observer and indicator design. It
